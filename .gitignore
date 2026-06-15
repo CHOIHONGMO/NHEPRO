@@ -10,7 +10,6 @@ target/
 .settings/
 .classpath
 .project
-.vscode/
 bin/
 
 # Temporary and log files

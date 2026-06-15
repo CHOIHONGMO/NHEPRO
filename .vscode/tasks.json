@@ -1,0 +1,66 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build NHeCommon",
+            "type": "shell",
+            "command": "C:/ST-onesIDE/server/apache-maven-3.9.16/bin/mvn.cmd",
+            "args": [
+                "clean",
+                "install",
+                "-DskipTests"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/NHeCommon",
+                "env": {
+                    "JAVA_HOME": "C:/ST-onesIDE/java/java-1.8"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build NHeProFront",
+            "type": "shell",
+            "command": "C:/ST-onesIDE/server/apache-maven-3.9.16/bin/mvn.cmd",
+            "args": [
+                "clean",
+                "package",
+                "-DskipTests"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/NHeProFront",
+                "env": {
+                    "JAVA_HOME": "C:/ST-onesIDE/java/java-1.8"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build NHeProOperator",
+            "type": "shell",
+            "command": "C:/ST-onesIDE/server/apache-maven-3.9.16/bin/mvn.cmd",
+            "args": [
+                "clean",
+                "package",
+                "-DskipTests"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/NHeProOperator",
+                "env": {
+                    "JAVA_HOME": "C:/ST-onesIDE/java/java-1.8"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build NHEPRO Multi-Modules",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build NHeCommon",
+                "Build NHeProFront",
+                "Build NHeProOperator"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

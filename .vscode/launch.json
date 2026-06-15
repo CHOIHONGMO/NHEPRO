@@ -1,0 +1,24 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Tomcat 9.0.118 (Debug)",
+            "request": "launch",
+            "mainClass": "org.apache.catalina.startup.Bootstrap",
+            "args": "start",
+            "vmArgs": [
+                "-Dcatalina.home=C:/ST-onesIDE/server/apache-tomcat-9.0.118",
+                "-Dcatalina.base=C:/ST-onesIDE/server/apache-tomcat-9.0.118",
+                "-Djava.io.tmpdir=C:/ST-onesIDE/server/apache-tomcat-9.0.118/temp",
+                "-Djava.util.logging.config.file=C:/ST-onesIDE/server/apache-tomcat-9.0.118/conf/logging.properties",
+                "-Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager"
+            ],
+            "classPaths": [
+                "C:/ST-onesIDE/server/apache-tomcat-9.0.118/bin/bootstrap.jar",
+                "C:/ST-onesIDE/server/apache-tomcat-9.0.118/bin/tomcat-juli.jar"
+            ],
+            "preLaunchTask": "Build NHEPRO Multi-Modules"
+        }
+    ]
+}

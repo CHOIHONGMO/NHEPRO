@@ -62,35 +62,35 @@
                 <artifactId>maven-war-plugin</artifactId>
                 <version>2.6</version>
                 <configuration>
-                    <warSourceDirectory>${basedir}/src/main/webapp/</warSourceDirectory>
+                    <warSourceDirectory>${project.basedir}/src/main/webapp/</warSourceDirectory>
                     <webResources>
                         <resource>
-                            <directory>${basedir}/src/main/resources/profiles/${deployProfileName}/conf</directory>
+                            <directory>${project.basedir}/src/main/resources/profiles/${deployProfileName}/conf</directory>
                             <targetPath>WEB-INF/classes</targetPath>
                             <filtering>false</filtering>
                         </resource>
                         <resource>
-                            <directory>${basedir}/src/main/resources/profiles/${deployProfileName}/resources/everuxf</directory>
+                            <directory>${project.basedir}/src/main/resources/profiles/${deployProfileName}/resources/everuxf</directory>
                             <targetPath>/js/everuxf/lic</targetPath>
                             <filtering>false</filtering>
                         </resource>
                         <resource>
-                            <directory>${basedir}/src/main/resources/profiles/${deployProfileName}/resources/realgrid</directory>
+                            <directory>${project.basedir}/src/main/resources/profiles/${deployProfileName}/resources/realgrid</directory>
                             <targetPath>/js/everuxf/lib/realgrid</targetPath>
                             <filtering>false</filtering>
                         </resource>
                         <resource>
-                            <directory>${basedir}/src/main/resources/profiles/${deployProfileName}/resources/js</directory>
+                            <directory>${project.basedir}/src/main/resources/profiles/${deployProfileName}/resources/js</directory>
                             <targetPath>/js</targetPath>
                             <filtering>false</filtering>
                         </resource>
                         <resource>
-                            <directory>${basedir}/src/main/resources/profiles/${deployProfileName}/resources/magicLine</directory>
+                            <directory>${project.basedir}/src/main/resources/profiles/${deployProfileName}/resources/magicLine</directory>
                             <targetPath>WEB-INF/magicline/config</targetPath>
                             <filtering>false</filtering>
                         </resource>
                         <resource>
-                            <directory>${basedir}/src/main/resources/profiles/${deployProfileName}/resources/touchEnNx</directory>
+                            <directory>${project.basedir}/src/main/resources/profiles/${deployProfileName}/resources/touchEnNx</directory>
                             <targetPath>/raonnx/cmn</targetPath>
                             <filtering>false</filtering>
                         </resource>
@@ -482,77 +482,77 @@
             <artifactId>everuxf</artifactId>
             <version>1.1</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/everuxf-1.1.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/everuxf-1.1.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.ktnet</groupId>
             <artifactId>tradesign</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/tradesign-1.0.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/tradesign-1.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>crosscert</groupId>
             <artifactId>crosscert</artifactId>
             <version>2.2</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/crosscert_2.2.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/crosscert_2.2.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>sapjco</groupId>
             <artifactId>sapjco</artifactId>
             <version>3</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/sapjco3.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/sapjco3.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>h2</groupId>
             <artifactId>h2</artifactId>
             <version>1.3.176</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/h2-1.3.176.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/h2-1.3.176.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>jai_codec</groupId>
             <artifactId>jai_codec</artifactId>
             <version>1.1.3</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/jai_codec-1.1.3.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/jai_codec-1.1.3.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>jai_core</groupId>
             <artifactId>jai_core</artifactId>
             <version>1.1.3</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/jai_core-1.1.3.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/jai_core-1.1.3.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>jboss-logging-3.0.0</groupId>
             <artifactId>jboss-logging</artifactId>
             <version>3.0.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/jboss-logging-3.0.0.CR1.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/jboss-logging-3.0.0.CR1.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>jboss-vfs-3.1.0</groupId>
             <artifactId>jboss-vfs</artifactId>
             <version>3.1.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/jboss-vfs-3.1.0.Final.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/jboss-vfs-3.1.0.Final.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>thumbnailator-0.4.5</groupId>
             <artifactId>thumbnailator</artifactId>
             <version>0.4.5</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/thumbnailator-0.4.5.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/thumbnailator-0.4.5.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>nsso-agent</groupId>
             <artifactId>net.blossom</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/nsso-agent-16.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/nsso-agent-16.jar</systemPath>
         </dependency>
 
         <dependency>
@@ -560,126 +560,126 @@
             <artifactId>sgixlinker</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/KICASGIxLinker.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/KICASGIxLinker.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.nicednb</groupId>
             <artifactId>nice-aes</artifactId>
             <version>1.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/NiceAes.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/NiceAes.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>sqljdbc4</artifactId>
             <version>4.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/sqljdbc4.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/sqljdbc4.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.apache.velocity</groupId>
             <artifactId>velocity</artifactId>
             <version>1.7</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/velocity-1.7.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/velocity-1.7.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.oracle.jdbc</groupId>
             <artifactId>ojdbc7</artifactId>
             <version>12.2.0.1</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/ojdbc7.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/ojdbc7.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.github.jhonnymertz</groupId>
             <artifactId>java-wkhtmltopdf-wrapper</artifactId>
             <version>1.1.12-RELEASE</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/java-wkhtmltopdf-wrapper-1.1.12-RELEASE.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/java-wkhtmltopdf-wrapper-1.1.12-RELEASE.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>kcb.org</groupId>
             <artifactId>OkCert</artifactId>
             <version>1.5.2</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/OkCert3-java1.5-2.2.3.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/OkCert3-java1.5-2.2.3.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.encryptor</groupId>
             <artifactId>encryptor</artifactId>
             <version>1.0.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/encryptor.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/encryptor.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.ipg_adaptor</groupId>
             <artifactId>ipg_adaptor</artifactId>
             <version>0.1.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/ipg_adaptor-0.1.0.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/ipg_adaptor-0.1.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.fasoo-jni</groupId>
             <artifactId>fasoo-jni</artifactId>
             <version>3.2.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/fasoo-jni-3.2.0u.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/fasoo-jni-3.2.0u.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.fcwpkg_jni</groupId>
             <artifactId>fcwpkg_jni</artifactId>
             <version>1.0.13</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/fcwpkg_jni-1.0.13.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/fcwpkg_jni-1.0.13.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.dreamsecurity</groupId>
             <artifactId>jcaos</artifactId>
             <version>1.4.11.2</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/jcaos-1.4.11.2.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/jcaos-1.4.11.2.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.dreamsecurity.magice2e</groupId>
             <artifactId>magice2e</artifactId>
             <version>1.0.1.6</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/magice2e_1.0.1.6.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/magice2e_1.0.1.6.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.dreamsecurity.kcmv</groupId>
             <artifactId>MagicJCrypto</artifactId>
             <version>2.0.0.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/MagicJCrypto-v2.0.0.0.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/MagicJCrypto-v2.0.0.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.dreamsecurity.mle2e</groupId>
             <artifactId>magicline-e2e</artifactId>
             <version>4.0.0.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/magicline-e2e-4.0.0.0.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/magicline-e2e-4.0.0.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.dreamsecurity.magicline</groupId>
             <artifactId>ml4web_server</artifactId>
             <version>4.5.0.3</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/ml4web_server_4.5.0.3.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/ml4web_server_4.5.0.3.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.dreamsecurity.bcahelper</groupId>
             <artifactId>BCAVerifyHelper</artifactId>
             <version>1.0.0.8</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/BCAVerifyHelper_1.0.0.8.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/BCAVerifyHelper_1.0.0.8.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20190722</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/json-20190722.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/json-20190722.jar</systemPath>
         </dependency>
 
         <dependency>
@@ -687,14 +687,14 @@
             <artifactId>raon</artifactId>
             <version>1.0.0.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/tekey_e2e_v2.0.3.4_20191023.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/tekey_e2e_v2.0.3.4_20191023.jar</systemPath>
         </dependency>
         <dependency>
         	<groupId>bf</groupId>
             <artifactId>bf</artifactId>
             <version>1.0.0.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/src/main/webapp/WEB-INF/lib/bf.jar</systemPath>
+            <systemPath>${project.basedir}/src/main/webapp/WEB-INF/lib/bf.jar</systemPath>
         </dependency>
     </dependencies>
     <ciManagement>

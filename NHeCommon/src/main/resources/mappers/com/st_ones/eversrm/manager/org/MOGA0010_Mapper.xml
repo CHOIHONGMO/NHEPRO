@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.org.MOGA0010_Mapper">
+
+	<select id="selectGate" parameterType="hashmap" resultType="hashMap">
+
+        SELECT
+               OGHU.GATE_CD
+             , OGHU.GATE_CD AS GATE_CD_ORI
+             , GATE_NM
+             , GATE_NM_ENG
+             , OGHU.DEL_FLAG
+             , OGHU.GMT_CD
+             , <include refid="common.sql.toChar"/>(REG_DATE, 'yyyyMMdd') AS REG_DATE
+             , <include refid="common.sql.dbo"/>GETUSERNAME(OGHU.GATE_CD, OGHU.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+         FROM STOCOGHU OGHU
+        WHERE OGHU.DEL_FLAG = '0'
+        ORDER BY OGHU.GATE_CD
+
+    </select>
+
+    <select id="selectGateInfo" parameterType="hashmap" resultType="hashMap">
+
+        SELECT
+               OGHU.REG_USER_ID
+             , OGHU.GATE_CD
+             , OGHU.GATE_CD AS GATE_CD_ORI
+             , GATE_NM
+             , GATE_NM_ENG
+             , OGHU.DEL_FLAG
+             , OGHU.GMT_CD
+             , 'U' AS INSERT_FLAG
+             , <include refid="common.sql.toChar"/>(REG_DATE, 'yyyyMMdd') AS REG_DATE
+             , <include refid="common.sql.dbo"/>GETUSERNAME(OGHU.GATE_CD, OGHU.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+         FROM STOCOGHU OGHU
+        WHERE OGHU.DEL_FLAG = '0'
+          AND GATE_CD = #{GATE_CD}
+
+    </select>
+
+    <select id="checkGateUnitExists" parameterType="hashmap" resultType="java.lang.Integer">
+
+        SELECT COUNT(GATE_CD) AS CNT
+          FROM STOCOGHU
+         WHERE GATE_CD = #{gateCd}
+
+    </select>
+
+    <insert id="insertGate" parameterType="hashMap">
+
+        INSERT INTO STOCOGHU (
+        	  GATE_CD
+            , GATE_NM
+            , GATE_NM_ENG
+            , DEL_FLAG
+            , REG_USER_ID
+            , MOD_USER_ID
+            , GMT_CD
+            , REG_DATE
+            , MOD_DATE
+        ) VALUES (
+              UPPER(#{gateCd})
+            , #{gateNm}
+            , #{gateNmEng}
+            , '0'
+            , #{ses.userId}
+            , #{ses.userId}
+            , #{gmtCd}
+            , SYSDATE
+            , SYSDATE
+        )
+
+    </insert>
+
+    <update id="updateGate" parameterType="hashMap">
+
+        UPDATE STOCOGHU SET
+        	 MOD_USER_ID = #{ses.userId}
+            ,DEL_FLAG = '0'
+          <if test="gateNm != null">,GATE_NM = #{gateNm}</if>
+          <if test="gateNmEng != null">,GATE_NM_ENG = #{gateNmEng}</if>
+          <if test="gmtCd != null">,GMT_CD = #{gmtCd}</if>
+            ,MOD_DATE = SYSDATE
+        WHERE GATE_CD = #{gateCd}
+
+    </update>
+    <update id="deleteGate" parameterType="hashMap">
+
+        UPDATE STOCOGHU SET
+        	 DEL_FLAG = '1'
+            ,MOD_USER_ID = #{ses.userId}
+            ,MOD_DATE = SYSDATE
+        WHERE GATE_CD = #{gateCd}
+
+    </update>
+
+</mapper>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="EUC-KR" ?>
+<sg:BONCAL xmlns:sg="http://egis.sgic.co.kr/boncal" xmlns:cc="http://egis.sgic.co.kr/schema/CC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://egis.sgic.co.kr/boncal ..\Schema\boncal.xsd">
+      <Header.Details>
+            <cc:Message.Sender.Identifier>
+                  <Identifier.Content>z120811300200</Identifier.Content>
+            </cc:Message.Sender.Identifier>
+            <cc:Message.Receiver.Identifier>
+                  <Identifier.Content>A102813175400</Identifier.Content>
+            </cc:Message.Receiver.Identifier>
+            <cc:Message.Function.Code>
+                  <Code.Content>9</Code.Content>
+            </cc:Message.Function.Code>
+            <cc:Message.Type.Identifier>
+                  <Identifier.Content>BONCAL</Identifier.Content>
+            </cc:Message.Type.Identifier>
+            <cc:Message.Name>
+                  <Text.Content>보증보험료산출내역</Text.Content>
+            </cc:Message.Name>
+            <cc:Message.Version.Text>
+                  <Text.Content>1.0</Text.Content>
+            </cc:Message.Version.Text>
+            <cc:Document.Number.Text>
+                  <Text.Content>0040060250280701240001 00</Text.Content>
+            </cc:Document.Number.Text>
+            <cc:Document.ManagementNumber.Text>
+                  <Text.Content>z120811300200.20070126111439.20070000380100.0060250280701240001</Text.Content>
+            </cc:Document.ManagementNumber.Text>
+            <cc:Document.ReferenceNumber.Text>
+                  <Text.Content>0040060250280701240001 00</Text.Content>
+            </cc:Document.ReferenceNumber.Text>
+            <cc:Document.Title.Name>
+                  <Text.Content>보증보험료산출내역</Text.Content>
+            </cc:Document.Title.Name>
+      </Header.Details>
+      <Sender.Organization.Details>
+            <cc:Organization.Name>
+                  <Text.Content>서울보증보험</Text.Content>
+            </cc:Organization.Name>
+            <cc:Organization.Identifier>
+                  <Identifier.Content>1208113002</Identifier.Content>
+            </cc:Organization.Identifier>
+      </Sender.Organization.Details>
+      <Receiver.Organization.Details>
+            <cc:Organization.Name>
+                  <Text.Content></Text.Content>
+            </cc:Organization.Name>
+            <cc:Organization.Identifier>
+                  <Identifier.Content>1028131754</Identifier.Content>
+            </cc:Organization.Identifier>
+      </Receiver.Organization.Details>
+      <MainContract.Info.Details>
+            <cc:Contract.Number.Text>
+                  <Text.Content>20070000380100</Text.Content>
+            </cc:Contract.Number.Text>
+      </MainContract.Info.Details>
+      <Application.Information.Details>
+            <cc:Application.Bran.Code>
+                  <Text.Content>025</Text.Content>
+            </cc:Application.Bran.Code>
+            <cc:Application.Kind.Code>
+                  <Text.Content>028</Text.Content>
+            </cc:Application.Kind.Code>
+            <cc:Application.Serial.Code>
+                  <Text.Content>0701240001</Text.Content>
+            </cc:Application.Serial.Code>
+            <cc:Premium.Amount>
+                  <AmountCurrency.Identification.Code>WON</AmountCurrency.Identification.Code>
+                  <Amount.Content>143830</Amount.Content>
+            </cc:Premium.Amount>
+            <cc:Premium.Amount.Text>
+                  <Text.Content>결과=1;산출보험료=143830;원화보험료=143830;외화보험료=0;보험개시일=20070116;보험종료일=20070430;계약개시일=20070116;계약종료일=20070430;고유부호명=하도급대금;보험가입금액=50000000;환율=0.0000;외화보험금액=0;특별약관=0;적용할인율=0;적용요율=0.28767;기준요율=1.00000;우대할인율=0;할인율=0;우대구분=ZZ;품목명=;기간율=0;선택보험료=0;선택요율=0;개별할인율=0;추가위험부담특약요율=0;담보제공할인율=0;고액계약보증보험료할인여부=N;고액보험료적용전=143835 = 50000000 * (0.28767 / 100.0);고액보험료1=143835 = 50000000 * (0.28767 / 100.0) * (1 - 0);고액보험료적용후=143830;</Text.Content>
+            </cc:Premium.Amount.Text>
+            <cc:Application.Ends.Code>
+                  <Code.Content>00</Code.Content>
+            </cc:Application.Ends.Code>
+      </Application.Information.Details>
+</sg:BONCAL>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd">
+
+    <!-- Configures the @Controller programming model -->
+    <mvc:annotation-driven />
+
+    <bean id="jsonView" class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.BeanNameViewResolver">
+        <property name="order" value="1" />
+    </bean>
+
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/views" />
+        <property name="suffix" value=".jsp" />
+        <property name="order" value="2" />
+    </bean>
+
+    <mvc:interceptors>
+
+    	<!-- Session Check -->
+		<mvc:interceptor>
+		    <mvc:mapping path="/logout.so" />
+			<mvc:mapping path="/home.so" />
+			<mvc:mapping path="/common/**" />
+            <mvc:mapping path="/grid/**" />
+            <mvc:mapping path="/eversrm/**" />
+            <mvc:mapping path="/nhepro/**" />
+			<bean id="sessionInterceptor" class="com.st_ones.common.interceptor.SessionInterceptor">
+				<property name="noSessionRedirectUrl" value="/" />
+			</bean>
+		</mvc:interceptor>
+
+		<!-- Attribute Setting -->
+        <mvc:interceptor>
+            <mvc:mapping path="/**" />
+            <bean id="attributeInterceptor" class="com.st_ones.everf.serverside.web.interceptor.AttributeInterceptor" />
+        </mvc:interceptor>
+
+		<!-- Form Information -->
+        <mvc:interceptor>
+            <mvc:mapping path="/**/view.so" />
+            <bean id="screenInterceptor" class="com.st_ones.common.interceptor.ScreenInterceptor">
+            </bean>
+        </mvc:interceptor>
+
+    </mvc:interceptors>
+</beans>

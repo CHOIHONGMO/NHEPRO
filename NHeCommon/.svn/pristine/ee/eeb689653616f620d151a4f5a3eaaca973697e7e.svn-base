@@ -1,0 +1,562 @@
+package com.st_ones.common.login.service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.st_ones.common.docNum.service.DocNumService;
+import com.st_ones.common.enums.system.Code;
+import com.st_ones.common.login.LoginMapper;
+import com.st_ones.common.login.domain.LoginSearch;
+import com.st_ones.common.login.domain.UserInfo;
+import com.st_ones.common.menu.MenuMapper;
+import com.st_ones.common.message.service.MessageService;
+import com.st_ones.common.session.web.EverHttpSessionListener;
+import com.st_ones.common.util.clazz.EverEncryption;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.everf.serverside.web.wrapper.EverHttpRequest;
+import com.st_ones.everf.serverside.web.wrapper.EverHttpResponse;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : LoginService.java
+ * @date 2013. 07. 22.
+ * @version 1.0
+ * @see
+ */
+@Service(value = "loginService")
+public class LoginService extends BaseService {
+
+	@Autowired private LoginMapper loginMapper;
+	@Autowired private MenuMapper menuMapper;
+    @Autowired private DocNumService docNumService;
+
+    @Autowired private MessageService msg;
+
+
+	/**
+	 * CUST 생성
+	 * @param userId
+	 * @throws Exception
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public void createCust(Map<String, String> custs) throws Exception {
+		System.err.println("========================createCust============================1");
+		String custCd = "";
+		Map<String, String> cust = loginMapper.chkCust(custs);
+		if (cust == null ) { // 고객사가 존재하지 않으면
+			Map<String, String> interCustData = loginMapper.chkTbCoCorp(custs);
+			custCd = docNumService.getDocNumber("1000", "CUST");   //채번
+			interCustData.put("CUST_CD", custCd);
+			loginMapper.insCust(interCustData);
+		} else {
+//			Map<String, String> interCustData = loginMapper.chkTbCoCorp(custs);
+//			interCustData.put("CUST_CD", custs.get("CUST_CD"));
+//			loginMapper.upsCust(interCustData);
+		}
+
+	}
+
+
+
+	/**
+	 * 사용자 생성
+	 * @param userId
+	 * @throws Exception
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public void createUser(String userId) throws Exception {
+		Map<String,String> param = new HashMap<String,String>();
+		param.put("USER_ID", userId);
+		Map<String, String> interUserData = loginMapper.chkTbCoUser(param);
+		if (interUserData == null) {
+			throw new Exception("사용자가 존재하지 않습니다. 관리자에게 문의하세요.");
+		} else {
+			Map<String, String> interOrgData = loginMapper.chkTbCoBrc(interUserData);
+			if (interOrgData == null) {
+				throw new Exception("사용자 부서가 존재하지 않습니다. 관리자에게 문의하세요.");
+			} else {
+				Map<String, String> interCustData = loginMapper.chkTbCoCorp(interOrgData);
+				if (interCustData == null) {
+					throw new Exception("사용자 고객사가 존재하지 않습니다. 관리자에게 문의하세요.");
+				} else {
+					//System.err.println("====================================================1");
+					String custCd = "";
+					Map<String, String> cust = loginMapper.chkCust(interCustData);
+					//System.err.println("====================================================2");
+					if (cust == null ) { // 고객사가 존재하지 않으면
+
+						throw new Exception("사용자 고객사가 존재하지 않습니다. 관리자에게 문의하세요.");
+
+
+//						custCd = docNumService.getDocNumber("1000", "CUST");   //채번
+//						interCustData.put("CUST_CD", custCd);
+//						interOrgData.put("CUST_CD", custCd);
+//						interUserData.put("CUST_CD", custCd);
+//						//System.err.println("====================================================2.5");
+//						loginMapper.insCust(interCustData);
+//						//System.err.println("====================================================2.7");
+					} else {
+						custCd = cust.get("CUST_CD");
+						interOrgData.put("CUST_CD", custCd);
+						interUserData.put("CUST_CD", custCd);
+					}
+					interOrgData.put("CORP_NO", interCustData.get("CORP_NO"));
+					interUserData.put("CORP_NO",interCustData.get("CORP_NO"));
+
+					//System.err.println("====================================================3");
+
+					Map<String, String> ogdp = loginMapper.chkOgdp(interOrgData);
+					//System.err.println("====================================================4");
+					if (ogdp == null ) { // 부서가 존재하지 않으면
+						loginMapper.insOgdp(interOrgData);
+					}
+
+					Map<String, String> user = loginMapper.chkCvur(interUserData);
+					if (user == null ) { // 유저가 존재하지 않으면
+						interUserData.put("PASSWORD",EverEncryption.getEncryptedUserPassword(interUserData.get("USER_ID").toUpperCase()));
+						loginMapper.insCvur(interUserData);
+						loginMapper.insUsap(interUserData); // 메류프로파일
+
+						interUserData.put("CORP_TYPE", interCustData.get("NH_CORP_CODE"));
+						loginMapper.insBacp(interUserData); // 직무매핑
+					}
+				}
+			}
+		}
+		//if (1==1) throw new Exception("TEST. 관리자에게 문의하세요.");
+
+	}
+
+
+
+	public String getDecUserId(LoginSearch loginSearch) throws Exception {
+		return loginMapper.getDecUserId(loginSearch);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public LoginResultType login(LoginSearch loginSearch, Map<String, UserInfo> baseUserInfo) throws Exception {
+
+		// 로그인 ID 체크
+		String loginAttemptUserType = loginMapper.findUserId(loginSearch);
+		if (StringUtils.isEmpty(loginAttemptUserType)) {
+			// 휴먼계정 사용자인지 체크
+			int userCnt = loginMapper.findNonUserId(loginSearch);
+
+			if(userCnt > 0) {
+				return LoginResultType.LONG_TERM_NON_USER;
+			} else {
+				return LoginResultType.FAIL_NOT_EXIST_ID;
+			}
+		}
+		else if ("999".equals(loginAttemptUserType)) {
+			return LoginResultType.FAIL_NOT_EXIST_USER_TYPE;
+		}
+		else {
+			loginSearch.setUserType(loginAttemptUserType);
+		}
+
+		loginSearch.setDatabaseCd(PropertiesManager.getString("eversrm.system.database"));
+		loginSearch.setGmtDefault(PropertiesManager.getString("eversrm.gmt.default"));
+		loginSearch.setLangCd(PropertiesManager.getString("eversrm.langCd.default"));
+
+		// 운영사 로그인정보
+		if(loginSearch.getSiteType() != null && loginSearch.getSiteType().equals(Code.OPERATOR)) {
+			baseUserInfo.put("baseInfo", loginMapper.getUserInfoC(loginSearch));
+		}
+		else {
+			// 고객사 로그인 정보
+			if(loginSearch.getUserType() != null && loginSearch.getUserType().equals(Code.CUSTOMER)) {
+				baseUserInfo.put("baseInfo", loginMapper.getUserInfoB(loginSearch));
+			}// 협력사 로그인정보
+			else if(loginSearch.getUserType() != null && loginSearch.getUserType().equals(Code.SUPPLIER)) {
+				baseUserInfo.put("baseInfo", loginMapper.getUserInfoS(loginSearch));
+			}
+			/*else {
+				return LoginResultType.FAIL_NOT_EXIST_USER_TYPE;
+			}*/
+		}
+
+		// 로그인 정보가 다름
+		if (baseUserInfo.get("baseInfo") == null) {
+			return LoginResultType.FAIL_WRONG_PASSWORD;
+		}
+		UserInfo userInfo = baseUserInfo.get("baseInfo");
+
+	
+		
+		// 로그인 비밀번호 틀린 횟수 사용여부
+		boolean PasswordFailCountFlag = PropertiesManager.getBoolean("everF.login.PasswordFailCountFlag");
+		if( PasswordFailCountFlag ) {
+			int WrongLimit = Integer.parseInt(PropertiesManager.getString("everF.login.WrongLimit"));
+			if (Integer.parseInt(StringUtils.defaultIfEmpty(userInfo.getPwWrongCnt(), "0")) >= WrongLimit) {
+				return LoginResultType.WRONG_PASSWORD_EXCEEDED_CNT;
+			}
+		}
+
+		if(userInfo.getDateFormat() == null) {
+			userInfo.setDateFormat(PropertiesManager.getString("eversrm.default.dateFormat"));
+		}
+		if(userInfo.getDateValueFormat() == null) {
+			userInfo.setDateValueFormat(PropertiesManager.getString("eversrm.default.dateValueFormat"));
+		}
+
+		if(!StringUtils.equals(loginSearch.getSessionChange(), "true")) {
+			//협력사일경우 최종로그인한 시간 3개월체크
+			if(loginSearch.getUserType().equals(Code.SUPPLIER)) {
+				if(userInfo.getLastLoginDate() == null) {
+				}
+			}
+		}
+
+		return LoginResultType.SUCCESS;
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public LoginResultType loginIdCheck(LoginSearch loginSearch) throws Exception {
+
+		String loginAttemptUserType = loginMapper.findUserIdPW(loginSearch);
+		Map<String, String> userInfo = new HashMap<String, String>();
+		if (StringUtils.isEmpty(loginAttemptUserType)) {
+            userInfo.put("GATE_CD", PropertiesManager.getString("eversrm.gateCd.default"));
+            userInfo.put("USER_ID", loginSearch.getUserId());
+
+            String userType = loginMapper.getUserType(userInfo);
+            userInfo.put("userType", userType);
+            if(userType.equals("O")) {
+                userInfo.put("USER_TABLE", "STOCUSER");
+            } else {
+                userInfo.put("USER_TABLE", "STOCCVUR");
+            }
+            loginMapper.updateWrongPasswordCount(userInfo);
+
+			return LoginResultType.FAIL_NOT_EXIST_ID;
+		}
+		return LoginResultType.SUCCESS;
+	}
+	
+	// 2021.02.17 변경
+	// return type 변경 : String => Map<String, String>
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public Map<String, String> findUserType(Map<String, String> param) {
+		return loginMapper.findUserType(param);
+	}
+	
+	/**
+	 * 2021.02.17 변경
+	 * 사용자 시스템 이용약관 동의 여부 가져오기
+	 * @param param
+	 * @return
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String checkAgree(Map<String, String> param) {
+
+		String checkAgreeYn;
+		param.put("GATE_CD", PropertiesManager.getString("eversrm.gateCd.default"));
+		checkAgreeYn = loginMapper.checkAgree(param);
+
+		/**
+		 * 기존 운영사/고객사/공급사 분리
+		String userType = EverString.nullToEmptyString(param.get("USER_TYPE"));
+		if(userType.equals(Code.OPERATOR)) {
+			checkAgreeYn = loginMapper.checkAgree(param);	//운영사
+		} else{
+			checkAgreeYn = loginMapper.checkAgree_BS(param);	//고객사,공급사
+		}*/
+
+		return checkAgreeYn;
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String ConfirmAgree(Map<String, String> param) throws Exception {
+
+		String userType = EverString.nullToEmptyString(param.get("USER_TYPE"));
+		if(userType.equals(Code.OPERATOR)) {
+			loginMapper.ConfirmAgree(param);	//운영사
+		}
+		else {
+			loginMapper.ConfirmAgree_BS(param);	//고객사,공급사
+		}
+		
+		return "SUCCESS";
+	}
+	
+	/**
+	 * 2021.02.17 추가
+	 * 시스템 이용료에 대한 수수료 청구 동의서
+	 * @param param
+	 * @return
+	 * @throws Exception
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String systemConfirmAgree(Map<String, String> param) throws Exception {
+		
+		String userType = EverString.nullToEmptyString(param.get("USER_TYPE"));
+		if(userType.equals(Code.OPERATOR)) {
+			loginMapper.ConfirmAgree(param);	//운영사
+		}
+		else {
+			loginMapper.ConfirmAgree_BS(param);	//고객사, 공급사
+		}
+		param.put("OPERATOR_CD", PropertiesManager.getString("eversrm.default.company.code"));
+		loginMapper.ConfirmAgreeSV(param);		//이용계약서 및 전자서명값 저장
+		
+		return "SUCCESS";
+	}
+	
+	public List<Map<String, String>> getTopMenu(String authCd) throws Exception {
+		return menuMapper.getTopMenu(authCd);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String updateWrongPasswordCount(Map<String, String > userInfo) throws Exception {
+
+		String userType = loginMapper.getUserType(userInfo);
+		userInfo.put("userType", userType);
+		if(userType.equals("O")) {
+			userInfo.put("USER_TABLE", "STOCUSER");
+			loginMapper.updateWrongPasswordCount(userInfo);
+		} else {
+			userInfo.put("USER_TABLE", "STOCCVUR");
+			loginMapper.updateWrongPasswordCount(userInfo);
+		}
+		return "SUCCESS";
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doUpdateVendorUserPassword() throws Exception {
+		List<Map<String, String>> userList = loginMapper.getVendorUserList();
+		String newPassword = "";
+
+		for (Map<String, String> each : userList) {
+			newPassword = EverEncryption.getEncryptedUserPassword(EverString.nullToEmptyString(each.get("USER_ID")));
+			each.put("GATE_CD",  "100");
+			each.put("PASSWORD",  newPassword);
+		}
+
+		return "SUCCESS";
+	}
+
+	public int getPasswordWrongCount (Map<String, String > userInfo) throws Exception {
+		return loginMapper.getPasswordWrongCount(userInfo);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String resetPasswordWrongCount(Map<String, String > userInfo) throws Exception {
+		String userType = loginMapper.getUserType(userInfo);
+		userInfo.put("userType", userType);
+		if(userType.equals("O")) {
+			userInfo.put("USER_TABLE", "STOCUSER");
+			loginMapper.resetPasswordWrongCount(userInfo);
+		} else {
+			userInfo.put("USER_TABLE", "STOCCVUR");
+			loginMapper.resetPasswordWrongCount(userInfo);
+		}
+		return "SUCCESS";
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String setLastLoginDate(Map<String, String > userInfo,EverHttpRequest req) throws Exception {
+		String userType = loginMapper.getUserType(userInfo);
+		userInfo.put("userType", userType);
+		if(userType.equals("O")) {
+			userInfo.put("USER_TABLE", "STOCUSER");
+			userInfo.put("IP_ADDR",getClientIpAddress(req));
+			loginMapper.setLastLoginDate(userInfo);
+		} else {
+			userInfo.put("USER_TABLE", "STOCCVUR");
+			userInfo.put("IP_ADDR",getClientIpAddress(req));
+			loginMapper.setLastLoginDate(userInfo);
+		}
+
+		return "SUCCESS";
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String resetPasswordCS(Map<String, String> formData) throws Exception {
+
+		formData.put("USER_TYPE", "CS");
+		return "";
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String resetPassword(Map<String, String> formData) throws Exception {
+
+		formData.put("USER_TYPE", "O");
+		return "";
+	}
+
+
+	public String getClientIpAddress(EverHttpRequest req) {
+
+		String ip = req.getHeader("X-Forwarded-For");
+		if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+			ip = req.getHeader("Proxy-Client-IP");
+		}
+		if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+			ip = req.getHeader("WL-Proxy-Client-IP");
+		}
+		if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+			ip = req.getHeader("HTTP_CLIENT_IP");
+		}
+		if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+			ip = req.getHeader("HTTP_X_FORWARDED_FOR");
+		}
+		if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+			ip = req.getRemoteAddr();
+		}
+		if (EverString.nullToEmptyString(ip).trim().length() <= 0) {
+			ip = req.getRemoteAddr();
+		}
+
+		return EverString.nullToEmptyString(ip);
+	}
+
+	public void checkLoggedUserExists(EverHttpRequest req, EverHttpResponse resp, Map<String, UserInfo> resultInfo) {
+
+		Map<String, String> userInfo = new HashMap<String, String>();
+
+		UserInfo baseInfo = resultInfo.get("baseInfo");
+		userInfo.put("GATE_CD", baseInfo.getGateCd());
+		userInfo.put("USER_ID", baseInfo.getUserId());
+		userInfo.put("LANG_CD", baseInfo.getLangCd());
+
+		baseInfo.setIpAddress(req.getRemoteAddr());
+		baseInfo.setSystemGmt(PropertiesManager.getString("eversrm.gmt.default"));
+
+		// 중복세션 체크 유무(이미 로그인 된 세션이 있는지를 확인하여 기존 세션을 끊고 새로운 세션생성)
+		EverHttpSessionListener everHttpSessionListener = null;
+		String userId = resultInfo.get("baseInfo").getUserId();
+		String userType = resultInfo.get("baseInfo").getUserType();
+
+		getLog().info("Searching for a user who logged in with another IP");
+
+		String jSessionId = req.getSession().getId();
+		everHttpSessionListener = EverHttpSessionListener.getInstance();
+		UserInfo loggedSomeoneInfo = everHttpSessionListener.getLoggedUserInfo(userId, userType);
+
+		if(loggedSomeoneInfo != null) {
+
+			getLog().info("Logged User IP: "+loggedSomeoneInfo.getIpAddress()+"/ Login Attempt IP : " + req.getRemoteAddr());
+			if (PropertiesManager.getBoolean("eversrm.system.prevent.multiple.login", false)) {
+				if (!loggedSomeoneInfo.getIpAddress().equals(req.getRemoteAddr())) {
+
+					getLog().warn("Found same user who logged in with another IP.");
+					String invalidate = req.getParameter("invalidate");
+					if (StringUtils.equals(invalidate, "true")) {
+
+						getLog().info("Logged as " + userId + " [" + loggedSomeoneInfo.getIpAddress() + "] to logout.");
+						everHttpSessionListener.addUserToLogout(loggedSomeoneInfo);
+						everHttpSessionListener.addLoginUser(jSessionId, baseInfo);
+						resp.setResponseCode("200");
+						return;
+					} else {
+						getLog().info("Return 201 code to login confirm.");
+						resp.setResponseCode("201");
+						return;
+					}
+
+				} else {
+
+					getLog().info("Multiple Login Check passed.");
+					resp.setResponseCode("200");
+					return;
+				}
+			}
+		}
+
+		getLog().info("Registered to login user list.");
+		resp.setResponseCode("200");
+
+		if(!"Y".equals(req.getParameter("incryptFlag"))) {
+			everHttpSessionListener.addLoginUser(jSessionId, baseInfo);
+		}
+
+	}
+
+	/**
+	 * 로그인 사용자별 공지사항 팝업 호출
+	 * @param noticeInfo
+	 * @return
+	 */
+	public List<Map<String, String>> getNoticeListPopup(Map<String, String> noticeInfo) {
+		return loginMapper.getNoticeListPopup(noticeInfo);
+	}
+
+	public LoginResultType mobileLogin(LoginSearch loginSearch, Map<String, UserInfo> resultInfo) {
+
+		UserInfo userInfo = loginMapper.getMobile_UserInfo(loginSearch);
+		resultInfo.put("baseInfo", userInfo);
+
+		if(userInfo == null) {
+			return LoginResultType.FAIL_NOT_EXIST_ID;
+		}
+
+		//승인된 사용자 체크
+		if(! userInfo.getProgressCd().equals("E")) {
+			return LoginResultType.NOT_APPROVAL;
+		}
+
+		//사용여부 체크
+		if(! userInfo.getUseFlag().equals("1")) {
+			return LoginResultType.NOT_USE_FLAG;
+		}
+
+		if( userInfo == null || !userInfo.isPwdValid() ){
+			return LoginResultType.FAIL_WRONG_PASSWORD;
+		}
+
+		return LoginResultType.SUCCESS;
+
+	}
+
+    public int get90DaysCount(Map<String, String> param) {
+		return loginMapper.get90DaysCount(param);
+    }
+
+	public int getPwResetFlag(Map<String, String> param) {
+		return loginMapper.getPwResetFlag(param);
+	}
+
+	public int getPwResetDate(Map<String, String> param) throws Exception {
+		return loginMapper.getPwResetDate(param);
+	}
+
+	public int isFirstLogin(Map<String, String> param) throws Exception {
+		
+		return loginMapper.isFirstLogin(param);
+	}
+	
+	public void changeLongTermNonUser(Map<String, String> param) {
+		// 휴먼계정 이관(STOCCVUR)
+		loginMapper.changeLongTermNonUser(param);
+
+		// 휴먼계정 삭제(STOHCVUR)
+		loginMapper.deleteChangeLongTermNonUser(param);
+	}
+
+	public List<Map<String, String>> getPossibleIP(Map<String, String> sParam) throws Exception {
+		return loginMapper.getPossibleIP(sParam);
+	}
+	
+	// 2021.04.05 로그인 후 ID, PASSWORD가 동일한 경우 기존 휴대번호, 이메일 정보가 존재하지 않는 경우 개인정보 변경 팝업 오픈하는 경우에 추가
+	public int passSameCheck(Map<String, String> param) {
+		return loginMapper.passSameCheck(param);
+	}
+
+}

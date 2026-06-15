@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document>
+<MessageHeader>
+	<Document.Identification></Document.Identification>
+	<Document.Kind></Document.Kind>
+	<Document.Description></Document.Description>
+	<Sender></Sender>
+	<Receiver></Receiver>
+	<Request.Document.Identification></Request.Document.Identification>
+</MessageHeader>
+<MessageBody>
+<FinancialStatementsInformationRequest>
+	<Applier.Info.Details>
+		<OrganizationOrPerson.Identifier.Indicator></OrganizationOrPerson.Identifier.Indicator>
+		<Organization.Identifier></Organization.Identifier>
+		<Organization.Number.Text></Organization.Number.Text>
+		<Organization.Name.Text></Organization.Name.Text>
+		<Contract.Number.Text></Contract.Number.Text>
+		<Contract.Sequence.Value></Contract.Sequence.Value>
+		<Order.Number.Text></Order.Number.Text>
+		<Order.Sequence.Value></Order.Sequence.Value>
+	</Applier.Info.Details>
+	<Request.Info.Details>
+		<FinancialStatement.Indicator.Code></FinancialStatement.Indicator.Code>
+		<FinancialStatement.Number.Value></FinancialStatement.Number.Value>
+		<FinancialStatement.Year.Text maxOccurs="true"></FinancialStatement.Year.Text>
+		<Summary.Indicator.Code></Summary.Indicator.Code>
+		<Underwriting.Indicator.Code></Underwriting.Indicator.Code>
+	</Request.Info.Details>
+</FinancialStatementsInformationRequest>
+</MessageBody>
+</Document>
+

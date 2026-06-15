@@ -1,0 +1,703 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.batch.nhebatch.BNH0013_Mapper">
+	
+	<!-- 2020/11/30 : 추가로직 = 문서의 보관년수중 최초 1년은 무료, 1년 초과분에 대해 수수료 부과, 협력사 추가 -->
+	<!-- 10MB 이하 : 기본 수수료, 10MB 이상 : 로직에 의해 수수료 부과 -->
+	<!-- 1 MB : 1,048,576 B -->
+    <select id="getTagrgetData" resultType="hashmap" parameterType="hashMap">
+		SELECT 
+		  '1'				AS EPRO_PS_DSC
+		  ,MIN(FNM.CORP_NO) 	AS CORP_NO
+		  ,MIN(FNM.BRC) 	AS BRC
+		  ,MIN(FNM.APLY_DT) 	AS APLY_DT
+		  ,MIN(FNM.USER_ID) 	AS USER_ID
+		  , 'FILE'        <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>		  
+           'UUID_' || MIN(FNM.UUID)        <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+           'UUID_SQ_' || MIN(FNM.UUID_SQ)        <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>           
+		   listagg(FNM.CONT_NUM||'_'||FNM.CONT_CNT,',') WITHIN GROUP (order by FNM.CONT_NUM,FNM.CONT_CNT)  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>           
+		   'SUBGUBUN_' || MIN(FNM.SUBGUBUN)  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>           
+		   MIN(FNM.GUBUN)  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+		   MIN(FNM.BIZ_TYPE)  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+		   MIN(NVL(FNM.IF_YN,'0'))  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>			   			   			   
+		   TO_CHAR(MIN(FNM.REG_DATE),'YYYYMMDD')  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>			   			   
+		   TO_CHAR(MIN(FNM.FEE_DATE),'YYYYMMDD')  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>			   			   
+		   TO_CHAR(SYSDATE,'YYYYMMDD')  AS CONT_TBL_PK
+		  ,MIN(FNM.FILE_SIZE) 	AS FILE_SIZE
+		  ,MIN(FNM.UUID) 	AS UUID
+		  ,MIN(FNM.UUID_SQ) 	AS UUID_SQ
+		  ,MIN(FNM.FILE_PATH) 	AS FILE_PATH
+		  ,MIN(FNM.FILE_NM) 	AS FILE_NM
+		  ,MIN(FNM.FILE_EXTENSION) 	AS FILE_EXTENSION
+		  ,listagg(FNM.CONT_NUM,',') WITHIN GROUP (order by FNM.CONT_NUM,FNM.CONT_CNT) 	AS CONT_NUM
+		  ,listagg(FNM.CONT_CNT,',') WITHIN GROUP (order by FNM.CONT_NUM,FNM.CONT_CNT) 	AS CONT_CNT
+		  ,MIN(FNM.BIZ_TYPE) 	AS BIZ_TYPE
+		  ,MIN(FNM.GUBUN) 	AS GUBUN
+		FROM (  
+		
+		        SELECT  NVL(CUST2.IRS_NUM,CUST3.IRS_NUM) 	AS CORP_NO
+					 , NVL(ECCT.DEPT_CD,POHD.DEPT_CD)  AS BRC
+					 , TO_CHAR(ADD_MONTHS(SYSDATE, -1),'YYYYMM')||'01'		AS APLY_DT
+					 , ATCH.REG_USER_ID AS USER_ID
+					 ,(CASE WHEN ROUND(ATCH.FILE_SIZE/1048576) = 0 THEN 1
+					        ELSE ROUND(ATCH.FILE_SIZE/1048576)
+					   END) AS FILE_SIZE
+					 , ATCH.UUID		AS UUID
+					 , ATCH.UUID_SQ		AS UUID_SQ
+					 , ATCH.FILE_PATH		AS FILE_PATH
+					 , ATCH.FILE_NM		AS FILE_NM
+					 , ATCH.FILE_EXTENSION		AS FILE_EXTENSION		
+		             , NVL(SUB.CONT_NUM,SUB2.PO_NUM) AS CONT_NUM,NVL(SUB.CONT_CNT,0) AS CONT_CNT,ATCH.BIZ_TYPE,NVL(SUB.GUBUN,SUB2.GUBUN) AS GUBUN
+		             , ATCH.REAL_FILE_NM,ATCH.IF_YN,ATCH.REG_DATE,ATCH.FEE_DATE
+                     , DECODE(SUB.CONT_NUM,NULL,'PO','EC') AS SUBGUBUN
+				  FROM STOCATCH ATCH
+		               LEFT JOIN (
+		               		   	   
+		                --PRHD.ATT_FILE_NUM
+		                SELECT 
+		                'PRHD.ATT_FILE_NUM' AS GUBUN,PRHD.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCPRDT PRDT
+		                        LEFT JOIN STOCPRHD PRHD
+		                        ON( PRDT.PR_NUM = PRHD.PR_NUM)
+		                    ON( ECMT.PR_NUM = PRDT.PR_NUM
+		                    AND ECMT.PR_SQ = PRDT.PR_SQ)  
+		                WHERE PRHD.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY PRHD.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --PRDT.ATT_FILE_NUM
+		                SELECT 
+		                'PRDT.ATT_FILE_NUM' AS GUBUN,PRDT.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCPRDT PRDT
+		                    ON( ECMT.PR_NUM = PRDT.PR_NUM
+		                    AND ECMT.PR_SQ = PRDT.PR_SQ)  
+		                WHERE PRDT.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY PRDT.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --RQHD.ATT_FILE_NUM       
+		                SELECT 
+		                'RQHD.ATT_FILE_NUM' AS GUBUN,RQHD.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCRQDT RQDT
+		                        LEFT JOIN STOCRQHD RQHD
+		                        ON( RQDT.RFX_NUM = RQHD.RFX_NUM
+		                        AND RQDT.RFX_CNT = RQHD.RFX_CNT)
+		                    ON( ECMT.PR_NUM = RQDT.PR_NUM
+		                    AND ECMT.PR_SQ = RQDT.PR_SQ)  
+		                WHERE RQHD.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY RQHD.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                
+		                UNION ALL
+		                --QTDT.ATT_FILE_NUM
+		                SELECT 
+		                'QTDT.ATT_FILE_NUM' AS GUBUN,QTDT.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCRQDT RQDT
+		                        LEFT JOIN STOCQTDT QTDT
+		                        ON( RQDT.RFX_NUM = QTDT.RFX_NUM
+		                        AND RQDT.RFX_CNT = QTDT.RFX_CNT)
+		                    ON( ECMT.PR_NUM = RQDT.PR_NUM
+		                    AND ECMT.PR_SQ = RQDT.PR_SQ)  
+		                WHERE QTDT.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY QTDT.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --QTHD.ATT_FILE_NUM
+		                SELECT 
+		                'QTHD.ATT_FILE_NUM' AS GUBUN,QTHD.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCRQDT RQDT
+		                        LEFT JOIN STOCQTDT QTDT
+		                            LEFT JOIN STOCQTHD QTHD
+		                            ON( QTDT.QTA_NUM = QTHD.QTA_NUM)
+		                        ON( RQDT.RFX_NUM = QTDT.RFX_NUM
+		                        AND RQDT.RFX_CNT = QTDT.RFX_CNT)
+		                    ON( ECMT.PR_NUM = RQDT.PR_NUM
+		                    AND ECMT.PR_SQ = RQDT.PR_SQ)  
+		                WHERE QTHD.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY QTHD.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                
+		                UNION ALL                
+		                --CNHD.ATT_FILE_NUM
+		                SELECT 
+		                'CNHD.ATT_FILE_NUM' AS GUBUN,CNHD.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCCNDT CNDT
+		                        LEFT JOIN STOCCNHD CNHD
+		                        ON( CNDT.EXEC_NUM = CNHD.EXEC_NUM)
+		                    ON( ECMT.PR_NUM = CNDT.PR_NUM
+		                    AND ECMT.PR_SQ = CNDT.PR_SQ)  
+		                WHERE CNHD.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY CNHD.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --BDHD.ATT_FILE_NUM
+		                SELECT 
+		                'BDHD.ATT_FILE_NUM' AS GUBUN,BDHD.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDHD BDHD
+		                        ON( BDDT.BID_NUM = BDHD.BID_NUM
+		                        AND BDDT.BID_CNT = BDHD.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDHD.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDHD.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --BDAP.ATT_FILE_NUM
+		                SELECT 
+		                'BDAP.ATT_FILE_NUM' AS GUBUN,BDAP.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDAP BDAP
+		                        ON( BDDT.BID_NUM = BDAP.BID_NUM
+		                        AND BDDT.BID_CNT = BDAP.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDAP.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDAP.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                
+		                UNION ALL
+		                --BDAP.GUAR_ATT_FILE_NUM
+		                SELECT 
+		                'BDAP.GUAR_ATT_FILE_NUM' AS GUBUN,BDAP.GUAR_ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDAP BDAP
+		                        ON( BDDT.BID_NUM = BDAP.BID_NUM
+		                        AND BDDT.BID_CNT = BDAP.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDAP.GUAR_ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDAP.GUAR_ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                
+		                UNION ALL
+		                --BDAP.EV_ATT_FILE_NUM
+		                SELECT 
+		                'BDAP.EV_ATT_FILE_NUM' AS GUBUN,BDAP.EV_ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDAP BDAP
+		                        ON( BDDT.BID_NUM = BDAP.BID_NUM
+		                        AND BDDT.BID_CNT = BDAP.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDAP.EV_ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDAP.EV_ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                
+		                UNION ALL
+		                --BDAP.APP_ATT_FILE_NUM
+		                SELECT 
+		                'BDAP.APP_ATT_FILE_NUM' AS GUBUN,BDAP.APP_ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDAP BDAP
+		                        ON( BDDT.BID_NUM = BDAP.BID_NUM
+		                        AND BDDT.BID_CNT = BDAP.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDAP.APP_ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDAP.APP_ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                
+		                UNION ALL
+		                --BDAP.NEGO_ATT_FILE_NUM
+		                SELECT 
+		                'BDAP.NEGO_ATT_FILE_NUM' AS GUBUN,BDAP.NEGO_ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDAP BDAP
+		                        ON( BDDT.BID_NUM = BDAP.BID_NUM
+		                        AND BDDT.BID_CNT = BDAP.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDAP.NEGO_ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDAP.NEGO_ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                
+		                UNION ALL
+		                --BDAP.ETC_ATT_FILE_NUM
+		                SELECT 
+		                'BDAP.ETC_ATT_FILE_NUM' AS GUBUN,BDAP.ETC_ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDAP BDAP
+		                        ON( BDDT.BID_NUM = BDAP.BID_NUM
+		                        AND BDDT.BID_CNT = BDAP.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDAP.ETC_ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDAP.ETC_ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT		                		                		                		                		                
+		
+		                UNION ALL
+		                --BDSP.TECH_ATT_FILE_NUM
+		                SELECT 
+		                'BDSP.TECH_ATT_FILE_NUM' AS GUBUN,BDSP.TECH_ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDSP BDSP
+		                        ON( BDDT.BID_NUM = BDSP.BID_NUM
+		                        AND BDDT.BID_CNT = BDSP.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDSP.TECH_ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDSP.TECH_ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --BDVO.ATT_FILE_NUM
+		                SELECT 
+		                'BDVO.ATT_FILE_NUM' AS GUBUN,BDVO.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDVO BDVO
+		                        ON( BDDT.BID_NUM = BDVO.BID_NUM
+		                        AND BDDT.BID_CNT = BDVO.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDVO.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDVO.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --BDVD.ATT_FILE_NUM
+		                SELECT 
+		                'BDVD.ATT_FILE_NUM' AS GUBUN,BDVD.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDVD BDVD
+		                        ON( BDDT.BID_NUM = BDVD.BID_NUM
+		                        AND BDDT.BID_CNT = BDVD.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDVD.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDVD.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --BDES.ATT_FILE_NUM BDDT
+		                SELECT 
+		                'BDES.ATT_FILE_NUM BDDT' AS GUBUN,BDES.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDES BDES
+		                        ON( BDDT.BID_NUM = BDES.BID_NUM
+		                        AND BDDT.BID_CNT = BDES.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDES.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDES.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+                        
+		                UNION ALL                        
+		                --BDES.ATT_FILE_NUM RQDT
+		                SELECT 
+		                'BDES.ATT_FILE_NUM RQDT' AS GUBUN,BDES.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCRQDT RQDT
+                                LEFT JOIN STOCBDES BDES
+		                        ON( RQDT.RFX_NUM = BDES.BID_NUM
+		                        AND RQDT.RFX_CNT = BDES.BID_CNT)
+		                    ON( ECMT.PR_NUM = RQDT.PR_NUM
+		                    AND ECMT.PR_SQ = RQDT.PR_SQ)  
+		                WHERE BDES.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY BDES.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT		                                                     
+		
+		                UNION ALL
+		                --ECCT.ATT_FILE_NUM
+		                SELECT 
+		                'ECCT.ATT_FILE_NUM' AS GUBUN,ECCT.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCECCT ECCT
+		                    ON( ECMT.CONT_NUM = ECCT.CONT_NUM
+		                    AND ECMT.CONT_CNT = ECCT.CONT_CNT)  
+		                WHERE ECCT.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY ECCT.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --ECPC.ATT_FILE_NUM
+		                SELECT 
+		                'ECPC.ATT_FILE_NUM' AS GUBUN,ECPC.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCECPC ECPC
+		                    ON( ECMT.CONT_NUM = ECPC.CONT_NUM
+		                    AND ECMT.CONT_CNT = ECPC.CONT_CNT)  
+		                WHERE ECPC.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY ECPC.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --ECPC.PDF_ATT_FILE_NUM
+		                SELECT 
+		                'ECPC.PDF_ATT_FILE_NUM' AS GUBUN,ECPC.PDF_ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCECPC ECPC
+		                    ON( ECMT.CONT_NUM = ECPC.CONT_NUM
+		                    AND ECMT.CONT_CNT = ECPC.CONT_CNT)  
+		                WHERE ECPC.PDF_ATT_FILE_NUM IS NOT NULL
+		                GROUP BY ECPC.PDF_ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --POHD.ATT_FILE_NUM
+		                SELECT 
+		                'POHD.ATT_FILE_NUM' AS GUBUN,POHD.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCPODT PODT
+		                        LEFT JOIN STOCPOHD POHD
+		                        ON( PODT.PO_NUM = POHD.PO_NUM)
+		                    ON( ECMT.CONT_NUM = PODT.CONT_NUM
+		                    AND ECMT.CONT_CNT = PODT.CONT_CNT)  
+		                WHERE POHD.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY POHD.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                
+		                UNION ALL
+		                --IVGH.ATT_FILE_NUM
+		                SELECT 
+		                'IVGH.ATT_FILE_NUM' AS GUBUN,IVGH.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCPODT PODT
+		                        LEFT JOIN STOCIVGH IVGH
+		                        ON( PODT.PO_NUM = IVGH.PO_NUM)
+		                    ON( ECMT.CONT_NUM = PODT.CONT_NUM
+		                    AND ECMT.CONT_CNT = PODT.CONT_CNT)  
+		                WHERE IVGH.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY IVGH.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --IVHD.ATT_FILE_NUM2
+		                SELECT 
+		                'IVHD.ATT_FILE_NUM2' AS GUBUN,IVHD.ATT_FILE_NUM2 AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCPODT PODT
+		                        LEFT JOIN STOCIVGH IVGH
+		                            LEFT JOIN STOCIVHD IVHD
+		                            ON( IVGH.INV_NUM = IVHD.INV_NUM)
+		                        ON( PODT.PO_NUM = IVGH.PO_NUM)
+		                    ON( ECMT.CONT_NUM = PODT.CONT_NUM
+		                    AND ECMT.CONT_CNT = PODT.CONT_CNT)  
+		                WHERE IVHD.ATT_FILE_NUM2 IS NOT NULL
+		                GROUP BY IVHD.ATT_FILE_NUM2,ECMT.CONT_NUM,ECMT.CONT_CNT                        
+		
+		                UNION ALL
+		                --IVAP.ATT_FILE_NUM
+		                SELECT 
+		                'IVAP.ATT_FILE_NUM' AS GUBUN,IVAP.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCIVAP IVAP
+		                    ON( ECMT.CONT_NUM = IVAP.CONT_NUM
+		                    AND ECMT.CONT_CNT = IVAP.CONT_CNT)  
+		                WHERE IVAP.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY IVAP.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                
+		                UNION ALL
+		                --SCTM.ATT_FILE_NUM ECCT
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM ECCT' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCECCT ECCT
+		                        LEFT JOIN STOCSCTM SCTM
+		                        ON( ECCT.APP_DOC_NUM = SCTM.APP_DOC_NUM)                    
+		                    ON( ECMT.CONT_NUM = ECCT.CONT_NUM
+		                    AND ECMT.CONT_CNT = ECCT.CONT_CNT)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --SCTM.ATT_FILE_NUM PRHD
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM PRHD' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCPRDT PRDT
+		                        LEFT JOIN STOCPRHD PRHD
+		                            LEFT JOIN STOCSCTM SCTM
+		                            ON( PRHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                                            
+		                        ON( PRDT.PR_NUM = PRHD.PR_NUM)
+		                    ON( ECMT.PR_NUM = PRDT.PR_NUM
+		                    AND ECMT.PR_SQ = PRDT.PR_SQ)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --SCTM.ATT_FILE_NUM RQHD       
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM RQHD' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCRQDT RQDT
+		                        LEFT JOIN STOCRQHD RQHD
+		                            LEFT JOIN STOCSCTM SCTM
+		                            ON( RQHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                                                                    
+		                        ON( RQDT.RFX_NUM = RQHD.RFX_NUM
+		                        AND RQDT.RFX_CNT = RQHD.RFX_CNT)
+		                    ON( ECMT.PR_NUM = RQDT.PR_NUM
+		                    AND ECMT.PR_SQ = RQDT.PR_SQ)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL                
+		                --SCTM.ATT_FILE_NUM CNHD
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM CNHD' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCCNDT CNDT
+		                        LEFT JOIN STOCCNHD CNHD
+		                            LEFT JOIN STOCSCTM SCTM
+		                            ON( CNHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)
+		                        ON( CNDT.EXEC_NUM = CNHD.EXEC_NUM)
+		                    ON( ECMT.PR_NUM = CNDT.PR_NUM
+		                    AND ECMT.PR_SQ = CNDT.PR_SQ)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		
+		                UNION ALL
+		                --SCTM.ATT_FILE_NUM BDHD
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM BDHD' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDHD BDHD
+		                            LEFT JOIN STOCSCTM SCTM
+		                            ON( BDHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                        
+		                        ON( BDDT.BID_NUM = BDHD.BID_NUM
+		                        AND BDDT.BID_CNT = BDHD.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                
+		                UNION ALL
+		                --SCTM.ATT_FILE_NUM BDHD
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM BDHD' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDHD BDHD
+		                            LEFT JOIN STOCSCTM SCTM
+		                            ON( BDHD.RLT_APP_DOC_NUM = SCTM.APP_DOC_NUM)                        
+		                        ON( BDDT.BID_NUM = BDHD.BID_NUM
+		                        AND BDDT.BID_CNT = BDHD.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT                        
+		                		                
+		                UNION ALL		                		                
+		                --SCTM.ATT_FILE_NUM BDHD
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM BDHD' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDHD BDHD
+		                            LEFT JOIN STOCSCTM SCTM
+		                            ON( BDHD.NEGO_APP_DOC_NUM = SCTM.APP_DOC_NUM)                        
+		                        ON( BDDT.BID_NUM = BDHD.BID_NUM
+		                        AND BDDT.BID_CNT = BDHD.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT                                                
+		
+		                UNION ALL
+		                --SCTM.ATT_FILE_NUM BDES
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM BDES' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDES BDES
+		                            LEFT JOIN STOCSCTM SCTM
+		                            ON( BDES.APP_DOC_NUM = SCTM.APP_DOC_NUM)
+		                        ON( BDDT.BID_NUM = BDES.BID_NUM
+		                        AND BDDT.BID_CNT = BDES.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT                
+		                
+		                UNION ALL
+		                --SCTM.ATT_FILE_NUM POHD
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM POHD' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCPODT PODT
+		                        LEFT JOIN STOCPOHD POHD
+		                            LEFT JOIN STOCSCTM SCTM
+		                            ON( POHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                        
+		                        ON( PODT.PO_NUM = POHD.PO_NUM)
+		                    ON( ECMT.CONT_NUM = PODT.CONT_NUM
+		                    AND ECMT.CONT_CNT = PODT.CONT_CNT)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT                
+		                
+		                UNION ALL
+		                --SCTM.ATT_FILE_NUM IVHD
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM IVHD' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCPODT PODT
+		                        LEFT JOIN STOCIVGH IVGH
+		                            LEFT JOIN STOCIVHD IVHD
+		                                LEFT JOIN STOCSCTM SCTM
+		                                ON( IVHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                                                    
+		                            ON( IVGH.INV_NUM = IVHD.INV_NUM)
+		                        ON( PODT.PO_NUM = IVGH.PO_NUM)
+		                    ON( ECMT.CONT_NUM = PODT.CONT_NUM
+		                    AND ECMT.CONT_CNT = PODT.CONT_CNT)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT          
+		                
+		                UNION ALL
+		                --SCTM.ATT_FILE_NUM IVAP
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM IVAP' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCIVAP IVAP
+		                        LEFT JOIN STOCSCTM SCTM
+		                        ON( IVAP.APP_DOC_NUM = SCTM.APP_DOC_NUM)
+		                    ON( ECMT.CONT_NUM = IVAP.CONT_NUM
+		                    AND ECMT.CONT_CNT = IVAP.CONT_CNT)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT   
+		                
+		                UNION ALL
+		                --SCTM.ATT_FILE_NUM BDES
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM BDES' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,ECMT.CONT_NUM,ECMT.CONT_CNT
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCRQDT RQDT
+                                LEFT JOIN STOCBDES BDES
+                                    LEFT JOIN STOCSCTM SCTM
+                                    ON( BDES.APP_DOC_NUM = SCTM.APP_DOC_NUM)
+		                        ON( RQDT.RFX_NUM = BDES.BID_NUM
+		                        AND RQDT.RFX_CNT = BDES.BID_CNT)
+		                    ON( ECMT.PR_NUM = RQDT.PR_NUM
+		                    AND ECMT.PR_SQ = RQDT.PR_SQ)  
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+		                GROUP BY SCTM.ATT_FILE_NUM,ECMT.CONT_NUM,ECMT.CONT_CNT		                             
+		                		   	   
+				       ) SUB
+				         JOIN (SELECT * FROM STOCECCT WHERE MANUAL_CONT_FLAG IS NULL) ECCT
+                          JOIN STOCCUST CUST2
+                           ON (ECCT.GATE_CD  = CUST2.GATE_CD
+                           AND ECCT.BUYER_CD = CUST2.CUST_CD)                          				         
+				         ON (SUB.CONT_NUM = ECCT.CONT_NUM
+				         AND SUB.CONT_CNT = ECCT.CONT_CNT) 
+				       ON( ATCH.UUID = SUB.UUID) 	
+                       
+		               LEFT JOIN (
+                        --POHD.ATT_FILE_NUM MANUAL
+		                SELECT 
+		                'POHD.ATT_FILE_NUM MANUAL' AS GUBUN,POHD.ATT_FILE_NUM AS UUID,POHD.PO_NUM,0
+		                FROM STOCPOHD POHD
+		                WHERE POHD.ATT_FILE_NUM IS NOT NULL
+                        AND POHD.PO_CREATE_TYPE = 'MANUAL'      
+		                GROUP BY POHD.ATT_FILE_NUM,POHD.PO_NUM     
+		                
+                        UNION ALL
+		                --IVHD.ATT_FILE_NUM2 MANUAL
+		                SELECT 
+		                'IVHD.ATT_FILE_NUM2 MANUAL' AS GUBUN,IVHD.ATT_FILE_NUM2 AS UUID,POHD.PO_NUM,0
+                        FROM  STOCPOHD POHD
+                            LEFT JOIN STOCIVGH IVGH
+                                LEFT JOIN STOCIVHD IVHD
+                                ON( IVGH.INV_NUM = IVHD.INV_NUM)
+                            ON( POHD.PO_NUM = IVGH.PO_NUM)
+		                WHERE IVHD.ATT_FILE_NUM2 IS NOT NULL
+                        AND POHD.PO_CREATE_TYPE = 'MANUAL'      
+		                GROUP BY IVHD.ATT_FILE_NUM2,POHD.PO_NUM
+
+		                UNION ALL		                
+                        --SCTM.ATT_FILE_NUM POHD MANUAL
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM POHD MANUAL' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,POHD.PO_NUM,0
+		                FROM STOCPOHD POHD
+                            LEFT JOIN STOCSCTM SCTM
+                            ON( POHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                        
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+                        AND POHD.PO_CREATE_TYPE = 'MANUAL'      
+		                GROUP BY SCTM.ATT_FILE_NUM,POHD.PO_NUM                        
+		                
+                        UNION ALL
+		                --SCTM.ATT_FILE_NUM IVHD MANUAL
+		                SELECT 
+		                'SCTM.ATT_FILE_NUM IVHD MANUAL' AS GUBUN,SCTM.ATT_FILE_NUM AS UUID,POHD.PO_NUM,0
+                        FROM  STOCPOHD POHD
+                            LEFT JOIN STOCIVGH IVGH
+                                LEFT JOIN STOCIVHD IVHD
+                                    LEFT JOIN STOCSCTM SCTM
+                                    ON( IVHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                                                                                    
+                                ON( IVGH.INV_NUM = IVHD.INV_NUM)
+                            ON( POHD.PO_NUM = IVGH.PO_NUM)
+		                WHERE SCTM.ATT_FILE_NUM IS NOT NULL
+                        AND POHD.PO_CREATE_TYPE = 'MANUAL'      
+		                GROUP BY SCTM.ATT_FILE_NUM,POHD.PO_NUM                        		                                             
+                       
+				       ) SUB2                       
+				         JOIN STOCPOHD POHD
+                          JOIN STOCCUST CUST3
+                           ON (POHD.GATE_CD  = CUST3.GATE_CD
+                           AND POHD.BUYER_CD = CUST3.CUST_CD)      
+		                  JOIN (SELECT PO_NUM FROM STOCPOPC
+		                        WHERE DEL_FLAG   = '0'      
+		                        GROUP BY PO_NUM) POPC
+		                  ON (POPC.PO_NUM = POHD.PO_NUM)                                                     				         
+				         ON (SUB2.PO_NUM = POHD.PO_NUM) 
+				       ON( ATCH.UUID = SUB2.UUID) 	
+                       
+		              JOIN STOCCUST CUST
+					   ON (ATCH.GATE_CD     = CUST.GATE_CD
+				   	   AND ATCH.PR_BUYER_CD = CUST.CUST_CD) 
+				 WHERE ATCH.GATE_CD  = '100'
+				   AND ATCH.FILE_SIZE > 0
+				   AND ATCH.DEL_FLAG  = '0'
+				   AND (SUB.CONT_NUM IS NOT NULL OR	SUB2.PO_NUM IS NOT NULL) 	 
+				   AND (   (NVL(ATCH.IF_YN,'0') = '0' AND ATCH.REG_DATE  BETWEEN TO_DATE('20210301') AND TO_DATE(TO_CHAR(ADD_MONTHS(SYSDATE, -12),'YYYYMM')||'01'))
+		                OR (NVL(ATCH.IF_YN,'0') = '1' AND ATCH.FEE_DATE  BETWEEN TO_DATE('20210301') AND TO_DATE(TO_CHAR(ADD_MONTHS(SYSDATE, -12),'YYYYMM')||'01')) 
+		               )
+		               
+		        ORDER BY FILE_NM,NVL(SUB.GUBUN,SUB2.GUBUN),NVL(SUB.CONT_NUM,SUB2.PO_NUM),SUB.CONT_CNT       
+		) FNM               
+		GROUP BY FNM.FILE_NM            
+
+		   
+		<!-- 공급사 차후 적용
+		UNION ALL
+		
+		SELECT '2'				AS EPRO_PS_DSC
+		     , VNGL.IRS_NO	 	AS CORP_NO
+			 , '000000'  		AS BRC
+			 , ATCH.UP_DATE		AS APLY_DT
+			 , ATCH.REG_USER_ID AS USER_ID
+			 , 'FILE'        <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+			   ATCH.GATE_CD  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+			   ATCH.UUID     <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+			   ATCH.UUID_SQ  	AS CONT_TBL_PK
+			 ,(CASE WHEN ROUND(ATCH.FILE_SIZE/1048576) = 0 THEN 1
+			        ELSE ROUND(ATCH.FILE_SIZE/1048576)
+			   END) AS FILE_SIZE
+			 , ATCH.UUID		AS UUID
+			 , ATCH.UUID_SQ		AS UUID_SQ
+		  FROM STOCATCH ATCH
+		  JOIN STOCVNGL VNGL
+			   ON (ATCH.GATE_CD     = VNGL.GATE_CD
+		   	   AND ATCH.PR_BUYER_CD = VNGL.VENDOR_CD)
+		 WHERE ATCH.GATE_CD  = '100'
+		   AND ATCH.UP_DATE  <![CDATA[<]]> TO_CHAR(ADD_MONTHS(SYSDATE, -12), 'yyyyMMdd')
+		   AND <include refid="common.sql.nvl"/>(ATCH.IF_YN,'0') = '0'
+		   AND ATCH.FILE_SIZE > 0
+		   AND ATCH.DEL_FLAG  = '0'
+		   -->
+	</select>
+
+    <update id="upsComplete" parameterType="hashMap">
+		UPDATE STOCATCH 
+		   SET
+               FEE_ETC  = #{FEE_ETC} 
+		<choose>
+			<when test='FEE_ETC == "0"'>
+		      ,IF_YN   = '1'
+		      ,FEE_DATE = SYSDATE
+		    </when>
+		</choose>    
+		 WHERE GATE_CD = '100'
+		   AND UUID    = #{UUID}
+		   AND UUID_SQ = #{UUID_SQ}
+	</update>
+
+</mapper>

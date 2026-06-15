@@ -1,0 +1,947 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CPRA.CPRA0040_Mapper">
+
+	<select id="CPRA0040_doSearch" parameterType="hashmap" resultType="hashMap">
+        SELECT
+	         getCustName(PRDT.GATE_CD, PRDT.PR_BUYER_CD) ||' '|| getDeptName(PRDT.GATE_CD, PRDT.PR_BUYER_CD, PRDT.PR_DEPT_CD, #{ses.langCd}) PR_BUYER_NM
+			, <include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'M061', PRDT.PURCHASE_TYPE, #{ses.langCd}) as PURCHASE_TYPE
+			, getCustName(PRDT.GATE_CD, PRDT.EC_BUYER_CD) ||' '|| getDeptName(PRDT.GATE_CD, PRDT.EC_BUYER_CD, PRDT.EC_DEPT_CD, #{ses.langCd}) EC_BUYER_NM
+		    , PRDT.PR_NUM
+	        , PRHD.SUBJECT
+	        , PRDT.CTRL_USER_ID
+	        , <include refid="common.sql.dbo"/>GETUSERNAME(PRDT.GATE_CD, PRDT.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+	        , <include refid="common.sql.nvl"/>(PRDT.RECEIPT_FLAG , '0') RECEIPT_FLAG
+	        , GETTOCHAR (PRHD.REQ_DATE, 'yyyyMMdd') AS REQ_DATE
+	        , <include refid="common.sql.dbo"/>GETUSERNAME(PRHD.GATE_CD, PRHD.REG_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+	        , PRDT.ITEM_CD
+	        , PRDT.ITEM_DESC
+	        , PRDT.ITEM_SPEC
+	        , PRDT.MAKER_PART_NO
+	        , <include refid="common.sql.dbo"/>GETMKBRNAME(PRDT.GATE_CD, PRDT.PR_BUYER_CD, 'MK', PRDT.MAKER_CD) AS MAKER_NM
+	        , PRDT.PR_QT
+	        , PRDT.UNIT_CD
+	        , PRHD.CUR
+	        , PRDT.UNIT_PRC
+	        , PRDT.PR_AMT
+	        , PRDT.VAT_TYPE
+	        , GETTOCHAR (PRDT.DUE_DATE, 'yyyyMMdd') AS DUE_DATE
+	        , GETVENDORNAME(PRDT.GATE_CD, PRDT.VENDOR_CD, #{ses.langCd}) AS REC_VENDOR_NM
+	        , PRDT.VENDOR_OPEN_TYPE
+	        , PRDT.SUBMIT_TYPE
+	        , PRDT.AMT_TYPE
+	        , PRDT.BUYER_CD
+	        , PRDT.PR_SQ
+	        , PRHD.IF_TYPE
+	        ,<include refid="common.sql.nvl"/>(PRHD.PR_TYPE, '10') AS PR_TYPE
+	        , PRDT.PRE_BUYER_CD
+	        , PRDT.PRE_CONT_NUM
+	        , PRDT.PRE_CONT_CNT
+	        , PRDT.CM_REQ_ID
+	        ,(SELECT MAX(A.CONT_USER_ID) FROM STOCECCT A
+	           WHERE A.GATE_CD  = PRDT.GATE_CD
+	             AND A.BUYER_CD = PRDT.PRE_BUYER_CD
+	             AND A.CONT_NUM = PRDT.PRE_CONT_NUM
+	             AND A.CONT_CNT = PRDT.PRE_CONT_CNT
+	             AND A.DEL_FLAG = '0') AS PRE_CTRL_USER_ID	-- 이전계약차수 계약담당자ID
+	        ,<include refid="common.sql.dbo"/>GETUSERNAME(PRDT.GATE_CD, (SELECT MAX(A.CONT_USER_ID) FROM STOCECCT A
+																          WHERE A.GATE_CD  = PRDT.GATE_CD
+																            AND A.BUYER_CD = PRDT.PRE_BUYER_CD
+																            AND A.CONT_NUM = PRDT.PRE_CONT_NUM
+																            AND A.CONT_CNT = PRDT.PRE_CONT_CNT
+																            AND A.DEL_FLAG = '0'), #{ses.langCd}) AS PRE_CTRL_USER_NM
+         FROM STOCPRDT PRDT 
+         JOIN STOCPRHD PRHD 
+        	  ON (PRDT.GATE_CD  = PRHD.GATE_CD
+	  		  AND PRDT.BUYER_CD = PRHD.BUYER_CD
+	  		  AND PRDT.PR_NUM   = PRHD.PR_NUM)
+		WHERE PRHD.GATE_CD  = #{ses.gateCd}
+		  AND PRHD.DEL_FLAG = '0'
+		  AND PRDT.DEL_FLAG = '0'
+		  AND PRDT.EC_BUYER_CD = #{ses.companyCd}
+		  AND PRHD.SIGN_STATUS = 'E'
+		<if test="REQ_DATE_FROM !='' and REQ_DATE_FROM !=null and REQ_DATE_TO !='' and REQ_DATE_TO !=null ">
+			AND PRHD.REQ_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REQ_DATE_FROM})
+			AND PRHD.REQ_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REQ_DATE_TO})
+		</if>
+		<if test="PR_NUM !='' and PR_NUM !=null">
+			AND UPPER( PRHD.PR_NUM ) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_NUM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="PR_SUBJECT != '' and PR_SUBJECT != null">
+			AND UPPER(REPLACE(PRHD.SUBJECT, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{PR_SUBJECT}, ' ', '')) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="IF_TYPE !='' and IF_TYPE !=null">
+			AND PRHD.IF_TYPE = #{IF_TYPE}
+		</if>
+		<if test="PR_DEPT_CD !='' and PR_DEPT_CD !=null">
+			AND PRDT.PR_DEPT_CD = #{PR_DEPT_CD}
+		</if>
+		<if test="PURCHASE_TYPE !='' and PURCHASE_TYPE !=null">
+			AND PRDT.PURCHASE_TYPE = #{PURCHASE_TYPE}
+		</if>
+	<choose>
+		<when test='PURCHASE_YN =="Y"'>
+			AND PRDT.CTRL_USER_ID is not null
+		</when>
+		<when test='PURCHASE_YN =="N"'>
+			AND PRDT.CTRL_USER_ID is null
+		</when>
+		<otherwise>
+		    AND 1 = 1
+	  	</otherwise>
+	</choose>
+		<if test="REQ_USER_ID !='' and REQ_USER_ID !=null">
+			AND UPPER(PRHD.REQ_USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{REQ_USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="REQ_USER_NM != '' and REQ_USER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(PRHD.GATE_CD, PRHD.REQ_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{REQ_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+         <if test="PR_BUYER_CD != '' and PR_BUYER_CD != null">
+            AND UPPER(PRDT.PR_BUYER_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="PR_BUYER_NM != '' and PR_BUYER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(PRDT.GATE_CD, PRDT.PR_BUYER_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <!-- IT포탈 계약의뢰번호 검색조건 추가 -->
+		<if test="CM_REQ_ID != '' and CM_REQ_ID != null">
+		    AND PRDT.CM_REQ_ID LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CM_REQ_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="PR_TYPE !='' and PR_TYPE !=null">
+			AND <include refid="common.sql.nvl"/>(PRHD.PR_TYPE, '10') = #{PR_TYPE}
+		</if>
+		ORDER BY PRHD.REQ_DATE DESC
+			   , PRDT.PR_NUM DESC
+			   , PRDT.PR_SQ
+	</select>
+
+	<update id="CPRA0040_doChangeCtrl" parameterType="hashMap">
+
+		UPDATE STOCPRDT SET
+			   CTRL_USER_ID = #{CTRL_USER_ID}
+			 , EC_BUYER_CD  = (CASE WHEN <include refid="common.sql.nvl"/>(#{CTRL_BUYER_CD}, '0') = '0' THEN EC_BUYER_CD ELSE #{CTRL_BUYER_CD} END)
+			 , EC_DEPT_CD   = (CASE WHEN <include refid="common.sql.nvl"/>(#{CTRL_DEPT_CD}, '0')  = '0' THEN EC_DEPT_CD  ELSE #{CTRL_DEPT_CD} END)
+			 , MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND PR_NUM   = #{PR_NUM}
+		   AND PR_SQ    = #{PR_SQ}
+	</update>
+
+	<select id="cpra0040_doSearchCtrlUserNm" parameterType="hashmap" resultType="java.lang.String">
+		SELECT <include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+		  FROM STOCBACP BACP
+		  JOIN STOCCVUR CVUR
+				ON( CVUR.GATE_CD    = BACP.GATE_CD
+				AND CVUR.COMPANY_CD = BACP.BUYER_CD
+				AND CVUR.USER_ID    = BACP.CTRL_USER_ID
+		   		AND CVUR.COMPANY_CD = #{ses.companyCd}
+		   		AND CVUR.USER_TYPE  = 'B'
+				AND CVUR.DEL_FLAG   = '0')
+		 WHERE BACP.GATE_CD      = #{ses.gateCd}
+		   AND BACP.CTRL_CD      = 'BR030'
+		   AND BACP.CTRL_USER_ID = #{CTRL_USER_ID}
+		   AND BACP.DEL_FLAG     = '0'
+		   AND BACP.USE_FLAG     = '1'
+	</select>
+	
+	<!-- 2021.04.12 IT포탈 구매의뢰건 삭제 추가 -->
+	<update id="cpra0040_doDelete" parameterType="hashMap">
+
+		UPDATE STOCPRDT SET
+			   DEL_DATE = SYSDATE
+			 , DEL_USER_ID = #{ses.userId}
+			 , DEL_FLAG = '1'
+			 , DEL_RMK  = #{DEL_RMK}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND PR_NUM   = #{PR_NUM}
+		   AND PR_SQ    = #{PR_SQ}
+		   AND CTRL_USER_ID IS NULL	-- 구매담당자 지정 이전, 미접수인 건만 삭제 가능
+	</update>
+	
+	<!-- 구매관리 > 구매의뢰접수 > 구매의뢰접수 (CPRA0050) -->
+	<select id="CPRA0050_doSearch" parameterType="hashmap" resultType="hashMap">
+        SELECT
+              PRDT.BUYER_CD
+			, PRDT.PR_NUM
+            , PRDT.ITEM_CD
+            , PRDT.ITEM_DESC
+            , PRDT.ITEM_SPEC
+            , PRDT.PR_QT
+            , PRDT.UNIT_CD
+            , <include refid="common.sql.toChar"/>(PRDT.DUE_DATE, 'yyyyMMdd') AS DUE_DATE
+            , PRDT.DELY_TO_CD
+            , PRDT.DELY_TO_NM
+            , PRDT.ATT_FILE_NUM
+            ,(SELECT COUNT(*) FROM STOCATCH
+               WHERE GATE_CD = #{ses.gateCd}
+                 AND UUID = PRDT.ATT_FILE_NUM
+                 AND DEL_FLAG = '0') AS ATT_FILE_CNT
+            , PRDT.CTRL_CD
+            ,(SELECT CTRL_NM FROM STOCBACO
+               WHERE GATE_CD = PRDT.GATE_CD
+                 AND CTRL_CD = PRDT.CTRL_CD
+                 AND DEL_FLAG = '0') AS CTRL_NM
+            ,<include refid="common.sql.clobToChar"/>(PRDT.ITEM_RMK) AS ITEM_RMK
+            , PRDT.VENDOR_CD
+            , LENGTH(PRDT.VENDOR_CD) - LENGTH(REPLACE(PRDT.VENDOR_CD,'{','')) AS VENDOR_CNT
+            ,(CASE WHEN (LENGTH(PRDT.VENDOR_CD) - LENGTH(REPLACE(PRDT.VENDOR_CD,'{',''))) = 1 THEN JSON_VALUE(PRDT.VENDOR_CD, '$.VENDOR_NM') 
+            	   ELSE TO_CHAR(LENGTH(PRDT.VENDOR_CD) - LENGTH(REPLACE(PRDT.VENDOR_CD,'{',''))) 
+              END) AS VENDOR_NM
+            , TO_CHAR(PRDT.PR_SQ) AS PR_SQ
+			, PRDT.UNIT_PRC
+			, PRDT.PR_AMT
+			,<include refid="common.sql.dbo"/>GETMKBRNAME(PRDT.GATE_CD, PRDT.PR_BUYER_CD, 'MK', PRDT.MAKER_CD) AS MAKER_NM
+			, PRDT.MAKER_CD
+			, PRDT.MAKER_PART_NO
+			, PRDT.ORIGIN_CD
+			, PRDT.ITEM_RMK
+			, PRDT.VENDOR_CD
+			, PRDT.PURCHASE_TYPE
+			, PRDT.VENDOR_OPEN_TYPE
+			, PRDT.SUBMIT_TYPE
+			, PRDT.CTRL_CD
+			, PRDT.CTRL_USER_ID
+			, PRDT.RECEIPT_DATE
+			,<include refid="common.sql.clobToChar"/>(PRDT.REJECT_RMK) REJECT_RMK
+			, PRDT.REJECT_DATE
+			, PRDT.PO_REQ_DATE
+			, PRDT.CN_DATE
+			,<include refid="common.sql.nvl"/>(PRDT.RECEIPT_FLAG , '0') RECEIPT_FLAG
+			, PRDT.LAST_VENDOR_CD
+			, PRDT.LAST_UNIT_PRC
+			, PRDT.LAST_ITEM_AMT
+			, PRDT.LAST_PO_NUM
+			, PRDT.LAST_PO_SQ
+			, PRDT.LAST_PO_FLAG
+			, PRDT.LAST_PO_CUR
+			, PRDT.MNT_SANGJU_YN
+			, PRDT.CONSUMER_AMT
+			, PRDT.FC_MNT_TERM
+			, PRDT.CH_RATE
+			, PRDT.DOIB_AMT
+			, PRDT.MNT_RATE
+			, PRDT.MNT_SDAY
+			, PRDT.MNT_EDAY
+			, PRDT.MNT_GUR_MONTH
+			, PRDT.RT_INSP_PERIOD
+			, PRDT.FALT_RC_TG_TIME
+			, PRDT.CM_REQ_ID
+			, PRDT.CM_REQ_DET_ID
+			, PRDT.MULPUM_ID
+			, PRDT.PR_BUYER_CD
+			, PRDT.PR_DEPT_CD
+			, PRDT.EC_BUYER_CD
+			, PRDT.EC_DEPT_CD
+			,(CASE WHEN PRDT.PR_BUYER_CD = '공동' THEN '공동'
+				   ELSE getCustName(PRDT.GATE_CD, PRDT.PR_BUYER_CD) ||' '|| getDeptName(PRDT.GATE_CD, PRDT.PR_BUYER_CD, PRDT.PR_DEPT_CD, #{ses.langCd})
+				   END) AS PR_BUYER_NM
+			,(SELECT ST.CUST_NM ||' '|| DP.DEPT_NM
+			    FROM STOCCUST ST JOIN STOCOGDP DP
+			    	 ON (ST.GATE_CD = DP.GATE_CD
+			         AND ST.CUST_CD = DP.BUYER_CD)
+			   WHERE DP.GATE_CD  = PRDT.GATE_CD
+			     AND DP.BUYER_CD = PRDT.EC_BUYER_CD
+			     AND DP.DEPT_CD  = PRDT.EC_DEPT_CD) AS EC_BUYER_NM
+			, PRDT.CM_TYPE
+			, PRDT.CM_REQ_DET_NM
+			, PRDT.BZ_TIMELINE_SDAY
+			, PRDT.BZ_TIMELINE_EDAY
+			, PRDT.ACC_CD
+			, PRDT.ACC_HNG_NM
+			, PRDT.ACC_MOK_NM
+			, PRDT.ACC_DET_NM
+			, PRDT.BDGT_INFO
+			, PRDT.MNT_AMT
+			, PRDT.PAY_PERIOD_MTHD
+			, PRDT.PAY_PERIOD_MTHD2
+			, TO_CHAR(PRDT.GISANIL,'YYYYMMDD') AS GISANIL
+			, PRDT.PROJECT_CD
+			, PRDT.PROJECT_SQ
+			, PRDT.PROJECT_TYPE
+			, PRDT.CONT_GROUND
+			, PRDT.CONT_RMK
+			, PRHD.CUR
+			, PRDT.VAT_TYPE
+			, PRDT.AMT_TYPE
+			, PRHD.SIGN_STATUS
+			,<include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'M020', PRHD.SIGN_STATUS, #{ses.langCd}) as SIGN_STATUS_NM
+            ,<include refid="common.sql.toChar"/>(PRHD.REQ_DATE, 'yyyyMMdd') AS REQ_DATE
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(PRHD.GATE_CD, PRHD.REG_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+			, PRHD.SUBJECT
+            ,<include refid="common.sql.toChar"/>(PRDT.RECEIPT_DATE, 'yyyyMMdd') AS RECEIPT_DATE
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(PRDT.GATE_CD, PRDT.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+			, PRDT.PROGRESS_CD
+			, PRHD.REG_USER_ID
+			,(CASE WHEN (SELECT <include refid="common.sql.nvl"/>(MAX(DT.BID_CNT), '0') FROM STOCBDDT DT
+						   JOIN STOCBDHD HD
+								ON (DT.GATE_CD  = HD.GATE_CD
+							 	AND DT.BUYER_CD = HD.BUYER_CD
+							 	AND DT.BID_NUM  = HD.BID_NUM
+							 	AND DT.BID_CNT  = HD.BID_CNT
+							 	AND HD.DEL_FLAG = '0')
+						  WHERE DT.GATE_CD  = PRDT.GATE_CD
+						    AND DT.PB_BUYER_CD = PRDT.BUYER_CD -- 빼먹으면 안됨
+						    AND DT.PR_NUM   = PRDT.PR_NUM
+						    AND DT.PR_SQ    = PRDT.PR_SQ
+						    AND DT.DEL_FLAG = '0'
+						    AND HD.BID_STATUS NOT IN ('2330', '9999')	-- 2021.07.06 : 취소공고확정도 제외
+						    AND TO_NUMBER(HD.BID_STATUS) <![CDATA[>=]]> 2300) <![CDATA[>]]> 0 THEN 'N'
+				   ELSE 'Y' END) AS POSSIBLE_FLAG
+			,(CASE WHEN (SELECT <include refid="common.sql.nvl"/>(MAX(DT.RFX_CNT), '0') FROM STOCRQDT DT
+						   JOIN STOCRQHD HD
+								ON (DT.GATE_CD  = HD.GATE_CD
+							 	AND DT.BUYER_CD = HD.BUYER_CD
+							 	AND DT.RFX_NUM  = HD.RFX_NUM
+							 	AND DT.RFX_CNT  = HD.RFX_CNT
+							 	AND HD.DEL_FLAG = '0')
+						  WHERE DT.GATE_CD  = PRDT.GATE_CD
+						    AND DT.PB_BUYER_CD = PRDT.BUYER_CD -- 빼먹으면 안됨
+						    AND DT.PR_NUM   = PRDT.PR_NUM
+						    AND DT.PR_SQ    = PRDT.PR_SQ
+						    AND DT.DEL_FLAG = '0'
+						    AND HD.RFX_TYPE IN ('RFQ','RYQ','RPC','RCA')	/** 견적, 견적(연단가), 수의시담 : RFI는 제외(=동시 진행 가능함), 부속합의 */
+						    AND TO_NUMBER(HD.PROGRESS_CD) <![CDATA[>=]]> 2300) <![CDATA[>]]> 0 THEN 'N'
+				   ELSE 'Y' END) AS RFX_POSSIBLE_FLAG
+			,(SELECT <include refid="common.sql.nvl"/>(MAX(TO_NUMBER(PROGRESS_CD)), 0)
+				FROM STOCPRDT
+			   WHERE GATE_CD  = PRHD.GATE_CD
+			     AND BUYER_CD = PRHD.BUYER_CD
+			     AND PR_NUM   = PRHD.PR_NUM
+			     AND DEL_FLAG = '0') AS MAX_PROGRESS_CD
+			, PRHD.IF_TYPE		-- 인터페이스 유형(NH0011) : ITA(농협중앙회), ITB(농협은행)
+			,<include refid="common.sql.nvl"/>(PRHD.PR_TYPE, '10') AS PR_TYPE	-- 구매유형(=계약구분 : M134) : 10(신규), 20(변경), 30(연장)
+			, PRDT.PRE_BUYER_CD
+			, PRDT.PRE_CONT_NUM
+			, PRDT.PRE_CONT_CNT
+			, PRDT.CM_REQ_ID
+			/*2021.05.25 : 이전계약번호에 대한 협력사 가져오기*/
+			, ECCT.CONT_DESC AS PRE_CONT_DESC
+			, ECCT.VENDOR_CD AS PRE_VENDOR_CD
+			, GETVENDORNAME(ECCT.GATE_CD, ECCT.VENDOR_CD, #{ses.langCd}) AS PRE_VENDOR_NM
+			,<include refid="common.sql.strDecStart"/>ECCT.VENDOR_PIC_USER_NM<include refid="common.sql.strDecEnd"/> AS PRE_VENDOR_PIC_USER_NM
+			,<include refid="common.sql.strDecStart"/>ECCT.VENDOR_PIC_USER_EMAIL<include refid="common.sql.strDecEnd"/> AS PRE_VENDOR_PIC_USER_EMAIL
+			,<include refid="common.sql.strDecStart"/>ECCT.VENDOR_PIC_USER_CELL_NUM<include refid="common.sql.strDecEnd"/> AS PRE_VENDOR_PIC_USER_CELL_NUM
+			, ECCT.CUR AS PRE_CUR
+			, ECCT.VAT_TYPE AS PRE_VAT_TYPE
+			, ECCT.AMT_TYPE AS PRE_AMT_TYPE
+			,<include refid="common.sql.nvl"/>(ECCT.CONT_AMT, '0') AS PRE_CONT_AMT
+			, ECCT.DELAY_RMK AS PRE_DELAY_RMK
+		    , ECCT.DELAY_NUME_RATE AS PRE_DELAY_NUME_RATE
+		    , ECCT.DELAY_DENO_RATE AS PRE_DELAY_DENO_RATE
+		    , ECCT.STAMP_DUTY_FLAG AS PRE_STAMP_DUTY_FLAG
+		    ,<include refid="common.sql.nvl"/>(ECCT.STAMP_DUTY_AMT, '0') AS PRE_STAMP_DUTY_AMT
+		    , ECCT.AUTO_RENEW_FLAG AS PRE_AUTO_RENEW_FLAG
+		    , ECCT.CONT_RMK AS PRE_CONT_RMK
+         FROM STOCPRHD PRHD
+         JOIN STOCPRDT PRDT
+	          ON (PRDT.GATE_CD  = PRHD.GATE_CD
+	          AND PRDT.BUYER_CD = PRHD.BUYER_CD
+	          AND PRDT.PR_NUM   = PRHD.PR_NUM
+	          AND PRDT.DEL_FLAG = '0')
+	     LEFT JOIN STOCECCT ECCT
+	      	  ON (ECCT.GATE_CD  = PRDT.GATE_CD
+	      	  AND ECCT.BUYER_CD = PRDT.PRE_BUYER_CD
+	      	  AND ECCT.CONT_NUM = PRDT.PRE_CONT_NUM
+	      	  AND ECCT.CONT_CNT = PRDT.PRE_CONT_CNT)
+        WHERE PRHD.GATE_CD     = #{ses.gateCd}
+          AND PRHD.SIGN_STATUS = 'E'
+          AND PRHD.DEL_FLAG    = '0'
+          AND PRDT.EC_BUYER_CD = #{ses.companyCd}	 -- 체결고객사
+          AND PRDT.PROGRESS_CD <![CDATA[<]]> '2300' -- 접수대기(2100), 접수완료(2200)
+		  AND PRDT.CTRL_USER_ID IS NOT NULL
+
+		<if test="REQ_FROM_DATE !='' and REQ_FROM_DATE !=null and REQ_TO_DATE !='' and REQ_TO_DATE !=null ">
+		  AND PRHD.REQ_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REQ_FROM_DATE})
+		  AND PRHD.REQ_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REQ_TO_DATE})
+		</if>
+		<if test="PR_SUBJECT != '' and PR_SUBJECT != null">
+		  AND UPPER(REPLACE(PRHD.SUBJECT, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{PR_SUBJECT}, ' ', '')) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="PR_NUM !='' and PR_NUM !=null">
+		  AND UPPER(PRHD.PR_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_NUM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="PURCHASE_TYPE !='' and PURCHASE_TYPE !=null">
+		  AND PRDT.PURCHASE_TYPE = #{PURCHASE_TYPE}
+		</if>
+		<if test="REQ_USER_ID !='' and REQ_USER_ID !=null">
+		  AND PRHD.REG_USER_ID = #{REQ_USER_ID}
+		</if>
+		<if test="IF_TYPE !='' and IF_TYPE !=null">
+		  AND PRHD.IF_TYPE = #{IF_TYPE}
+		</if>
+		<if test="PR_BUYER_CD !='' and PR_BUYER_CD !=null">
+		  AND PRDT.PR_BUYER_CD = #{PR_BUYER_CD}
+		</if>
+		<if test="PR_DEPT_CD !='' and pr_DEPT_CD !=null">
+		  AND PRDT.PR_DEPT_CD = #{PR_DEPT_CD}
+		</if>
+		<if test="RECEIPT_FLAG !='' and RECEIPT_FLAG !=null">
+		  AND <include refid="common.sql.nvl"/>(PRDT.RECEIPT_FLAG,'0') = #{RECEIPT_FLAG}
+		</if>
+		<if test="CTRL_USER_ID !='' and CTRL_USER_ID !=null">
+		  AND PRDT.CTRL_USER_ID = #{CTRL_USER_ID}
+		</if>
+		<if test="CTRL_USER_NM != null and CTRL_USER_NM != ''">
+		   AND <include refid="common.sql.dbo"/>GETUSERNAME(PRDT.GATE_CD, PRDT.CTRL_USER_ID, #{ses.langCd}) LIKE '%' <include refid="common.sql.stringMerge"/> #{CTRL_USER_NM} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<!-- IT포탈 계약의뢰번호 검색조건 추가 -->
+		<if test="CM_REQ_ID != '' and CM_REQ_ID != null">
+		  AND PRDT.CM_REQ_ID LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CM_REQ_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		ORDER BY PRHD.REQ_DATE DESC
+		 		, PRDT.PR_NUM DESC
+		 		, PRDT.PR_SQ
+	</select>
+	
+	<!-- 구매담당자 접수완료(2200) 처리 -->
+	<update id="CPRA0050_doReceipt" parameterType="hashMap">
+
+		UPDATE STOCPRDT SET
+			  MOD_DATE     = SYSDATE
+			, MOD_USER_ID  = #{ses.userId}
+			, PROGRESS_CD  = #{PROGRESS_CD}
+			, RECEIPT_FLAG = '200'
+			, RECEIPT_DATE = SYSDATE
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND PR_NUM   = #{PR_NUM}
+		   AND PR_SQ    = #{PR_SQ}
+	</update>
+	
+	<!-- 구매담당자 구매반려(1200) 처리 -->
+	<update id="CPRA0050_doReject" parameterType="hashMap">
+
+		UPDATE STOCPRDT SET
+			  MOD_DATE     = SYSDATE
+			, MOD_USER_ID  = #{ses.userId}
+			, PROGRESS_CD  = #{PROGRESS_CD}
+			, RECEIPT_FLAG = '100'
+			, REJECT_RMK   = #{REJECT_RMK}
+			, REJECT_DATE  = SYSDATE
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND PR_NUM   = #{PR_NUM}
+		   AND PR_SQ    = #{PR_SQ}
+	</update>
+	
+	<!-- 구매요청품목 전체 반려시 구매요청서 임시저장(T)으로 변경 -->
+	<update id="CPRA0050_doRejectAllCheck" parameterType="hashMap">
+
+		UPDATE STOCPRHD SET
+			 SIGN_STATUS = 'T'
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND PR_NUM = #{PR_NUM}
+		   AND (SELECT COUNT(*) FROM STOCPRDT
+			   	 WHERE GATE_CD  = #{ses.gateCd}
+			   	   AND BUYER_CD = #{BUYER_CD}
+			   	   AND PR_NUM   = #{PR_NUM}
+			   	   AND DEL_FLAG = '0') = (SELECT COUNT(*) FROM STOCPRDT
+										   WHERE GATE_CD  = #{ses.gateCd}
+										     AND BUYER_CD = #{BUYER_CD}
+										     AND PR_NUM   = #{PR_NUM}
+										     AND DEL_FLAG = '0'
+										     AND PROGRESS_CD = '1200')
+	</update>
+
+	<update id="CPRA0050_doTrans" parameterType="hashMap">
+
+		UPDATE STOCPRDT SET
+			 CTRL_USER_ID = #{CTRL_USER_ID}
+			,PROGRESS_CD = #{PROGRESS_CD}
+			,MOD_DATE = SYSDATE
+			,MOD_USER_ID = #{ses.userId}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND PR_NUM   = #{PR_NUM}
+		   AND PR_SQ    = #{PR_SQ}
+	</update>
+
+	<select id="getCtrlUserId" parameterType="hashmap" resultType="java.lang.String">
+
+		SELECT CTRL_USER_ID AS CTRL_USER_ID 
+		  FROM STOCPRDT
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND PR_NUM   = #{PR_NUM}
+		   AND PR_SQ    = #{PR_SQ}
+	</select>
+
+	<select id="p03004_getIsFlag" parameterType="hashMap" resultType="java.lang.String">
+
+		SELECT (CASE WHEN USER_ID IS NOT NULL THEN 'Y' ELSE 'N' END) AS IS_FLAG FROM STOCUSER WHERE GATE_CD = #{ses.gateCd} AND USER_ID =  #{USER_ID}
+	</select>
+
+	<select id="getProgressCd" parameterType="hashmap" resultType="java.lang.String">
+		SELECT PROGRESS_CD FROM STOCPRDT
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND PR_NUM   = #{PR_NUM}
+		   AND PR_SQ    = #{PR_SQ}
+	</select>
+ 	
+ 	<!-- 구매요청품목 진행상태 변경하기 -->
+    <update id="CPRA0050_setProgressCd" parameterType="hashmap">
+		UPDATE STOCPRDT SET
+			   PROGRESS_CD = #{PROGRESS_CD}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND PR_NUM   = #{PR_NUM}
+		   AND PR_SQ    = #{PR_SQ}
+	</update>
+
+    <insert id="CPRA0050_doJongPo" parameterType="hashmap">
+		INSERT INTO STOCPOHB (
+			 GATE_CD
+			,BUYER_CD
+			,DEPT_CD
+			,PO_WT_NUM
+			,REG_DATE
+			,REG_USER_ID
+			,PR_NUM
+			,PR_SQ
+			,PO_CREATE_TYPE
+			,ITEM_CD
+			,CTRL_USER_ID
+			,CTRL_CD
+			,VENDOR_CD
+			,CUR
+			,PO_QT
+			,UNIT_PRC
+			,ITEM_AMT
+			,PURCHASE_TYPE
+			,DEL_FLAG
+			,MOD_DATE
+			,MOD_USER_ID
+			,ITEM_DESC
+			,ITEM_SPEC
+			,MAKER_CD
+			,MAKER_PART_NO
+			,ORIGIN_CD
+			,SUBJECT
+			,UNIT_CD
+			,VAT_TYPE
+			,REQ_USER_ID
+			,PR_BUYER_CD
+			,PR_DEPT_CD
+			,PB_BUYER_CD
+		)
+		SELECT
+			 #{ses.gateCd} --GATE_CD
+			,#{EC_BUYER_CD} --BUYER_CD
+			,#{EC_DEPT_CD}
+			,#{PO_WT_NUM} --PO_WT_NUM
+			,SYSDATE --REG_DATE
+			,#{ses.userId} --REG_USER_ID
+			,#{PR_NUM} --PR_NUM
+			,#{PR_SQ} --PR_SQ
+			,'LAST' --PO_CREATE_TYPE
+			,#{ITEM_CD} --ITEM_CD
+			,#{CTRL_USER_ID} --CTRL_USER_ID
+			,#{CTRL_CD} --CTRL_CD
+			,#{VENDOR_CD} --VENDOR_CD
+			,#{CUR} --CUR
+			,#{PR_QT} --PO_QT
+			,INFO.UNIT_PRC --UNIT_PRC
+			,#{PR_QT} * INFO.UNIT_PRC --ITEM_AMT
+			,#{PURCHASE_TYPE} --PURCHASE_TYPE
+			,'0' --DEL_FLAG
+			,SYSDATE --MOD_DATE
+			,#{ses.userId} --MOD_USER_ID
+			,#{ITEM_DESC} --ITEM_DESC
+			,#{ITEM_SPEC} --ITEM_SPEC
+			,#{MAKER_CD} --MAKER_CD
+			,#{MAKER_PART_NO} --MAKER_PART_NO
+			,#{ORIGIN_CD} --ORIGIN_CD
+			,#{SUBJECT} --SUBJECT
+			,#{UNIT_CD} --UNIT_CD
+			,#{VAT_TYPE} --VAT_TYPE
+			,#{REG_USER_ID} --REQ_USER_ID
+			,#{PR_BUYER_CD} --PR_BUYER_CD
+			,#{PR_DEPT_CD} --PR_DEPT_CD
+			,#{PB_BUYER_CD}
+		FROM STOCINFO INFO
+		WHERE INFO.GATE_CD = #{ses.gateCd}
+		AND INFO.BUYER_CD  = #{ses.companyCd}
+		AND INFO.PR_BUYER_CD  = #{PR_BUYER_CD}
+		AND INFO.PR_DEPT_CD  = #{PR_DEPT_CD}
+		AND INFO.VENDOR_CD = #{VENDOR_CD}
+		AND INFO.ITEM_CD   = #{ITEM_CD}
+		AND ROWNUM = 1
+	</insert>
+
+	<select id="CPRA0060_Master" parameterType="hashmap" resultType="hashMap">
+		SELECT
+		 A.CM_REQ_ID
+		,A.OFFICE_DOCU_NUM
+		,A.MNT_TYPE
+		,(
+			SELECT LISTAGG( <include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'NH0015', BZ_PART_ID, #{ses.langCd})    , ',')	WITHIN GROUP(ORDER BY BZ_PART_ID)
+			FROM TBT_CM_REQ_REL_BZ_PART
+			WHERE CM_REQ_ID = A.CM_REQ_ID
+		) BZ_PART_NM
+		FROM TBT_CM_REQ_INFO A
+		WHERE CM_REQ_ID = #{CM_REQ_ID}
+	</select>
+
+	<select id="CPRA0060_Grid1" parameterType="hashmap" resultType="hashMap">
+		SELECT
+		 A.CM_PR_CORP
+		,A.CM_TR_CORP
+		,A.CM_REQ_DET_NM
+		,A.BZ_TIMELINE_SDAY
+		,A.BZ_TIMELINE_EDAY
+		,(
+	              SELECT CODE_NAME
+	                FROM TBT_PT_CODE
+	               WHERE UPPER_CODE = 'CM001_02_00'
+	               AND CODE = A.CM_CLASS_NM
+		 ) CM_CLASS_NM
+		,(
+	              SELECT CODE_NAME
+	                FROM TBT_PT_CODE
+	               WHERE UPPER_CODE = 'CM001_01_00'
+	               AND CODE = A.CM_TYPE
+		 ) CM_TYPE
+		,A.OM_COMP_NM
+		,A.C_DET_ESTIMATE_AMOUNT
+		,A.A_DET_ESTIMATE_AMOUNT
+		,A.B_DET_ESTIMATE_AMOUNT
+		,A.F_DET_ESTIMATE_AMOUNT
+		,A.E_DET_ESTIMATE_AMOUNT
+		,A.C_DET_ESTIMATE_AMOUNT+A.A_DET_ESTIMATE_AMOUNT+A.B_DET_ESTIMATE_AMOUNT+A.F_DET_ESTIMATE_AMOUNT+A.E_DET_ESTIMATE_AMOUNT TOTAL_DET_ESTIMATE_AMOUNT
+		,( SELECT LISTAGG(DAMDANG_USER_NM, ',')	WITHIN GROUP(ORDER BY DAMDANG_USER_NM)
+		   FROM TBT_CM_REQ_DET_D1
+		   WHERE CM_REQ_DET_ID = A.CM_REQ_DET_ID
+		   AND CM_REQ_ID = A.CM_REQ_ID
+		) DAMDANG_USER_NM
+		,CASE WHEN A.CM_PROVISION = '001' THEN '계약규정 제6조'
+	  		  WHEN A.CM_PROVISION = '002' THEN '계약사무처리준칙 제37조 3호 가목'
+			  WHEN A.CM_PROVISION = '003' THEN '계약사무처리준칙 제37조 3호 나목'
+			  WHEN A.CM_PROVISION = '004' THEN '계약사무처리준칙 제37조 3호 아목'
+			  WHEN A.CM_PROVISION = '005' THEN '계약사무처리준칙 제37조 3호 타목'
+			  WHEN A.CM_PROVISION = '006' THEN '계약사무처리준칙 제37조 3호 바목'
+			  WHEN A.CM_PROVISION = '007' THEN '계약사무처리준칙 제37조 3호 차목'
+			  WHEN A.CM_PROVISION = '008' THEN '계약사무처리준칙 제37조 16호'
+			  WHEN A.CM_PROVISION = '009' THEN '계약사무처리준칙 제32조 1호'
+			  WHEN A.CM_PROVISION = '010' THEN '계약사무처리준칙 제29조'
+			  WHEN A.CM_PROVISION = '011' THEN '계약사무처리준칙 제37조 4호 가목'
+			  WHEN A.CM_PROVISION = '012' THEN '계약사무처리준칙 제37조 4호 나목'
+			  WHEN A.CM_PROVISION = '013' THEN '계약사무처리준칙 제37조 4호 다목'
+			  WHEN A.CM_PROVISION = '014' THEN '계약사무처리준칙 제37조 4호 라목'
+			  WHEN A.CM_PROVISION = '015' THEN '계약사무처리준칙 제38조 제1항 제2호'
+			  WHEN A.CM_PROVISION = '016' THEN '계약사무처리준칙 제39조 1항'
+			  WHEN A.CM_PROVISION = '017' THEN '계약사무처리준칙 제29조 '
+			  WHEN A.CM_PROVISION = '018' THEN '계약사무처리준칙 제63조 '
+			  WHEN A.CM_PROVISION = '099' THEN '직접입력'
+			  ELSE A.CM_PROVISION
+		 END CM_PROVISION
+		,A.CM_SAYU
+		FROM TBT_CM_REQ_DET_M A
+		WHERE A.CM_REQ_ID = #{CM_REQ_ID}
+	</select>
+
+	<select id="CPRA0060_Grid2_back20220718" parameterType="hashmap" resultType="hashMap">
+		SELECT
+			 A.CM_PR_CORP
+			,(
+				SELECT LISTAGG(CM_REQ_DET_NM, ',')	WITHIN GROUP(ORDER BY CM_REQ_DET_NM)
+				FROM TBT_CM_REQ_DET_M
+				WHERE CM_REQ_ID = A.CM_REQ_ID
+			 ) CM_REQ_DET_NM
+			,A.AM_TYPE
+			,A.MULPUM_GBN
+			,A.ACC_HNG_NM
+
+			,(
+		              SELECT CODE_NAME
+		                FROM TBT_PT_CODE
+		               WHERE UPPER_CODE = 'grp000_AM003'
+		               AND CODE = A.AM_CATE_TYPE
+			 ) AM_CATE_TYPE
+
+
+			,A.MULPUM_NM
+			,A.DOIB_YONGDO
+			,A.DOIB_DESC
+
+
+			,CASE WHEN A.MNG_AM_YN = 'Y' THEN '여' ELSE '부' END MNG_AM_YN
+
+			,CASE WHEN A.ASSET_TYPE = 'I' THEN '도입'
+			      WHEN A.ASSET_TYPE = 'Z' THEN '무상'
+			      WHEN A.ASSET_TYPE = 'Y' THEN '기증'
+			      WHEN A.ASSET_TYPE = 'X' THEN '리스'
+			      WHEN A.ASSET_TYPE = 'W' THEN '임대'
+			 ELSE '' END ASSET_TYPE
+
+
+
+			,A.MAF_COMP
+			,A.LICEN_TYPE
+			,A.AM_CNT
+			,A.AM_CNT_DANWI
+			,A.FRT_CLS_MM
+			,A.MID_CLS_MM
+			,A.HIG_CLS_MM
+			,A.SPC_CLS_MM
+			,A.TOT_TUIB_GONGSU
+			,A.CONSUME_BY_AMOUNT
+			,A.CONSUME_AMOUNT
+			,A.C_ESTIMATE_AMOUNT
+			,A.A_ESTIMATE_AMOUNT
+			,A.B_ESTIMATE_AMOUNT
+			,A.F_ESTIMATE_AMOUNT
+			,A.E_ESTIMATE_AMOUNT
+			,A.ESTIMATE_AMOUNT
+			,(
+				SELECT LISTAGG(
+				'['||<include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'NH0015', BZ_PART_ID, #{ses.langCd})||']'||
+				BDGT_BUSEO_NM||'('|| replace(TO_CHAR(BDGT_AMOUNT,'999,999,999,999'),' ','')  ||')'
+				, ',')	WITHIN GROUP(ORDER BY BDGT_BUSEO_NM)
+				FROM TBT_CM_REQ_MULPUM_BDGT
+				WHERE MULPUM_ID = A.MULPUM_ID
+			) BDGT_BUSEO_NM
+			,(
+				SELECT LISTAGG(PAY_BUSEO_NM , ',')	WITHIN GROUP(ORDER BY PAY_BUSEO_NM )
+				FROM TBT_CM_REQ_MULPUM_PAY
+				WHERE MULPUM_ID = A.MULPUM_ID
+			) PAY_BUSEO_NM
+			,(
+				SELECT LISTAGG(ACQUI_BUSEO_NM , ',')	WITHIN GROUP(ORDER BY ACQUI_BUSEO_NM )
+				FROM TBT_CM_REQ_MULPUM_ACQUI
+				WHERE MULPUM_ID = A.MULPUM_ID
+			) ACQUI_BUSEO_NM
+			,(
+				SELECT LISTAGG(<include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'NH0015', BZ_PART_ID, #{ses.langCd}) , ',')	WITHIN GROUP(ORDER BY BZ_PART_ID )
+				FROM TBT_CM_REQ_REL_BZ_PART
+				WHERE CM_REQ_ID = A.CM_REQ_ID
+			) BZ_PART_NM
+		FROM TBT_CM_REQ_MULPUM_SPEC A
+		WHERE CM_REQ_ID = #{CM_REQ_ID}
+	</select>
+	
+	<select id="CPRA0060_Grid2" parameterType="hashmap" resultType="hashMap">
+		SELECT
+			 A.CM_PR_CORP
+			,(
+				SELECT LISTAGG(CM_REQ_DET_NM, ',')	WITHIN GROUP(ORDER BY CM_REQ_DET_NM)
+				FROM TBT_CM_REQ_DET_M
+				WHERE CM_REQ_ID = A.CM_REQ_ID
+			 ) CM_REQ_DET_NM
+			,A.AM_TYPE
+			,A.MULPUM_GBN
+			,A.ACC_HNG_NM
+
+			,(
+		              SELECT CODE_NAME
+		                FROM TBT_PT_CODE
+		               WHERE UPPER_CODE = 'grp000_AM003'
+		               AND CODE = A.AM_CATE_TYPE
+			 ) AM_CATE_TYPE
+
+
+			,A.MULPUM_NM
+			,A.DOIB_YONGDO
+			,A.DOIB_DESC
+
+
+			,CASE WHEN A.MNG_AM_YN = 'Y' THEN '여' ELSE '부' END MNG_AM_YN
+
+			,CASE WHEN A.ASSET_TYPE = 'I' THEN '도입'
+			      WHEN A.ASSET_TYPE = 'Z' THEN '무상'
+			      WHEN A.ASSET_TYPE = 'Y' THEN '기증'
+			      WHEN A.ASSET_TYPE = 'X' THEN '리스'
+			      WHEN A.ASSET_TYPE = 'W' THEN '임대'
+			 ELSE '' END ASSET_TYPE
+
+
+
+			,A.MAF_COMP
+			,A.LICEN_TYPE
+			,A.AM_CNT
+			,A.AM_CNT_DANWI
+			,A.CLS_GRADE
+			,A.TOT_TUIB_GONGSU
+			,A.CONSUME_BY_AMOUNT
+			,A.CONSUME_AMOUNT
+			,A.C_ESTIMATE_AMOUNT
+			,A.A_ESTIMATE_AMOUNT
+			,A.B_ESTIMATE_AMOUNT
+			,A.F_ESTIMATE_AMOUNT
+			,A.E_ESTIMATE_AMOUNT
+			,A.ESTIMATE_AMOUNT
+			,(
+				SELECT LISTAGG(
+				'['||<include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'NH0015', BZ_PART_ID, #{ses.langCd})||']'||
+				BDGT_BUSEO_NM||'('|| replace(TO_CHAR(BDGT_AMOUNT,'999,999,999,999'),' ','')  ||')'
+				, ',')	WITHIN GROUP(ORDER BY BDGT_BUSEO_NM)
+				FROM TBT_CM_REQ_MULPUM_BDGT
+				WHERE MULPUM_ID = A.MULPUM_ID
+			) BDGT_BUSEO_NM
+			,(
+				SELECT LISTAGG(PAY_BUSEO_NM , ',')	WITHIN GROUP(ORDER BY PAY_BUSEO_NM )
+				FROM TBT_CM_REQ_MULPUM_PAY
+				WHERE MULPUM_ID = A.MULPUM_ID
+			) PAY_BUSEO_NM
+			,(
+				SELECT LISTAGG(ACQUI_BUSEO_NM , ',')	WITHIN GROUP(ORDER BY ACQUI_BUSEO_NM )
+				FROM TBT_CM_REQ_MULPUM_ACQUI
+				WHERE MULPUM_ID = A.MULPUM_ID
+			) ACQUI_BUSEO_NM
+			,(
+				SELECT LISTAGG(<include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'NH0015', BZ_PART_ID, #{ses.langCd}) , ',')	WITHIN GROUP(ORDER BY BZ_PART_ID )
+				FROM TBT_CM_REQ_REL_BZ_PART
+				WHERE CM_REQ_ID = A.CM_REQ_ID
+			) BZ_PART_NM
+		FROM TBT_CM_REQ_MULPUM_SPEC A
+		WHERE CM_REQ_ID = #{CM_REQ_ID}
+	</select>
+
+	<select id="CPRA0060_Grid3" parameterType="hashmap" resultType="hashMap">
+		SELECT
+		A.OM_COMP_NM
+		,SUBSTR(B.SYSMODTIME,0,8) SYSMODTIME
+		,B.WRITTEN_BY_NM
+		,B.ATTACH_TITLE
+		FROM TBT_CM_REQ_D2 A LEFT OUTER JOIN TBT_CM_ATTACH B
+			ON A.CM_REQ_ID = B.CM_KEY_ID(+)
+          	AND A.REC_NUM = B.REC_NUM(+)
+		    AND B.TYPE = '01'
+		WHERE A.CM_REQ_ID = #{CM_REQ_ID}
+	</select>
+
+	<select id="CPRA0060_Grid4" parameterType="hashmap" resultType="hashMap">
+		SELECT
+			 (
+		              SELECT CODE_NAME
+		                FROM TBT_PT_CODE
+		               WHERE UPPER_CODE = 'CM001_01_00'
+		               AND CODE = A.CM_TYPE
+			 ) CM_TYPE
+			,A.OM_COMP_NM
+			,A.DOIB_AMOUNT
+			,A.MNT_GUR_MONTH
+			,( SELECT SUM(MNT_AMOUNT)
+			  FROM TBT_CM_REQ_DET_STND_MNT
+			  WHERE CM_REQ_ID = A.CM_REQ_ID
+			) MNT_AMOUNT
+			, (
+		              SELECT CODE_NAME
+		                FROM TBT_PT_CODE
+		               WHERE UPPER_CODE = 'CM001_04_00'
+		               AND CODE = A.PAY_PERIOD_MTHD
+			 ) PAY_PERIOD_MTHD
+			, (
+		              SELECT CODE_NAME
+		                FROM TBT_PT_CODE
+		               WHERE UPPER_CODE = 'CM002_04_00'
+		               AND CODE = A.PAY_PERIOD_MTHD2
+			 ) PAY_PERIOD_MTHD2
+			,A.MNT_TOT_HOECHA
+			,A.GISANIL
+			,A.PAY_DEPT_NM AAAA
+			,( SELECT LISTAGG(DAMDANG_USER_NM, ',')	WITHIN GROUP(ORDER BY DAMDANG_USER_NM)
+			   FROM TBT_CM_REQ_DET_D1
+			   WHERE CM_REQ_ID = A.CM_REQ_ID
+			) DAMDANG_USER_NM
+			,CASE WHEN A.CM_PROVISION = '001' THEN '계약규정 제6조'
+		  		  WHEN A.CM_PROVISION = '002' THEN '계약사무처리준칙 제37조 3호 가목'
+				  WHEN A.CM_PROVISION = '003' THEN '계약사무처리준칙 제37조 3호 나목'
+				  WHEN A.CM_PROVISION = '004' THEN '계약사무처리준칙 제37조 3호 아목'
+				  WHEN A.CM_PROVISION = '005' THEN '계약사무처리준칙 제37조 3호 타목'
+				  WHEN A.CM_PROVISION = '006' THEN '계약사무처리준칙 제37조 3호 바목'
+				  WHEN A.CM_PROVISION = '007' THEN '계약사무처리준칙 제37조 3호 차목'
+				  WHEN A.CM_PROVISION = '008' THEN '계약사무처리준칙 제37조 16호'
+				  WHEN A.CM_PROVISION = '009' THEN '계약사무처리준칙 제32조 1호'
+				  WHEN A.CM_PROVISION = '010' THEN '계약사무처리준칙 제29조'
+				  WHEN A.CM_PROVISION = '011' THEN '계약사무처리준칙 제37조 4호 가목'
+				  WHEN A.CM_PROVISION = '012' THEN '계약사무처리준칙 제37조 4호 나목'
+				  WHEN A.CM_PROVISION = '013' THEN '계약사무처리준칙 제37조 4호 다목'
+				  WHEN A.CM_PROVISION = '014' THEN '계약사무처리준칙 제37조 4호 라목'
+				  WHEN A.CM_PROVISION = '015' THEN '계약사무처리준칙 제38조 제1항 제2호'
+				  WHEN A.CM_PROVISION = '016' THEN '계약사무처리준칙 제39조 1항'
+				  WHEN A.CM_PROVISION = '017' THEN '계약사무처리준칙 제29조 '
+				  WHEN A.CM_PROVISION = '018' THEN '계약사무처리준칙 제63조 '
+				  WHEN A.CM_PROVISION = '099' THEN '직접입력'
+				  ELSE A.CM_PROVISION
+			 END CM_PROVISION
+			,A.CM_SAYU
+		FROM TBT_CM_REQ_DET_M A
+		WHERE A.CM_REQ_ID = #{CM_REQ_ID}
+	</select>
+
+	<select id="CPRA0060_Grid5" parameterType="hashmap" resultType="hashMap">
+		SELECT
+				 DM1.CM_PR_CORP
+				,(
+				 	SELECT  CM_REQ_DET_NM
+				 	FROM TBT_CM_REQ_DET_M
+				 	WHERE CM_REQ_ID = DM1.CM_REQ_ID
+				 	AND ROWNUM = 1
+				 ) CM_REQ_DET_NM
+				,DM2.MNT_GRADE
+				,DM2.INTRO_YONGDO DOIB_YONGDO
+				,DM2.ASSET_NO GIJON_ASSET_MNG_NO
+				,DM2.ASSET_NM MULPUM_NM
+				,DM2.MAF_COMP
+				,(
+				 	SELECT  DOIB_NUM
+				 	FROM TBT_CM_REQ_DET_M
+				 	WHERE CM_REQ_ID = DM1.CM_REQ_ID
+				 	AND ROWNUM = 1
+				 ) DOIB_NUM
+				,'' CONT_NM
+				,DM2.AM_CNT
+				--,DM1.TOT_TUIB_GONGSU
+				--,DM1.LICEN_TYPE
+				,'' LICEN_VER
+				,(
+					SELECT LISTAGG(ACQUI_BUSEO_NM , ',')	WITHIN GROUP(ORDER BY ACQUI_BUSEO_NM )
+					FROM TBT_CM_REQ_MULPUM_ACQUI
+					WHERE ACQUI_BUSEO_ID = DM1.CM_REQ_ID
+				) ACQUI_BUSEO_NM
+				,(
+					SELECT LISTAGG(<include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'NH0015', BZ_PART_ID, #{ses.langCd}) , ',')	WITHIN GROUP(ORDER BY BZ_PART_ID )
+					FROM TBT_CM_REQ_REL_BZ_PART
+					WHERE CM_REQ_ID = DM1.CM_REQ_ID
+				) BZ_PART_NM
+		FROM TBT_CM_REQ_DET_M DM1
+							         LEFT OUTER JOIN TBT_CM_REQ_DET_STND_MNT DM2 ON DM2.CM_REQ_ID = DM1.CM_REQ_ID
+															                AND DM2.CM_REQ_DET_ID LIKE DM1.CM_REQ_DET_ID||'%'
+		WHERE DM1.CM_REQ_ID = #{CM_REQ_ID}
+	</select>
+
+	<select id="CPRA0060_Grid6" parameterType="hashmap" resultType="hashMap">
+		SELECT
+			A.OM_COMP_NM
+			,SUBSTR(B.SYSMODTIME,0,8) SYSMODTIME
+			,B.WRITTEN_BY_NM
+			,B.ATTACH_TITLE
+		FROM TBT_CM_REQ_D2 A LEFT OUTER JOIN TBT_CM_ATTACH B ON A.FILE_ID = B.FILE_PATH
+		                                                     AND B.TYPE = '01'
+		WHERE A.CM_REQ_ID = #{CM_REQ_ID}
+	</select>
+	
+	<!-- 2021.06.30 : 구매담당자 지정시 SMS 수수료 부과 -->
+	<select id="costSmsInfo" resultType="hashMap">
+		SELECT
+              CUST.IRS_NUM 		AS CORP_NO
+            , CVUR.DEPT_CD 		AS BRC
+            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+            , CVUR.USER_ID		AS USER_ID
+            , 'SMS_CTRL'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              CVUR.USER_ID 		AS CONT_TBL_PK
+            , NULL 				AS FILE_SIZE
+          FROM STOCCVUR CVUR
+          JOIN STOCCUST CUST
+          	   ON (CVUR.GATE_CD    = CUST.GATE_CD
+          	   AND CVUR.COMPANY_CD = CUST.CUST_CD)
+         WHERE CVUR.GATE_CD = #{ses.gateCd}
+           AND CVUR.USER_ID = #{CTRL_USER_ID}
+    </select>
+
+</mapper>

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:38 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.org.MOGA0030_Mapper">
+
+    <select id="MOGA0030_doSearch" parameterType="hashmap" resultType="hashMap">
+
+        SELECT
+              OGDP.DEPT_CD
+            , OGDP.DEPT_CD AS HIDDEN_DEPT_CD
+            , OGDP.DEPT_NM
+            , OGDP.ACC_CODE
+            , OGDP.PARENT_DEPT_CD
+            , (CASE WHEN <include refid="common.sql.nvl"/>(OGDP.DEL_FLAG, '0') = '0' THEN '1' ELSE '0' END) AS DEL_FLAG
+            , OGDP.DEPT_TYPE
+            , OGDP.TEAM_LEADER_USER_ID AS TEAM_LEADER_USER_ID
+            , OGDP.SEQ
+            , (CASE WHEN OGDP.LVL = '1' THEN <include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>getBuyerInfo(OGDP.GATE_CD, OGDP.BUYER_CD, 'BUYER_NM'), <include refid="common.sql.dbo"/>getBuyerName(OGDP.GATE_CD, OGDP.BUYER_CD, #{ses.langCd}))
+                    ELSE (SELECT A.DEPT_NM FROM STOCOGDP A WHERE A.GATE_CD = OGDP.GATE_CD AND A.BUYER_CD = OGDP.BUYER_CD AND A.DEPT_CD = OGDP.PARENT_DEPT_CD)
+                    END) AS PARENT_DEPT_NM
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(OGDP.GATE_CD, OGDP.TEAM_LEADER_USER_ID, #{ses.langCd}) AS TEAM_LEADER_USER_NM
+          FROM STOCOGDP OGDP
+         WHERE OGDP.GATE_CD = #{ses.gateCd}
+           AND OGDP.DEPT_TYPE = #{DEPT_TYPE}
+           AND OGDP.DEL_FLAG = '0'
+           AND OGDP.BUYER_CD = #{CUST_CD}
+        <if test="PARENT_DEPT_CD != '' and PARENT_DEPT_CD != null">
+           AND OGDP.PARENT_DEPT_CD = #{PARENT_DEPT_CD}
+        </if>
+        <if test="DEPT_NM != '' and DEPT_NM != null">
+           AND UPPER(OGDP.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="_databaseId == 'oracle'">
+         ORDER BY TO_NUMBER(OGDP.SEQ), OGDP.LVL, OGDP.DEPT_NM
+        </if>
+        <if test="_databaseId == 'mssql'">
+         ORDER BY convert(numeric, OGDP.SEQ), OGDP.LVL, OGDP.DEPT_NM
+        </if>
+    </select>
+
+    <select id="MOGA0030_doSearch_parent" parameterType="hashmap" resultType="hashMap">
+
+        SELECT
+              OGDP.DEPT_CD
+            , OGDP.DEPT_CD AS HIDDEN_DEPT_CD
+            , OGDP.DEPT_NM
+            , OGDP.ACC_CODE
+            , OGDP.PARENT_DEPT_CD
+            , (CASE WHEN OGDP.PARENT_DEPT_CD = '1000' THEN (SELECT A.BUYER_NM FROM STOCOGCM A WHERE A.GATE_CD = OGDP.GATE_CD AND A.BUYER_CD = OGDP.PARENT_DEPT_CD)
+                    ELSE (SELECT A.DEPT_NM FROM STOCOGDP A WHERE A.GATE_CD = OGDP.GATE_CD AND A.BUYER_CD = OGDP.BUYER_CD AND A.DEPT_CD = OGDP.PARENT_DEPT_CD)
+               END) AS PARENT_DEPT_NM
+            , (CASE WHEN <include refid="common.sql.nvl"/>(OGDP.DEL_FLAG, '0') = '0' THEN '1' ELSE '0' END) AS DEL_FLAG
+            , OGDP.DEPT_TYPE
+            , OGDP.SEQ
+        FROM STOCOGDP OGDP
+        WHERE OGDP.GATE_CD = #{ses.gateCd}
+        AND OGDP.BUYER_CD = #{ses.companyCd}
+        AND OGDP.DEPT_TYPE = #{DEPT_TYPE}
+        AND OGDP.DEL_FLAG = '0'
+        <if test="PARENT_DEPT_CD != '' and PARENT_DEPT_CD != null">
+        AND OGDP.PARENT_DEPT_CD = #{PARENT_DEPT_CD}
+        </if>
+        <if test="DEPT_NM != '' and DEPT_NM != null">
+            AND OGDP.DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+            <if test="STEP2 != '' and STEP2 != null">
+            OR OGDP.DEPT_CD IN (SELECT OGDP.PARENT_DEPT_CD
+                                FROM STOCOGDP OGDP
+                                WHERE OGDP.GATE_CD =  #{ses.gateCd}
+                                AND OGDP.BUYER_CD = #{ses.companyCd}
+                                AND OGDP.DEPT_TYPE ='300'
+                                AND OGDP.DEL_FLAG = '0'
+                                AND OGDP.DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+                                )
+            </if>
+            <if test="STEP1 != '' and STEP1 != null">
+            OR OGDP.DEPT_CD IN (SELECT T.PARENT_DEPT_CD
+                                FROM STOCOGDP T
+                                WHERE T.GATE_CD =  #{ses.gateCd}
+                                AND T.BUYER_CD = #{ses.companyCd}
+                                AND T.DEPT_TYPE = '200'
+                                AND T.DEL_FLAG = '0'
+                                AND T.DEPT_CD IN (  SELECT OGDP.PARENT_DEPT_CD
+                                                    FROM STOCOGDP OGDP
+                                                    WHERE OGDP.GATE_CD = #{ses.gateCd}
+                                                    AND OGDP.BUYER_CD = #{ses.companyCd}
+                                                    AND OGDP.DEPT_TYPE ='300' AND OGDP.DEL_FLAG = '0'
+                                                    AND OGDP.DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+                                                )
+                                )
+            OR OGDP.DEPT_CD IN (SELECT T.PARENT_DEPT_CD
+                                FROM STOCOGDP T
+                                WHERE T.GATE_CD = #{ses.gateCd}
+                                AND T.BUYER_CD = #{ses.companyCd}
+                                AND T.DEPT_TYPE = '200'
+                                AND T.DEL_FLAG = '0'
+                                AND T.DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+                                )
+            </if>
+        </if>
+
+        ORDER BY OGDP.LVL, OGDP.DEPT_NM
+
+    </select>
+
+    <select id="existsOPDP" parameterType="hashMap" resultType="java.lang.Integer">
+        SELECT COUNT(A.DEPT_CD) AS CNT
+        FROM STOCOGDP A
+        WHERE A.GATE_CD = #{ses.gateCd}
+        AND A.BUYER_CD = #{CUST_CD}
+        AND A.DEL_FLAG = '0'
+        AND A.DEPT_CD = (CASE WHEN #{HIDDEN_DEPT_CD} = '' THEN #{DEPT_CD} ELSE (CASE WHEN #{HIDDEN_DEPT_CD} = #{DEPT_CD} THEN NULL ELSE #{DEPT_CD} END) END)
+    </select>
+
+    <insert id="MOGA0030_mergeData" parameterType="hashmap">
+        MERGE <include refid="common.sql.mergeInto"/> STOCOGDP OGDP
+        USING (SELECT
+                   #{ses.gateCd} AS GATE_CD
+                  , #{CUST_CD} AS BUYER_CD
+                  , #{DEPT_CD} AS DEPT_CD  <include refid="common.sql.dual"/>) B
+        ON (OGDP.GATE_CD = B.GATE_CD
+        AND OGDP.BUYER_CD = B.BUYER_CD
+        AND OGDP.DEPT_CD = B.DEPT_CD)
+        WHEN MATCHED THEN
+        UPDATE SET
+            MOD_USER_ID = #{ses.userId}
+            , DEL_FLAG = (CASE WHEN #{DEL_FLAG} = '1' THEN '0' ELSE '1' END)
+            , DEPT_NM = #{DEPT_NM}
+            , DEPT_NM_ENG = #{DEPT_NM}
+            , PARENT_DEPT_CD = #{PARENT_DEPT_CD}
+            , DEPT_TYPE = #{DEPT_TYPE}
+            , ACC_CODE = #{ACC_CODE}
+            , LVL = #{LVL}
+            , SEQ = #{SEQ}
+            , TEAM_LEADER_USER_ID = #{TEAM_LEADER_USER_ID}
+            , MOD_DATE = SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+             GATE_CD
+            , BUYER_CD
+            , DEPT_CD
+            , REG_USER_ID
+            , MOD_USER_ID
+            , DEL_FLAG
+            , DEPT_NM
+            , DEPT_NM_ENG
+            , PARENT_DEPT_CD
+            , DEPT_TYPE
+            , ACC_CODE
+            , LVL
+            , TEAM_LEADER_USER_ID
+            , DIVISION_YN
+            , SEQ
+            , REG_DATE
+            , MOD_DATE
+        ) VALUES (
+             #{ses.gateCd}
+            , #{CUST_CD}
+            , #{DEPT_CD}
+            , #{ses.userId}
+            , #{ses.userId}
+            , (CASE WHEN #{DEL_FLAG} = '1' THEN '0' ELSE '1' END)
+            , #{DEPT_NM}
+            , #{DEPT_NM}
+            , #{PARENT_DEPT_CD}
+            , #{DEPT_TYPE}
+            , #{ACC_CODE}
+            , #{LVL}
+            , #{TEAM_LEADER_USER_ID}
+            , #{DIVISION_YN}
+            , <include refid="common.sql.nvl"/>(#{SEQ},0)
+            , SYSDATE
+            , SYSDATE
+        )
+        <include refid="common.sql.comma"/>
+    </insert>
+
+</mapper>

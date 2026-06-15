@@ -1,0 +1,1594 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCBR.CCBR0010_Mapper">
+
+    <select id="ccbr0010_doSearch" parameterType="hashmap" resultType="hashMap">
+    
+		 SELECT A.CORP_NO
+		      , A.BRC
+		      , A.BRNM
+		      , A.DEPT_NM
+		      , A.ADJ_DT
+		      , A.CONT_CHARGE_CD
+		      ,'계약수수료' AS CONT_CHARGE_NM
+		      , A.COST
+		      , A.VAT
+		      , A.CONT_NUM
+		      , A.CONT_CNT
+		      , A.CONT_DESC
+		      , A.CONT_AMT
+		      , (CASE WHEN A.CONT_TYPE IS NULL THEN '견적' ELSE A.CONT_TYPE END) AS CONT_TYPE
+		      , A.PY_BUYER_CD
+		      , <include refid="common.sql.dbo"/>GETCUSTNAME(#{ses.gateCd}, A.PY_BUYER_CD) AS PY_BUYER_CD_NM
+		      , COUNT(DISTINCT A.PY_BUYER_CD) OVER (PARTITION BY A.CONT_NUM, CONT_CNT) AS PY_BUYER_CD_CNT
+		      , (A.COST/COUNT(DISTINCT A.PY_BUYER_CD) OVER (PARTITION BY A.CONT_NUM, CONT_CNT)) AS PY_COST
+		      , ((A.COST/COUNT(DISTINCT A.PY_BUYER_CD) OVER (PARTITION BY A.CONT_NUM, CONT_CNT))/10) AS PY_VAT
+		      , '' AS CONT_USER_ID
+		      , '' AS CONT_USER_NM
+		      , '' AS CONT_DEPT_CD
+		      , '' AS CONT_DEPT_NM
+		  FROM (
+		        SELECT BRK.CORP_NO AS CORP_NO                  
+				     , BRK.BRC AS BRC                      
+				     , BRK.ADJ_DT AS ADJ_DT 	
+				     , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				     , BRK.COST AS COST
+				     , BRK.VAT AS VAT
+				     , ECCT.CONT_NUM AS CONT_NUM                                                                                           															
+				     , ECCT.CONT_CNT AS CONT_CNT
+				     , ECCT.CONT_DESC AS CONT_DESC
+				     , ECPC.PY_BUYER_CD AS PY_BUYER_CD                                                                           											
+				     ,(SELECT MAX(CASE WHEN CNDT.RFX_TYPE = 'BID' THEN '입찰'                                                                         															
+					  			  	   WHEN CNDT.RFX_TYPE = 'RFQ' THEN '견적'                                                                           							
+					  			  ELSE '견적'END)                                                                                                                									
+					     FROM STOCECMT ECMT  /* 계약품목       */                                                                                 										
+					     JOIN STOCCNDT CNDT  /* 선정품의품목  */                                                                               										
+					  	   ON (CNDT.GATE_CD  = ECMT.GATE_CD                                                                                    									
+					  	  AND CNDT.BUYER_CD = ECMT.BUYER_CD                                                                                   									
+					  	  AND CNDT.EXEC_NUM = ECMT.EXEC_NUM                                                                                   									
+					  	  AND CNDT.EXEC_SQ  = ECMT.EXEC_SQ)                                                                                   									
+					    WHERE ECMT.GATE_CD  = ECCT.GATE_CD                                                                                         										
+						  AND ECMT.BUYER_CD = ECCT.BUYER_CD                                                                                        										
+						  AND ECMT.CONT_NUM = ECCT.CONT_NUM                                                                                        										
+						  AND ECMT.CONT_CNT = ECCT.CONT_CNT                                                                                        										
+						  AND ECMT.DEL_FLAG = '0') AS CONT_TYPE       /* 계약방법  BID 입찰, 그외 RFQ or PC는 견적   */                            										
+				     , ECCT.CONT_AMT AS CONT_AMT
+				     , BRC.BRNM AS BRNM
+		             , BRC.DEPT_NM AS DEPT_NM
+				  FROM
+				  	  (SELECT BRK.CONT_TBL_PK
+				  	        , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				            , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				            , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				            , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				            , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				            , BRK.COST AS COST                /* 단가              */                                      															
+				            ,(BRK.COST/10) AS VAT             /* 부가세            */
+				         FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				        WHERE BRK.CORP_NO = #{ses.irsNum}  
+				        <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+						  AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+						</if>  
+				          AND BRK.EPRO_FEE_DSC = '01'  /* 수수료구분코드   01 사용료  03 SMS */
+				          AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) = 'CONT'
+				      ) BRK
+				  JOIN STOCECCT ECCT
+				    ON (ECCT.GATE_CD = BRK.GATE_CD															
+				   AND ECCT.BUYER_CD = BRK.BUYER_CD															
+				   AND ECCT.CONT_NUM = BRK.CONT_NUM															
+				   AND ECCT.CONT_CNT = BRK.CONT_CNT)
+				  JOIN STOCECCM ECCM 
+				    ON (ECCM.GATE_CD  = ECCT.GATE_CD                                                                     															
+				   AND ECCM.BUYER_CD = ECCT.BUYER_CD                                                                    															
+				   AND ECCM.CONT_NUM = ECCT.CONT_NUM                                                                    															
+				   AND ECCM.CONT_CNT = ECCT.CONT_CNT                                                                    															
+				   AND ECCM.DEL_FLAG = '0')
+				  JOIN STOCECPC ECPC 
+				    ON (ECPC.GATE_CD     = ECCM.GATE_CD                                                               															
+				   AND ECPC.BUYER_CD    = ECCM.BUYER_CD                                                              															
+				   AND ECPC.CONT_NUM    = ECCM.CONT_NUM                                                              															
+				   AND ECPC.CONT_CNT    = ECCM.CONT_CNT                                                                                                                                                                                             															
+				   AND ECPC.PR_BUYER_CD = ECCM.PR_BUYER_CD															
+				   AND ECPC.PR_DEPT_CD  = ECCM.PR_DEPT_CD															
+				   AND ECPC.VENDOR_CD   = ECCM.VENDOR_CD															
+				   AND ECPC.PAY_CNT     = '0'															
+				   AND ECPC.DEL_FLAG    = '0')
+				  LEFT JOIN TB_CO_BRC BRC
+			        ON (BRC.CORP_NO  = BRK.CORP_NO 
+			       AND BRC.BRC = BRK.BRC 
+			       AND BRC.STSC = '1')
+		       ) A
+		    WHERE 1=1
+		    ORDER BY A.ADJ_DT, A.CONT_NUM  
+
+    </select>
+    
+    <select id="ccbr0010_doSearchSUM" parameterType="hashmap" resultType="hashMap">
+		 SELECT SUM(Z.PY_COST) AS PY_COST_SUM 
+		      , SUM(Z.PY_VAT) AS PY_VAT_SUM
+		      , SUM(Z.PY_COST + Z.PY_VAT) AS PY_AMT  
+		  FROM (     
+				 SELECT (A.COST/COUNT(DISTINCT A.PY_BUYER_CD) OVER (PARTITION BY A.CONT_NUM, CONT_CNT)) AS PY_COST
+				      , ((A.COST/COUNT(DISTINCT A.PY_BUYER_CD) OVER (PARTITION BY A.CONT_NUM, CONT_CNT))/10) AS PY_VAT
+				  FROM (
+				        SELECT BRK.CORP_NO AS CORP_NO                  
+						     , BRK.BRC AS BRC                      
+						     , BRK.ADJ_DT AS ADJ_DT 	
+						     , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+						     , BRK.COST AS COST
+						     , BRK.VAT AS VAT
+						     , ECCT.CONT_NUM AS CONT_NUM                                                                                           															
+						     , ECCT.CONT_CNT AS CONT_CNT
+						     , ECCT.CONT_DESC AS CONT_DESC
+						     , ECPC.PY_BUYER_CD AS PY_BUYER_CD                                                                           											
+						     ,(SELECT MAX(CASE WHEN CNDT.RFX_TYPE = 'BID' THEN '입찰'                                                                         															
+							  			  	   WHEN CNDT.RFX_TYPE = 'RFQ' THEN '견적'                                                                           							
+							  			  ELSE '견적'END)                                                                                                                									
+							     FROM STOCECMT ECMT  /* 계약품목       */                                                                                 										
+							     JOIN STOCCNDT CNDT  /* 선정품의품목  */                                                                               										
+							  	   ON (CNDT.GATE_CD  = ECMT.GATE_CD                                                                                    									
+							  	  AND CNDT.BUYER_CD = ECMT.BUYER_CD                                                                                   									
+							  	  AND CNDT.EXEC_NUM = ECMT.EXEC_NUM                                                                                   									
+							  	  AND CNDT.EXEC_SQ  = ECMT.EXEC_SQ)                                                                                   									
+							    WHERE ECMT.GATE_CD  = ECCT.GATE_CD                                                                                         										
+								  AND ECMT.BUYER_CD = ECCT.BUYER_CD                                                                                        										
+								  AND ECMT.CONT_NUM = ECCT.CONT_NUM                                                                                        										
+								  AND ECMT.CONT_CNT = ECCT.CONT_CNT                                                                                        										
+								  AND ECMT.DEL_FLAG = '0') AS CONT_TYPE       /* 계약방법  BID 입찰, 그외 RFQ or PC는 견적   */                            										
+						     , ECCT.CONT_AMT AS CONT_AMT
+						     , BRC.BRNM AS BRNM
+				             , BRC.DEPT_NM AS DEPT_NM
+						  FROM
+						  	  (SELECT BRK.CONT_TBL_PK
+						  	        , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+						            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+						            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+						            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+						            , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+						            , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+						            , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+						            , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+						            , BRK.COST AS COST                /* 단가              */                                      															
+						            ,(BRK.COST/10) AS VAT             /* 부가세            */
+						         FROM TB_PR_DM_FEE_OCC_BRK BRK  
+						        WHERE BRK.CORP_NO = #{ses.irsNum}  
+						        <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+								  AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+								</if>  
+						          AND BRK.EPRO_FEE_DSC = '01'  /* 수수료구분코드   01 사용료  03 SMS */
+						          AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) = 'CONT'
+						      ) BRK
+						  JOIN STOCECCT ECCT
+						    ON (ECCT.GATE_CD = BRK.GATE_CD															
+						   AND ECCT.BUYER_CD = BRK.BUYER_CD															
+						   AND ECCT.CONT_NUM = BRK.CONT_NUM															
+						   AND ECCT.CONT_CNT = BRK.CONT_CNT)
+						  JOIN STOCECCM ECCM 
+						    ON (ECCM.GATE_CD  = ECCT.GATE_CD                                                                     															
+						   AND ECCM.BUYER_CD = ECCT.BUYER_CD                                                                    															
+						   AND ECCM.CONT_NUM = ECCT.CONT_NUM                                                                    															
+						   AND ECCM.CONT_CNT = ECCT.CONT_CNT                                                                    															
+						   AND ECCM.DEL_FLAG = '0')
+						  JOIN STOCECPC ECPC 
+						    ON (ECPC.GATE_CD     = ECCM.GATE_CD                                                               															
+						   AND ECPC.BUYER_CD    = ECCM.BUYER_CD                                                              															
+						   AND ECPC.CONT_NUM    = ECCM.CONT_NUM                                                              															
+						   AND ECPC.CONT_CNT    = ECCM.CONT_CNT                                                                                                                                                                                             															
+						   AND ECPC.PR_BUYER_CD = ECCM.PR_BUYER_CD															
+						   AND ECPC.PR_DEPT_CD  = ECCM.PR_DEPT_CD															
+						   AND ECPC.VENDOR_CD   = ECCM.VENDOR_CD															
+						   AND ECPC.PAY_CNT     = '0'															
+						   AND ECPC.DEL_FLAG    = '0')
+						  LEFT JOIN TB_CO_BRC BRC
+					        ON (BRC.CORP_NO  = BRK.CORP_NO 
+					       AND BRC.BRC = BRK.BRC 
+					       AND BRC.STSC = '1')
+				       ) A
+				    WHERE 1=1
+				    ORDER BY A.ADJ_DT, A.CONT_NUM  
+		       ) Z
+
+    </select>
+    
+    <select id="ccbr0010_doSearchPT" parameterType="hashmap" resultType="hashMap">
+    
+		 SELECT A.CORP_NO
+		      , '' AS BRC
+		      , A.BRNM
+		      , '' AS DEPT_NM
+		      , A.ADJ_DT
+		      , A.CONT_CHARGE_CD
+			  ,'계약수수료' AS CONT_CHARGE_NM
+			  , A.COST
+			  , A.VAT
+			  , A.CONT_NUM
+			  , A.CONT_CNT
+			  , A.CONT_DESC
+			  , '' AS CONT_AMT
+			  , '' AS CONT_TYPE
+			  , '' AS PY_BUYER_CD
+			  , '' AS PY_BUYER_CD_NM
+			  , '' AS PY_BUYER_CD_CNT
+			  , '' AS PY_COST
+			  , '' AS PY_VAT
+			  , A.CONT_USER_ID
+			  , A.CONT_USER_NM
+			  , A.CONT_DEPT_CD
+			  , A.CONT_DEPT_NM
+		  FROM (
+		        SELECT BRK.CORP_NO AS CORP_NO                  
+				     , CUST.CUST_NM AS BRNM                      
+				     , BRK.ADJ_DT AS ADJ_DT 
+				     , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD																
+				     , BRK.COST AS COST
+				     , BRK.VAT AS VAT
+				     , TCCT.CONT_NUM AS CONT_NUM                                                                                           															
+				     , TCCT.CONT_CNT AS CONT_CNT
+				     , TCCT.CONT_DESC AS CONT_DESC
+				     , TCCT.CONT_USER_ID AS CONT_USER_ID
+				     , <include refid="common.sql.dbo"/>GETUSERNAME(#{ses.gateCd}, TCCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+	  				 , TCCT.DEPT_CD AS CONT_DEPT_CD	
+	  				 , <include refid="common.sql.dbo"/>GETDEPTNAME(#{ses.gateCd}, TCCT.BUYER_CD, TCCT.DEPT_CD, #{ses.langCd}) AS CONT_DEPT_NM
+	  				 , TCCT.BUYER_CD AS BUYER_CD
+				  FROM
+				  	  (SELECT BRK.CONT_TBL_PK
+				  	        , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				            , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				            , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				            , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				            , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				            , BRK.COST AS COST                /* 단가              */                                      															
+				            ,(BRK.COST/10) AS VAT             /* 부가세            */
+				         FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				        WHERE BRK.CORP_NO = #{ses.irsNum}  
+				        <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				          AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+						</if>  
+				          AND BRK.EPRO_FEE_DSC = '01'  /* 수수료구분코드   01 사용료  03 SMS */
+				          AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) = 'TCCT'
+				      ) BRK
+				  JOIN STOCTCCT TCCT
+				    ON (TCCT.GATE_CD = BRK.GATE_CD															
+				   AND TCCT.BUYER_CD = BRK.BUYER_CD															
+				   AND TCCT.CONT_NUM = BRK.CONT_NUM															
+				   AND TCCT.CONT_CNT = BRK.CONT_CNT)
+				  LEFT JOIN STOCCUST CUST
+			        ON (CUST.GATE_CD = TCCT.GATE_CD 
+			       AND CUST.CUST_CD = TCCT.BUYER_CD)
+		       ) A
+		    WHERE 1=1
+		    ORDER BY A.ADJ_DT, A.CONT_NUM  
+		    
+    </select>
+    
+    <select id="ccbr0010_doSearchPTSUM" parameterType="hashmap" resultType="hashMap">
+    
+    	 SELECT SUM(Z.COST) AS PY_COST_SUM 
+		      , SUM(Z.VAT) AS PY_VAT_SUM
+		      , SUM(Z.COST + Z.VAT) AS PY_AMT  
+		  FROM (  
+				 SELECT A.COST
+					  , A.VAT
+				  FROM (
+				        SELECT BRK.CORP_NO AS CORP_NO                  
+						     , CUST.CUST_NM AS BRNM                      
+						     , BRK.ADJ_DT AS ADJ_DT 
+						     , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD																
+						     , BRK.COST AS COST
+						     , BRK.VAT AS VAT
+						     , TCCT.CONT_NUM AS CONT_NUM                                                                                           															
+						     , TCCT.CONT_CNT AS CONT_CNT
+						     , TCCT.CONT_DESC AS CONT_DESC
+						     , TCCT.CONT_USER_ID AS CONT_USER_ID
+						     , <include refid="common.sql.dbo"/>GETUSERNAME(#{ses.gateCd}, TCCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+			  				 , TCCT.DEPT_CD AS CONT_DEPT_CD	
+			  				 , <include refid="common.sql.dbo"/>GETDEPTNAME(#{ses.gateCd}, TCCT.BUYER_CD, TCCT.DEPT_CD, #{ses.langCd}) AS CONT_DEPT_NM
+			  				 , TCCT.BUYER_CD AS BUYER_CD
+						  FROM
+						  	  (SELECT BRK.CONT_TBL_PK
+						  	        , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+						            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+						            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+						            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+						            , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+						            , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+						            , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+						            , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+						            , BRK.COST AS COST                /* 단가              */                                      															
+						            ,(BRK.COST/10) AS VAT             /* 부가세            */
+						         FROM TB_PR_DM_FEE_OCC_BRK BRK  
+						        WHERE BRK.CORP_NO = #{ses.irsNum}  
+						        <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+						          AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+								</if>  
+						          AND BRK.EPRO_FEE_DSC = '01'  /* 수수료구분코드   01 사용료  03 SMS */
+						          AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) = 'TCCT'
+						      ) BRK
+						  JOIN STOCTCCT TCCT
+						    ON (TCCT.GATE_CD = BRK.GATE_CD															
+						   AND TCCT.BUYER_CD = BRK.BUYER_CD															
+						   AND TCCT.CONT_NUM = BRK.CONT_NUM															
+						   AND TCCT.CONT_CNT = BRK.CONT_CNT)
+						  LEFT JOIN STOCCUST CUST
+					        ON (CUST.GATE_CD = TCCT.GATE_CD 
+					       AND CUST.CUST_CD = TCCT.BUYER_CD)
+				       ) A
+				    WHERE 1=1
+				    ORDER BY A.ADJ_DT, A.CONT_NUM  
+		        ) Z
+    </select>
+
+    <select id="ccbr0020_doSearchSMS" parameterType="hashmap" resultType="hashMap">
+    
+	      SELECT A.CORP_NO
+		       , A.BRC
+		       , A.BRNM
+		       , A.DEPT_NM
+		       , A.ADJ_DT
+		       , A.CONT_TBL_ID
+		       , <include refid="common.sql.dbo"/>GETCOMCODE(#{ses.gateCd}, 'NH0076', A.CONT_TBL_ID, 0, #{ses.langCd}) AS CONT_TBL_NM
+		       , A.CONT_CHARGE_CD
+		       ,'SMS수수료' AS CONT_CHARGE_NM
+		       , A.COST
+		       , A.VAT
+		       , A.CONT_NUM
+		       , A.CONT_CNT
+		       , A.CONT_DESC
+		       , A.PY_BUYER_CD
+		       , <include refid="common.sql.dbo"/>GETCUSTNAME(#{ses.gateCd}, A.PY_BUYER_CD) AS PY_BUYER_CD_NM
+		       , A.PY_BUYER_CD_CNT
+		       , A.PY_COST
+		       , A.PY_VAT
+		       , '' AS CONT_USER_ID
+		       , '' AS CONT_USER_NM
+		       , '' AS CONT_DEPT_CD
+		       , '' AS CONT_DEPT_NM
+		   FROM (
+		         SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , ECCT.CONT_NUM AS CONT_NUM                                                                                           															
+				      , ECCT.CONT_CNT AS CONT_CNT
+				      , ECCT.CONT_DESC AS CONT_DESC
+				      , ECPC.PY_BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT ECPC.PY_BUYER_CD) OVER (PARTITION BY ECCT.CONT_NUM, ECCT.CONT_CNT) AS PY_BUYER_CD_CNT
+		       		  , TRUNC((BRK.COST/COUNT(DISTINCT ECPC.PY_BUYER_CD) OVER (PARTITION BY ECCT.CONT_NUM, ECCT.CONT_CNT)), 2) AS PY_COST
+		       		  , TRUNC(((BRK.COST/COUNT(DISTINCT ECPC.PY_BUYER_CD) OVER (PARTITION BY ECCT.CONT_NUM, ECCT.CONT_CNT))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID     
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */  
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+						   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+						 </if>  
+						 <choose>
+		 				   	<when test='ses.companyCd == "C00009"'>
+		 				    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 				   	                     WHERE GATE_CD = #{ses.gateCd}
+		 				   	                       AND CODE_TYPE = 'NH0077'
+		 				   	                       AND LANG_CD = #{ses.langCd}
+		 				   	                       AND USE_FLAG = '1'
+		 				   	                       AND DEL_FLAG = '0') 
+		 				    </when>
+		 				    <otherwise>
+		 				    AND BRK.CORP_NO = #{ses.irsNum}
+		 				    </otherwise>
+		 				 </choose> 
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) = 'SMS_CONT_4300'
+				       ) BRK
+				   JOIN STOCECCT ECCT
+				     ON (ECCT.GATE_CD = BRK.GATE_CD															
+				    AND ECCT.BUYER_CD = BRK.BUYER_CD															
+				    AND ECCT.CONT_NUM = BRK.CONT_NUM															
+				    AND ECCT.CONT_CNT = BRK.CONT_CNT)
+				   JOIN STOCECCM ECCM 
+				     ON (ECCM.GATE_CD  = ECCT.GATE_CD                                                                     															
+				    AND ECCM.BUYER_CD = ECCT.BUYER_CD                                                                    															
+				    AND ECCM.CONT_NUM = ECCT.CONT_NUM                                                                    															
+				    AND ECCM.CONT_CNT = ECCT.CONT_CNT                                                                    															
+				    AND ECCM.DEL_FLAG = '0')
+				   JOIN STOCECPC ECPC 
+				     ON (ECPC.GATE_CD     = ECCM.GATE_CD                                                               															
+				    AND ECPC.BUYER_CD    = ECCM.BUYER_CD                                                              															
+				    AND ECPC.CONT_NUM    = ECCM.CONT_NUM                                                              															
+				    AND ECPC.CONT_CNT    = ECCM.CONT_CNT                                                                                                                                                                                             															
+				    AND ECPC.PR_BUYER_CD = ECCM.PR_BUYER_CD															
+				    AND ECPC.PR_DEPT_CD  = ECCM.PR_DEPT_CD															
+				    AND ECPC.VENDOR_CD   = ECCM.VENDOR_CD															
+				    AND ECPC.PAY_CNT     = '0'															
+				    AND ECPC.DEL_FLAG    = '0')
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')
+			     UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , ECCT.CONT_NUM AS CONT_NUM                                                                                           															
+				      , ECCT.CONT_CNT AS CONT_CNT
+				      , ECCT.CONT_DESC AS CONT_DESC
+				      , ECCT.BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT ECCT.BUYER_CD) OVER (PARTITION BY ECCT.CONT_NUM, ECCT.CONT_CNT) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT ECCT.BUYER_CD) OVER (PARTITION BY ECCT.CONT_NUM, ECCT.CONT_CNT)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT ECCT.BUYER_CD) OVER (PARTITION BY ECCT.CONT_NUM, ECCT.CONT_CNT))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_CONT_4220', 'SMS_CONT_4230')
+				       ) BRK
+				   JOIN STOCECCT ECCT
+				     ON (ECCT.GATE_CD = BRK.GATE_CD															
+				    AND ECCT.BUYER_CD = BRK.BUYER_CD															
+				    AND ECCT.CONT_NUM = BRK.CONT_NUM															
+				    AND ECCT.CONT_CNT = BRK.CONT_CNT)
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')
+			     UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , SCTM.APP_DOC_NUM AS CONT_NUM                                                                                           															
+				      , SCTM.APP_DOC_CNT AS CONT_CNT
+				      , SCTM.SUBJECT AS CONT_DESC
+				      , SCTM.BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT SCTM.BUYER_CD) OVER (PARTITION BY SCTM.APP_DOC_NUM, SCTM.APP_DOC_CNT) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT SCTM.BUYER_CD) OVER (PARTITION BY SCTM.APP_DOC_NUM, SCTM.APP_DOC_CNT)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT SCTM.BUYER_CD) OVER (PARTITION BY SCTM.APP_DOC_NUM, SCTM.APP_DOC_CNT))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_SIGN')
+				       ) BRK
+				   JOIN STOCSCTM SCTM
+				     ON (SCTM.GATE_CD = BRK.GATE_CD															
+				    AND SCTM.BUYER_CD = BRK.BUYER_CD															
+				    AND SCTM.APP_DOC_NUM = BRK.CONT_NUM															
+				    AND SCTM.APP_DOC_CNT = BRK.CONT_CNT)
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')
+			     UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , BRK.CONT_NUM AS CONT_NUM																						   															
+				  	  , 1 AS CONT_CNT
+				      , '구매담당자 지정(변경)' AS CONT_DESC
+				      , (SELECT CUST.CUST_CD FROM STOCCUST CUST 
+				     	  WHERE GATE_CD = #{ses.gateCd} 
+				            AND IRS_NUM = BRK.CORP_NO) AS PY_BUYER_CD
+				      , 1 AS PY_BUYER_CD_CNT
+		       	 	  , BRK.COST AS PY_COST
+		       	 	  , BRK.VAT AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS CONT_NUM                                                 															
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_CTRL')
+				       ) BRK
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')      
+			     UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , BDHD.BID_NUM AS CONT_NUM                                                                                           															
+				      , BDHD.BID_CNT AS CONT_CNT
+				      , BDHD.ANN_ITEM AS CONT_DESC
+				      , BDHD.BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT BDHD.BUYER_CD) OVER (PARTITION BY BDHD.BID_NUM, BDHD.BID_CNT) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT BDHD.BUYER_CD) OVER (PARTITION BY BDHD.BID_NUM, BDHD.BID_CNT)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT BDHD.BUYER_CD) OVER (PARTITION BY BDHD.BID_NUM, BDHD.BID_CNT))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_BID_BATCH_PRC', 'SMS_BID_BATCH_SEND', 'SMS_BID_BATCH_CLOSE', 'SMS_BID_SEL', 'SMS_NEGO')
+				       ) BRK
+				   JOIN STOCBDHD BDHD
+				     ON (BDHD.GATE_CD = BRK.GATE_CD															
+				    AND BDHD.BUYER_CD = BRK.BUYER_CD															
+				    AND BDHD.BID_NUM = BRK.CONT_NUM															
+				    AND BDHD.BID_CNT = BRK.CONT_CNT)
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')      
+		         UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , RQHD.RFX_NUM AS CONT_NUM                                                                                           															
+				      , RQHD.RFX_CNT AS CONT_CNT
+				      , RQHD.RFX_SUBJECT AS CONT_DESC
+				      , RQHD.BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT RQHD.BUYER_CD) OVER (PARTITION BY RQHD.RFX_NUM, RQHD.RFX_CNT) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT RQHD.BUYER_CD) OVER (PARTITION BY RQHD.RFX_NUM, RQHD.RFX_CNT)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT RQHD.BUYER_CD) OVER (PARTITION BY RQHD.RFX_NUM, RQHD.RFX_CNT))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_RFQ_BATCH_PRC', 'SMS_RFX_BATCH_REQ')
+				       ) BRK
+				   JOIN STOCRQHD RQHD
+				     ON (RQHD.GATE_CD = BRK.GATE_CD															
+				    AND RQHD.BUYER_CD = BRK.BUYER_CD															
+				    AND RQHD.RFX_NUM = BRK.CONT_NUM															
+				    AND RQHD.RFX_CNT = BRK.CONT_CNT)
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')
+			     UNION ALL   
+		         SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , RQHD.RFX_NUM AS CONT_NUM                                                                                           															
+				      , RQHD.RFX_CNT AS CONT_CNT
+				      , RQHD.RFX_SUBJECT AS CONT_DESC
+				      , RQHD.BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT RQHD.BUYER_CD) OVER (PARTITION BY RQHD.RFX_NUM, RQHD.RFX_CNT) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT RQHD.BUYER_CD) OVER (PARTITION BY RQHD.RFX_NUM, RQHD.RFX_CNT)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT RQHD.BUYER_CD) OVER (PARTITION BY RQHD.RFX_NUM, RQHD.RFX_CNT))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS CONT_NUM                                                															
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('QTA')
+				       ) BRK
+				   JOIN STOCRQHD RQHD
+				     ON (RQHD.GATE_CD = #{ses.gateCd}															
+				    AND RQHD.BUYER_CD = BRK.BUYER_CD															
+				    AND RQHD.RFX_NUM = BRK.CONT_NUM															
+				    AND RQHD.RFX_CNT = (SELECT MAX(RFX_CNT) FROM STOCRQHD
+				                         WHERE GATE_CD = #{ses.gateCd}
+				                           AND BUYER_CD = RQHD.BUYER_CD
+				                           AND RFX_NUM = RQHD.RFX_NUM))
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')
+		         UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , CNHD.EXEC_NUM AS CONT_NUM																						   															
+				  	  , 1 AS CONT_CNT
+				      , CNHD.EXEC_SUBJECT AS CONT_DESC
+				      , CNHD.BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT CNHD.BUYER_CD) OVER (PARTITION BY CNHD.EXEC_NUM) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT CNHD.BUYER_CD) OVER (PARTITION BY CNHD.EXEC_NUM)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT CNHD.BUYER_CD) OVER (PARTITION BY CNHD.EXEC_NUM))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_EXEC_3200')
+				       ) BRK
+				   JOIN STOCCNHD CNHD
+				     ON (CNHD.GATE_CD = BRK.GATE_CD		
+				    AND CNHD.BUYER_CD = BRK.BUYER_CD 													
+				    AND CNHD.EXEC_NUM = BRK.CONT_NUM)
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')
+			     UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , POHD.PO_NUM AS CONT_NUM                                                                                           															
+				      , 1 AS CONT_CNT
+				      , POHD.SUBJECT AS CONT_DESC
+				      , POHD.BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT POHD.BUYER_CD) OVER (PARTITION BY POHD.PO_NUM) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT POHD.BUYER_CD) OVER (PARTITION BY POHD.PO_NUM)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT POHD.BUYER_CD) OVER (PARTITION BY POHD.PO_NUM))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_PO_5200')
+				       ) BRK
+				   JOIN STOCPOHD POHD
+				     ON (POHD.GATE_CD = BRK.GATE_CD															
+				    AND POHD.BUYER_CD = BRK.BUYER_CD															
+				    AND POHD.PO_NUM = BRK.CONT_NUM)
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')   
+		         UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , IVGH.INV_NUM AS CONT_NUM																						   															
+				  	  , 1 AS CONT_CNT
+				      , POHD.SUBJECT AS CONT_DESC
+				      , IVGH.BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT IVGH.BUYER_CD) OVER (PARTITION BY IVGH.INV_NUM) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT IVGH.BUYER_CD) OVER (PARTITION BY IVGH.INV_NUM)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT IVGH.BUYER_CD) OVER (PARTITION BY IVGH.INV_NUM))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_INV', 'SMS_INV_BATCH_PRC')
+				       ) BRK
+				   JOIN STOCIVGH IVGH
+				     ON (IVGH.GATE_CD = BRK.GATE_CD															
+				    AND IVGH.INV_NUM = BRK.CONT_NUM)
+				   JOIN STOCPOHD POHD
+				     ON (POHD.GATE_CD = IVGH.GATE_CD															
+				    AND POHD.BUYER_CD = IVGH.BUYER_CD															
+				    AND POHD.PO_NUM = IVGH.PO_NUM
+				    AND POHD.DEL_FLAG = '0')
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')
+			     UNION ALL   
+		         SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , IVGH.INV_NUM AS CONT_NUM																						   															
+				  	  , 1 AS CONT_CNT
+				      , POHD.SUBJECT AS CONT_DESC
+				      , IVGH.BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT IVGH.BUYER_CD) OVER (PARTITION BY IVGH.INV_NUM) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT IVGH.BUYER_CD) OVER (PARTITION BY IVGH.INV_NUM)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT IVGH.BUYER_CD) OVER (PARTITION BY IVGH.INV_NUM))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS CONT_NUM                                                															
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('INV')
+				       ) BRK
+				   JOIN STOCIVGH IVGH
+				     ON (IVGH.GATE_CD = #{ses.gateCd}
+				    AND IVGH.BUYER_CD = BRK.BUYER_CD 															
+				    AND IVGH.INV_NUM = BRK.CONT_NUM)
+				   JOIN STOCPOHD POHD
+				     ON (POHD.GATE_CD = IVGH.GATE_CD															
+				    AND POHD.BUYER_CD = IVGH.BUYER_CD															
+				    AND POHD.PO_NUM = IVGH.PO_NUM
+				    AND POHD.DEL_FLAG = '0')
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')
+			     UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , IVAP.AP_NUM AS CONT_NUM                                                                                           															
+				      , 1 AS CONT_CNT
+				      , IVAP.AP_REQ_SUBJECT AS CONT_DESC
+				      , IVAP.PY_BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT IVAP.BUYER_CD) OVER (PARTITION BY IVAP.AP_NUM) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT IVAP.BUYER_CD) OVER (PARTITION BY IVAP.AP_NUM)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT IVAP.BUYER_CD) OVER (PARTITION BY IVAP.AP_NUM))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS CONT_NUM                                                															
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('AP')
+				       ) BRK
+				   JOIN STOCIVAP IVAP
+				     ON (IVAP.GATE_CD = BRK.GATE_CD															
+				    AND IVAP.AP_NUM = BRK.CONT_NUM)
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')
+			     UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , IVAP.AP_NUM AS CONT_NUM                                                                                           															
+				      , 1 AS CONT_CNT
+				      , IVAP.AP_REQ_SUBJECT AS CONT_DESC
+				      , IVAP.PY_BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT IVAP.BUYER_CD) OVER (PARTITION BY IVAP.AP_NUM) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT IVAP.BUYER_CD) OVER (PARTITION BY IVAP.AP_NUM)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT IVAP.BUYER_CD) OVER (PARTITION BY IVAP.AP_NUM))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD																											
+						 	 , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_AP')
+				       ) BRK
+				   JOIN STOCIVAP IVAP
+				     ON (IVAP.GATE_CD = BRK.GATE_CD															
+				    AND IVAP.AP_NUM = BRK.CONT_NUM)
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')      
+			     UNION ALL   
+		         SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , IVGH.INV_NUM AS CONT_NUM																						   															
+				  	  , 1 AS CONT_CNT
+				      , POHD.SUBJECT AS CONT_DESC
+				      , IVGH.BUYER_CD AS PY_BUYER_CD
+				      , COUNT(DISTINCT IVGH.BUYER_CD) OVER (PARTITION BY IVGH.INV_NUM) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT IVGH.BUYER_CD) OVER (PARTITION BY IVGH.INV_NUM)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT IVGH.BUYER_CD) OVER (PARTITION BY IVGH.INV_NUM))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS CONT_NUM                                                															
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_AP_BATCH_PRC')
+				       ) BRK
+				   JOIN STOCIVGH IVGH
+				     ON (IVGH.GATE_CD = BRK.GATE_CD
+				    AND IVGH.INV_NUM = BRK.CONT_NUM)
+				   JOIN STOCPOHD POHD
+				     ON (POHD.GATE_CD = IVGH.GATE_CD															
+				    AND POHD.BUYER_CD = IVGH.BUYER_CD															
+				    AND POHD.PO_NUM = IVGH.PO_NUM
+				    AND POHD.DEL_FLAG = '0')
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')   
+			     UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , VOCM.VC_NO AS CONT_NUM																						   															
+				  	  , 1 AS CONT_CNT
+				      , VOCM.SUBJECT AS CONT_DESC
+				      , (CASE WHEN VOCM.REQ_COM_TYPE = '100' THEN (CASE WHEN VOCM.COMPANY_CD = '1000' THEN VOCM.REQ_COM_CD ELSE VOCM.COMPANY_CD END) ELSE VOCM.COMPANY_CD END ) AS PY_BUYER_CD
+				      , COUNT(DISTINCT VOCM.COMPANY_CD) OVER (PARTITION BY VOCM.VC_NO) AS PY_BUYER_CD_CNT
+		       	 	  , TRUNC((BRK.COST/COUNT(DISTINCT VOCM.COMPANY_CD) OVER (PARTITION BY VOCM.VC_NO)), 2) AS PY_COST
+		       	 	  , TRUNC(((BRK.COST/COUNT(DISTINCT VOCM.COMPANY_CD) OVER (PARTITION BY VOCM.VC_NO))/10), 2) AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS CONT_NUM                                                															
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_VOC_CMPL', 'SMS_VOC_REQ')
+				       ) BRK
+				   JOIN STOCVOCM VOCM
+				     ON (VOCM.GATE_CD = BRK.GATE_CD		
+				    AND VOCM.VC_NO = BRK.CONT_NUM)
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')   
+		         UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , BRK.BRC AS BRC                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , BRK.BUYER_CD AS CONT_NUM																						   															
+				  	  , 1 AS CONT_CNT
+				      , '고객사 거래요청 및 승인' AS CONT_DESC
+				      , BRK.BUYER_CD AS PY_BUYER_CD
+				      , 1 AS PY_BUYER_CD_CNT
+		       	 	  , BRK.COST AS PY_COST
+		       	 	  , BRK.VAT AS PY_VAT                                     										
+				      , BRC.BRNM AS BRNM
+		              , BRC.DEPT_NM AS DEPT_NM
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+				 		 <choose>
+		 		 		 	<when test='ses.companyCd == "C00009"'>
+		 		 		    AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+		 		 			                     WHERE GATE_CD = #{ses.gateCd}
+		 		 			                       AND CODE_TYPE = 'NH0077'
+		 		 			                       AND LANG_CD = #{ses.langCd}
+		 		 			                       AND USE_FLAG = '1'
+		 		 			                       AND DEL_FLAG = '0') 
+		 		 		    </when>
+		 		 		    <otherwise>
+		 		 		    AND BRK.CORP_NO = #{ses.irsNum}
+		 		 		    </otherwise>
+		 		 		 </choose>  
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_VEND')
+				       ) BRK
+				   LEFT JOIN TB_CO_BRC BRC
+			         ON (BRC.CORP_NO  = BRK.CORP_NO 
+			        AND BRC.BRC = BRK.BRC 
+			        AND BRC.STSC = '1')
+		         ) A
+		     WHERE 1=1
+		     ORDER BY A.CONT_TBL_ID, A.ADJ_DT, A.CONT_NUM    
+    </select>
+    
+    <select id="ccbr0020_doSearchSMSSUM" parameterType="hashmap" resultType="hashMap">
+		 SELECT SUM(Z.PY_COST) AS PY_COST_SUM 
+		      , SUM(Z.PY_VAT) AS PY_VAT_SUM
+		      , SUM(Z.PY_COST + Z.PY_VAT) AS PY_AMT  
+		  FROM (     
+				 SELECT (A.COST/COUNT(DISTINCT A.PY_BUYER_CD) OVER (PARTITION BY A.CONT_NUM, CONT_CNT)) AS PY_COST
+				      , ((A.COST/COUNT(DISTINCT A.PY_BUYER_CD) OVER (PARTITION BY A.CONT_NUM, CONT_CNT))/10) AS PY_VAT
+				  FROM (
+				        SELECT BRK.CORP_NO AS CORP_NO                  
+				 		     , BRK.ADJ_DT AS ADJ_DT 	
+				 		     , BRK.COST AS COST
+				 		     , BRK.VAT AS VAT
+				 		     , ECCT.CONT_NUM AS CONT_NUM                                                                                           															
+				 		     , ECCT.CONT_CNT AS CONT_CNT
+				 		     , ECPC.PY_BUYER_CD AS PY_BUYER_CD                                                                           											
+				 		  FROM
+				 		  	  (SELECT BRK.CONT_TBL_PK
+				 		  	        , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				 		            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				 		            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				 		            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				 		            , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				 		            , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				 		            , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				 		            , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				 		            , BRK.COST AS COST                /* 단가              */                                      															
+				 		            ,(BRK.COST/10) AS VAT             /* 부가세            */
+				 		         FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				 		        WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				 		        <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 				  AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 				</if>
+				 				<choose>
+				 				   <when test='ses.companyCd == "C00009"'>
+				 				   AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+				 					                    WHERE GATE_CD = #{ses.gateCd}
+				 					                      AND CODE_TYPE = 'NH0077'
+				 					                      AND LANG_CD = #{ses.langCd}
+				 					                      AND USE_FLAG = '1'
+				 					                      AND DEL_FLAG = '0') 
+				 				   </when>
+				 				   <otherwise>
+				 				   AND BRK.CORP_NO = #{ses.irsNum}
+				 				   </otherwise>
+				 				</choose>  
+				 		          AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) = 'SMS_CONT_4300'
+				 		      ) BRK
+				 		  JOIN STOCECCT ECCT
+				 		    ON (ECCT.GATE_CD = BRK.GATE_CD															
+				 		   AND ECCT.BUYER_CD = BRK.BUYER_CD															
+				 		   AND ECCT.CONT_NUM = BRK.CONT_NUM															
+				 		   AND ECCT.CONT_CNT = BRK.CONT_CNT)
+				 		  JOIN STOCECCM ECCM 
+				 		    ON (ECCM.GATE_CD  = ECCT.GATE_CD                                                                     															
+				 		   AND ECCM.BUYER_CD = ECCT.BUYER_CD                                                                    															
+				 		   AND ECCM.CONT_NUM = ECCT.CONT_NUM                                                                    															
+				 		   AND ECCM.CONT_CNT = ECCT.CONT_CNT                                                                    															
+				 		   AND ECCM.DEL_FLAG = '0')
+				  		  JOIN STOCECPC ECPC 
+				  		    ON (ECPC.GATE_CD     = ECCM.GATE_CD                                                               															
+				  		   AND ECPC.BUYER_CD    = ECCM.BUYER_CD                                                              															
+				  		   AND ECPC.CONT_NUM    = ECCM.CONT_NUM                                                              															
+				  		   AND ECPC.CONT_CNT    = ECCM.CONT_CNT                                                                                                                                                                                             															
+				  		   AND ECPC.PR_BUYER_CD = ECCM.PR_BUYER_CD															
+				  		   AND ECPC.PR_DEPT_CD  = ECCM.PR_DEPT_CD															
+				  		   AND ECPC.VENDOR_CD   = ECCM.VENDOR_CD															
+				  		   AND ECPC.PAY_CNT     = '0'															
+				  		   AND ECPC.DEL_FLAG    = '0')
+				       ) A
+				  WHERE 1=1
+				 UNION ALL
+				 SELECT BRK.COST AS PY_COST
+				      , (BRK.COST/10) AS PY_VAT
+				   FROM TB_PR_DM_FEE_OCC_BRK BRK 
+				  WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				  <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+ 				    AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+ 				  </if>
+ 				  <choose>
+ 				     <when test='ses.companyCd == "C00009"'>
+ 				     AND BRK.CORP_NO IN (SELECT CODE_DESC FROM STOCCODD
+ 					                      WHERE GATE_CD = #{ses.gateCd}
+ 					                        AND CODE_TYPE = 'NH0077'
+ 					                        AND LANG_CD = #{ses.langCd}
+ 					                        AND USE_FLAG = '1'
+ 					                        AND DEL_FLAG = '0') 
+ 				     </when>
+ 				     <otherwise>
+ 				     AND BRK.CORP_NO = #{ses.irsNum}
+ 				     </otherwise>
+ 				  </choose>  
+ 		            AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) != 'SMS_CONT_4300'   
+		       ) Z
+
+    </select>
+    
+    <select id="ccbr0020_doSearchSMSPT" parameterType="hashmap" resultType="hashMap">
+    
+	      SELECT A.CORP_NO
+		       , '' AS BRC
+		       , A.BRNM
+		       , '' AS DEPT_NM
+		       , A.ADJ_DT
+		       , A.CONT_TBL_ID
+		       , <include refid="common.sql.dbo"/>GETCOMCODE(#{ses.gateCd}, 'NH0076', A.CONT_TBL_ID, 0, #{ses.langCd}) AS CONT_TBL_NM
+		       , A.CONT_CHARGE_CD
+		       ,'SMS수수료' AS CONT_CHARGE_NM
+		       , A.COST
+		       , A.VAT
+		       , A.CONT_NUM
+		       , A.CONT_CNT
+		       , A.CONT_DESC
+		       , '' AS PY_BUYER_CD
+		       , '' AS PY_BUYER_CD_NM
+		       , '' AS PY_BUYER_CD_CNT
+		       , '' PY_COST
+		       , '' PY_VAT
+		       , A.CONT_USER_ID
+		       , A.CONT_USER_NM
+		       , A.CONT_DEPT_CD
+		       , A.CONT_DEPT_NM
+		   FROM (
+		         SELECT BRK.CORP_NO AS CORP_NO
+		              , CUST.CUST_NM AS BRNM                    
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , TCCT.CONT_NUM AS CONT_NUM                                                                                           															
+				      , TCCT.CONT_CNT AS CONT_CNT
+				      , TCCT.CONT_DESC AS CONT_DESC
+				      , TCCT.CONT_USER_ID AS CONT_USER_ID
+				      , <include refid="common.sql.dbo"/>GETUSERNAME(#{ses.gateCd}, TCCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+	  				  , TCCT.DEPT_CD AS CONT_DEPT_CD	
+	  				  , <include refid="common.sql.dbo"/>GETDEPTNAME(#{ses.gateCd}, TCCT.BUYER_CD, TCCT.DEPT_CD, #{ses.langCd}) AS CONT_DEPT_NM
+	  				  , TCCT.BUYER_CD AS BUYER_CD
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID     
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */  
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+						   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+						 </if>  
+		 				   AND BRK.CORP_NO = #{ses.irsNum}
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) = 'SMS_TC_REQ'
+				       ) BRK
+				   JOIN STOCTCCT TCCT
+				     ON (TCCT.GATE_CD = BRK.GATE_CD															
+				    AND TCCT.BUYER_CD = BRK.BUYER_CD															
+				    AND TCCT.CONT_NUM = BRK.CONT_NUM															
+				    AND TCCT.CONT_CNT = BRK.CONT_CNT)
+				   LEFT JOIN STOCCUST CUST
+			         ON (CUST.GATE_CD  = TCCT.GATE_CD 
+			        AND CUST.CUST_CD = TCCT.BUYER_CD)
+			     UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , CUST.CUST_NM AS BRNM                      
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , SCTM.APP_DOC_NUM AS CONT_NUM                                                                                           															
+				      , SCTM.APP_DOC_CNT AS CONT_CNT
+				      , SCTM.SUBJECT AS CONT_DESC
+				      , SCTM.REG_USER_ID AS CONT_USER_ID
+				      , <include refid="common.sql.dbo"/>GETUSERNAME(#{ses.gateCd}, SCTM.REG_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+	  				  , TCCT.DEPT_CD AS CONT_DEPT_CD	
+	  				  , <include refid="common.sql.dbo"/>GETDEPTNAME(#{ses.gateCd}, TCCT.BUYER_CD, TCCT.DEPT_CD, #{ses.langCd}) AS CONT_DEPT_NM
+	  				  , TCCT.BUYER_CD AS BUYER_CD
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+		 		 		   AND BRK.CORP_NO = #{ses.irsNum}
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_SIGN')
+				       ) BRK
+				   JOIN STOCSCTM SCTM
+				     ON (SCTM.GATE_CD = BRK.GATE_CD															
+				    AND SCTM.BUYER_CD = BRK.BUYER_CD															
+				    AND SCTM.APP_DOC_NUM = BRK.CONT_NUM															
+				    AND SCTM.APP_DOC_CNT = BRK.CONT_CNT)
+				   JOIN STOCTCCT TCCT
+				     ON (TCCT.GATE_CD = SCTM.GATE_CD
+				    AND TCCT.APP_DOC_NUM = SCTM.APP_DOC_NUM
+				    AND TCCT.APP_DOC_CNT = SCTM.APP_DOC_CNT) 
+				   LEFT JOIN STOCCUST CUST
+			         ON (CUST.GATE_CD  = SCTM.GATE_CD 
+			        AND CUST.CUST_CD = SCTM.BUYER_CD)
+			     UNION ALL
+			     SELECT BRK.CORP_NO AS CORP_NO                  
+				      , CUST.CUST_NM AS BRNM                        
+				      , BRK.ADJ_DT AS ADJ_DT 
+				      , BRK.CONT_TBL_ID	
+				      , BRK.EPRO_FEE_DSC AS CONT_CHARGE_CD														
+				      , BRK.COST AS COST
+				      , BRK.VAT AS VAT
+				      , VOCM.VC_NO AS CONT_NUM																						   															
+				  	  , 1 AS CONT_CNT
+				      , VOCM.SUBJECT AS CONT_DESC
+				      , VOCM.REQ_USER_ID AS CONT_USER_ID
+				      , <include refid="common.sql.dbo"/>GETUSERNAME(#{ses.gateCd}, VOCM.REQ_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+	  				  , VOCM.REQ_DEPT_CD AS CONT_DEPT_CD	
+	  				  , <include refid="common.sql.dbo"/>GETDEPTNAME(#{ses.gateCd}, VOCM.REQ_COM_CD, VOCM.REQ_DEPT_CD, #{ses.langCd}) AS CONT_DEPT_NM
+	  				  , VOCM.REQ_COM_CD AS BUYER_CD
+				   FROM
+				  	   (SELECT BRK.CONT_TBL_PK
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) AS CONT_TBL_ID
+				  	         , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				             , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS CONT_NUM                                                															
+				             , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				             , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				             , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				             , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				             , BRK.COST AS COST                /* 단가              */                                      															
+				             ,(BRK.COST/10) AS VAT             /* 부가세            */
+				          FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				         WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				         <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 		   AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 		 </if>
+		 		 		   AND BRK.CORP_NO = #{ses.irsNum}
+				           AND REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 1) IN ('SMS_VOC_CMPL', 'SMS_VOC_REQ')
+				       ) BRK
+				   JOIN STOCVOCM VOCM
+				     ON (VOCM.GATE_CD = BRK.GATE_CD		
+				    AND VOCM.VC_NO = BRK.CONT_NUM)
+				   LEFT JOIN STOCCUST CUST
+			         ON (CUST.GATE_CD  = VOCM.GATE_CD 
+			        AND CUST.CUST_CD = VOCM.REQ_COM_CD)   
+		         ) A
+		     WHERE 1=1
+		     ORDER BY A.CONT_TBL_ID, A.ADJ_DT, A.CONT_NUM    
+    </select>
+    
+    <select id="ccbr0020_doSearchSMSPTSUM" parameterType="hashmap" resultType="hashMap">
+		 SELECT SUM(Z.PY_COST) AS PY_COST_SUM 
+		      , SUM(Z.PY_VAT) AS PY_VAT_SUM
+		      , SUM(Z.PY_COST + Z.PY_VAT) AS PY_AMT  
+		  FROM (     
+				 SELECT A.COST AS PY_COST
+				      , A.VAT AS PY_VAT
+				  FROM (
+				        SELECT BRK.CORP_NO AS CORP_NO                  
+				 		     , BRK.ADJ_DT AS ADJ_DT 	
+				 		     , BRK.COST AS COST
+				 		     , BRK.VAT AS VAT
+				 		  FROM
+				 		  	  (SELECT BRK.CONT_TBL_PK
+				 		  	        , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 2) AS GATE_CD                                                 															
+				 		            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 3) AS BUYER_CD                                                															
+				 		            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 4) AS CONT_NUM                                                															
+				 		            , REGEXP_SUBSTR(BRK.CONT_TBL_PK,'[^@@]+', 1, 5) AS CONT_CNT 
+				 		            , BRK.OCC_DT AS ADJ_DT            /* 발생일자         */                                        															
+				 		            , BRK.CORP_NO AS CORP_NO          /* 사업자번호      */                                         															
+				 		            , BRK.BRC AS BRC                  /* 사무소코드      */                                         															
+				 		            , BRK.EPRO_FEE_DSC AS EPRO_FEE_DSC/* 수수료구분코드 */               															
+				 		            , BRK.COST AS COST                /* 단가              */                                      															
+				 		            ,(BRK.COST/10) AS VAT             /* 부가세            */
+				 		         FROM TB_PR_DM_FEE_OCC_BRK BRK  
+				 		        WHERE BRK.EPRO_FEE_DSC = '03'  /* 수수료구분코드   01 사용료  03 SMS */
+				 		        <if test="STD_QUARTER !='' and STD_QUARTER !=null">
+				 				  AND BRK.OCC_DT BETWEEN #{OCC_FROM_DATE} AND #{OCC_TO_DATE}
+				 				</if>
+				 				  AND BRK.CORP_NO = #{ses.irsNum}
+				 		      ) BRK
+				       ) A
+				  WHERE 1=1
+		       ) Z
+
+    </select>    
+</mapper>

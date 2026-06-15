@@ -1,0 +1,948 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CVNR.CVNR0010_Mapper">
+
+    <select id="cvnr0010_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT VNGL.GATE_CD
+            , VNCM.CONFIRM_FLAG AS PROGRESS_CD
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNCM.GATE_CD, 'M019', VNCM.CONFIRM_FLAG, '0', #{ses.langCd}) AS PROGRESS_NM
+            , VNGL.VENDOR_CD
+            , VNGL.VENDOR_NM
+            , <include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+            , VNGL.IRS_NO
+            , VNGL.COMPANY_REG_NO
+            , <include refid="common.sql.toChar"/>(VNCM.REG_DATE, 'YYYY-MM-DD HH24:MI') AS REG_DATE
+            , VNGL.INDUSTRY_TYPE
+            , VNGL.BUSINESS_TYPE
+            , <include refid="common.sql.strDecStart"/>VNGL.TEL_NO<include refid="common.sql.strDecEnd"/> AS TEL_NO
+            , <include refid="common.sql.toChar"/>(VNCM.CONFIRM_DATE, 'YYYY-MM-DD') AS CONFIRM_DATE
+            , VNGL.CREDIT_CD
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP003', VNGL.CREDIT_CD, '0', #{ses.langCd}) AS CREDIT_NM
+            , VNCM.CONFIRM_REASON AS REJECT_RMK
+            , DBK.CLIP_GRD AS NICE_DB_GRD
+            , INT.CR_GRD AS KED_GRD
+        FROM STOCVNGL VNGL
+        JOIN STOCVNCM VNCM
+            ON (VNCM.GATE_CD = VNGL.GATE_CD
+            AND VNCM.VENDOR_CD = VNGL.VENDOR_CD
+            AND VNCM.BUYER_CD = #{ses.companyCd}
+            AND VNCM.DEL_FLAG = '0')
+        LEFT JOIN ( SELECT DBK.BIZ_NO
+                        , DBK.CLIP_GRD
+                        , DBK.G_DATE
+                    FROM DBK_RPT01 DBK
+                    WHERE <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') <![CDATA[>=]]> DBK.G_DATE
+                    AND <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') <![CDATA[<=]]> DBK.EXP_DATE
+                    AND DBK.G_DATE = (  SELECT MAX(G_DATE)
+                                        FROM DBK_RPT01 S
+                                        WHERE S.BIZ_NO = DBK.BIZ_NO)
+                    ) DBK
+            ON (VNGL.IRS_NO = DBK.BIZ_NO)
+        LEFT JOIN INTR INT
+            ON (VNGL.IRS_NO = INT.BZNO)
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+        AND VNGL.DEL_FLAG = '0'
+        <if test="REG_TYPE != '' and REG_TYPE != null">
+            AND VNGL.REG_TYPE = #{REG_TYPE}
+        </if>
+        <if test="VENDOR_CD != '' and VENDOR_CD != null">
+            AND UPPER(VNGL.VENDOR_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VENDOR_NM != '' and VENDOR_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="CEO_USER_NM != '' and CEO_USER_NM != null">
+            AND UPPER(<include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/>) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CEO_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="IRS_NO != '' and IRS_NO != null">
+            AND UPPER(VNGL.IRS_NO) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{IRS_NO}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REG_FROM_DATE != '' and REG_FROM_DATE != null">
+            AND VNCM.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_FROM_DATE})
+        </if>
+        <if test="REG_TO_DATE != '' and REG_TO_DATE != null">
+            AND VNCM.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_TO_DATE})
+        </if>
+        <if test="PROGRESS_CD != '' and PROGRESS_CD != null">
+            AND VNCM.CONFIRM_FLAG = #{PROGRESS_CD}
+        </if>
+        ORDER BY VNGL.REG_DATE DESC
+    </select>
+
+    <select id="cvnr0011_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT VNGL.GATE_CD
+            , VNGL.VENDOR_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+            , VNGL.VENDOR_ENG_NM
+            , VNGL.REG_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M014', VNGL.REG_TYPE, '0', #{ses.langCd}) AS REG_TYPE_NM
+            , VNGL.IRS_NO
+            , VNGL.COMPANY_REG_NO
+            , <include refid="common.sql.strDecStart"/>VNGL.HQ_ZIP_CD<include refid="common.sql.strDecEnd"/> AS HQ_ZIP_CD
+            , <include refid="common.sql.strDecStart"/>VNGL.HQ_ADDR_1<include refid="common.sql.strDecEnd"/> AS HQ_ADDR_1
+            , <include refid="common.sql.strDecStart"/>VNGL.HQ_ADDR_2<include refid="common.sql.strDecEnd"/> AS HQ_ADDR_2
+            , <include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+            , VNGL.BUSINESS_TYPE
+            , VNGL.INDUSTRY_TYPE
+            , <include refid="common.sql.toChar"/>(VNGL.FOUNDATION_DATE, 'YYYY-MM-DD') AS FOUNDATION_DATE
+            , <include refid="common.sql.strDecStart"/>VNGL.TEL_NO<include refid="common.sql.strDecEnd"/> AS TEL_NO
+            , <include refid="common.sql.strDecStart"/>VNGL.FAX_NO<include refid="common.sql.strDecEnd"/> AS FAX_NO
+            , <include refid="common.sql.strDecStart"/>VNGL.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+            , VNGL.BUSINESS_SIZE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP039', VNGL.BUSINESS_SIZE, '0', #{ses.langCd}) AS BUSINESS_SIZE_NM
+            , VNGL.BUSINESS_DIVISION
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP040', VNGL.BUSINESS_DIVISION, '0', #{ses.langCd}) AS BUSINESS_DIVISION_NM
+            , '' AS REGION_CD
+            , VNGL.BUSINESS_REMARK
+            , VNGL.REMARK_TEXT
+            , VNGL.RELAT_YN
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'NH0005', VNGL.RELAT_YN, '0', #{ses.langCd}) AS RELAT_YN_NM
+            , VNGL.CORP_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'NH0002', VNGL.CORP_TYPE, '0', #{ses.langCd}) AS CORP_TYPE_NM
+            -- 재무정보
+            , VNFI.FI_YEAR
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M174', VNFI.FI_YEAR, '0', #{ses.langCd}) AS FI_YEAR_NM
+            , VNFI.EVIDENCE_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP048', VNFI.EVIDENCE_TYPE, '0', #{ses.langCd}) AS EVIDENCE_TYPE_NM
+            , VNFI.OWNER_CAPITAL_AMOUNT
+            , VNFI.TOT_FUND_AMT
+            , VNFI.TOT_LIAB_AMT
+            , VNFI.TOTAL_LIABILITY_RATE
+            , VNFI.CURRENT_ASSET_AMOUNT
+            , VNFI.CURRENT_ASSET_LIABILITY_AMOUNT
+
+            , CASE WHEN NVL (VNFI.CURRENT_ASSET_LIABILITY_AMOUNT,1) = 0
+		  	  THEN NULL
+		  	  ELSE (<include refid="common.sql.nvl"/>(VNFI.CURRENT_ASSET_AMOUNT,0) / <include refid="common.sql.nvl"/>(VNFI.CURRENT_ASSET_LIABILITY_AMOUNT,1)) * 100
+		      END AS CURRENT_ASSET_LIABILITY_RATE
+
+            , VNFI.SALES_AMOUNT
+            , VNFI.NET_PROFIT_AMOUNT
+            , VNFI.ATT_FILE_NUM AS VNFI_ATT_FILE_NUM
+            , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(VNFI.GATE_CD, VNFI.ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(VNFI.GATE_CD, VNFI.ATT_FILE_NUM)
+              END AS VNFI_ATT_FILE_NUM_CNT
+            -- 관리정보
+            , VNGL.CREDIT_EVAL_COMPANY
+            , VNGL.CREDIT_CD
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP003', VNGL.CREDIT_CD, '0', #{ses.langCd}) AS CREDIT_NM
+            , VNGL.EV_ATT_FILE_NUM AS EV_ATT_FILE_NUM
+            , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(VNGL.GATE_CD, VNGL.EV_ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(VNGL.GATE_CD, VNGL.EV_ATT_FILE_NUM)
+              END AS EV_ATT_FILE_NUM_CNT
+            , VNGL.E_BILL_ASP_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP075', VNGL.E_BILL_ASP_TYPE, '0', #{ses.langCd}) AS E_BILL_ASP_TYPE_NM
+            , VNGL.TAX_ASP_NM
+            , VNGL.TAX_SEND_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP064', VNGL.TAX_SEND_TYPE, '0', #{ses.langCd}) AS TAX_SEND_TYPE_NM
+            , VNGL.BLOCK_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP006', VNGL.BLOCK_FLAG, '0', #{ses.langCd}) AS BLOCK_FLAG_NM
+            , VNGL.BLOCK_REASON
+            , VNGL.PROGRESS_CD
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M019', VNGL.PROGRESS_CD, '0', #{ses.langCd}) AS PROGRESS_NM
+            , VNGL.SIGN_STATUS
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M019', VNGL.SIGN_STATUS, '0', #{ses.langCd}) AS SIGN_STATUS_NM
+            , VNGL.MOD_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(VNGL.GATE_CD,  VNGL.MOD_USER_ID , #{ses.langCd}) AS MOD_USER_NM
+            , <include refid="common.sql.toChar"/>(VNGL.MOD_DATE, 'YYYY-MM-DD HH24:MI') AS MOD_DATE
+            , DBK.CLIP_GRD AS NICE_DB_GRD
+            , INT.CR_GRD AS KED_GRD
+            , <include refid="common.sql.toChar"/>(VNGL.REG_DATE, 'YYYY-MM-DD HH24:MI') AS REG_DATE
+            -- 결제정보
+            , VNGL.PAY_CONDITION
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP045', VNGL.PAY_CONDITION, '0', #{ses.langCd}) AS PAY_CONDITION_NM
+            , VNGL.PAY_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP046', VNGL.PAY_TYPE, '0', #{ses.langCd}) AS PAY_TYPE_NM
+            , VNGL.PAY_PUBLIC_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP047', VNGL.PAY_PUBLIC_TYPE, '0', #{ses.langCd}) AS PAY_PUBLIC_TYPE_NM
+            , ( SELECT VNCM.CONFIRM_FLAG
+                FROM STOCVNCM VNCM
+                WHERE VNCM.GATE_CD = VNGL.GATE_CD
+                AND VNCM.VENDOR_CD = VNGL.VENDOR_CD
+                AND VNCM.BUYER_CD = #{ses.companyCd}
+                AND VNCM.DEL_FLAG = '0') AS CONFIRM_FLAG
+        FROM STOCVNGL VNGL
+        LEFT JOIN STOCVNFI VNFI
+            ON (VNFI.GATE_CD = VNGL.GATE_CD
+            AND VNFI.VENDOR_CD = VNGL.VENDOR_CD
+            AND VNFI.FI_YEAR = (SELECT MAX(FI_YEAR)
+                                  FROM STOCVNFI S
+                                 WHERE S.GATE_CD = VNFI.GATE_CD
+                                   AND S.VENDOR_CD = VNFI.VENDOR_CD
+                                   AND S.DEL_FLAG = '0'))
+        LEFT JOIN ( SELECT DBK.BIZ_NO
+                        , DBK.CLIP_GRD
+                        , DBK.G_DATE
+                    FROM DBK_RPT01 DBK
+                    WHERE <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') <![CDATA[>=]]> DBK.G_DATE
+                    AND <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') <![CDATA[<=]]> DBK.EXP_DATE
+                    AND DBK.G_DATE = (  SELECT MAX(G_DATE)
+                                        FROM DBK_RPT01 S
+                                        WHERE S.BIZ_NO = DBK.BIZ_NO)
+                    ) DBK
+            ON (VNGL.IRS_NO = DBK.BIZ_NO)
+        LEFT JOIN INTR INT
+            ON (VNGL.IRS_NO = INT.BZNO)
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+        AND VNGL.DEL_FLAG = '0'
+        AND VNGL.VENDOR_CD = #{VENDOR_CD}
+    </select>
+	
+	<!-- 담당자정보 추가 -->
+	<select id="cvnr0011_doSearchCVUR" parameterType="hashMap" resultType="hashMap">
+        
+        SELECT
+			  UR.USER_ID
+            ,<include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+			, UR.DEPT_CD
+			, UR.DEPT_NM
+			, UR.POSITION_NM
+			, UR.DUTY_NM
+			, UR.WORK_TYPE		-- NH0004
+			, UR.MNG_YN			-- M044
+			,<include refid="common.sql.strDecStart"/>UR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+			,<include refid="common.sql.strDecStart"/>UR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+			,<include refid="common.sql.strDecStart"/>UR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+			,<include refid="common.sql.nvl"/>(UR.MAIL_FLAG, '0')  AS MAIL_FLAG		-- M044
+			,<include refid="common.sql.nvl"/>(UR.SMS_FLAG, '0')   AS SMS_FLAG		-- M044
+			,<include refid="common.sql.nvl"/>(UR.BLOCK_FLAG, '0') AS BLOCK_FLAG	-- M044
+			, UR.BLOCK_REASON	-- BLOCK사유
+			, UR.REG_DATE
+			,(CASE WHEN UR.PROGRESS_CD = 'E' THEN '1' ELSE '0' END) AS PROGRESS_CD
+		 FROM STOCCVUR UR
+		WHERE UR.GATE_CD    = #{ses.gateCd}
+		  AND UR.COMPANY_CD = #{VENDOR_CD}
+		  AND UR.USE_FLAG   = '1'
+		  AND UR.DEL_FLAG   = '0'
+		ORDER BY PROGRESS_CD DESC, MNG_YN DESC, BLOCK_FLAG ASC
+    </select>
+    
+    <select id="cvnr0011_doSearchVNSL" parameterType="hashMap" resultType="hashMap">
+        SELECT VNSL.SEQ
+            , VNSL.SL_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNSL.GATE_CD, 'NH0006', VNSL.SL_TYPE, '0', #{ses.langCd}) AS SL_TYPE_NM
+            , VNSL.SL_NUM
+            , VNSL.SL_NM
+            , VNSL.ISSUE_NM
+            , VNSL.EXPIRY_DATE
+            , VNSL.ATT_FILE_NUM
+            , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(VNSL.GATE_CD, VNSL.ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(VNSL.GATE_CD, VNSL.ATT_FILE_NUM)
+              END AS ATT_FILE_NUM_CNT
+        FROM STOCVNSL VNSL
+        WHERE VNSL.GATE_CD = #{ses.gateCd}
+        AND VNSL.COMPANY_CD = #{VENDOR_CD}
+        AND VNSL.DEL_FLAG = '0'
+    </select>
+
+    <select id="cvnr0011_doSearchVNAP" parameterType="hashMap" resultType="hashMap">
+        SELECT VNAP.SEQ
+             , VNAP.VENDOR_CD
+             , <include refid="common.sql.toChar"/>(VNAP.MOD_DATE, 'YYYY-MM-DD HH24:MI') AS MOD_DATE
+             , VNAP.MOD_USER_ID
+             , <include refid="common.sql.dbo"/>GETUSERNAME(VNAP.GATE_CD,  VNAP.MOD_USER_ID , #{ses.langCd}) AS MOD_USER_NM
+             , VNAP.DEL_FLAG
+             , VNAP.PAY_ACC_NM
+             , VNAP.PAY_BANK
+             , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACCOUNT_NUM<include refid="common.sql.strDecEnd"/> AS PAY_ACCOUNT_NUM
+             , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACCOUNT_USER_NM<include refid="common.sql.strDecEnd"/> AS PAY_ACCOUNT_USER_NM
+             , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACC_MNG_NM<include refid="common.sql.strDecEnd"/> AS PAY_ACC_MNG_NM
+             , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACC_NMG_TEL_NUM<include refid="common.sql.strDecEnd"/> AS PAY_ACC_NMG_TEL_NUM
+             , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACC_MNG_EMAIL<include refid="common.sql.strDecEnd"/> AS PAY_ACC_MNG_EMAIL
+             , VNAP.ATT_FILE_NUM AS PAY_ATT_FILE_NUM
+             , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(VNAP.GATE_CD, VNAP.ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(VNAP.GATE_CD, VNAP.ATT_FILE_NUM)
+              END AS PAY_ATT_FILE_NUM_CNT
+        FROM STOCVNAP VNAP
+        WHERE VNAP.GATE_CD = #{ses.gateCd}
+        AND VNAP.VENDOR_CD = #{VENDOR_CD}
+        AND VNAP.DEL_FLAG = '0'
+    </select>
+
+    <select id="cvnr0011_doSearchATTD" parameterType="hashMap" resultType="hashMap">
+        SELECT ATTD.GATE_CD
+            , ATTD.TMPL_FILE_NM
+            , ATTD.VALID_PERIOD
+            , <include refid="common.sql.toChar"/>(ATTS.VALID_START_DATE, 'YYYY-MM-DD') AS VALID_START_DATE
+            , <include refid="common.sql.toChar"/>(ATTS.VALID_END_DATE, 'YYYY-MM-DD') AS VALID_END_DATE
+            , ATTD.REQUIRED_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(ATTD.GATE_CD, 'M044', ATTD.REQUIRED_FLAG, '0', #{ses.langCd}) AS REQUIRED_FLAG_NM
+            , ATTS.ATT_FILE_NUM AS ATTS_ATT_FILE_NUM
+            , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(ATTS.GATE_CD, ATTS.ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(ATTS.GATE_CD, ATTS.ATT_FILE_NUM)
+              END AS ATTS_ATT_FILE_NUM_CNT
+        FROM STOCATTD ATTD
+        LEFT JOIN STOCATTS ATTS
+            ON (ATTS.GATE_CD = ATTD.GATE_CD
+            AND ATTS.BUYER_CD = ATTD.BUYER_CD
+            AND ATTS.DOC_TYPE = ATTD.DOC_TYPE
+            AND ATTS.TMPL_NUM = ATTD.TMPL_NUM
+            AND ATTS.TMPL_SQ = ATTD.TMPL_SQ
+            AND ATTS.VENDOR_CD = #{VENDOR_CD}
+            AND ATTs.DEL_FLAG = '0')
+        WHERE ATTD.GATE_CD = #{ses.gateCd}
+        AND ATTD.DEL_FLAG = '0'
+        AND ATTD.USE_FLAG = '1'
+        AND ATTD.BUYER_CD IN (  SELECT #{ses.manageCd} FROM DUAL UNION ALL
+                                SELECT VNCM.BUYER_CD
+                                FROM STOCVNCM VNCM
+                                WHERE VNCM.GATE_CD = #{ses.gateCd}
+                                AND VNCM.DEL_FLAG = '0'
+                                AND VNCM.VENDOR_CD = #{VENDOR_CD}
+                                )
+        AND ATTD.DOC_TYPE = 'D02'
+        ORDER BY ATTD.BUYER_CD, ATTD.SORT_SQ
+    </select>
+
+    <select id="cvnr0011_doSearchVNCM" parameterType="hashMap" resultType="hashMap">
+        SELECT VNCM.BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(VNCM.GATE_CD, VNCM.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+            , VNCM.DEPT_CD
+            , <include refid="common.sql.dbo"/>getDeptName(VNCM.GATE_CD, VNCM.BUYER_CD, VNCM.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+            , VNCM.CONFIRM_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNCM.GATE_CD, 'M019', VNCM.CONFIRM_FLAG, '0', #{ses.langCd}) AS CONFIRM_FLAG_NM
+            , <include refid="common.sql.toChar"/>(VNCM.CONFIRM_DATE, 'YYYY-MM-DD') AS CONFIRM_DATE
+            , VNCM.CONFIRM_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(VNCM.GATE_CD,  VNCM.CONFIRM_USER_ID , #{ses.langCd}) AS CONFIRM_USER_NM
+            , VNCM.CONFIRM_REASON
+            , VNCM.REQ_REASON
+        FROM STOCVNCM VNCM
+        WHERE VNCM.GATE_CD = #{ses.gateCd}
+        AND VNCM.DEL_FLAG = '0'
+        AND VNCM.VENDOR_CD = #{VENDOR_CD}
+    </select>
+
+	<!-- 거래희망 고객사 승인 -->
+    <update id="cvnr0011_doConfirm" parameterType="hashMap">
+        UPDATE STOCVNCM SET
+              CONFIRM_FLAG = 'E'
+            , CONFIRM_USER_ID = #{ses.userId}
+            , CONFIRM_DATE = SYSDATE
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD   = #{ses.gateCd}
+          AND VENDOR_CD = #{VENDOR_CD}
+          AND BUYER_CD  = #{ses.companyCd}
+    </update>
+
+	<update id="cvnr0011_doUpdateCvur" parameterType="hashMap">
+        UPDATE STOCCVUR SET
+              MNG_YN = '1'
+            , PROGRESS_CD = 'E'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+          AND COMPANY_CD = #{VENDOR_CD}
+    </update>
+
+    <update id="cvnr0011_doUpdateVngl" parameterType="hashMap">
+        UPDATE STOCVNGL SET
+              PROGRESS_CD = 'E'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+          AND VENDOR_CD = #{VENDOR_CD}
+    </update>
+
+    <!-- 거래희망 고객사 반려 -->
+    <update id="cvnr0011_doReject" parameterType="hashMap">
+        UPDATE STOCVNCM SET
+              CONFIRM_FLAG = 'R'
+            , CONFIRM_USER_ID = #{ses.userId}
+            , CONFIRM_REASON = #{CONFIRM_REASON}
+            , CONFIRM_DATE = SYSDATE
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD   = #{ses.gateCd}
+          AND VENDOR_CD = #{VENDOR_CD}
+          AND BUYER_CD  = #{ses.companyCd}
+    </update>
+
+    <select id="vendorUserList" parameterType="hashMap" resultType="hashMap">
+        SELECT CVUR.USER_ID AS CTRL_USER_ID
+            , CVUR.COMPANY_CD AS BUYER_CD
+        FROM STOCVNGL VNGL
+        LEFT JOIN STOCCVUR CVUR
+             ON (CVUR.GATE_CD = VNGL.GATE_CD
+             AND CVUR.COMPANY_CD = VNGL.VENDOR_CD)
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+          AND VNGL.VENDOR_CD = #{VENDOR_CD}
+    </select>
+	
+	<!-- 2021.05.11 변경 -->
+	<!-- 협력사 승인 후 협력사 담당자에게 메일 발송 -->
+    <select id="cvnr0011_vendorUserId" parameterType="hashMap" resultType="hashMap">
+        SELECT CVUR.USER_ID
+             ,<include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+         FROM STOCVNGL VNGL
+         JOIN STOCCVUR CVUR
+              ON (CVUR.GATE_CD    = VNGL.GATE_CD
+              AND CVUR.COMPANY_CD = VNGL.VENDOR_CD
+              AND CVUR.MNG_YN     = '1'		-- 협력사 관리자
+              AND <include refid="common.sql.nvl"/>(CVUR.BLOCK_FLAG, '0') = '0'
+              AND CVUR.DEL_FLAG   = '0')
+        WHERE VNGL.GATE_CD   = #{ses.gateCd}
+          AND VNGL.VENDOR_CD = #{VENDOR_CD}
+          AND ROWNUM         = 1
+    </select>
+	
+	<!-- 협력사의 거래요청 승인시 승인하는 사람의 고객사에게 수수료 요청 -->
+    <select id="costSmsInfo" parameterType="hashMap" resultType="hashMap">
+        SELECT CUST.IRS_NUM 	AS CORP_NO
+             , CVUR.DEPT_CD 	AS BRC
+             , <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+             , CVUR.USER_ID		AS USER_ID
+             , 'SMS_VEND'		<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               CUST.GATE_CD     <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               CUST.CUST_CD		<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               #{VENDOR_CD}		AS CONT_TBL_PK
+             , NULL				AS FILE_SIZE
+         FROM STOCCUST CUST
+         LEFT JOIN STOCCVUR CVUR
+              ON (CVUR.GATE_CD    = CUST.GATE_CD
+              AND CVUR.COMPANY_CD = CUST.CUST_CD)
+        WHERE CUST.GATE_CD = #{ses.gateCd}
+          AND CVUR.USER_ID = #{ses.userId}
+    </select>
+
+    <select id="cvnr0020_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT VNGL.GATE_CD
+            , VNGL.REG_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M014', VNGL.REG_TYPE, '0', #{ses.langCd}) AS REG_TYPE_NM
+            , VNGL.VENDOR_CD
+            , VNGL.VENDOR_NM
+            , <include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+            , VNGL.IRS_NO
+            , <include refid="common.sql.toChar"/>(VNGL.REG_DATE, 'YYYY-MM-DD HH24:MI') AS REG_DATE
+            , VNGL.INDUSTRY_TYPE
+            , VNGL.BUSINESS_TYPE
+            , <include refid="common.sql.strDecStart"/>VNGL.TEL_NO<include refid="common.sql.strDecEnd"/> AS TEL_NO
+        FROM STOCVNGL VNGL
+        JOIN STOCVNCM VNCM
+        ON (VNCM.GATE_CD = VNGL.GATE_CD
+            AND VNCM.VENDOR_CD = VNGL.VENDOR_CD
+            AND VNCM.BUYER_CD = #{ses.companyCd}
+            AND VNCM.CONFIRM_FLAG = 'E')
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+        AND VNGL.DEL_FLAG = '0'
+        AND VNGL.BLOCK_FLAG = '0'
+        <if test="REG_TYPE != '' and REG_TYPE != null">
+            AND VNGL.REG_TYPE = #{REG_TYPE}
+        </if>
+        <if test="VENDOR_CD != '' and VENDOR_CD != null">
+            AND UPPER(VNGL.VENDOR_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VENDOR_NM != '' and VENDOR_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="CEO_USER_NM != '' and CEO_USER_NM != null">
+            AND UPPER(<include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/>) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CEO_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="IRS_NO != '' and IRS_NO != null">
+            AND UPPER(VNGL.IRS_NO) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{IRS_NO}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REG_FROM_DATE != '' and REG_FROM_DATE != null">
+            AND VNGL.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_FROM_DATE})
+        </if>
+        <if test="REG_TO_DATE != '' and REG_TO_DATE != null">
+            AND VNGL.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_TO_DATE})
+        </if>
+        <if test="RELAT_YN != '' and RELAT_YN != null">
+            AND VNGL.RELAT_YN = #{RELAT_YN}
+        </if>
+    </select>
+    
+    <select id="cvnr0011_corpList" parameterType="hashMap" resultType="hashMap">
+        SELECT IRS_NO 											 	  					AS CORP_NO		     /* 사업자번호         */
+			, '000000'      															AS BRC   			 /* 사무소코드   농협은 사무소코드가 반드시 존재, 비농협 = '000000'  */
+			, VNGL.VENDOR_NM       														AS BRNM          	 /* 사무소명         */
+			, NULL       																AS UP_BRC        	 /* 상위사무소코드   없으면 = NULL  */
+			, VNGL.VENDOR_CD   															AS DEPT_C        	 /* 부서코드         */
+			, ''         																AS ONL_C         	 /* 온라인코드       */
+			, NULL       																AS UP_DEPT_C     	 /* 상위부서코드     없으면 = NULL    */
+			, VNGL.VENDOR_NM       														AS DEPT_NM       	 /* 부서명   사무소명과 동일  */
+			, 1          																AS SQNO          	 /* 순번             */
+			, '1'        																AS STSC          	 /* 상태             */
+			, NULL 																		AS NH_CORP_CODE      /* 법인구분코드       */
+			, VNGL.VENDOR_NM 															AS CORP_NM           /* 사업자명           */
+			, VNGL.CEO_USER_NM  														AS REP_NM            /* 대표자명 		*/
+			, VNGL.BUSINESS_TYPE 														AS BIZTP             /* 업태               */
+			, VNGL.INDUSTRY_TYPE 														AS BZC               /* 업종               */
+			, VNGL.HQ_ZIP_CD  															AS ZIP               /* 우편번호    */
+			, VNGL.HQ_ADDR_1   															AS ADDR              /* 주소      */
+			, VNGL.HQ_ADDR_2  															AS DTL_ADDR          /* 상세주소    */
+			, VNGL.HQ_ADDR_1 ||' '|| VNGL.HQ_ADDR_2   									AS F_ADDR    		 /* 풀주소      */
+			, VNGL.TEL_NO   															AS REP_TEL           /* 대표전화번호  */
+			, VNGL.TEL_NO     															AS CUST_TEL      	 /* 고객용전화번호   */
+			, VNGL.FAX_NO   															AS FAX               /* 대표FAX번호 */
+			, ''         																AS DOC_DEPT_C    	 /* 문서수발부서코드 */
+			, ''         																AS PROV_C        	 /* 지역정보         */
+			, ''        																AS SUB_BRC           /* 계열사구분코드     */
+			, VNGL.COMPANY_REG_NO 														AS CORP_ROW_NO       /* 법인등록번호       */
+			, '01' 																		AS NC_COMP_DS_C      /* 농협업체구분       */
+			, '01'       																AS PPAY_LTPY_DSC     /* 선불후불구분코드   농협 = '02', 비농협 = '01' */
+			, ''         																AS CMPN_NM           /* 사무소명                */
+			, 'NHEPRO' 																	AS AGENT_ID          /* 에이전트ID         */
+			, 0 													  					AS PPAY_BAC          /* 이용권잔액포인트   		 */
+			, TO_CHAR(SYSDATE, 'YYYYMMDD') 	 			                                AS IN_DT             /* 가입일자           */
+			, SYSDATE        										  					AS FSRGDTM    	  	 /* 등록일시           */
+			, #{ses.userId}  										  					AS FSRGID     	  	 /* 등록자            */
+			, SYSDATE        										  					AS LSCHGDTM   	  	 /* 수정일시           */
+			, #{ses.userId}  										  					AS LSCHGID    	  	 /* 수정자            */
+		FROM STOCVNGL VNGL
+		WHERE GATE_CD = #{ses.gateCd}
+		AND VENDOR_CD = #{VENDOR_CD}
+		AND NOT EXISTS (
+			SELECT '1' FROM TB_CO_CORP WHERE CORP_NO = VNGL.IRS_NO
+		)
+    </select>
+    
+    <select id="cvnr0011_corpDeptList" parameterType="hashMap" resultType="hashMap">
+        SELECT IRS_NO 											 	  					AS CORP_NO		     /* 사업자번호         */
+			, '000000'      															AS BRC   			 /* 사무소코드   농협은 사무소코드가 반드시 존재, 비농협 = '000000'  */
+			, VNGL.VENDOR_NM       														AS BRNM          	 /* 사무소명         */
+			, NULL       																AS UP_BRC        	 /* 상위사무소코드   없으면 = NULL  */
+			, VNGL.VENDOR_CD   															AS DEPT_C        	 /* 부서코드         */
+			, ''         																AS ONL_C         	 /* 온라인코드       */
+			, NULL       																AS UP_DEPT_C     	 /* 상위부서코드     없으면 = NULL    */
+			, VNGL.VENDOR_NM       														AS DEPT_NM       	 /* 부서명   사무소명과 동일  */
+			, 1          																AS SQNO          	 /* 순번             */
+			, '1'        																AS STSC          	 /* 상태             */
+			, NULL 																		AS NH_CORP_CODE      /* 법인구분코드       */
+			, VNGL.VENDOR_NM 															AS CORP_NM           /* 사업자명           */
+			, VNGL.CEO_USER_NM  														AS REP_NM            /* 대표자명 		*/
+			, VNGL.BUSINESS_TYPE 														AS BIZTP             /* 업태               */
+			, VNGL.INDUSTRY_TYPE 														AS BZC               /* 업종               */
+			, VNGL.HQ_ZIP_CD  															AS ZIP               /* 우편번호    */
+			, VNGL.HQ_ADDR_1   															AS ADDR              /* 주소      */
+			, VNGL.HQ_ADDR_2  															AS DTL_ADDR          /* 상세주소    */
+			, VNGL.HQ_ADDR_1 ||' '|| VNGL.HQ_ADDR_2   									AS F_ADDR    		 /* 풀주소      */
+			, VNGL.TEL_NO   															AS REP_TEL           /* 대표전화번호  */
+			, VNGL.TEL_NO     															AS CUST_TEL      	 /* 고객용전화번호   */
+			, VNGL.FAX_NO   															AS FAX               /* 대표FAX번호 */
+			, ''         																AS DOC_DEPT_C    	 /* 문서수발부서코드 */
+			, ''         																AS PROV_C        	 /* 지역정보         */
+			, ''        																AS SUB_BRC           /* 계열사구분코드     */
+			, VNGL.COMPANY_REG_NO 														AS CORP_ROW_NO       /* 법인등록번호       */
+			, '01' 																		AS NC_COMP_DS_C      /* 농협업체구분       */
+			, '01'       																AS PPAY_LTPY_DSC     /* 선불후불구분코드   농협 = '02', 비농협 = '01' */
+			, ''         																AS CMPN_NM           /* 사무소명                */
+			, 'NHEPRO' 																	AS AGENT_ID          /* 에이전트ID         */
+			, 0 													  					AS PPAY_BAC          /* 이용권잔액포인트   		 */
+			, TO_CHAR(SYSDATE, 'YYYYMMDD') 	 			                                AS IN_DT             /* 가입일자           */
+			, SYSDATE        										  					AS FSRGDTM    	  	 /* 등록일시           */
+			, #{ses.userId}  										  					AS FSRGID     	  	 /* 등록자            */
+			, SYSDATE        										  					AS LSCHGDTM   	  	 /* 수정일시           */
+			, #{ses.userId}  										  					AS LSCHGID    	  	 /* 수정자            */
+		FROM STOCVNGL VNGL
+		WHERE GATE_CD = #{ses.gateCd}
+		AND VENDOR_CD = #{VENDOR_CD}
+		AND NOT EXISTS (
+			SELECT '1' FROM TB_CO_DEPT WHERE DEPT_C = VNGL.VENDOR_CD
+		)
+    </select>
+
+    <insert id="cvnr0011_doInsertCorp" parameterType="hashMap">
+        INSERT INTO TB_CO_CORP (
+              CORP_NO           /* 사업자번호         */
+	        , NH_CORP_CODE      /* 법인구분코드       */
+	        , CORP_NM           /* 사업자명           */
+	        , REP_NM            /* 대표자명           */
+	        , BIZTP             /* 업태               */
+	        , BZC               /* 업종               */
+	        , ZIP               /* 우편번호           */
+	        , ADDR              /* 주소               */
+	        , DTL_ADDR          /* 상세주소           */
+	        , REP_TEL           /* 대표전화번호       */
+	        , FAX               /* 대표FAX번호        */
+	        , CORP_ROW_NO       /* 법인등록번호       */
+	        , STSC              /* 상태               */
+	        , NC_COMP_DS_C      /* 농협업체구분       */
+	        , AGENT_ID          /* 에이전트ID         */
+	        , PPAY_BAC          /* 이용권잔액포인트   */
+	        , IN_DT             /* 가입일자           */
+	        , DEPT_C            /* 부서코드           */
+	        , FSRGDTM           /* 등록일시           */
+	        , FSRGID            /* 등록자             */
+	        , LSCHGDTM          /* 수정일시           */
+	        , LSCHGID           /* 수정자             */
+        )
+            SELECT
+		         #{CORP_NO}                                                AS   CORP_NO           /* 사업자번호         */
+		       , #{NH_CORP_CODE}                                           AS   NH_CORP_CODE      /* 법인구분코드   비농협 = NULL    */
+		       , #{CORP_NM}                                                AS   CORP_NM           /* 사업자명           */
+		       , #{REP_NM}    											   AS   REP_NM            /* 대표자명           */
+		       , #{BIZTP}                                                  AS   BIZTP             /* 업태               */
+		       , #{BZC}                                                    AS   BZC               /* 업종               */
+		       , #{ZIP}        											   AS   ZIP               /* 우편번호           */
+		       , #{ADDR}       											   AS   ADDR              /* 주소               */
+		       , #{DTL_ADDR}   											   AS   DTL_ADDR          /* 상세주소           */
+		       , #{REP_TEL}    											   AS   REP_TEL           /* 대표전화번호       */
+		       , #{FAX}        											   AS   FAX               /* 대표FAX번호        */
+		       , #{CORP_ROW_NO}                                            AS   CORP_ROW_NO       /* 법인등록번호       */
+		       , #{STSC}                                                   AS   STSC              /* 상태               */
+			   ,CASE WHEN #{NH_CORP_CODE} = '1'      THEN '02'                                    /* 농협은행 */
+		             WHEN #{NH_CORP_CODE} = '2'      THEN '03'                                    /* 농축협   */
+		             WHEN #{NH_CORP_CODE} = '3'      THEN '04'                                    /* 계열사   */
+		             WHEN #{NH_CORP_CODE} = '5'      THEN '06'                                    /* 중앙회   */
+		             WHEN #{NH_CORP_CODE} = 'A'      THEN '08'                                    /* 금융지주 */
+		             WHEN #{NH_CORP_CODE} = 'B'      THEN '09'                                    /* 경제지주 */
+		             WHEN #{NH_CORP_CODE} = 'C'      THEN '10'                                    /* 생명보험 */
+		             WHEN #{NH_CORP_CODE} = 'D'      THEN '11'                                    /* 손해보험 */
+		             WHEN #{NH_CORP_CODE} IS  NULL   THEN '01'                                    /* 비농협   */
+		        END                                       				   AS   NC_COMP_DS_C      /* 농협업체코드 */
+		       , #{AGENT_ID}                                               AS   AGENT_ID          /* 에이전트ID         */
+		       , #{PPAY_BAC}                                               AS   PPAY_BAC          /* 이용권잔액포인트   */
+		       , #{IN_DT}                                                  AS   IN_DT             /* 가입일자           */
+		       , #{DEPT_C}                                                 AS   DEPT_C            /* 부서코드           */
+		       , SYSDATE                                                   AS   FSRGDTM           /* 등록일시           */
+		       , #{ses.userId}                                             AS   FSRGID            /* 등록자              */
+		       , SYSDATE                                                   AS   LSCHGDTM          /* 수정일시           */
+		       , #{ses.userId}                                             AS   LSCHGID           /* 수정자              */
+			FROM DUAL
+    </insert>
+
+    <insert id="cvnr0011_doInsertBrc" parameterType="hashMap">
+        INSERT INTO TB_CO_BRC (
+              CORP_NO        /* 사업자번호       */
+			, BRC            /* 사무소코드       */
+			, BRNM           /* 사무소명         */
+			, UP_BRC         /* 상위사무소코드   */
+			, DEPT_C         /* 부서코드         */
+			, ONL_C          /* 온라인코드       */
+			, UP_DEPT_C      /* 상위부서코드     */
+			, DEPT_NM        /* 부서명           */
+			, SQNO           /* 순번             */
+			, STSC           /* 상태             */
+			, NH_CORP_CODE   /* 법인구분코드     */
+			, ADDR           /* 주소             */
+			, ZIP            /* 우편번호         */
+			, REP_TEL        /* 대표번호         */
+			, CUST_TEL       /* 고객용전화번호   */
+			, FAX            /* 사무소팩스       */
+			, DOC_DEPT_C     /* 문서수발부서코드 */
+			, PROV_C         /* 지역정보         */
+			, NC_COMP_DS_C   /* 농협업체구분     */
+			, AGENT_ID       /* 에이전트ID       */
+			, FSRGDTM        /* 최초등록일시     */
+			, FSRGID         /* 최초등록자       */
+			, LSCHGDTM       /* 수정일시         */
+			, LSCHGID        /* 수정자           */
+        )
+            SELECT
+		         #{CORP_NO}                                                 AS CORP_NO             /* 사업자번호         */
+		       , #{BRC}                                         			AS BRC           	   /* 사무소코드   농협은 사무소코드가 반드시 존재, 비농협은 '000000'  */
+			   , #{BRNM}                                         			AS BRNM          	   /* 사무소명         */
+			   , #{UP_BRC}                                         			AS UP_BRC        	   /* 상위사무소코드   없으면  NULL  */
+			   , #{DEPT_C}                                         			AS DEPT_C        	   /* 부서코드         */
+			   , #{ONL_C}                                                   AS ONL_C         	   /* 온라인코드       */
+			   , #{UP_DEPT_C}                                         		AS UP_DEPT_C     	   /* 상위부서코드  없으면 NULL    */
+			   , #{BRNM}                                         			AS DEPT_NM       	   /* 부서명  사무소명과 동일  */
+			   , #{SQNO}                                                    AS SQNO          	   /* 순번             */
+			   , #{STSC}                                                    AS STSC          	   /* 상태             */
+			   , #{NH_CORP_CODE}                                            AS NH_CORP_CODE  	   /* 법인구분코드  비농협은  NULL  */
+			   , #{F_ADDR}    												AS ADDR          	   /* 주소             */
+			   , #{ZIP}       												AS ZIP           	   /* 우편번호         */
+			   , #{REP_TEL}   												AS REP_TEL       	   /* 대표번호         */
+			   , #{CUST_TEL}  												AS CUST_TEL      	   /* 고객용전화번호   */
+			   , #{FAX}												        AS FAX           	   /* 사무소팩스       */
+			   , #{DOC_DEPT_C}                                              AS DOC_DEPT_C    	   /* 문서수발부서코드 */
+			   , #{PROV_C}                                                  AS PROV_C        	   /* 지역정보         */
+			   ,CASE WHEN #{NH_CORP_CODE} = '1'      THEN '02'                                     /* 농협은행 */
+		             WHEN #{NH_CORP_CODE} = '2'      THEN '03'                                     /* 농축협   */
+		             WHEN #{NH_CORP_CODE} = '3'      THEN '04'                                     /* 계열사   */
+		             WHEN #{NH_CORP_CODE} = '5'      THEN '06'                                     /* 중앙회   */
+		             WHEN #{NH_CORP_CODE} = 'A'      THEN '08'                                     /* 금융지주 */
+		             WHEN #{NH_CORP_CODE} = 'B'      THEN '09'                                     /* 경제지주 */
+		             WHEN #{NH_CORP_CODE} = 'C'      THEN '10'                                     /* 생명보험 */
+		             WHEN #{NH_CORP_CODE} = 'D'      THEN '11'                                     /* 손해보험 */
+		             WHEN #{NH_CORP_CODE} IS  NULL   THEN '01'                                     /* 비농협   */
+		        END                                                         AS NC_COMP_DS_C        /* 농협업체코드 */
+		       , #{AGENT_ID}                                                AS AGENT_ID            /* 에이전트ID         */
+		       , SYSDATE                                                    AS FSRGDTM             /* 등록일시           */
+		       , #{ses.userId}                                        	    AS FSRGID              /* 등록자             */
+		       , SYSDATE                                                    AS LSCHGDTM            /* 수정일시           */
+		       , #{ses.userId}                                              AS LSCHGID             /* 수정자             */
+			FROM DUAL
+    </insert>
+
+    <insert id="cvnr0011_doInsertBrcDetail" parameterType="hashMap">
+        INSERT INTO TB_PR_CM_CORP (
+              CORP_NO        								/* 사업자번호       */
+			, BRC            								/* 사무소코드       */
+			, PPAY_LTPY_DSC  								/* 선불후불구분코드        */
+            , CMPN_NM        								/* 업체명(농협정보ERP사용) */
+			, FSRGDTM        								/* 최초등록일시     */
+			, FSRGID         								/* 최초등록자       */
+			, LSCHGDTM       								/* 수정일시         */
+			, LSCHGID        								/* 수정자           */
+        )
+            SELECT
+		         #{CORP_NO}            AS CORP_NO           /* 사업자번호         */
+		       , #{BRC}                AS BRC           	/* 사무소코드   농협은 사무소코드가 반드시 존재, 비농협은 '000000'  */
+			   , #{PPAY_LTPY_DSC}      AS PPAY_LTPY_DSC     /* 선불후불구분코드   농협은 '02', 비농협은 '01' */
+       		   , #{BRNM}      		   AS CMPN_NM           /* 사무소명                */
+		       , SYSDATE               AS FSRGDTM           /* 등록일시           */
+		       , #{ses.userId}         AS FSRGID            /* 등록자             */
+		       , SYSDATE               AS LSCHGDTM          /* 수정일시           */
+		       , #{ses.userId}         AS LSCHGID           /* 수정자             */
+			FROM DUAL
+    </insert>
+
+    <insert id="cvnr0011_doInsertDept" parameterType="hashMap">
+        INSERT INTO TB_CO_DEPT (
+              DEPT_C         		/* 부서코드           */
+			, UP_DEPT_C             /* 상위부서코드       */
+            , DEPT_NM               /* 부서명             */
+         	, SQNO                  /* 순번               */
+         	, STSC                  /* 상태               */
+         	, NH_CORP_CODE          /* 법인구분코드       */
+         	, CORP_NO               /* 사업자코드         */
+         	, BRC                   /* 사무소코드         */
+         	, ADDR                  /* 사무소주소         */
+         	, ZIP                   /* 사무소우편번호     */
+         	, REP_TEL               /* 사무실대표번호     */
+         	, CUST_TEL              /* 고객용전화번호     */
+         	, FAX                   /* 사무소팩스         */
+         	, DOC_DEPT_C            /* 문서수발부서코드   */
+         	, PROV_C                /* 지역정보           */
+         	, SUB_BRC               /* 계열사구분코드     */
+         	, NC_COMP_DS_C          /* 농협업체구분       */
+         	, AGENT_ID              /* 에이전트ID         */
+         	, FSRGDTM               /* 최초등록일시       */
+         	, FSRGID                /* 최초등록자         */
+         	, LSCHGDTM              /* 수정일시           */
+         	, LSCHGID               /* 수정자             */
+        )
+            SELECT
+		         #{DEPT_C}                                         	       AS DEPT_C               /* 부서코드           */
+			   , #{UP_DEPT_C}                                         	   AS UP_DEPT_C     	   /* 상위부서코드  없으면 = NULL */
+			   , #{DEPT_NM}                                         	   AS DEPT_NM              /* 부서명             */
+         	   , #{SQNO}                                         		   AS SQNO                 /* 순번               */
+         	   , #{STSC}                                         		   AS STSC                 /* 상태               */
+         	   , #{NH_CORP_CODE}                                           AS NH_CORP_CODE         /* 법인구분코드  비농협 = NULL  */
+         	   , #{CORP_NO}                                         	   AS CORP_NO              /* 사업자코드         */
+         	   , #{BRC}                                         		   AS BRC                  /* 사무소코드         */
+         	   , #{F_ADDR}   											   AS ADDR                 /* 사무소주소         */
+         	   , #{ZIP} 	   											   AS ZIP                  /* 사무소우편번호     */
+         	   , #{REP_TEL}  											   AS REP_TEL              /* 사무실대표번호     */
+         	   , #{CUST_TEL} 											   AS CUST_TEL             /* 고객용전화번호     */
+         	   , #{FAX} 	   											   AS FAX                  /* 사무소팩스         */
+         	   , #{DOC_DEPT_C}                                         	   AS DOC_DEPT_C           /* 문서수발부서코드   */
+         	   , #{PROV_C}                                         		   AS PROV_C               /* 지역정보           */
+         	   , #{SUB_BRC}                                         	   AS SUB_BRC              /* 계열사구분코드     */
+			   ,CASE WHEN #{NH_CORP_CODE} = '1'      THEN '02'                                     /* 농협은행 */
+		             WHEN #{NH_CORP_CODE} = '2'      THEN '03'                                     /* 농축협   */
+		             WHEN #{NH_CORP_CODE} = '3'      THEN '04'                                     /* 계열사   */
+		             WHEN #{NH_CORP_CODE} = '5'      THEN '06'                                     /* 중앙회   */
+		             WHEN #{NH_CORP_CODE} = 'A'      THEN '08'                                     /* 금융지주 */
+		             WHEN #{NH_CORP_CODE} = 'B'      THEN '09'                                     /* 경제지주 */
+		             WHEN #{NH_CORP_CODE} = 'C'      THEN '10'                                     /* 생명보험 */
+		             WHEN #{NH_CORP_CODE} = 'D'      THEN '11'                                     /* 손해보험 */
+		             WHEN #{NH_CORP_CODE} IS  NULL   THEN '01'                                     /* 비농협   */
+		        END                                                        AS NC_COMP_DS_C         /* 농협업체코드 */
+		       , #{AGENT_ID}                                               AS AGENT_ID             /* 에이전트ID         */
+		       , SYSDATE                                                   AS FSRGDTM              /* 등록일시           */
+		       , #{ses.userId}                                        	   AS FRGID                /* 등록자             */
+		       , SYSDATE                                                   AS LSCHGDTM             /* 수정일시           */
+		       , #{ses.userId}                                             AS LSCHGID              /* 수정자             */
+			FROM DUAL
+    </insert>
+    
+    <insert id="cvnr0011_doInsertDeptCust" parameterType="hashMap">
+        INSERT INTO TB_CO_DEPT (
+              DEPT_C         		/* 부서코드           */
+			, UP_DEPT_C             /* 상위부서코드       */
+            , DEPT_NM               /* 부서명             */
+         	, SQNO                  /* 순번               */
+         	, STSC                  /* 상태               */
+         	, NH_CORP_CODE          /* 법인구분코드       */
+         	, CORP_NO               /* 사업자코드         */
+         	, BRC                   /* 사무소코드         */
+         	, ADDR                  /* 사무소주소         */
+         	, ZIP                   /* 사무소우편번호     */
+         	, REP_TEL               /* 사무실대표번호     */
+         	, CUST_TEL              /* 고객용전화번호     */
+         	, FAX                   /* 사무소팩스         */
+         	, DOC_DEPT_C            /* 문서수발부서코드   */
+         	, PROV_C                /* 지역정보           */
+         	, SUB_BRC               /* 계열사구분코드     */
+         	, NC_COMP_DS_C          /* 농협업체구분       */
+         	, AGENT_ID              /* 에이전트ID         */
+         	, FSRGDTM               /* 최초등록일시       */
+         	, FSRGID                /* 최초등록자         */
+         	, LSCHGDTM              /* 수정일시           */
+         	, LSCHGID               /* 수정자             */
+        )
+            SELECT
+		         #{DEPT_C}                                         	         AS DEPT_C               /* 부서코드           */
+			   , #{UP_DEPT_C}                                         	     AS UP_DEPT_C     	     /* 상위부서코드  없으면 = NULL */
+			   , #{DEPT_NM}                                         	     AS DEPT_NM              /* 부서명             */
+         	   , #{SQNO}                                         		     AS SQNO                 /* 순번               */
+         	   , #{STSC}                                         		     AS STSC                 /* 상태               */
+         	   , #{NH_CORP_CODE}                                             AS NH_CORP_CODE         /* 법인구분코드  비농협 = NULL  */
+         	   , #{CORP_NO}                                         	     AS CORP_NO              /* 사업자코드         */
+         	   , (SELECT MAX(BRC) FROM TB_CO_BRC WHERE CORP_NO = #{CORP_NO}) AS BRC                  /* 사무소코드         */
+         	   , #{F_ADDR}   											     AS ADDR                 /* 사무소주소         */
+         	   , #{ZIP} 	   											     AS ZIP                  /* 사무소우편번호     */
+         	   , #{REP_TEL}  											     AS REP_TEL              /* 사무실대표번호     */
+         	   , #{CUST_TEL} 											     AS CUST_TEL             /* 고객용전화번호     */
+         	   , #{FAX} 	   											     AS FAX                  /* 사무소팩스         */
+         	   , #{DOC_DEPT_C}                                         	     AS DOC_DEPT_C           /* 문서수발부서코드   */
+         	   , #{PROV_C}                                         		     AS PROV_C               /* 지역정보           */
+         	   , #{SUB_BRC}                                         	     AS SUB_BRC              /* 계열사구분코드     */
+			   ,CASE WHEN #{NH_CORP_CODE} = '1'      THEN '02'                                       /* 농협은행 */
+		             WHEN #{NH_CORP_CODE} = '2'      THEN '03'                                       /* 농축협   */
+		             WHEN #{NH_CORP_CODE} = '3'      THEN '04'                                       /* 계열사   */
+		             WHEN #{NH_CORP_CODE} = '5'      THEN '06'                                       /* 중앙회   */
+		             WHEN #{NH_CORP_CODE} = 'A'      THEN '08'                                       /* 금융지주 */
+		             WHEN #{NH_CORP_CODE} = 'B'      THEN '09'                                       /* 경제지주 */
+		             WHEN #{NH_CORP_CODE} = 'C'      THEN '10'                                       /* 생명보험 */
+		             WHEN #{NH_CORP_CODE} = 'D'      THEN '11'                                       /* 손해보험 */
+		             WHEN #{NH_CORP_CODE} IS  NULL   THEN '01'                                       /* 비농협   */
+		        END                                                          AS NC_COMP_DS_C         /* 농협업체코드 */
+		       , #{AGENT_ID}                                                 AS AGENT_ID             /* 에이전트ID         */
+		       , SYSDATE                                                     AS FSRGDTM              /* 등록일시           */
+		       , #{ses.userId}                                        	     AS FRGID                /* 등록자             */
+		       , SYSDATE                                                     AS LSCHGDTM             /* 수정일시           */
+		       , #{ses.userId}                                               AS LSCHGID              /* 수정자             */
+			FROM DUAL
+    </insert>
+
+    <select id="cnvr0011_userList" parameterType="hashMap" resultType="hashMap">
+        SELECT CVUR.USER_ID AS USER_ID
+        FROM STOCVNGL VNGL
+        LEFT JOIN STOCCVUR CVUR
+            ON (CVUR.GATE_CD = VNGL.GATE_CD
+            AND CVUR.COMPANY_CD = VNGL.VENDOR_CD)
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+        AND VNGL.VENDOR_CD = #{VENDOR_CD}
+    </select>
+
+    <insert id="cnvr0011_doInsertUserComm" parameterType="hashMap">
+        INSERT INTO TB_CO_USER (
+              USER_ID         		/* 사용자아이디           */
+            , USER_NM         		/* 사용자명          */
+	        , DEPT_C          		/* 부서코드          */
+	        , DEPT_NM         		/* 부서명            */
+	        , EMP_STSC        		/* 고용상태          */
+	        , GNAF_DSC        		/* 서무구분코드      */
+	        , EMPL_DSC       		/* 고용구분코드      */
+	        , DWIN_TEL        		/* 사무실구내전화    */
+	        , REP_TEL         		/* 사무실대표번호    */
+	        , CUST_TEL        		/* 고객용전화번호    */
+	        , HP_NO           		/* 핸드폰번호        */
+	        , EMAIL           		/* 웹메일주소        */
+	        , CHRG_BSN_NM     		/* 담당업무          */
+	        , DTI_CHRG_BSN_NM 		/* 세부담당업무      */
+	        , OFT_C           		/* 직명코드          */
+	        , OFT_NM          		/* 직명              */
+	        , PZC_C           		/* 직급코드          */
+	        , PZC_NM          		/* 직급              */
+	        , CORP_NO         		/* 사업자번호        */
+	        , BRC             		/* 사무소코드        */
+	        , NH_CORP_CODE    		/* 법인구분코드      */
+	        , NC_COMP_DS_C    		/* 농협업체구분      */
+	        , AGENT_ID        		/* 에이전트ID    */
+         	, FSRGDTM               /* 최초등록일시       */
+         	, FSRGID                /* 최초등록자         */
+         	, LSCHGDTM              /* 수정일시           */
+         	, LSCHGID               /* 수정자             */
+        )
+            SELECT
+		         U.USER_ID                                         	       AS USER_ID            /* 사용자아이디      */
+		       , U.USER_NM												   AS USER_NM            /* 사용자명          */
+		       , V.VENDOR_CD                                			   AS DEPT_C             /* 부서코드          */
+		       , V.VENDOR_NM                                     		   AS DEPT_NM            /* 부서명            */
+		       , '1'                                     				   AS EMP_STSC           /* 고용상태     1 정상 , 4 퇴직 */
+		       , NULL                                    				   AS GNAF_DSC           /* 서무구분코드   5 법인관리자, 0 일반사용자, 1 주무서무, 2 팀서무, 4 사무소장 */
+		       , NULL                                    				   AS EMPL_DSC           /* 고용구분코드   001 정규직 ,  002 비정규직 */
+		       , U.TEL_NUM   											   AS DWIN_TEL           /* 사무실구내전화    */
+		       , U.TEL_NUM   											   AS REP_TEL            /* 사무실대표번호    */
+		       , U.TEL_NUM   											   AS CUST_TEL           /* 고객용전화번호    */
+		       , U.CELL_NUM  											   AS HP_NO              /* 핸드폰번호        */
+		       , U.EMAIL 	   											   AS EMAIL              /* 웹메일주소        */
+		       , NULL                                    				   AS CHRG_BSN_NM        /* 담당업무          */
+		       , NULL                                    				   AS DTI_CHRG_BSN_NM    /* 세부담당업무      */
+		       , NULL                                    				   AS OFT_C              /* 직명코드          */
+		       , U.DUTY_NM                               				   AS OFT_NM             /* 직명              */
+		       , NULL                                    				   AS PZC_C              /* 직급코드          */
+		       , U.POSITION_NM                           				   AS PZC_NM             /* 직급              */
+		       , V.IRS_NO                                				   AS CORP_NO            /* 사업자번호        */
+		       , '000000'	                                 			   AS BRC                /* 사무소코드        */
+		       , NULL                                    			  	   AS NH_CORP_CODE       /* 법인구분코드      */
+		       , '01'                                    				   AS NC_COMP_DS_C 		 /* 비농협    농협업체코드 */
+		       , 'NHEPRO'                                				   AS AGENT_ID           /* 에이전트ID         */
+		       , SYSDATE                                                   AS FSRGDTM            /* 등록일시           */
+		       , #{ses.userId}                                        	   AS FRGID              /* 등록자             */
+		       , SYSDATE                                                   AS LSCHGDTM           /* 수정일시           */
+		       , #{ses.userId}                                             AS LSCHGID            /* 수정자             */
+			FROM STOCCVUR U, STOCVNGL V
+			WHERE U.GATE_CD = #{ses.gateCd}
+			AND U.USER_ID = #{USER_ID}
+			AND U.GATE_CD = V.GATE_CD
+			AND U.COMPANY_CD = V.VENDOR_CD
+			AND NOT EXISTS (
+				SELECT '1' FROM TB_CO_USER WHERE USER_ID = U.USER_ID
+			)
+    </insert>
+
+    <insert id="cnvr0011_doInsertUserBasic" parameterType="hashMap">
+        INSERT INTO TB_PR_CM_USER (
+              USER_ID         		/* 사용자아이디           */
+         	, FSRGDTM               /* 최초등록일시       */
+         	, FSRGID                /* 최초등록자         */
+         	, LSCHGDTM              /* 수정일시           */
+         	, LSCHGID               /* 수정자             */
+        )
+            SELECT
+		         U.USER_ID                                         	       AS USER_ID              /* 사용자아이디           */
+		       , SYSDATE                                                   AS FSRGDTM              /* 등록일시           */
+		       , #{ses.userId}                                        	   AS FRGID                /* 등록자             */
+		       , SYSDATE                                                   AS LSCHGDTM             /* 수정일시           */
+		       , #{ses.userId}                                             AS LSCHGID              /* 수정자             */
+			FROM STOCCVUR U, STOCVNGL V
+			WHERE U.GATE_CD = #{ses.gateCd}
+			AND U.USER_ID = #{USER_ID}
+			AND U.GATE_CD = V.GATE_CD
+			AND U.COMPANY_CD = V.VENDOR_CD
+			AND NOT EXISTS (
+				SELECT '1' FROM TB_PR_CM_USER WHERE USER_ID = U.USER_ID
+			)
+    </insert>
+
+    <insert id="cnvr0011_doInsertUserDetail" parameterType="hashMap">
+        INSERT INTO TB_PR_CD_USER (
+              USER_ID         		/* 사용자아이디           */
+         	, CORP_NO               /* 사업자번호         */
+         	, BRC                   /* 사무소코드         */
+         	, FSRGDTM               /* 최초등록일시       */
+         	, FSRGID                /* 최초등록자         */
+         	, LSCHGDTM              /* 수정일시           */
+         	, LSCHGID               /* 수정자             */
+        )
+            SELECT
+		         U.USER_ID                                         	       AS USER_ID              /* 사용자아이디           */
+         	   , V.IRS_NO                                         	   	   AS CORP_NO              /* 사업자번호         */
+         	   , '000000'	                                         	   AS BRC                  /* 사무소코드         */
+		       , SYSDATE                                                   AS FSRGDTM              /* 등록일시           */
+		       , #{ses.userId}                                        	   AS FRGID                /* 등록자             */
+		       , SYSDATE                                                   AS LSCHGDTM             /* 수정일시           */
+		       , #{ses.userId}                                             AS LSCHGID              /* 수정자             */
+			FROM STOCCVUR U, STOCVNGL V
+			WHERE U.GATE_CD = #{ses.gateCd}
+			AND U.USER_ID = #{USER_ID}
+			AND U.GATE_CD = V.GATE_CD
+			AND U.COMPANY_CD = V.VENDOR_CD
+			AND NOT EXISTS (
+				SELECT '1' FROM TB_PR_CD_USER WHERE USER_ID = U.USER_ID
+			)
+    </insert>
+
+</mapper>

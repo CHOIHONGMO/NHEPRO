@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.eApproval.eApprovalEnd.PO.EApprovalEndPo_Mapper">
+
+    <select id="getPoNum" parameterType="hashMap" resultType="hashmap">
+        SELECT PO_NUM
+            , SUBJECT
+            , BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(GATE_CD, BUYER_CD, #{ses.langCd}) AS BUYER_NM
+            , CTRL_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+            , PO_CREATE_TYPE
+            , <include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'M063', PO_CREATE_TYPE, #{ses.langCd}) as PO_CREATE_TYPE_NM
+            , CASE WHEN PO_CREATE_TYPE = 'LAST' THEN 'SPO02'
+                   WHEN PO_CREATE_TYPE = 'MANUAL' THEN 'SPO04' ELSE '' END AS SMS_REF_MODULE_CD
+            , CASE WHEN PO_CREATE_TYPE = 'LAST' THEN 'MPO02'
+                   WHEN PO_CREATE_TYPE = 'MANUAL' THEN 'MPO04' ELSE '' END AS MAIL_REF_MODULE_CD
+            , VENDOR_CD
+            , <include refid="common.sql.dbo"/>GETVENDORNAME(GATE_CD, VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+            , <include refid="common.sql.toChar"/>(PO_CREATE_DATE, 'YYYY-MM-DD') AS PO_CREATE_DATE
+        FROM STOCPOHD
+        WHERE GATE_CD = #{ses.gateCd}
+        AND BUYER_CD = #{BUYER_CD}
+        AND APP_DOC_NUM = #{APP_DOC_NUM}
+        AND APP_DOC_CNT = #{APP_DOC_CNT}
+        AND DEL_FLAG = '0'
+    </select>
+
+    <select id="getMailList" parameterType="hashMap" resultType="hashmap">
+        SELECT CVUR.USER_ID
+            , <include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+            , ( SELECT MAX(<include refid="common.sql.toChar"/>(PODT.DUE_DATE, 'YYYY-MM-DD')) AS DUE_DATE
+                FROM STOCPODT PODT
+                WHERE PODT.GATE_CD = POHD.GATE_CD
+                AND PODT.BUYER_CD = POHD.BUYER_CD
+                AND PODT.PO_NUM = POHD.PO_NUM
+                AND PODT.PURCHASE_TYPE = 'G') AS MAX_DUE_DATE
+            , CVUR.MAIL_FLAG
+            , CVUR.SMS_FLAG
+        FROM STOCPOHD POHD
+        LEFT JOIN STOCCVUR CVUR
+            ON (CVUR.GATE_CD = POHD.GATE_CD
+            AND CVUR.COMPANY_CD = POHD.VENDOR_CD
+            AND CVUR.DEL_FLAG = '0')
+        WHERE POHD.GATE_CD = #{ses.gateCd}
+        AND POHD.BUYER_CD = #{BUYER_CD}
+        AND POHD.DEL_FLAG = '0'
+        AND POHD.PO_NUM = #{PO_NUM}
+        AND CVUR.BLOCK_FLAG = '0'
+    </select>
+
+    <select id="costSmsInfo" parameterType="hashMap" resultType="hashMap">
+        SELECT CUST.IRS_NUM AS CORP_NO
+            , CVUR.USER_ID
+            , CVUR.DEPT_CD AS BRC
+            , <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+            , 'PO' <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              CUST.GATE_CD <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              #{BUYER_CD} <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              #{PO_NUM} <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              '' AS CONT_TBL_PK
+        FROM STOCCUST CUST
+        LEFT JOIN STOCCVUR CVUR
+            ON (CVUR.GATE_CD = CUST.GATE_CD
+            AND CVUR.COMPANY_CD = CUST.CUST_CD)
+        WHERE CUST.GATE_CD = #{ses.gateCd}
+        AND CVUR.USER_ID = #{ses.userId}
+    </select>
+
+    <update id="setPoSignStatus" parameterType="hashmap">
+        UPDATE STOCPOHD SET
+             SIGN_STATUS = #{SIGN_STATUS}
+        <if test='SIGN_STATUS == "E" or SIGN_STATUS == "R"'>
+            , SIGN_DATE = SYSDATE
+        </if>
+        <if test='SIGN_STATUS == "E"'>
+            , PROGRESS_CD = '5200'
+            , VENDOR_RECEIPT_STATUS = '0'
+        </if>
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND PO_NUM   = #{PO_NUM}
+    </update>
+
+    <update id="setPoStatus" parameterType="hashmap">
+        UPDATE STOCPODT SET
+            PROGRESS_CD = '5200'
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND PO_NUM   = #{PO_NUM}
+           AND DEL_FLAG = '0'
+    </update>
+
+</mapper>

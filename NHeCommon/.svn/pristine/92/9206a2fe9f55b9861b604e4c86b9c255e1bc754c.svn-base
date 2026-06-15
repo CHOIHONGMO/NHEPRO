@@ -1,0 +1,113 @@
+package com.st_ones.eversrm.master.user;
+
+import org.apache.ibatis.annotations.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : MTUA0010_Mapper.java
+ * @date 2013. 07. 22.
+ * @version 1.0
+ */
+
+@Repository
+public interface MTUA0010_Mapper {
+
+	/**
+	 * 화면명 : 사용자정보
+	 * 처리내용 : 시스템에서 사용할 사용자정보를 조회/관리하는 화면.
+	 * 경로 : 시스템관리 > 사용자관리 > 사용자정보
+	 */
+	List<Map<String, Object>> mtua0010_doSearchUser(Map<String, String> param);
+	
+	List<Map<String, Object>> mtua0010_doSearchUserEmp(Map<String, String> param); //2022.10.24 개인근로자(파트너스 )추가 
+
+	Map<String, Object> doGetUser(Map<String, String> param);
+
+	Map<String, String> doGetUser(@Param("USER_ID") String userId);
+
+	Map<String, Object> doGetUser_VNGL(Map<String, String> param);
+	
+	//2022.11.30 개인근로자 파트너스 추가
+	Map<String, Object> doGetUserTVUR(Map<String, String> param);
+	
+	List<Map<String, Object>> doGetAcProfile(Map<String, String> param);
+
+	List<Map<String, Object>> doGetAuProfile(Map<String, String> param);
+
+	void doResetUserInfo(Map<String, String> generalForm);
+
+	void doSaveIssue(Map<String, String> generalForm);
+
+	void doSaveIssue_CVUR(Map<String, String> generalForm);
+	
+	//2022.12.07 비밀번호초기화 -개인근로자- 파트너스
+	void doSaveIssue_TVUR(Map<String, String> generalForm);
+
+	int existsUserInformation(Map<String, String> param);
+
+	int createUserInformation(Map<String, String> generalForm);
+
+	void doDeleteUSAP(Map<String, String> generalForm);
+
+	void doDeleteUSAC(Map<String, String> generalForm);
+
+	void createBACP(Map<String, String> generalForm);
+
+	List<Map<String, Object>> doSearchUserSup(Map<String, String> param);
+
+	Map<String, Object> doGetEncPassword(Map<String, String> param);
+
+	int existsUserInformation_VNGL(Map<String, String> param);
+	
+	//2022.11.17 파트너스 로직 추가 
+	int existsUserInformation_TVUR(Map<String, String> param);
+	
+	int createUserInformation_TVUR(Map<String, String> generalForm);
+
+	int existsMYNUser_VNGL(Map<String, String> param);
+
+	int existsMYNUser_CUST(Map<String, String> param);
+
+	int createUserInformation_VNGL(Map<String, String> generalForm);
+
+	void updateUserInformation(Map<String, String> generalForm);
+
+	int CheckUserInfoPassWordSame(Map<String, String> generalForm);
+
+	void updateUserInformation_VNGL(Map<String, String> generalForm);
+
+	int CheckUserInfoPassWordSame_VNGL(Map<String, String> generalForm);
+
+	int existsUSAP(Map<String, Object> auGridData);
+
+	void RealdeleteUSAP(Map<String, Object> auGridData);
+
+	void createUSAP(Map<String, Object> auGridData);
+
+	void updateUSAP(Map<String, Object> auGridData);
+
+	int existsUSAC(Map<String, Object> acGridData);
+
+	void createUSAC(Map<String, Object> acGridData);
+
+	void updateUSAC(Map<String, Object> acGridData);
+
+	void doDeleteUserInfo(Map<String, String> generalForm);
+
+	void doDeleteUserInfoBS(Map<String, String> generalForm);
+
+	List<Map<String, Object>> selectUserSearch(Map<String, String> param);
+
+	Map<String,String> getUserInfo(Map<String, String> formData);
+}

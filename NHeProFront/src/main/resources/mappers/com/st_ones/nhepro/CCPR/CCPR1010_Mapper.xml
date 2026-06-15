@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCPR.CCPR1010_Mapper">
+
+	<select id="ccpr1010_doSearch" parameterType="hashMap" resultType="hashMap">
+		SELECT
+			  TCCT.CONT_NUM
+			, TCCT.CONT_CNT
+			, TCCT.BUYER_CD
+			,<include refid="common.sql.dbo"/>GETCUSTNAME(TCCT.GATE_CD, TCCT.BUYER_CD) AS BUYER_NM
+			, TCCT.CONT_USER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(TCCT.GATE_CD, TCCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+			,<include refid="common.sql.dbo"/>GETUSERNAME(TCCT.GATE_CD, TCCT.CONT_USER_ID, #{ses.langCd}) AS DEC_CONT_USER_NM -- 메일방송용
+			,<include refid="common.sql.strDecStart"/>USERC.TEL_NUM<include refid="common.sql.strDecEnd"/> AS DEC_CONT_TEL_NUM -- 메일발송용
+			, TCCT.DEPT_CD
+			,<include refid="common.sql.dbo"/>GETDEPTNAME(TCCT.GATE_CD, TCCT.BUYER_CD, TCCT.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+			,<include refid="common.sql.toChar"/>(TCCT.SIGN_DATE, 'yyyyMMdd') AS SEND_DATE
+			, TCCT.SEND_YN
+			, TCCT.CONT_DESC
+			, TCCT.PROGRESS_CD
+			, TCCT.USER_ID AS USER_ID
+			<!--, TCCT.USER_ID AS ENC_WORKER_ID-->
+			,<include refid="common.sql.strDecStart"/> TCCT.USER_NM<include refid="common.sql.strDecEnd"/>AS USER_NM
+			,<include refid="common.sql.strDecStart"/>USERD.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+			,<include refid="common.sql.strDecStart"/>USERD.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+			, REGEXP_REPLACE(REGEXP_REPLACE(<include refid="common.sql.strDecStart"/>USERD.CELL_NUM<include refid="common.sql.strDecEnd"/> ,'[^0-9]',''),'(.{3})(.+)(.{4})','\1-\2-\3') AS CELL_NUM
+			, USERD.SITE_USER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(USERD.GATE_CD, USERD.SITE_USER_ID, #{ses.langCd}) AS SITE_USER_NM
+			,<include refid="common.sql.dbo"/>GETCODENAME(USERD.GATE_CD, 'M151', USERD.GENDER, #{ses.langCd}) AS GENDER
+			,<include refid="common.sql.strDecStart"/>USERC.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+			,<include refid="common.sql.strDecStart"/>USERD.ADDR_1<include refid="common.sql.strDecEnd"/> AS ADDR_1
+			,<include refid="common.sql.strDecStart"/>USERD.ADDR_2<include refid="common.sql.strDecEnd"/> AS ADDR_2
+			,<include refid="common.sql.strDecStart"/>USERD.BIRTH_DATE<include refid="common.sql.strDecEnd"/> AS BIRTH_DATE
+			, TCCT.G_PLACE
+			, TCCT.JIKMU_NAME
+			,<include refid="common.sql.toChar"/>(TCCT.CONT_DATE, 'yyyyMMdd') AS CONT_DATE
+			,<include refid="common.sql.toChar"/>(TCCT.CONT_START_DATE, 'yyyyMMdd') AS CONT_START_DATE
+			,<include refid="common.sql.toChar"/>(TCCT.CONT_END_DATE, 'yyyyMMdd') AS CONT_END_DATE
+			, TCCT.BASE_PAY
+			, TCCT.BASE_PAY_RMKS
+			, TCCT.FOOD_PAY
+			, TCCT.FOOD_PAY_RMKS
+			, TCCT.JOB_PAY
+			, TCCT.JOB_PAY_RMKS
+			, TCCT.EXTEND_PAY
+			, TCCT.EXTEND_PAY_RMKS
+			, TCCT.WORK_PAY
+			, TCCT.WORK_PAY_RMKS
+			, TCCT.NIGHT_PAY
+			, TCCT.NIGHT_PAY_RMKS
+			, TCCT.WORKER_PAY_AMT
+			, TCCT.ATT_FILE_NUM
+			, TCCT.CONT_TYPE
+			,<include refid="common.sql.dbo"/>getFileCount(TCCT.GATE_CD, TCCT.ATT_FILE_NUM) AS ATT_FILE_CNT
+			,<include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(TCCT.SIGN_DATE, 'YYYY-MM-DD HH24:MI'),' ') AS SIGN_DATE
+			, TCCT.CONT_CLOSE_RMK
+			, USERD.DEL_FLAG AS USER_DEL_FLAG
+			, TCCT.SIGN_STATUS
+			, TCCT.ATT_FILE_NUM AS PDF_ATT_FILE_NUM
+			,<include refid="common.sql.dbo"/>getFileCount(TCCT.GATE_CD, TCCT.ATT_FILE_NUM) AS PDF_ATT_FILE_CNT
+			, TCCT.BUNDLE_NUM
+			, TCCT.K_ADDR
+			, TCCT.APP_DOC_NUM
+			, USERD.CUST_NAME AS CUST_NAME
+			, USERD.SUBCUST_NAME AS SUBCUST_NAME
+		FROM STOCTCCT TCCT
+		LEFT OUTER JOIN STOCTVUR USERD
+			ON (TCCT.GATE_CD  = USERD.GATE_CD
+			AND TCCT.USER_ID = USERD.USER_ID
+			AND USERD.DEL_FLAG = '0')
+		LEFT OUTER JOIN STOCTVUR USERC
+			ON (TCCT.GATE_CD  = USERC.GATE_CD
+			AND TCCT.CONT_USER_ID = USERC.USER_ID
+			AND USERC.DEL_FLAG = '0')
+		WHERE TCCT.GATE_CD  = #{ses.gateCd}
+		  AND TCCT.BUYER_CD = #{BUYER_CD}
+		  AND TCCT.DEL_FLAG = '0'
+		<!-- 계약담당자 및 결재자가 조회 -->
+		<if test="CONT_USER_ID != '' and CONT_USER_ID != null">
+		  AND (TCCT.CONT_USER_ID = #{CONT_USER_ID} -- 계약담당자
+			OR EXISTS (
+				SELECT 1 FROM STOCSCTP SCTP
+				 WHERE TCCT.GATE_CD = SCTP.GATE_CD
+				   AND TCCT.APP_DOC_NUM = SCTP.APP_DOC_NUM
+				   AND TCCT.APP_DOC_CNT = SCTP.APP_DOC_CNT
+				   AND SCTP.DEL_FLAG = '0'
+				   AND SCTP.SIGN_USER_ID = #{CONT_USER_ID} --결재자
+				)
+			)
+		</if>
+		<if test="CONT_DATE_START != '' and CONT_DATE_START != null">
+			<if test="CONT_DATE_END != '' and CONT_DATE_END != null">
+				AND TCCT.CONT_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{CONT_DATE_START})
+				AND TCCT.CONT_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{CONT_DATE_END})
+			</if>
+		</if>
+		<if test="BUYER_CD != null and BUYER_CD != ''">
+		   AND (TCCT.BUYER_CD   LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_CD}) <include refid="common.sql.stringMerge"/> '%')
+		</if>
+		<if test="BUYER_NM != null and BUYER_NM != ''">
+		   AND (UPPER(<include refid="common.sql.dbo"/>GETCUSTNAME(TCCT.GATE_CD, TCCT.BUYER_CD)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%')
+		</if>
+		<if test="DEPT_CD != null and DEPT_CD != ''">
+   		   AND (TCCT.DEPT_CD   LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_CD}) <include refid="common.sql.stringMerge"/> '%')
+		</if>
+		<if test="DEPT_NM != null and DEPT_NM != ''">
+   		   AND (UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(TCCT.GATE_CD, TCCT.BUYER_CD, TCCT.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+		</if>
+		<if test="CONT_DESC != '' and CONT_DESC != null ">
+			AND (TCCT.CONT_DESC LIKE '%' <include refid="common.sql.stringMerge"/> #{CONT_DESC} <include refid="common.sql.stringMerge"/> '%'
+			  OR TCCT.CONT_NUM  LIKE '%' <include refid="common.sql.stringMerge"/> #{CONT_DESC} <include refid="common.sql.stringMerge"/> '%')
+		</if>
+		<if test="USER_ID != '' and USER_ID != null">
+			AND TCCT.USER_ID = #{USER_ID}
+		</if>
+		<if test="CONT_USER_ID != null and CONT_USER_ID != ''">
+		   AND TCCT.CONT_USER_ID LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="CONT_USER_NM != '' and CONT_USER_NM != null">
+			AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(TCCT.GATE_CD, TCCT.CONT_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="SIGN_STATUS != '' and SIGN_STATUS != null">
+			AND TCCT.SIGN_STATUS IN ${SIGN_STATUS}
+		</if>		  
+		<if test="CUST_CODE != '' and CUST_CODE != null">
+			AND USERD.CUST_CODE = #{CUST_CODE}
+		</if>
+		<if test="CUST_NAME != '' and CUST_NAME != null">
+			AND USERD.CUST_NAME LIKE '%' <include refid="common.sql.stringMerge"/> #{CUST_NAME}<include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="SUBCUST_CODE != '' and SUBCUST_CODE != null">
+			AND USERD.SUBCUST_CODE = #{SUBCUST_CODE}
+		</if>
+		<if test="SUBCUST_NAME != '' and SUBCUST_NAME != null">
+			AND USERD.SUBCUST_NAME LIKE '%' <include refid="common.sql.stringMerge"/> #{SUBCUST_NAME}<include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="PROGRESS_CD != '' and PROGRESS_CD != null">
+			AND TCCT.PROGRESS_CD IN ${PROGRESS_CD}
+		</if>
+		<if test="USER_NM != '' and USER_NM != null">
+			AND <include refid="common.sql.strDecStart"/>TCCT.USER_NM<include refid="common.sql.strDecEnd"/> LIKE '%'<include refid="common.sql.stringMerge"/>#{USER_NM}<include refid="common.sql.stringMerge"/>'%'
+		</if>
+		ORDER BY TCCT.CONT_NUM DESC
+				 , TCCT.CONT_CNT DESC
+				 , USERD.USER_NM
+	</select>
+	
+		<!-- cctr0100 : 개인근로자 전자서명 직접 요청 -->
+	<update id="ccpr1010_doSendYn" parameterType="hashmap">
+		UPDATE STOCTCCT
+		   SET MOD_DATE     = ${systemDateTime}
+		     , MOD_USER_ID  = #{ses.userId}
+		     , SEND_YN = #{SEND_YN}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND USER_ID = #{USER_ID}
+	</update>
+	
+	<!-- 개인근로자 SMS 수수료부과 추가 -->
+	<select id="costSmsInfo" parameterType="hashmap" resultType="hashmap">
+		
+        SELECT
+              CUST.IRS_NUM 			AS CORP_NO
+            ,(SELECT DEPT_CD FROM STOCCVUR
+               WHERE GATE_CD = TCCT.GATE_CD
+                 AND USER_ID = TCCT.CONT_USER_ID) AS BRC
+            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+            , TCCT.CONT_USER_ID 	AS USER_ID
+            ,(CASE WHEN #{SMS_GUBUN} = 'REQ' THEN 'SMS_TC_REQ'
+            	   ELSE 'SMS_PC_RJT'
+              END) 			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              TCCT.GATE_CD  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              TCCT.BUYER_CD <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              TCCT.CONT_NUM <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              TCCT.CONT_CNT <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              TCCT.USER_ID	AS CONT_TBL_PK
+            , NULL 					AS FILE_SIZE
+          FROM STOCTCCT TCCT
+          JOIN STOCCUST CUST
+	           ON (CUST.GATE_CD  = TCCT.GATE_CD
+	           AND CUST.CUST_CD  = TCCT.BUYER_CD)
+         WHERE TCCT.GATE_CD  = #{ses.gateCd}
+           AND TCCT.BUYER_CD = #{BUYER_CD}
+           AND TCCT.CONT_NUM = #{CONT_NUM}
+           AND TCCT.CONT_CNT = #{CONT_CNT}
+           AND TCCT.USER_ID = #{USER_ID}
+    </select>
+    
+    <select id="getPossibleFlag" parameterType="hashmap" resultType="java.lang.String">
+        SELECT (CASE WHEN PROGRESS_CD = '4300' THEN 'N' ELSE 'Y' END) 
+          FROM STOCTCCT 
+         WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND USER_ID = #{USER_ID}
+	</select>
+    
+	<!-- 계약체결중단 -->
+	<update id="ccpr1010_doStop" parameterType="hashmap">
+		UPDATE STOCTCCT
+		   SET MOD_DATE    = SYSDATE
+		     , MOD_USER_ID = #{ses.userId}
+		     , CONT_CLOSE_DATE   = SYSDATE
+		     , PROGRESS_CD = '4230' -- 계약체결중단
+		     , CONT_CLOSE_RMK    = #{CONT_CLOSE_RMK}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND USER_ID = #{USER_ID}
+	</update>
+		
+	<select id="ccpr0010_doSearch" parameterType="hashMap" resultType="hashMap">
+		SELECT DISTINCT TVUR.SUBCUST_CODE 
+		      ,TVUR.SUBCUST_NAME   
+		FROM STOCTVUR TVUR
+		WHERE TVUR.GATE_CD = #{ses.gateCd}
+		AND TVUR.DEL_FLAG = '0'
+		<if test="CUST_NAME != '' and CUST_NAME != null">
+		AND TVUR.CUST_NAME LIKE '%' <include refid="common.sql.stringMerge"/> #{CUST_NAME}<include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="SUBCUST_NAME != '' and SUBCUST_NAME != null">
+		AND TVUR.SUBCUST_NAME LIKE '%' <include refid="common.sql.stringMerge"/> #{SUBCUST_NAME}<include refid="common.sql.stringMerge"/> '%'
+	</if>
+	</select>
+
+	
+</mapper>

@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCTR.CCTR0200_Mapper">
+	
+    <select id="cctr0200_doSearch" parameterType="hashmap" resultType="hashmap">
+    	SELECT
+    		   A.BUYER_CD
+             , A.CONT_NUM
+             , A.CONT_CNT
+             , A.PR_BUYER_CD
+             , A.PR_DEPT_CD
+             , A.BUYER_NM
+             , A.PR_BUYER_NM
+             , A.PR_DEPT_NM
+			 ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(A.GATE_CD, A.PR_BUYER_CD, A.PR_DEPT_CD, #{ses.langCd}) AS PR_BUYER_DEPT_NM
+             , A.CONT_USER_ID
+             , A.CONT_USER_NM
+             , A.CONT_DESC
+             , A.PROGRESS_CD
+             ,<include refid="common.sql.dbo"/>GETCOMCODE(#{ses.gateCd},'M135', A.PROGRESS_CD ,'0' ,#{ses.langCd}) AS PROGRESS_CD_NM
+             , A.VENDOR_CD
+             ,(CASE WHEN A.CONT_TYPE = '1120' THEN <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(A.GATE_CD, A.VENDOR_CD, A.VENDOR_DEPT_CD, #{ses.langCd})
+			        ELSE A.VENDOR_NM
+			   END) AS VENDOR_NM	-- 위수탁계약서인 경우 협력사는 지역농축협(고객사)
+             , A.CONT_TYPE
+             , A.CONT_REQ_CD
+             , A.AUTO_RENEW_FLAG
+             , A.FINISH_FLAG
+             , A.BUNDLE_NUM
+             , A.SIGN_STATUS
+             ,<include refid="common.sql.toChar"/>(A.CONT_DATE, 'YYYYMMDD') AS CONT_DATE
+             ,<include refid="common.sql.toChar"/>(A.ORIGIN_CONT_START_DATE, 'YYYYMMDD') AS ORIGIN_CONT_START_DATE
+             ,<include refid="common.sql.toChar"/>(A.CONT_START_DATE, 'YYYYMMDD') AS CONT_START_DATE
+             ,<include refid="common.sql.toChar"/>(A.CONT_END_DATE, 'YYYYMMDD') AS CONT_END_DATE
+             , A.CUR
+             , A.CONT_AMT
+             , A.VAT_TYPE
+             ,<include refid="common.sql.toChar"/>(A.SEND_DATE, 'YYYY-MM-DD HH24:MI') AS SEND_DATE
+             ,<include refid="common.sql.toChar"/>(A.CONT_CLOSE_DATE, 'YYYYMMDD') AS CONT_CLOSE_DATE
+             , A.CONT_CLOSE_RMK
+             ,(SELECT COUNT(*) FROM STOCATCH
+                WHERE GATE_CD  = A.GATE_CD
+                  AND UUID     = A.ATT_FILE_NUM
+                  AND DEL_FLAG = '0') AS ATT_FILE_CNT
+             , A.ATT_FILE_NUM
+             ,(SELECT COUNT(*) FROM STOCATCH
+                WHERE GATE_CD  = A.GATE_CD
+                  AND UUID     = A.VENDOR_ATT_FILE_NUM
+                  AND DEL_FLAG = '0') AS VENDOR_ATT_FILE_CNT
+             , A.VENDOR_ATT_FILE_NUM
+             ,(SELECT COUNT(*) FROM STOCATCH
+                WHERE GATE_CD  = A.GATE_CD
+                  AND UUID     = A.STAMP_ATT_FILE_NUM
+                  AND DEL_FLAG = '0') AS STAMP_ATT_FILE_CNT
+             , A.STAMP_ATT_FILE_NUM
+             , A.CERT_TYPE
+             , A.S_SIGN_DATE
+             , A.S_SIGN_ID
+             , A.S_SING_NM
+             , A.B_SIGN_DATE
+             , A.B_SIGN_ID
+             , A.B_SING_NM
+             , A.GUAR_CNT
+             , A.DI_GUAR_CNT
+             , A.ADV_GUAR_CNT
+             , A.WARR_GUAR_CNT
+             , A.FORM_NM
+    		 , A.FORM_FILE_NM
+    		 , A.SUB_FORM_FILE_NM
+			 ,(SELECT COUNT(*) FROM STOCATCH
+                WHERE GATE_CD  = A.GATE_CD
+                  AND UUID     = A.PDF_ATT_FILE_NUM
+                  AND DEL_FLAG = '0') AS PDF_ATT_FILE_CNT
+    		 , A.PDF_ATT_FILE_NUM
+    		 , A.VENDOR_DEPT_CD
+    		 , A.ERP_SEND
+    		 ,(CASE WHEN A.VENDOR_SEND_FLAG = '1' THEN '1' ELSE null END) AS VENDOR_SEND_FLAG
+    		 , A.IF_TYPE
+    		 , A.SIGN_PATH_NM
+    		 , A.IF_YN
+    	  FROM (SELECT  CT.GATE_CD
+    	  			  , CT.BUYER_CD
+    	  			  ,<include refid="common.sql.dbo"/>GETCUSTNAME(CT.GATE_CD, CT.BUYER_CD) AS BUYER_NM
+    	  			  , CT.CONT_NUM
+    	  			  , CT.CONT_CNT
+    	  			  , CT.CONT_USER_ID
+    	  			  ,<include refid="common.sql.dbo"/>GETUSERNAME(CT.GATE_CD, CT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+    	  			  , CT.CONT_DESC
+    	  			  , CT.PROGRESS_CD
+    	  			  , CT.CONT_REQ_CD -- M134
+    	  			  , CASE WHEN CT.AUTO_RENEW_FLAG IS NULL THEN '0' ELSE CT.AUTO_RENEW_FLAG END AS AUTO_RENEW_FLAG -- M044
+    	  			  , CASE WHEN SYSDATE > CT.CONT_END_DATE THEN '1' ELSE '0' END AS FINISH_FLAG
+    	  			  , CT.BUNDLE_NUM
+    	  			  , CT.SIGN_STATUS -- M020
+    	  			  , CT.CONT_DATE
+    	  			  , CT.ORIGIN_CONT_START_DATE
+    	  			  , CT.CONT_START_DATE
+    	  			  , CT.CONT_END_DATE
+    	  			  , CT.CUR -- M023
+    	  			  , CT.VAT_TYPE -- M100
+    	  			  , CT.SEND_DATE
+    	  			  , CT.CONT_CLOSE_DATE
+    	  			  , CT.CONT_CLOSE_RMK
+    	  			  , CT.ATT_FILE_NUM
+    	  			  , CT.VENDOR_ATT_FILE_NUM
+    	  			  , CT.STAMP_ATT_FILE_NUM
+    	  			  , CT.CERT_TYPE
+    	  			  , SS.PR_BUYER_CD
+    	  			  ,<include refid="common.sql.dbo"/>GETCUSTNAME(SS.GATE_CD, SS.PR_BUYER_CD) AS PR_BUYER_NM
+    	  			  , SS.PR_DEPT_CD
+    	  			  ,<include refid="common.sql.dbo"/>GETDEPTNAME(SS.GATE_CD, SS.PR_BUYER_CD, SS.PR_DEPT_CD, #{ses.langCd}) AS PR_DEPT_NM
+    	  			  , SS.VENDOR_CD
+    	  			  ,<include refid="common.sql.dbo"/>GETVENDORNAME(SS.GATE_CD, SS.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+    	  			  , SS.CONT_AMT
+    	  			  , ECCF.CONT_TYPE
+                      ,<include refid="common.sql.toChar"/>(SS.B_SIGN_DATE, 'YYYY-MM-DD HH24:MI') AS B_SIGN_DATE
+                      , SS.B_SIGN_ID
+                      ,<include refid="common.sql.dbo"/>GETUSERNAME(SS.GATE_CD, SS.B_SIGN_ID, #{ses.langCd}) AS B_SING_NM
+                      ,<include refid="common.sql.toChar"/>(SS.S_SIGN_DATE, 'YYYY-MM-DD HH24:MI') AS S_SIGN_DATE
+                      , SS.S_SIGN_ID
+                      ,<include refid="common.sql.dbo"/>GETUSERNAME(SS.GATE_CD, SS.S_SIGN_ID, #{ses.langCd}) AS S_SING_NM
+                      , CASE WHEN SS.GUAR_CNT = 0      THEN (CASE WHEN DENO_GUAR_CNT = 0      THEN NULL ELSE 0 END) ELSE SS.GUAR_CNT      END AS GUAR_CNT
+                      , CASE WHEN SS.DI_GUAR_CNT = 0   THEN (CASE WHEN DENO_DI_GUAR_CNT = 0   THEN NULL ELSE 0 END) ELSE SS.DI_GUAR_CNT   END AS DI_GUAR_CNT
+                      , CASE WHEN SS.ADV_GUAR_CNT = 0  THEN (CASE WHEN DENO_ADV_GUAR_CNT = 0  THEN NULL ELSE 0 END) ELSE SS.ADV_GUAR_CNT  END AS ADV_GUAR_CNT
+                      , CASE WHEN SS.WARR_GUAR_CNT = 0 THEN (CASE WHEN DENO_WARR_GUAR_CNT = 0 THEN NULL ELSE 0 END) ELSE SS.WARR_GUAR_CNT END AS WARR_GUAR_CNT
+    	  			  , ECCF.FORM_NM
+    	  			  , ECCF.FORM_FILE_NM
+    	              , SS.PDF_ATT_FILE_NUM
+    	              , SS.VENDOR_DEPT_CD
+    	  			  ,(SELECT LISTAGG('' || ECCF.FORM_FILE_NM, ',') WITHIN GROUP(ORDER BY <include refid="common.sql.nvl"/>(ECCR.REL_FORM_SQ, ECRL.FORM_SQ), ECCF.FORM_FILE_NM) AS SUB_FORM_FILE_NM
+						  FROM STOCECRL ECRL
+						  JOIN STOCECCF ECCF
+							   ON (ECRL.GATE_CD  = ECCF.GATE_CD
+							   AND ECRL.FORM_NUM = ECCF.FORM_NUM
+							   AND ECCF.DEL_FLAG = '0')
+						  LEFT JOIN STOCECCR ECCR
+						  	   ON (ECCF.GATE_CD  = ECCR.GATE_CD
+						  	   AND ECCF.FORM_NUM = ECCR.FORM_NUM
+						  	   AND ECRL.FORM_NUM = ECCR.REL_FORM_NUM
+						  	   AND ECCR.DEL_FLAG = '0') -- 2021.01.15 : 계약서폼 중복으로 인한 오류 수정
+						 WHERE ECRL.GATE_CD  = CT.GATE_CD
+						   AND ECRL.BUYER_CD = CT.BUYER_CD
+						   AND ECRL.CONT_NUM = CT.CONT_NUM
+						   AND ECRL.CONT_CNT = CT.CONT_CNT
+						   AND ECRL.FORM_SQ  > 0) AS SUB_FORM_FILE_NM
+					  ,<include refid="common.sql.nvl"/>(CT.ERP_SEND,'0') AS ERP_SEND
+					  , CT.VENDOR_SEND_FLAG
+					  ,(SELECT MAX(PRHD.IF_TYPE) FROM STOCECMT ECMT
+					  	  JOIN STOCPRDT PRDT
+					  	  	   ON (PRDT.GATE_CD  = ECMT.GATE_CD
+					  	  	   AND PRDT.BUYER_CD = ECMT.PB_BUYER_CD
+					  	  	   AND PRDT.PR_NUM   = ECMT.PR_NUM
+					  	  	   AND PRDT.PR_SQ    = ECMT.PR_SQ
+					  	  	   AND PRDT.DEL_FLAG = '0')
+					  	  JOIN STOCPRHD PRHD
+					  	  	   ON (PRHD.GATE_CD  = PRDT.GATE_CD
+					  	  	   AND PRHD.BUYER_CD = PRDT.BUYER_CD
+					  	  	   AND PRHD.PR_NUM   = PRDT.PR_NUM
+					  	  	   AND PRHD.IF_TYPE  IS NOT NULL
+					  	  	   AND PRHD.DEL_FLAG = '0')
+					  	 WHERE ECMT.GATE_CD  = CT.GATE_CD
+					  	   AND ECMT.BUYER_CD = CT.BUYER_CD
+					  	   AND ECMT.CONT_NUM = CT.CONT_NUM
+					  	   AND ECMT.CONT_CNT = CT.CONT_CNT
+					  	   AND ECMT.DEL_FLAG = '0') AS IF_TYPE
+					  ,(SELECT LISTAGG(<include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/>,',') WITHIN GROUP(ORDER BY SCTP.SIGN_PATH_SQ) 
+					 	  FROM STOCSCTP SCTP
+					 	  JOIN STOCCVUR CVUR
+					 	  	   ON (CVUR.GATE_CD  = SCTP.GATE_CD
+					 	 	   AND CVUR.USER_ID  = SCTP.SIGN_USER_ID)
+		                 WHERE SCTP.GATE_CD     = CT.GATE_CD
+		                   AND SCTP.APP_DOC_NUM = CT.APP_DOC_NUM
+		                   AND SCTP.APP_DOC_CNT = CT.APP_DOC_CNT
+		                   AND SCTP.DEL_FLAG = '0') AS SIGN_PATH_NM
+					  ,<include refid="common.sql.nvl"/>(CT.IF_YN, '0') AS IF_YN -- ITPortal I/F 여부(2021.07.16)
+				  FROM STOCECCT CT
+				  JOIN (SELECT ECCT.GATE_CD
+				  			 , ECCT.BUYER_CD
+				  			 , ECCT.CONT_NUM
+				  			 , ECCT.CONT_CNT
+				  			 ,(CASE WHEN ECCT.BUNDLE_NUM IS NULL THEN ECPC_M.PY_BUYER_CD ELSE ECCM.PR_BUYER_CD END) AS PR_BUYER_CD
+				  			 ,(CASE WHEN ECCT.BUNDLE_NUM IS NULL THEN ECPC_M.PY_DEPT_CD  ELSE ECCM.PR_DEPT_CD  END) AS PR_DEPT_CD
+				  			 , ECCM.VENDOR_CD   AS VENDOR_CD
+				  			 ,(CASE WHEN ECCT.BUNDLE_NUM IS NULL THEN ECPC_M.PAY_AMT     ELSE ECCM.CONT_AMT    END) AS CONT_AMT
+				  			 , SUM(CASE WHEN ECPC.GUAR_TYPE = 'CONT' AND ECPC.GUAR_PERCENT > 0 AND ECPC.GUAR_TYPE2 IS NOT NULL THEN 1 ELSE 0 END) AS GUAR_CNT
+				  			 , SUM(CASE WHEN ECPC.GUAR_TYPE = 'DIF'  AND ECPC.GUAR_AMT > 0     AND ECPC.ATT_FILE_NUM IS NOT NULL THEN 1 ELSE 0 END) AS DI_GUAR_CNT
+				  			 , SUM(CASE WHEN ECPC.GUAR_TYPE = 'ADV'  AND ECPC.GUAR_PERCENT > 0 AND ECPC.GUAR_TYPE2 IS NOT NULL THEN 1 ELSE 0 END) +
+				  			   SUM(CASE WHEN IVAP.GUAR_TYPE = 'ADV'  AND IVAP.GUAR_PERCENT > 0 AND IVAP.GUAR_TYPE2 IS NOT NULL THEN 1 ELSE 0 END) AS ADV_GUAR_CNT
+				  			 , SUM(CASE WHEN ECPC.GUAR_TYPE = 'WARR' AND ECPC.GUAR_PERCENT > 0 AND ECPC.GUAR_TYPE2 IS NOT NULL THEN 1 ELSE 0 END) +
+				  			   SUM(CASE WHEN IVAP.GUAR_TYPE = 'WARR' AND IVAP.GUAR_PERCENT > 0 AND IVAP.GUAR_TYPE2 IS NOT NULL THEN 1 ELSE 0 END) AS WARR_GUAR_CNT
+				  			 , SUM(CASE WHEN ECPC.GUAR_TYPE = 'CONT' AND ECPC.GUAR_PERCENT > 0 THEN 1 ELSE 0 END) AS DENO_GUAR_CNT
+				  			 , SUM(CASE WHEN ECPC.GUAR_TYPE = 'DIF'  AND ECPC.GUAR_AMT > 0     THEN 1 ELSE 0 END) AS DENO_DI_GUAR_CNT
+				  			 , SUM(CASE WHEN ECPC.GUAR_TYPE = 'ADV'  AND ECPC.GUAR_PERCENT > 0 THEN 1 ELSE 0 END) AS DENO_ADV_GUAR_CNT
+				  			 , SUM(CASE WHEN ECPC.GUAR_TYPE = 'WARR' AND ECPC.GUAR_PERCENT > 0 THEN 1 ELSE 0 END) AS DENO_WARR_GUAR_CNT
+				  			 , ECSVB.SIGN_DATE AS B_SIGN_DATE
+				  			 , ECSVB.SIGN_ID   AS B_SIGN_ID
+				  			 , ECSVS.SIGN_DATE AS S_SIGN_DATE
+				  			 , ECSVS.SIGN_ID   AS S_SIGN_ID
+				  			 ,(CASE WHEN ECCT.BUNDLE_NUM IS NULL THEN ECPC_M.PDF_ATT_FILE_NUM ELSE ECCM.PDF_ATT_FILE_NUM END) AS PDF_ATT_FILE_NUM
+				  			 , NULL AS VENDOR_DEPT_CD
+				  		  FROM STOCECCT ECCT
+				  		  JOIN STOCECCM ECCM
+					  		   ON (ECCM.GATE_CD  = ECCT.GATE_CD
+					  		   AND ECCM.BUYER_CD = ECCT.BUYER_CD
+					  		   AND ECCM.CONT_NUM = ECCT.CONT_NUM
+					  		   AND ECCM.CONT_CNT = ECCT.CONT_CNT
+					  		   AND ECCM.DEL_FLAG = '0')
+				  		  LEFT JOIN STOCECPC ECPC_M
+					  		   ON (ECPC_M.GATE_CD  = ECCM.GATE_CD
+					  		   AND ECPC_M.BUYER_CD = ECCM.BUYER_CD
+					  		   AND ECPC_M.CONT_NUM = ECCM.CONT_NUM
+					  		   AND ECPC_M.CONT_CNT = ECCM.CONT_CNT
+					  		   AND ECPC_M.PR_BUYER_CD = ECCM.PR_BUYER_CD
+					  		   AND ECPC_M.PR_DEPT_CD  = ECCM.PR_DEPT_CD
+					  		   AND ECPC_M.VENDOR_CD   = ECCM.VENDOR_CD
+					  		   AND ECPC_M.PAY_CNT  = '0'
+					  		   AND ECPC_M.DEL_FLAG = '0')
+				  		  LEFT JOIN STOCECPC ECPC
+					  		   ON (ECPC.GATE_CD     = ECPC_M.GATE_CD
+					  		   AND ECPC.BUYER_CD    = ECPC_M.BUYER_CD
+					  		   AND ECPC.CONT_NUM    = ECPC_M.CONT_NUM
+					  		   AND ECPC.CONT_CNT    = ECPC_M.CONT_CNT
+					  		   AND ECPC.PR_BUYER_CD = ECPC_M.PR_BUYER_CD
+					  		   AND ECPC.PR_DEPT_CD  = ECPC_M.PR_DEPT_CD
+					  		   AND ECPC.VENDOR_CD   = ECPC_M.VENDOR_CD
+					  		   AND ECPC.DEL_FLAG    = '0')
+                          LEFT JOIN STOCIVAP IVAP
+	                           ON (IVAP.GATE_CD     = ECPC.GATE_CD
+	                           AND IVAP.BUYER_CD    = ECPC.BUYER_CD
+	                           AND IVAP.CONT_NUM    = ECPC.CONT_NUM
+	                           AND IVAP.CONT_CNT    = ECPC.CONT_CNT
+	                           AND IVAP.PR_BUYER_CD = ECPC.PR_BUYER_CD
+	                           AND IVAP.PR_DEPT_CD  = ECPC.PR_DEPT_CD
+	                           AND IVAP.VENDOR_CD   = ECPC.VENDOR_CD
+	                           AND IVAP.PAY_CNT     = ECPC.PAY_CNT
+	                           AND IVAP.PY_BUYER_CD = ECPC.PY_BUYER_CD
+	                           AND IVAP.PY_DEPT_CD  = ECPC.PY_DEPT_CD
+	                           AND IVAP.DEL_FLAG    = '0')
+						  LEFT JOIN STOCECSV ECSVB
+							   ON (ECSVB.GATE_CD   = ECCM.GATE_CD
+							   AND ECSVB.BUYER_CD  = ECCM.BUYER_CD
+							   AND ECSVB.CONT_NUM  = ECCM.CONT_NUM
+							   AND ECSVB.CONT_CNT  = ECCM.CONT_CNT
+							   AND ECSVB.VENDOR_CD = ECCM.VENDOR_CD
+							   AND ECSVB.SIGN_ID   = (CASE WHEN ECCT.BUNDLE_NUM IS NULL THEN ECPC_M.SIGN_ID
+							   							   ELSE (SELECT USER_ID FROM STOCCVUR
+							   							   		  WHERE GATE_CD    = ECCM.GATE_CD
+							   							   		    AND COMPANY_CD = ECCM.PR_BUYER_CD
+							   							   		    AND USER_ID    = ECSVB.SIGN_ID
+							   							   		    AND USER_TYPE  = 'B')
+							   						  END)
+							   AND ECSVB.USER_TYPE = 'B')
+						  LEFT JOIN STOCECSV ECSVS
+							   ON (ECSVS.GATE_CD   = ECCM.GATE_CD
+							   AND ECSVS.BUYER_CD  = ECCM.BUYER_CD
+							   AND ECSVS.CONT_NUM  = ECCM.CONT_NUM
+							   AND ECSVS.CONT_CNT  = ECCM.CONT_CNT
+							   AND ECSVS.VENDOR_CD = ECCM.VENDOR_CD
+							   AND ECSVS.SIGN_ID   = (CASE WHEN ECCT.BUNDLE_NUM IS NULL THEN ECSVS.SIGN_ID
+							   							   ELSE (SELECT USER_ID FROM STOCCVUR
+							   							   		  WHERE GATE_CD    = ECCM.GATE_CD
+							   							   		    AND COMPANY_CD = ECCM.VENDOR_CD
+							   							   		    AND USER_ID    = ECSVS.SIGN_ID
+							   							   		    AND USER_TYPE  = 'B')
+							   						  END)
+							   AND ECSVS.USER_TYPE = (CASE WHEN ECCT.BUNDLE_NUM IS NULL THEN 'S' ELSE 'B' END))
+		    	  		 WHERE ECCT.GATE_CD    = #{ses.gateCd}
+		    	  		   AND ((ECCT.BUYER_CD = #{ses.companyCd})
+		    	  		     OR (ECCT.SIGN_STATUS = 'E' AND (#{ses.companyCd} IN (ECCM.PR_BUYER_CD, ECPC_M.PY_BUYER_CD, ECCM.VENDOR_CD)))
+		    	  		       )
+		    	  		   AND (ECCT.MANUAL_CONT_FLAG IS NULL OR ECCT.MANUAL_CONT_FLAG != '1') -- 수기계약제외(내부관리용)
+				           AND ECCT.DEL_FLAG = '0'
+						
+						<if test="DATE_TYPE eq 'C'.toString()">
+						   AND ECCT.CONT_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_DATE_FROM})
+						   AND ECCT.CONT_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_DATE_TO})
+						</if>
+						<if test="DATE_TYPE eq 'E'.toString()">
+						   AND ECCT.CONT_END_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_DATE_FROM})
+						   AND ECCT.CONT_END_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_DATE_TO})
+						</if>
+				        <if test="CONT_NUM != null and CONT_NUM != ''">
+						   AND ((UPPER(ECCT.CONT_DESC) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_NUM}) <include refid="common.sql.stringMerge"/> '%')
+							 OR (ECCT.CONT_NUM   LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_NUM}) <include refid="common.sql.stringMerge"/> '%')
+							 OR (ECCT.BUNDLE_NUM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_NUM}) <include refid="common.sql.stringMerge"/> '%')
+							   )
+						</if>
+						<if test="CONT_USER_ID != null and CONT_USER_ID != ''">
+						   AND ((ECCT.CONT_USER_ID LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_USER_ID}) <include refid="common.sql.stringMerge"/> '%')
+						     OR (ECPC_M.PY_USER_ID LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_USER_ID}) <include refid="common.sql.stringMerge"/> '%')
+						       )
+						</if>
+				        <if test="CONT_USER_NM != null and CONT_USER_NM != ''">
+						   AND ((UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(ECCT.GATE_CD, ECCT.CONT_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_USER_NM}) <include refid="common.sql.stringMerge"/> '%')
+						     OR (UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(ECPC_M.GATE_CD, ECPC_M.PY_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_USER_NM}) <include refid="common.sql.stringMerge"/> '%')
+						       )
+						</if>
+						<if test="PROGRESS_CD != null and PROGRESS_CD != ''">
+						   AND ECCT.PROGRESS_CD IN
+							<foreach collection="PROGRESS_CD_LIST" item="item" index="index" separator="," open="(" close=")">
+								#{item}
+							</foreach>
+						</if>
+						<if test="CONT_REQ_CD != null and CONT_REQ_CD != ''">
+						   AND ECCT.CONT_REQ_CD = #{CONT_REQ_CD}
+						</if>
+						<if test="PR_BUYER_CD != null and PR_BUYER_CD != ''">
+						   AND ((ECCM.PR_BUYER_CD   LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_CD}) <include refid="common.sql.stringMerge"/> '%')
+						     OR (ECPC_M.PY_BUYER_CD LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_CD}) <include refid="common.sql.stringMerge"/> '%')
+						       )
+						</if>
+						<if test="PR_BUYER_NM != null and PR_BUYER_NM != ''">
+						   AND ((UPPER(<include refid="common.sql.dbo"/>GETCUSTNAME(ECCM.GATE_CD, ECCM.PR_BUYER_CD)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_NM}) <include refid="common.sql.stringMerge"/> '%')
+						     OR (UPPER(<include refid="common.sql.dbo"/>GETCUSTNAME(ECPC_M.GATE_CD, ECPC_M.PY_BUYER_CD)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_NM}) <include refid="common.sql.stringMerge"/> '%')
+						       )
+						</if>
+						<if test="PR_DEPT_CD != null and PR_DEPT_CD != ''">
+				   		   AND ((ECCM.PR_DEPT_CD   LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_DEPT_CD}) <include refid="common.sql.stringMerge"/> '%')
+				   		     OR (ECPC_M.PY_DEPT_CD LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_DEPT_CD}) <include refid="common.sql.stringMerge"/> '%')
+				   		       )
+						</if>
+						<if test="PR_DEPT_NM != null and PR_DEPT_NM != ''">
+				   		   AND ((UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(ECCM.GATE_CD, ECCM.PR_BUYER_CD, ECCM.PR_DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+				   		     OR (UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(ECPC_M.GATE_CD, ECPC_M.PY_BUYER_CD, ECPC_M.PY_DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+				   		       )
+						</if>
+						<if test="VENDOR_CD != null and VENDOR_CD != ''">
+				   		   AND ECCM.VENDOR_CD LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_CD}) <include refid="common.sql.stringMerge"/> '%'
+						</if>
+						<if test="VENDOR_NM != null and VENDOR_NM != ''">
+				   		   AND ((UPPER(<include refid="common.sql.dbo"/>GETVENDORNAME(ECCM.GATE_CD, ECCM.VENDOR_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%')
+				   		     OR (UPPER(<include refid="common.sql.dbo"/>GETCUSTNAME(ECCM.GATE_CD, ECCM.VENDOR_CD)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%')
+				   		       )
+						</if>
+				  		 GROUP BY ECCT.GATE_CD, ECCT.BUYER_CD, ECCT.CONT_NUM, ECCT.CONT_CNT, ECCT.BUNDLE_NUM
+				  		 		 ,ECCM.PR_BUYER_CD, ECCM.PR_DEPT_CD, ECCM.VENDOR_CD, ECCM.CONT_AMT
+				  		 		 ,ECPC_M.PY_BUYER_CD, ECPC_M.PY_DEPT_CD, ECPC_M.VENDOR_CD, ECPC_M.PAY_AMT
+				  		 		 ,ECSVS.SIGN_DATE, ECSVS.SIGN_ID, ECSVB.SIGN_DATE, ECSVB.SIGN_ID
+				      			 ,ECCM.PDF_ATT_FILE_NUM, ECCM.VENDOR_DEPT_CD, ECPC_M.PDF_ATT_FILE_NUM
+				  	   ) SS
+					   ON (SS.GATE_CD  = CT.GATE_CD
+					   AND SS.BUYER_CD = CT.BUYER_CD
+					   AND SS.CONT_NUM = CT.CONT_NUM
+					   AND SS.CONT_CNT = CT.CONT_CNT)
+				  JOIN STOCECRL ECRL
+					   ON (ECRL.GATE_CD  = CT.GATE_CD
+	                   AND ECRL.BUYER_CD = CT.BUYER_CD
+	                   AND ECRL.CONT_NUM = CT.CONT_NUM
+	                   AND ECRL.CONT_CNT = CT.CONT_CNT
+	                   AND ECRL.FORM_SQ  = '0'
+	                   AND ECRL.DEL_FLAG = '0')
+				  JOIN STOCECCF ECCF
+					   ON (ECCF.GATE_CD  = ECRL.GATE_CD
+	                   AND ECCF.FORM_NUM = ECRL.FORM_NUM)
+    	  		 WHERE 1 = 1
+				   AND ECCF.CONT_TYPE IN ('1110', '1130', '1210')
+				 <if test="FORM_NM != null and FORM_NM != ''">
+				   AND UPPER(ECCF.FORM_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{FORM_NM}) <include refid="common.sql.stringMerge"/> '%'
+				 </if>
+			   ) A
+         WHERE 1 = 1
+		<if test="FINISH_FLAG != null and FINISH_FLAG != ''">
+			AND A.FINISH_FLAG = #{FINISH_FLAG}
+		</if>
+		<if test="AUTO_RENEW_FLAG != null and AUTO_RENEW_FLAG != ''">
+		    AND A.AUTO_RENEW_FLAG = #{AUTO_RENEW_FLAG}
+		</if>
+		<if test="IF_TYPE != null and IF_TYPE != ''">
+		    AND A.IF_TYPE = #{IF_TYPE}
+		</if>
+         ORDER BY A.CONT_NUM DESC
+         		, A.CONT_CNT DESC
+ 	</select>
+
+</mapper>
+

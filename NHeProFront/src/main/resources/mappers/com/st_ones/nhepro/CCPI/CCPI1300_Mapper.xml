@@ -1,0 +1,796 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCPI.CCPI1300_Mapper">
+
+	<resultMap id="clobMap" type="HashMap">
+		<result property="FORM_TEXT" column="FORM_TEXT" jdbcType="CLOB" javaType="java.lang.String" />
+		<result property="RMK" column="RMK" jdbcType="CLOB" javaType="java.lang.String" />
+		<result property="CONTRACT_TEXT" column="CONTRACT_TEXT" jdbcType="CLOB" javaType="java.lang.String" />
+		<result property="SIGN_VALUE" column="SIGN_VALUE" jdbcType="CLOB" javaType="java.lang.String" />
+	</resultMap>
+	<resultMap type="String" id="pdfdataMap">
+		<result property="PDF_VALUE" column="PDF_VALUE" jdbcType="CLOB" javaType="java.lang.String" />
+	</resultMap>
+<!-- 개인근로자 계약정보  -->
+	<select id="ccpi1300_doSearch" parameterType="hashMap" resultType="hashMap">
+		SELECT
+			TCCT.CONT_NUM
+			, TCCT.CONT_CNT
+			, TCCT.CONT_NUM <include refid="common.sql.stringMerge"/> ' / ' <include refid="common.sql.stringMerge"/> TCCT.CONT_CNT AS CONT_NUM_AND_CNT
+			, TCCT.BUYER_CD
+			,<include refid="common.sql.dbo"/>GETCOMPANYNAME(TCCT.GATE_CD, TCCT.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+			, TCCT.CONT_USER_ID
+			,<include refid="common.sql.dbo"/>getUserName(TCCT.GATE_CD, TCCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+			, TCCT.CONT_DESC
+			, TCCT.CONT_REMARK
+			, TCCT.ATT_FILE_NUM
+			, TCCT.SIGN_STATUS
+			, TCCT.APP_DOC_NUM
+			, TCCT.APP_DOC_CNT
+		FROM STOCTCCT TCCT
+		WHERE TCCT.GATE_CD  = #{ses.gateCd}
+		  AND TCCT.BUYER_CD = #{BUYER_CD}
+		<choose>
+			<when test="CONT_NUM != '' and CONT_NUM != null and CONT_CNT != '' and CONT_CNT != null">
+				AND TCCT.CONT_NUM = #{CONT_NUM}
+				AND TCCT.CONT_CNT = #{CONT_CNT}
+			</when>
+			<otherwise>
+				AND TCCT.APP_DOC_NUM = #{APP_DOC_NUM}
+			</otherwise>
+		</choose>
+		AND TCCT.DEL_FLAG = '0'
+	</select>	
+	
+<!-- 개인근로자 계약정보 가져오기 -->
+	<select id="ccpi1300_getBundleContractInfo" resultType="java.util.Map" resultMap="clobMap">
+		SELECT A.*
+			 ,(CASE WHEN A.PROGRESS_CD <![CDATA[<]]> 4210 OR A.PROGRESS_CD = '4220' THEN 'true'
+		  	   		ELSE 'false'
+		  	   END) AS ATT_FILE_EDITABLE
+		  FROM (
+						  SELECT
+								   TCCT.BUYER_CD
+								 , TCCT.BUNDLE_NUM
+								 , TCCT.CONT_NUM
+								 , TCCT.CONT_CNT
+							   	 , TCCT.CONT_DESC
+							     , TCCT.CONT_REQ_CD
+							     , TCCT.CUR
+								 , TCCT.CONT_AMT
+					       		 , TCCT.CONT_USER_ID
+						     	 , <include refid="common.sql.dbo"/>GETUSERNAME(TCCT.GATE_CD, TCCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+								 , TCRL.CONTRACT_TEXT_NUM
+						     	 , TCRL.CONTRACT_TEXT
+						     	 , TCRL.FORM_NUM AS MAIN_FORM_NUM
+								 , TCCT.CERT_TYPE
+						     	 , TCCT.AUTO_RENEW_FLAG
+								 , TCCT.CONT_RMK
+								 ,(SELECT MAX(PROGRESS_CD) FROM STOCTCCT
+										WHERE GATE_CD    = TCCT.GATE_CD
+									  AND BUYER_CD   = TCCT.BUYER_CD
+									  AND BUNDLE_NUM = TCCT.BUNDLE_NUM
+								<!-- 계약번호 클릭시 1개의 계약만 표시 -->
+								<if test='singleFlag != null and singleFlag != "" and singleFlag == "1"'>
+									  AND CONT_NUM   = TCCT.CONT_NUM
+									  AND CONT_CNT   = TCCT.CONT_CNT
+								</if>
+									  AND DEL_FLAG   = '0') AS PROGRESS_CD
+								 , TCCT.SIGN_STATUS
+								 , TCCT.ATT_FILE_NUM
+								 , TCCT.VENDOR_ATT_FILE_NUM
+								 <!--개인 근로자 서명 처리--> 
+								 ,(SELECT <include refid="common.sql.toChar"/>(MAX(SIGN_DATE), 'YYYYMMDD') FROM STOCECSV
+									WHERE GATE_CD   = TCCT.GATE_CD
+									  AND BUYER_CD  = TCCT.BUYER_CD
+									  AND CONT_NUM  = TCCT.CONT_NUM
+									  AND CONT_CNT  = TCCT.CONT_CNT
+									  AND USER_TYPE = 'B'
+									  AND ROWNUM    = 1) AS BUYER_SIGN_DATE
+								 ,(SELECT <include refid="common.sql.toChar"/>(MAX(SIGN_DATE), 'YYYYMMDD') FROM STOCECSV
+									WHERE GATE_CD   = TCCT.GATE_CD
+									  AND BUYER_CD  = TCCT.BUYER_CD
+									  AND CONT_NUM  = TCCT.CONT_NUM
+									  AND CONT_CNT  = TCCT.CONT_CNT
+									  AND VENDOR_CD = TCCT.VENDOR_CD
+									  AND USER_TYPE = 'S'
+									  AND ROWNUM    = 1) AS VENDOR_SIGN_DATE
+								 , TCRL.FORM_NUM
+								 , TCCT.APP_DOC_NUM
+								 , TCCT.APP_DOC_CNT
+							     , ECCF.CONT_TYPE
+							     , TCCT.JIKJONG_TYPE
+						FROM STOCTCCT TCCT
+						LEFT JOIN STOCTCRL TCRL
+						ON (TCCT.GATE_CD  = TCRL.GATE_CD
+						AND TCCT.BUYER_CD = TCRL.BUYER_CD
+						AND TCCT.CONT_NUM = TCRL.CONT_NUM
+						AND TCCT.CONT_CNT = TCRL.CONT_CNT
+						AND TCRL.FORM_SQ  = '0'
+						AND TCRL.DEL_FLAG = '0')
+						LEFT JOIN STOCECCF ECCF
+						ON (TCRL.GATE_CD  = ECCF.GATE_CD
+						/** 2020.08.11 제외
+						AND TCRL.BUYER_CD = ECCF.BUYER_CD*/
+						AND TCRL.FORM_NUM = ECCF.FORM_NUM)
+						WHERE TCCT.GATE_CD  = #{ses.gateCd}
+			            AND TCCT.DEL_FLAG = '0'
+					    AND ECCF.BUYER_CD  = <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})	
+							<!-- singleFlag == "1" : 계약서번호 클릭시 -->
+							<if test="CONT_NUM != null and CONT_NUM != '' and CONT_CNT != null and CONT_CNT != ''">
+							   AND TCCT.CONT_NUM = #{CONT_NUM}
+							   AND TCCT.CONT_CNT = #{CONT_CNT}
+							</if>
+							<choose>
+								<when test="APP_DOC_NUM != null and APP_DOC_NUM != '' and APP_DOC_CNT != null and APP_DOC_CNT !=''">
+							   AND TCCT.APP_DOC_NUM = #{APP_DOC_NUM}
+					   	       AND TCCT.APP_DOC_CNT = #{APP_DOC_CNT}
+								</when>
+							   	<otherwise>
+							   AND TCCT.BUNDLE_NUM  = #{BUNDLE_NUM}
+								</otherwise>
+							</choose>
+							   AND ROWNUM = 1	  
+		  
+		  ) A
+		WHERE 1 = 1
+	</select>	
+<!--저장된 개인근로자 가져오기  -->
+	<select id="ccpi1300_getSavedEmpListForBundleContract" resultType="java.util.Map">
+		SELECT
+			   TCCT.BUYER_CD
+			 , TCCT.CONT_NUM
+			 , TCCT.CONT_CNT
+			 , TCCT.PROGRESS_CD
+			 , <include refid="common.sql.strDecStart"/>TCCT.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+			 , TCCT.USER_ID	
+			 , <include refid="common.sql.strDecStart"/>TCCT.BIRTH_DATE<include refid="common.sql.strDecEnd"/> AS BIRTH_DATE
+			 , <include refid="common.sql.strDecStart"/>TCCT.PHONE_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+			 , TCCT.JIKMU_NAME
+			 , TCCT.POSITION
+			 , TO_CHAR(TCCT.CONT_DATE, 'YYYYMMDD') AS CONT_DATE
+			 , TO_CHAR(TCCT.CONT_START_DATE, 'YYYYMMDD') AS CONT_START_DATE
+			 , TO_CHAR(TCCT.CONT_END_DATE, 'YYYYMMDD') AS CONT_END_DATE
+			 , TCCT.G_PLACE
+			 , SUBSTR(TCCT.WORK_TIME,1,2) AS WORK_TIME_HOUR
+			 , SUBSTR(TCCT.WORK_TIME,3,4) AS WORK_TIME_MIN
+			 , SUBSTR(TCCT.REST_TIME,1,2) AS REST_TIME_HOUR
+			 , SUBSTR(TCCT.REST_TIME,3,4) AS REST_TIME_MIN	
+			 ,(SELECT COUNT(*) FROM STOCATCH
+				WHERE GATE_CD  = #{ses.gateCd}
+				  AND UUID     = TCCT.PDF_ATT_FILE_NUM
+				  AND DEL_FLAG = '0') AS PDF_ATT_FILE_CNT
+			 , TCRL.CONTRACT_TEXT_NUM		
+			 , TCCT.CONT_DESC
+			 , TCCT.DAY_OR_HOUR_PAY
+			 , TCCT.WORKER_PAY_AMT
+			 , TCCT.CONT_TYPE
+			 , <include refid="common.sql.strDecStart"/>TCCT.K_ADDR<include refid="common.sql.strDecEnd"/>AS K_ADDR
+			 , TCCT.JIKMU_NAME
+			 , TCCT.SPECIAL_CONDITION
+			 , TO_CHAR(TCCT.EDU_DATE, 'YYYYMMDD') AS EDU_DATE
+			 , SUBSTR(TCCT.EDU_TIME_START,1,2) AS EDU_TIME_START_HOUR
+			 , SUBSTR(TCCT.EDU_TIME_START,3,4) AS EDU_TIME_START_MIN
+			 , SUBSTR(TCCT.EDU_TIME_END,1,2) AS EDU_TIME_END_HOUR
+			 , SUBSTR(TCCT.EDU_TIME_END,3,4) AS EDU_TIME_END_MIN
+			 , TCCT.EDU_HOUR
+			 , TCCT.EDU_PLACE
+			 , TCCT.EDU_PLACE_RMKS
+			 , TCCT.EDU_WAY
+			 , TCCT.EDU_WAY_RMKS	
+			 , TCCT.TH_NAME
+			 , TCCT.ADMIN3
+			 , TCCT.BUSINESS
+			 , TCCT.VENDOR_ATT_FILE_NUM AS EMP_ATT_FILE_NUM 
+			 , (SELECT COUNT(*) FROM STOCATCH
+				WHERE GATE_CD  = TCCT.GATE_CD
+				AND UUID     = TCCT.VENDOR_ATT_FILE_NUM
+				AND DEL_FLAG = '0') AS EMP_ATT_FILE_CNT
+		 	 , TCCT.JIKJONG_TYPE	
+		 	 , TCCT.WORK_CONDITION
+		 	 , TCCT.REST_CONDITION
+		  FROM STOCTCCT TCCT
+		  JOIN STOCTCRL TCRL
+			   ON (TCCT.GATE_CD  = TCRL.GATE_CD
+			   AND TCCT.BUYER_CD = TCRL.BUYER_CD
+			   AND TCCT.CONT_NUM = TCRL.CONT_NUM
+			   AND TCCT.CONT_CNT = TCRL.CONT_CNT
+			   AND TCRL.FORM_SQ  = '0'
+			   AND TCRL.DEL_FLAG = '0')
+		  JOIN STOCECCF ECCF
+			   ON (TCRL.GATE_CD  = ECCF.GATE_CD
+			   AND TCRL.FORM_NUM = ECCF.FORM_NUM
+			   AND ECCF.DEL_FLAG = '0')
+		 WHERE TCCT.GATE_CD    = #{ses.gateCd}
+		   AND TCCT.BUNDLE_NUM = #{BUNDLE_NUM}
+		   AND TCCT.DEL_FLAG   = '0'
+	<!--		   
+		<choose>
+			<when test='ses.relatYn == "0"'>
+				AND (ECCF.BUYER_CD = #{ses.companyCd} OR ECCF.NH_COMM_FLAG = '1')
+		  	</when>
+		   	<otherwise>
+		   		AND ECCF.BUYER_CD = #{ses.companyCd}
+		   	</otherwise>
+		</choose>
+	-->
+		<if test='singleFlag != null and singleFlag != "" and singleFlag == "1"'>
+			<if test="CONT_NUM != null and CONT_NUM != '' and CONT_CNT != null and CONT_CNT != ''">
+		   		AND TCCT.CONT_NUM = #{CONT_NUM}
+		   		AND TCCT.CONT_CNT = #{CONT_CNT}			
+			</if>
+		</if>
+	</select>
+
+	
+<!-- 계약서작성(CCPI1300)에서 메인 폼 조회 -->
+	<select id="ccpi1300_doSearchMainForm" resultType="java.util.Map">
+        SELECT CF.GATE_CD
+		     , CF.FORM_NUM
+		     , CF.FORM_NM
+		     , CF.BUYER_CD
+		     , CF.FORM_TEXT_NUM
+		     , CF.FORM_TYPE
+             , CF.APPROVAL_FLAG
+             , CF.BUNDLE_FLAG
+             , CF.ECONT_FLAG
+             , CF.CONT_TYPE AS CONTRACT_FORM_TYPE
+             , <include refid="common.sql.nvl"/>(CF.AUTO_RENEW_FLAG, '0') AS AUTO_RENEW_FLAG
+             , CF.FORM_FILE_NM
+        	 , '0' AS FORM_SQ
+		  FROM STOCECCF CF
+		 WHERE CF.GATE_CD     = #{ses.gateCd}
+		   AND CF.FORM_TYPE   = '100' -- 주서식(100), 부서식(200)
+		   AND CF.SIGN_STATUS = 'E'
+		   AND CF.DEL_FLAG    = '0'
+		<!-- 2021.04.28 추가 -->
+		<!-- 계약번호가 없으면 사용중인 계약서만 표시, 계약번호가 있으면 미사용중이라도 기존에 등록된 계약서 form 표시 -->
+		<if test="(CONT_NUM == null or CONT_NUM == '') and (BUNDLE_NUM == null or BUNDLE_NUM == '')">
+		   AND CF.USE_FLAG	  = '1'
+		   AND CF.FORM_FILE_NM IN('CCPR1400')
+		   <if test="ses.companyCd == 'C00013'">
+		   AND CF.FORM_FILE_NM NOT IN ( 'CCTR1040_C00066', 'CCTR1070_C00066', 'CCTR1300' )
+	       </if>
+		</if>
+		<!-- 일괄계약인 경우 -->
+		<if test="bundleFlag != null and bundleFlag != ''">
+		   AND <include refid="common.sql.nvl"/>(CF.BUNDLE_FLAG, '0') = #{bundleFlag} --일괄계약 여부
+        </if>
+        <!-- 계약번호가 존재하는 경우 -->
+        <if test="CONT_NUM != null and CONT_NUM != '' and CONT_CNT != null and CONT_CNT != ''">
+           AND CF.FORM_NUM = (SELECT MAX(FORM_NUM) FROM STOCTCRL
+                               WHERE GATE_CD  = #{ses.gateCd}
+                                 AND BUYER_CD = #{BUYER_CD}
+                                 AND CONT_NUM = #{CONT_NUM}
+                                 AND CONT_CNT = #{CONT_CNT}
+                                 AND FORM_SQ  = 0 -- 주서식
+                                 AND DEL_FLAG = '0')
+        </if>
+        <!-- 2021.05.24 추가 : 이전계약번호가 존재하는 경우 -->
+        <if test="PRE_CONT_NUM != null and PRE_CONT_NUM != '' and PRE_CONT_CNT != null and PRE_CONT_CNT != ''">
+        	<choose>
+				<when test='ses.companyCd == "C00013"'>
+					 AND CF.FORM_NUM = (SELECT (CASE WHEN MAX(RL.FORM_NUM) = 'FORM20080013' THEN (SELECT TEXT1 AS FORM_NUM FROM STOCCODD WHERE GATE_CD = '100' AND DEL_FLAG = '0' AND CODE_TYPE = 'NH0056' AND CODE = 'FORM20080013')
+	                                   				 WHEN MAX(RL.FORM_NUM) = 'FORM20080019' THEN (SELECT TEXT1 AS FORM_NUM FROM STOCCODD WHERE GATE_CD = '100' AND DEL_FLAG = '0' AND CODE_TYPE = 'NH0056' AND CODE = 'FORM20080019')
+	                                   				 WHEN MAX(RL.FORM_NUM) = 'FORM20080012' THEN (SELECT TEXT1 AS FORM_NUM FROM STOCCODD WHERE GATE_CD = '100' AND DEL_FLAG = '0' AND CODE_TYPE = 'NH0056' AND CODE = 'FORM20080012')
+	                                   				 ELSE MAX(RL.FORM_NUM) END) AS FORM_NUM
+							             FROM STOCTCRL RL
+		                                WHERE RL.GATE_CD  = #{ses.gateCd}
+		                                  AND RL.BUYER_CD = #{PRE_BUYER_CD}
+		                                  AND RL.CONT_NUM = #{PRE_CONT_NUM}
+		                                  AND RL.CONT_CNT = #{PRE_CONT_CNT}
+		                                  AND RL.FORM_SQ  = 0 -- 주서식
+		                                  AND RL.DEL_FLAG = '0'
+		                                  GROUP BY RL.FORM_NUM)
+				</when>
+				<otherwise>  
+					AND CF.FORM_NUM = (SELECT MAX(FORM_NUM) FROM STOCTCRL
+                               WHERE GATE_CD  = #{ses.gateCd}
+                                 AND BUYER_CD = #{PRE_BUYER_CD}
+                                 AND CONT_NUM = #{PRE_CONT_NUM}
+                                 AND CONT_CNT = #{PRE_CONT_CNT}
+                                 AND FORM_SQ  = 0 -- 주서식
+                                 AND DEL_FLAG = '0')
+				</otherwise>
+			</choose>
+        </if>
+        <!-- 그룹계약번호가 존재하는 경우 -->
+        <if test="BUNDLE_NUM != null and BUNDLE_NUM != ''">
+           AND CF.FORM_NUM = (SELECT MAX(FORM_NUM) FROM STOCTCRL
+                               WHERE GATE_CD  = #{ses.gateCd}
+                                 AND BUYER_CD = #{BUYER_CD}
+                                 AND CONT_NUM = (SELECT MAX(CONT_NUM) FROM STOCTCCT
+                                                  WHERE GATE_CD    = #{ses.gateCd}
+                                                    AND BUYER_CD   = #{BUYER_CD}
+                                                    AND BUNDLE_NUM = #{BUNDLE_NUM}
+                                                    AND DEL_FLAG   = '0')
+                                 AND FORM_SQ  = 0 -- 주서식
+                                 AND DEL_FLAG = '0')
+        </if>
+        <if test="BASIC_SEARCH != null and BASIC_SEARCH != ''">
+           AND UPPER(CF.FORM_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BASIC_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+		<choose>
+			<when test='ses.relatYn == "0"'>
+				<choose>
+					<when test='ses.companyCd == "C00013"'>
+						 AND (CF.BUYER_CD = <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd}) OR CF.NH_COMM_FLAG = '1')
+					</when>
+					<otherwise>  
+						AND (CF.BUYER_CD = <include refid="common.sql.nvl"/>(<include refid="common.sql.nvl"/>(#{BUYER_CD}, #{PRE_BUYER_CD}), #{ses.companyCd}))
+					</otherwise>
+				</choose>
+		   	</when>
+		   	<otherwise>
+		   		AND CF.BUYER_CD = <include refid="common.sql.nvl"/>(<include refid="common.sql.nvl"/>(#{BUYER_CD}, #{PRE_BUYER_CD}), #{ses.companyCd})
+		   	</otherwise>
+		</choose>
+		 ORDER BY CF.BUYER_CD
+		 		, CF.FORM_TYPE
+		 		, CF.CONT_TYPE
+		 		, CF.FORM_NM
+ 	</select>
+ 	
+ 		<!-- 계약서 작성(BECM_030) : 부서석 조회 -->
+	<!-- 선택한 주서식의 부서식 + 선택한 주서식과 자동갱신여부, 재무부서검토, 재무관리유형, 리스유형, 자산유형(대), 자산유형(소) 이 동일한 주서식 -->
+	<select id="ccpi1300_doSearchAdditionalForm" parameterType="hashMap" resultMap="clobMap">
+		SELECT X.*
+		  FROM (
+		    SELECT ECCR.GATE_CD
+		         , TCRL.CONT_NUM
+		         , ECF2.FORM_TYPE
+		         ,<include refid="common.sql.dbo"/>GETCODENAME(ECF2.GATE_CD, 'M078', ECF2.FORM_TYPE, #{ses.langCd}) AS FORM_TYPE_NM
+				 , ECCR.FORM_NUM
+				 , ECCR.REL_FORM_NUM
+				 , ECCR.REL_FORM_SQ
+				 ,<include refid="common.sql.nvl"/>(ECCR.DEFAULT_FLAG, '0') AS DEFAULT_FLAG
+				 ,<include refid="common.sql.nvl"/>(ECCR.REQUIRE_FLAG, '0') AS REQUIRE_FLAG
+				 , ECF2.FORM_NM AS REL_FORM_NM
+				 , ECF2.FORM_TEXT_NUM
+		         , ECF2.FORM_TEXT
+				 ,(CASE WHEN TCRL.FORM_NUM IS NOT NULL THEN '1' ELSE '0' END) AS EXISTS_FLAG
+		    	 , ECF2.CONT_TYPE AS CONTRACT_FORM_TYPE
+		         ,<include refid="common.sql.nvl"/>(TCRL.REQUIRE_FLAG, '0') AS TCRL_REQUIRE_FLAG
+		         , ECF2.FORM_FILE_NM
+		    	 , TCRL.FORM_SQ
+			  FROM STOCECCF ECCF
+			  JOIN STOCECCR ECCR
+				   ON (ECCF.GATE_CD  = ECCR.GATE_CD
+				   AND ECCF.FORM_NUM = ECCR.FORM_NUM
+				   AND ECCR.DEL_FLAG = '0')
+			  JOIN STOCECCF ECF2
+				   ON (ECCR.GATE_CD  = ECF2.GATE_CD
+				   AND ECCR.REL_FORM_NUM = ECF2.FORM_NUM
+				   AND ECF2.SIGN_STATUS  = 'E'
+				   AND ECF2.BUYER_CD  = #{ses.companyCd}
+			<!--
+			<choose>
+			   <when test='ses.relatYn == "0"'>
+				   AND (ECF2.BUYER_CD = #{ses.companyCd} OR ECF2.NH_COMM_FLAG = '1')
+			   </when>
+			   <otherwise>
+				   AND ECF2.BUYER_CD  = #{ses.companyCd}
+			   </otherwise>
+			</choose>
+			-->
+				   AND ECF2.DEL_FLAG = '0'
+				   AND ECF2.USE_FLAG = '1')
+			  LEFT JOIN STOCTCRL TCRL
+			       ON (ECCR.GATE_CD  = TCRL.GATE_CD
+			       AND ECCR.REL_FORM_NUM = TCRL.FORM_NUM
+			<choose>
+				<when test="PRE_CONT_NUM != '' and PRE_CONT_NUM != null and PRE_CONT_CNT != '' and PRE_CONT_CNT != null">
+				   AND TCRL.CONT_NUM = #{PRE_CONT_NUM}
+				   AND TCRL.CONT_CNT = #{PRE_CONT_CNT}
+				</when>
+				<otherwise>
+				   AND TCRL.CONT_NUM = #{CONT_NUM}
+				   AND TCRL.CONT_CNT = #{CONT_CNT}
+				</otherwise>
+			</choose>
+			       AND TCRL.FORM_SQ  > 0 -- 부서식
+			       AND TCRL.DEL_FLAG = '0')
+			 WHERE ECCF.GATE_CD     = #{ses.gateCd}
+	           AND ECCF.FORM_NUM    = #{FORM_NUM}
+			   AND ECCF.SIGN_STATUS = 'E'
+			   AND ECCF.DEL_FLAG    = '0'
+			   AND ECCF.BUYER_CD = #{ses.companyCd}
+			<!--   
+			<choose>
+			   <when test='ses.relatYn == "0"'>
+			   AND (ECCF.BUYER_CD = #{ses.companyCd} OR ECCF.NH_COMM_FLAG = '1')
+			   </when>
+			   <otherwise>
+			   AND ECCF.BUYER_CD = #{ses.companyCd}
+			   </otherwise>
+			</choose>
+			-->
+            <if test="ADD_SEARCH != null and ADD_SEARCH != ''">
+               AND UPPER(ECF2.FORM_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ADD_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+            </if>
+			<!-- 일괄계약인 경우 -->
+			<if test="bundleFlag != null and bundleFlag == 'true'">
+		       AND ECCF.BUNDLE_FLAG = '1' --일괄계약 여부
+	        </if>
+	        <!--  
+            <if test="ADD_SEARCH != null and ADD_SEARCH != ''">
+               AND UPPER(ECCF.FORM_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ADD_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+            </if>
+            -->
+		  ) X
+		 WHERE 1 = 1
+		 ORDER BY X.CONT_NUM
+		        , X.TCRL_REQUIRE_FLAG DESC
+		        , X.REQUIRE_FLAG DESC
+		        , X.DEFAULT_FLAG DESC
+		        , X.FORM_TYPE
+		        , X.REL_FORM_SQ
+		        , X.REL_FORM_NM
+    </select>
+    
+    
+    <!-- CCPI1300 : 개인근로자 계약서 등록 -->
+	<insert id="ccpi1300_doInsertTCCT" parameterType="hashMap">
+		INSERT INTO STOCTCCT (
+        	  GATE_CD
+			, BUYER_CD
+			, DEPT_CD
+			, CONT_NUM
+			, CONT_CNT
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, PROGRESS_CD
+			, CONT_DATE
+			, CONT_START_DATE
+			, CONT_END_DATE
+			, CONT_USER_ID
+			, USER_ID
+			, USER_NM
+			, BIRTH_DATE
+			, PHONE_NUM
+			, JIKMU_NAME
+			, BUSINESS
+			, POSITION
+			, G_PLACE
+			, WORK_TIME
+			, REST_TIME
+			, SPECIAL_CONDITION
+			, CONT_DESC
+			, ATT_FILE_NUM
+			, SIGN_STATUS
+			, BUNDLE_NUM
+			, K_ADDR
+			, SEND_YN
+			, DAY_OR_HOUR_PAY
+			, WORKER_PAY_AMT
+			, CONT_TYPE
+			, EDU_DATE
+	        , EDU_TIME_START        
+	        , EDU_TIME_END	       
+	        , EDU_HOUR   
+	        , EDU_PLACE   
+	        , EDU_PLACE_RMKS              
+	        , EDU_WAY
+	        , EDU_WAY_RMKS	
+	        , TH_NAME
+	        , ADMIN3
+	        , CUST_NAME
+			, SUBCUST_NAME
+			, JIKJONG_TYPE  
+			, WORK_CONDITION
+			, REST_CONDITION
+			)
+    	VALUES (
+        	  #{ses.gateCd}
+			, #{ses.companyCd}
+			, #{ses.deptCd}
+			, #{CONT_NUM}
+			, #{CONT_CNT}
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, #{PROGRESS_CD}
+			,<include refid="common.sql.nvl"/>(#{CONT_DATE}, SYSDATE)
+			, #{CONT_START_DATE}
+			, #{CONT_END_DATE}
+			, #{ses.userId}
+			, #{USER_ID}
+			, <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+			, <include refid="common.sql.strEncStart"/>TO_CHAR(TO_DATE(#{BIRTH_DATE}),'YYYY-MM-DD')<include refid="common.sql.strEncEnd"/>
+			, <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+			, #{JIKMU_NAME}
+			, #{JIKMU_NAME}
+			, #{POSITION}
+			, #{G_PLACE}
+			, #{WORK_TIME}
+			, #{REST_TIME}
+			, #{SPECIAL_CONDITION}
+			, #{CONT_DESC}
+			, #{ATT_FILE_NUM}
+			, #{SIGN_STATUS}       
+			, #{BUNDLE_NUM}
+			,  <include refid="common.sql.strEncStart"/>#{K_ADDR}<include refid="common.sql.strEncEnd"/>
+			, '0'
+			, #{DAY_OR_HOUR_PAY}
+			, DECODE(#{WORKER_PAY_AMT},'null',0, TO_NUMBER(#{WORKER_PAY_AMT}))
+			, #{CONT_TYPE}
+			, #{EDU_DATE}
+	        , #{EDU_TIME_START}        
+	        , #{EDU_TIME_END}       
+	        , #{EDU_HOUR}
+	        , #{EDU_PLACE}
+	        , #{EDU_PLACE_RMKS}              
+	        , #{EDU_WAY}
+	        , #{EDU_WAY_RMKS}
+	        , #{TH_NAME}
+	        , #{ADMIN3}
+	       	, #{CUST_NAME}  
+			, #{SUBCUST_NAME} 
+			, #{JIKJONG_TYPE}
+			, #{WORK_CONDITION}
+			, #{REST_CONDITION}
+			) 
+    </insert>
+    
+    <!-- 주서식에 대한 서식내용 등록하기 -->
+	<insert id="ccpi1300_doInsertTCRL" parameterType="hashMap">
+        INSERT INTO STOCTCRL (
+			   GATE_CD
+			 , BUYER_CD
+			 , CONT_NUM
+			 , CONT_CNT
+			 , FORM_NUM
+			 , REG_DATE
+			 , REG_USER_ID
+			 , MOD_DATE
+			 , MOD_USER_ID
+			 , DEL_FLAG
+			 , REQUIRE_FLAG
+			 , FORM_SQ
+			 , CONTRACT_TEXT_NUM
+			 , FORM_CHECK_FLAG
+			 , CONTRACT_TEXT
+		) VALUES (
+			   #{ses.gateCd}
+			 , #{ses.companyCd}
+			 , #{CONT_NUM}
+			 , #{CONT_CNT}
+			 , #{FORM_NUM}
+			 , SYSDATE
+			 , #{ses.userId}
+			 , SYSDATE
+			 , #{ses.userId}
+			 , '0'
+			 , #{REQUIRE_FLAG}
+			 , #{FORM_SQ}
+			 , #{CONTRACT_TEXT_NUM}
+			 , #{FORM_CHECK_FLAG}
+			 , #{CONTRACT_TEXT}
+		)
+    </insert>
+
+	<!-- 부서식에 대한 서식내용 등록하기 -->
+	<insert id="ccpi1300_doInsertAddTCRL" parameterType="hashMap">
+        INSERT INTO STOCTCRL (
+			   GATE_CD
+			 , BUYER_CD
+			 , CONT_NUM
+			 , CONT_CNT
+			 , FORM_NUM
+			 , REG_DATE
+			 , REG_USER_ID
+			 , MOD_DATE
+			 , MOD_USER_ID
+			 , DEL_FLAG
+			 , REQUIRE_FLAG
+			 , FORM_SQ
+			 , CONTRACT_TEXT_NUM
+			 , FORM_CHECK_FLAG
+			 , CONTRACT_TEXT
+		) VALUES (
+			   #{ses.gateCd}
+			 , #{ses.companyCd}
+			 , #{CONT_NUM}
+			 , #{CONT_CNT}
+			 , #{REL_FORM_NUM}
+			 , SYSDATE
+			 , #{ses.userId}
+			 , SYSDATE
+			 , #{ses.userId}
+			 , '0'
+			 , #{REQUIRE_FLAG}
+			 , (SELECT <include refid="common.sql.nvl"/>(MAX(FORM_SQ), 0) + 1
+			 	  FROM STOCTCRL
+				 WHERE GATE_CD  = #{ses.gateCd}
+				   AND BUYER_CD = #{ses.companyCd}
+				   AND CONT_NUM = #{CONT_NUM}
+				   AND CONT_CNT = #{CONT_CNT})
+			 , #{CONTRACT_TEXT_NUM}
+			 , #{FORM_CHECK_FLAG}
+			 , #{CONTRACT_TEXT}
+		)
+    </insert>
+    
+	<update id="ccpi1300_doUpdateTCCT" parameterType="hashMap">                               
+		UPDATE STOCTCCT SET                                                                   
+			   MOD_DATE = SYSDATE                                                               
+			 , MOD_USER_ID = #{ses.userId}                                                      
+			 , PROGRESS_CD = #{PROGRESS_CD}                                                     
+			 , CONT_DATE = #{CONT_DATE}                                                         
+			 , CONT_START_DATE = #{CONT_START_DATE}                                             
+			 , CONT_END_DATE = #{CONT_END_DATE}                                                 
+		     , CONT_DESC = #{CONT_DESC}                                                         
+		     , CONT_REQ_CD = #{CONT_REQ_CD}     		                                                                                             
+		     , USER_ID = #{USER_ID}                                                             
+		     , USER_NM = <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>                                                             
+	         , BIRTH_DATE = <include refid="common.sql.strEncStart"/>TO_CHAR(TO_DATE(#{BIRTH_DATE}),'YYYY-MM-DD')<include refid="common.sql.strEncEnd"/>                                                       
+	         , PHONE_NUM = <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>                                                                                    
+		     , JIKMU_NAME = #{JIKMU_NAME}
+		     , BUSINESS = #{JIKMU_NAME}                                                       
+		     , POSITION = #{POSITION}                                                           
+		     , G_PLACE = #{G_PLACE}                                                             
+		     , WORK_TIME_START = #{WORK_TIME_START}                                             
+		     , WORK_TIME_END = #{WORK_TIME_END}                                                 
+		     , REST_TIME = #{REST_TIME}             
+		     , WORK_TIME = #{WORK_TIME}                                             
+		     , SPECIAL_CONDITION = #{SPECIAL_CONDITION}                                         
+		     , SIGN_STATUS = #{SIGN_STATUS}                                                     
+		     , BUNDLE_NUM = #{BUNDLE_NUM}
+		     , K_ADDR = <include refid="common.sql.strEncStart"/>#{K_ADDR}<include refid="common.sql.strEncEnd"/>
+		     , DAY_OR_HOUR_PAY = #{DAY_OR_HOUR_PAY}
+		     , WORKER_PAY_AMT = #{WORKER_PAY_AMT}
+			 , EDU_DATE = #{EDU_DATE}
+			 , EDU_TIME_START = #{EDU_TIME_START}
+			 , EDU_TIME_END = #{EDU_TIME_END}
+			 , EDU_HOUR = #{EDU_HOUR}
+			 , EDU_PLACE = #{EDU_PLACE}
+			 , EDU_PLACE_RMKS = #{EDU_PLACE_RMKS}
+			 , EDU_WAY = #{EDU_WAY}
+			 , EDU_WAY_RMKS = #{EDU_WAY_RMKS}
+			 , TH_NAME = #{TH_NAME}
+			 , ADMIN3 = #{ADMIN3}           
+			 , JIKJONG_TYPE = #{JIKJONG_TYPE}   
+			 , WORK_CONDITION = #{WORK_CONDITION}   
+			 , REST_CONDITION = #{REST_CONDITION}                                       
+		 WHERE GATE_CD  = #{ses.gateCd}                                                       
+		   AND BUYER_CD = #{ses.companyCd}                                                    
+		   AND CONT_NUM = #{CONT_NUM}                                                         
+		   AND CONT_CNT = #{CONT_CNT}                                                         
+		   AND DEL_FLAG = '0'                                                                 
+	</update>
+	
+	    <!-- 주서식 변경 -->
+	<update id="ccpi1300_doUpdateTCRL" parameterType="hashMap">
+        UPDATE STOCTCRL SET
+			   MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , CONTRACT_TEXT_NUM = #{CONTRACT_TEXT_NUM}
+        	 , CONTRACT_TEXT = #{CONTRACT_TEXT}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{ses.companyCd}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND FORM_SQ  = #{FORM_SQ}
+		   AND DEL_FLAG = '0'
+    </update>
+    
+    <delete id="ccpi1300_doDeleteAddTCRL" parameterType="hashMap">
+        DELETE FROM STOCTCRL
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{ses.companyCd}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+           AND DEL_FLAG = '0'
+           AND FORM_SQ <![CDATA[>]]> 0
+    </delete>
+
+    <update id="ccpi1300_doUpdateTCCTSignStatus">
+		UPDATE STOCTCCT
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , PROGRESS_CD = #{PROGRESS_CD}
+			 , SIGN_STATUS = #{SIGN_STATUS}
+		 WHERE GATE_CD    = #{ses.gateCd}
+		   AND BUYER_CD   = #{ses.companyCd}
+		   AND BUNDLE_NUM = #{BUNDLE_NUM}
+		   AND DEL_FLAG   = '0'
+	</update>
+	
+	<update id="ccpi1300_doUpdateApprovalInformation" parameterType="hashmap">
+        UPDATE STOCTCCT
+		   SET APP_DOC_NUM = #{APP_DOC_NUM}
+			 , APP_DOC_CNT = CASE WHEN #{APP_DOC_CNT} = '' THEN NULL ELSE #{APP_DOC_CNT} END
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{ses.companyCd}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND DEL_FLAG = '0'
+    </update>
+    
+    	<update id="ccpi1300_doUpdatePdfUUID">
+		UPDATE STOCTCCT
+		   SET MOD_DATE    = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , PDF_ATT_FILE_NUM = #{UUID}
+		 WHERE GATE_CD     = #{ses.gateCd}
+		   AND BUYER_CD    = <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+		   AND CONT_NUM    = #{CONT_NUM}
+           AND CONT_CNT    = #{CONT_CNT}
+		   
+	</update>
+    
+    	
+	<select id="ccpi1300_doSelectPdfJsonData"  resultMap="pdfdataMap">
+	     SELECT <include refid="common.sql.nvl"/>(TCCT.ATT_FILE_NUM, ' ') AS PDF_VALUE
+		   FROM STOCTCCT TCCT
+		  WHERE TCCT.GATE_CD  = #{ses.gateCd}
+		    AND TCCT.BUYER_CD = <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+		<if test="BUNDLE_NUM != null and BUNDLE_NUM != ''">
+		    AND TCCT.BUNDLE_NUM = #{BUNDLE_NUM}
+		</if>
+		    AND TCCT.CONT_NUM = #{CONT_NUM}
+		    AND TCCT.CONT_CNT = #{CONT_CNT}
+		    AND TCCT.DEL_FLAG = '0'
+	</select>
+    
+    
+    <update id="ccpi1300_doUpdatePdfTCCT">
+		UPDATE STOCTCCT
+		   SET MOD_DATE    = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , VENDOR_ATT_FILE_NUM = #{EMP_ATT_FILE_NUM}
+		 WHERE GATE_CD     = #{ses.gateCd}
+		   AND BUYER_CD    = <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+		   AND CONT_NUM    = #{CONT_NUM}
+           AND CONT_CNT    = #{CONT_CNT}		   
+	</update>
+    
+     <!-- 서식 : 일괄계약서 삭제도 포함-->
+	<update id="ccpi1300_doDeleteTCRL" parameterType="hashMap">
+		UPDATE STOCTCRL TCRL
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , DEL_FLAG = '1'
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{ses.companyCd}
+		<choose>
+			<when test="BUNDLE_NUM != '' and BUNDLE_NUM != null">
+		   AND EXISTS (SELECT 1 FROM STOCTCCT
+                        WHERE GATE_CD    = TCRL.GATE_CD
+                          AND BUYER_CD   = TCRL.BUYER_CD
+                          AND CONT_NUM   = TCRL.CONTR_NUM
+                          AND CONT_CNT   = TCRL.CONT_CNT
+                          AND BUNDLE_NUM = #{BUNDLE_NUM})
+			</when>
+			<otherwise>
+		   AND TCRL.CONT_NUM = #{CONT_NUM}
+		   AND TCRL.CONT_CNT = #{CONT_CNT}
+			</otherwise>
+		</choose>
+	</update>
+	
+	<update id="ccpi1300_doDeleteTCCT" parameterType="hashMap">
+		UPDATE STOCTCCT
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , DEL_FLAG = '1'
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{ses.companyCd}
+		<choose>
+			<when test="BUNDLE_NUM != '' and BUNDLE_NUM != null">
+		   AND BUNDLE_NUM = #{BUNDLE_NUM}
+			</when>
+			<otherwise>
+	 	   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+			</otherwise>
+		</choose>
+	</update>
+    
+ </mapper>	

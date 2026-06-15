@@ -1,0 +1,179 @@
+﻿<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorator="layout">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사설인증센터</title>
+
+<!--CORE JS-->
+<script language="javascript" src="js/var.js"></script>
+
+<!--사설인증센터 CSS-->
+<link rel="stylesheet" href="css/NHPKICMPNP_Style.css">
+
+<!--사설인증센터 JS-->
+<script type="text/javascript" src="js/jquery-1.12.4.min.js"></script>
+<script type="text/javascript" src="js/NHPKICMPNP_jquery-ui.min.js"></script>
+<script type="text/javascript" src="js/NHPKICMPNP_Common.js"></script>
+<script src="js/jquery-autoclear.min.js"></script>
+</head>
+<body style="border: 0; overflow: hidden" onload="delInitialization()">
+	<!-- Login Layer -->
+	<div class="ML_NH_login_wrap" id="popup">
+		<div class="ML_NH_title">사설인증센터</div>
+		<div class="ML_NH_login_wrap_pd">
+			<div class="ML_NH_guide_del">
+				<span class="ML_NH_guide_del_tit">인증서 폐기</span>
+				<ul>
+					<li>- 인증서를 더 이상 사용하지 않을 때, 인증서를 폐기하는 메뉴입니다.</li>
+					<li>- 사설인증서를 재발급하시는 경우 폐기절차 없이 바로 재발급 받으시기 바랍니다.</li>
+					<li>- PC에서 삭제만 하시는 경우에는 삭제 메뉴를 이용하시기 바랍니다.</li>
+				</ul>
+			</div>
+			<div class="certi_list_wrap">
+				<div class="certi_list_txt_tit">인증서 선택</div>
+				<div class="certi_list_tbl_wrap">
+					<!-- Content_table : S -->
+					<div class="con_tb_area">
+						<div class="con_menu_tb_wrap">
+							<div class="table_wrap">
+								<table class="dt_tbl">
+									<colgroup>
+										<col class="dt_tbl_width05">
+										<col class="dt_tbl_width25">
+										<col class="dt_tbl_width15">
+										<col class="dt_tbl_width15">
+										<col class="dt_tbl_width15">
+										<col class="dt_tbl_width25">
+									</colgroup>
+									<thead>
+										<tr>
+											<th><span class="no_arrow">NO</span></th>
+											<th><span>인증서 CN</span></th>
+											<th><span>발급처</span></th>
+											<th><span>인증서 종류</span></th>
+											<th><span>상태</span></th>
+											<th><span>유효기간</span></th>
+										</tr>
+									</thead>
+									<tbody id="deletetbl">
+										<input type="hidden" id="userId" name="userId" th:value="${userId}">
+									</tbody>
+								</table>
+							</div>
+
+						</div>
+					</div>
+					<!-- Content_table : E -->
+				</div>
+			</div>
+			<div class="list_btn_wrap">
+				<div class="blue_btn">
+					<button onclick="deleteCheck()">
+						<span>폐기</span>
+					</button>
+				</div>
+				<div class="whtgrey_btn">
+					<button onclick="backToMain()">
+						<span>취소</span>
+					</button>
+				</div>
+			</div>
+		</div>
+		<div class="ML_NH_footer">
+			<div id="version" class="ft_version"></div>
+			<div class="ft_copy">ⓒ 2020. Dreamsecurity all rights reserved.</div>
+		</div>
+	</div>
+	<!-- Login Layer -->
+	<div id="dialog" title="Confirmation Required" style="display: none;">
+		Are you sure about this?</div>
+</body>
+<script type="text/javascript">
+	$(document).ready(function () {
+		$('#version').html('v'+NHPKICMPNP_VERSION);
+		console.log("document ready")
+	});
+
+	function backToMain() {
+		location.href = "/NHPKICMPNPWeb/NHPKICMPNP_Main.html";
+	}
+
+    $(function () {
+        $("#tabs").tabs();
+        $("#phone_num1").selectmenu();
+    });
+
+    function deleteCheck(){
+
+    	if(bcid===undefined||bcid===""){
+    		alert("인증서를 선택해 주세요.");
+    	} else {
+    		if (confirm("인증서를 폐기 하겠습니까 ?")) {
+                // 확인 버튼 클릭 시 동작
+                console.log(">>> SELECT BCID : "+ bcid);
+                deletebtn();
+        	}else{
+        		isCorporation="";
+        		$('table').find('tr,td').css('background-color', '#ffffff');
+        	}
+    	}
+
+    }
+
+	function deletebtn() {
+		$.ajax({
+				url: NHPKICMPNP_WEB_URL+"/certapi/certDel.so",
+				contentType : "application/json; charset=UTF-8",
+				data: JSON.stringify({
+					"is_corporation" : isCorporation,
+					"bcid" : bcid
+					}),
+				method: "POST",
+				dataType: "json",
+				success: function (data) {
+					console.log("success");
+					if(data.rescode=="0"){
+						//window.location.href = `NHPKICMPNPWeb/NHPKICMPNP_Del.html`;
+						alert("인증서 폐기가 완료되었습니다.");
+						window.location.reload();
+					}
+				},
+				error: function (data) {
+					console.log("error => " + data.message);
+				}
+		   });
+    }
+    var userid, isCorporation, bcid, param;
+
+    $(document).on("click", "#deletetbl tr", function (e) {
+       	var tr = $(this);
+        var td = tr.children();
+
+        var param = window.location.search;
+        userid = param.substring(param.indexOf("=") + 1);
+        isCorporation = td.eq(3).text();
+        bcid = td.eq(6).text();
+		if(isCorporation==="법인용"){
+			isCorporation = "true";
+		}else {
+			isCorporation = "false"
+		}
+
+        $('table').find('tr,td').css('background-color', '#ffffff');
+        $(e.target).closest('tr').children('td,th').css('background-color', '#a8d5f3');
+    });
+</script>
+</html>
+
+
+
+
+
+
+
+
+
+

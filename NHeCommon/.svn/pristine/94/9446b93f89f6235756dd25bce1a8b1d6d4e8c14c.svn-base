@@ -1,0 +1,114 @@
+package com.st_ones.eversrm.eApproval.eApprovalEnd.RFQ.service;
+
+import com.st_ones.common.docNum.service.DocNumService;
+import com.st_ones.common.mail.service.EverMailService;
+import com.st_ones.common.message.service.MessageService;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.RFQ.EApprovalEndRfq_Mapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2014 ST-Ones CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : EApprovalEndRfq_Service.java
+ * @date 2020. 4. 02.
+ * @version 1.0
+ */
+@Service(value = "EApprovalEndRfq_Service")
+public class EApprovalEndRfq_Service extends BaseService {
+
+    @Autowired private MessageService msg;
+    @Autowired private EApprovalEndRfq_Mapper endRfq_mapper;
+    @Autowired DocNumService docNumService;
+    @Autowired private EverMailService evermailservice;
+
+    /**
+     * 모듈명 : 견적요청서 [RQ]
+     * 처리내용 : SIGN_STATUS, SIGN_DATE, PROGRESS_CD 변경.
+     */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public String endApproval(String buyerCd, String appDocNum, String appDocCnt, String signStatus) throws Exception {
+        Map<String, String> param = new HashMap<>();
+
+        param.put("BUYER_CD", buyerCd);
+        param.put("APP_DOC_NUM", appDocNum);
+        param.put("APP_DOC_CNT", appDocCnt);
+        param.put("SIGN_STATUS", signStatus);
+
+        Map<String, String> map = endRfq_mapper.getRfqNum(param);
+        List<Map<String, Object>> list = endRfq_mapper.getRfqList(param);
+        List<Map<String, String>> listMail = endRfq_mapper.getMailList(map);
+
+        String rtnMsg = "";
+
+        param.put("RFX_NUM", map.get("RFX_NUM"));
+        param.put("RFX_CNT", String.valueOf(map.get("RFX_CNT")));
+        param.put("PROGRESS_CD", "2300");
+
+        if(signStatus.equals("E")) {
+            param.put("PROGRESS_CD", "2350");
+
+            for(Map<String, Object> data : list) {
+                data.put("PROGRESS_CD", "2350");
+
+                endRfq_mapper.setRfqSignStatusRQDT(data);
+            }
+
+            rtnMsg = msg.getMessage("0057");
+
+            //EMAIL
+            String linkUrl = PropertiesManager.getString("eversrm.urls.maintain.real") ;
+
+            for(Map<String, String> data : listMail) {
+                Map<String,String> mailMap = new HashMap<>();
+
+                mailMap.put("SUBJECT", "[전자구매시스템] 고객사[" + map.get("BUYER_NM") + "]이 [" + map.get("RFX_SUBJECT") + "] 관련 RFQ 등록을 요청하였습니다.");
+
+                String content = "<BR> 안녕하십니까!                      " +
+                        "<BR> [" + data.get("VENDOR_NM") + "] [" + data.get("USER_NM") + "]님" +
+                        "<BR>                   " +
+                        "<BR> 아래와 같이 고객사에서 RFQ을 요청 하였습니다." +
+                        "<BR> 고객사 : [" + map.get("BUYER_NM") + "]" +
+                        "<BR> 요청명 : [" + map.get("RFX_SUBJECT") + "]" +
+                        "<BR> 요청일 : [" + data.get("RFX_REQ_DATE") + "]" +
+                        "<BR> 요청기한 : [" + data.get("RFX_START_DATE") + " ~ " + data.get("RFX_END_DATE") + "]" +
+                        "<BR> " +
+                        "<BR> 전자구매시스템에 <a href='" + linkUrl + "' target='newP'>로그인</a> 하시어, 세부내용을 확인 후, 처리 해주십시오." +
+                        "<BR>                   " +
+                        "<BR> 감사합니다.";
+
+                mailMap.put("CONTENTS", content);
+                mailMap.put("REF_MODULE_CD", "MRFQ01");
+                mailMap.put("RECV_USER_ID", data.get("USER_ID"));
+                mailMap.put("REF_NUM", map.get("RFX_NUM"));
+
+                evermailservice.SendMail(mailMap);
+            }
+        } else if(signStatus.equals("R")) {
+
+            rtnMsg = msg.getMessage("0058");
+        } else if(signStatus.equals("C")) {
+
+            rtnMsg = msg.getMessage("0061");
+        }
+
+        endRfq_mapper.setRfqSignStatusRQHD(param);
+
+        return rtnMsg;
+    }
+
+}

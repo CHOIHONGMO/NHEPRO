@@ -1,0 +1,2834 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CBDI.CBDI0010_Mapper">
+
+	<select id="cbdi0010_doSearch" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			  A.BUYER_CD
+			, A.BID_NUM
+			, A.BID_CNT
+			, A.ANN_NO
+			, A.BUYER_NM
+			,(CASE WHEN A.ORI_BID_STATUS IN ('2303', '2330') THEN '[취소]' || A.ANN_ITEM ELSE A.ANN_ITEM END ) AS ANN_ITEM
+			, A.ANN_DATE
+			, A.CONT_TYPE1
+			, A.CONT_TYPE1_LOC
+			, A.CONT_TYPE2
+			, A.CONT_TYPE2_LOC
+			, A.CONT_TYPE3
+			, A.CONT_TYPE3_LOC
+			, A.APP_BEGIN_DATETIME
+			, A.APP_END_DATETIME
+			, A.BID_STATUS
+			,(CASE WHEN A.ORI_BID_STATUS IN ('2302', '2303', '2320', '2330') THEN <include refid="common.sql.dbo"/>GETCOMCODE(A.GATE_CD, 'M340', A.ORI_BID_STATUS, 0, #{ses.langCd})
+				   ELSE A.BID_STATUS_LOC
+			  END) AS BID_STATUS_LOC
+			, A.ORI_BID_STATUS
+			, A.BID_USER_ID
+			, A.BID_USER_NM
+			, A.EV_USER_ID
+			, A.EV_USER_NM
+			, A.SIGN_STATUS
+			, A.MOD_POSSIBLE_FLAG
+			, A.TECH_EV_TYPE
+		  FROM (
+			SELECT
+				  HD.GATE_CD
+				, HD.BUYER_CD
+				,<include refid="common.sql.dbo"/>getBuyerNames(HD.GATE_CD, HD.BUYER_CD, 'BID', HD.BID_NUM, HD.BID_CNT, null, #{ses.langCd}) AS BUYER_NM
+				, HD.ANN_NO
+				, HD.ANN_ITEM
+				, HD.ANN_DATE
+				, HD.CONT_TYPE1, <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', HD.CONT_TYPE1, 0, #{ses.langCd}) AS CONT_TYPE1_LOC
+				, HD.CONT_TYPE2, <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M302', HD.CONT_TYPE2, 0, #{ses.langCd}) AS CONT_TYPE2_LOC
+				, HD.CONT_TYPE3, <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M303', HD.CONT_TYPE3, 0, #{ses.langCd}) AS CONT_TYPE3_LOC
+				, SUBSTR(HD.APP_BEGIN_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_DATE, 7, 2) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_TIME, 1, 2) <include refid="common.sql.stringMerge"/> ':' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_TIME, 3, 2) AS APP_BEGIN_DATETIME
+				, SUBSTR(HD.APP_END_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 7, 2) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 1, 2) <include refid="common.sql.stringMerge"/> ':' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 3, 2) AS APP_END_DATETIME
+				,<include refid="common.sql.dbo"/>getBidAnnProgressCd(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, 'CD') AS BID_STATUS
+				,<include refid="common.sql.dbo"/>getBidAnnProgressCd(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, 'LOC') AS BID_STATUS_LOC
+				, HD.BID_STATUS AS ORI_BID_STATUS
+				, HD.BID_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.BID_USER_ID, #{ses.langCd}) AS BID_USER_NM
+				, HD.EV_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.EV_USER_ID, #{ses.langCd}) AS EV_USER_NM
+				, HD.BID_NUM
+				, HD.BID_CNT
+				, HD.SIGN_STATUS
+				,(CASE WHEN (SELECT COUNT(AP.VENDOR_CD) FROM STOCBDAP AP
+							  WHERE AP.GATE_CD  = HD.GATE_CD
+								AND AP.BUYER_CD = HD.BUYER_CD
+								AND AP.BID_NUM  = HD.BID_NUM
+								AND AP.BID_CNT  = HD.BID_CNT
+								AND AP.DEL_FLAG = '0'
+								AND AP.APP_DATE IS NOT NULL) <![CDATA[>]]> 0 THEN 'N'
+					   ELSE 'Y' END) AS MOD_POSSIBLE_FLAG
+				, HD.TECH_EV_TYPE
+				, HD.APP_BEGIN_DATE
+                ,(CASE WHEN HD.SIGN_STATUS != 'E'    THEN '1'
+                	   WHEN HD.BID_STATUS   = '2303' THEN '1'
+                       WHEN SYSDATE <![CDATA[>]]> <include refid="common.sql.toDate"/>(HD.APP_BEGIN_DATE <include refid="common.sql.stringMerge"/> HD.APP_BEGIN_TIME, 'YYYYMMDDHH24MISS')
+                       THEN (CASE WHEN HD.CONT_TYPE2 IN ('TD', 'TS', 'NE') AND HD.TECH_EV_TYPE = '20'
+                                  THEN (CASE WHEN (SELECT COUNT(EU.PROGRESS_CD) FROM STOCBDEU EU
+                                                    WHERE EU.GATE_CD = HD.GATE_CD
+                                                      AND EU.BUYER_CD = HD.BUYER_CD
+                                                      AND EU.EI_NUM = HD.EI_NUM
+                                                      AND EU.DEL_FLAG = '0'
+                                                      AND EU.PROGRESS_CD = '100') <![CDATA[>]]> 0
+                                             THEN '1' ELSE '0' END)
+                                  ELSE '0' END)
+                       ELSE '1' END) EU_PROGRESS_FLAG
+			  FROM STOCBDHD HD
+			 WHERE HD.GATE_CD = #{ses.gateCd}
+			   AND HD.BUYER_CD = #{ses.companyCd}
+			   AND HD.DEL_FLAG = '0'
+			   AND HD.BID_STATUS NOT IN ('1300', '9999')
+
+			<if test="ANN_DATE_FROM !='' and ANN_DATE_FROM != null and ANN_DATE_TO !='' and ANN_DATE_TO != null">
+				AND HD.ANN_DATE <![CDATA[>=]]> #{ANN_DATE_FROM}
+				AND HD.ANN_DATE <![CDATA[<=]]> #{ANN_DATE_TO}
+			</if>
+			<if test="BID_STATUS != '' and BID_STATUS != null">
+				AND <include refid="common.sql.dbo"/>getBidAnnProgressCd(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, 'CD') = #{BID_STATUS}
+			</if>
+			<if test="BID_USER_ID != '' and BID_USER_ID != null">
+				AND HD.BID_USER_ID = #{BID_USER_ID}
+			</if>
+			<if test="BID_USER_NM != '' and BID_USER_NM != null">
+				AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.BID_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BID_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+			<if test="ANN_NO != '' and ANN_NO != null">
+				AND UPPER(HD.ANN_NO) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ANN_NO}) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+			<if test="ANN_ITEM != '' and ANN_ITEM != null">
+				AND UPPER(REPLACE(HD.ANN_ITEM, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{ANN_ITEM}, ' ', '')) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+			<if test="(BUYER_CD != '' and BUYER_CD != null) or (BUYER_NM != '' and BUYER_NM != null)">
+				AND EXISTS (SELECT 1 FROM STOCBDDT DT
+							 WHERE DT.GATE_CD            = HD.GATE_CD
+							   AND DT.BUYER_CD           = HD.BUYER_CD
+							   AND DT.BID_NUM            = HD.BID_NUM
+							   AND DT.BID_CNT            = HD.BID_CNT
+							   <if test="BUYER_CD != '' and BUYER_CD != null">
+							   AND UPPER(DT.PR_BUYER_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_CD}) <include refid="common.sql.stringMerge"/> '%'
+							   </if>
+							   <if test="BUYER_NM != '' and BUYER_NM != null">
+							   AND UPPER(<include refid="common.sql.dbo"/>getCustName(DT.GATE_CD, DT.PR_BUYER_CD)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+							   </if>
+							   AND DT.DEL_FLAG           = '0')
+			</if>
+
+		  ) A
+		 WHERE A.EU_PROGRESS_FLAG = '1'
+		 ORDER BY A.BID_NUM, A.BID_CNT
+	</select>
+
+	<select id="getPossibleFlag" parameterType="hashmap" resultType="java.lang.String">
+
+        SELECT (CASE WHEN SIGN_STATUS = 'P' THEN 'N' ELSE 'Y' END) 
+          FROM STOCBDHD 
+         WHERE GATE_CD  = #{ses.gateCd} 
+           AND BUYER_CD = #{BUYER_CD} 
+           AND BID_NUM  = #{BID_NUM} 
+           AND BID_CNT  = #{BID_CNT}
+	</select>
+
+	<!-- 입찰담당자 변경 -->
+	<update id="cbdi0010_doChangeCtrl" parameterType="hashMap">
+
+		UPDATE STOCBDHD SET
+			 MOD_DATE = SYSDATE
+			,MOD_USER_ID = #{ses.userId}
+			,BID_USER_ID = #{CTRL_USER_ID}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND BID_NUM = #{BID_NUM}
+		   AND BID_CNT = #{BID_CNT}
+	</update>
+	
+	<!-- 규격/기술평가담당자 변경 -->
+	<update id="cbdi0010_doChangeEv" parameterType="hashMap">
+
+		UPDATE STOCBDHD SET
+			   MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , EV_USER_ID = #{EV_USER_ID}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND BID_NUM  = #{BID_NUM}
+		   AND BID_CNT  = #{BID_CNT}
+	</update>
+
+    <select id="cbdi0011_doSearchHD" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 A.ANN_NO, A.ANN_DATE, A.ANN_ITEM
+			,A.CONT_TYPE1, A.CONT_TYPE2, A.CONT_TYPE3
+			,A.TCO_FLAG, A.TCO_YEAR_CNT
+			,A.CUR, A.PR_AMT, A.VAT_TYPE
+			,A.ESTM_OPEN_FLAG, A.ESTM_LIMIT_RATE
+			,A.FINA_SOLV_FLAG, A.DIFF_GUAR_FLAG
+			,A.RATE_CURR, A.RATE_SDEPT, A.MIN_TECH_SCORE, A.MIN_TOT_SCORE
+			,A.PRC_SCORE, A.TECH_SCORE, A.BASIC_AMT, A.CONF_STD_SCORE, A.SB_LIMIT_RATE
+			,A.CONT_TERM, A.VOTE_LIMIT_CNT
+			,A.APP_BEGIN_DATE, A.APP_BEGIN_TIME, A.APP_BEGIN_MIN
+			,A.APP_END_DATE, A.APP_END_TIME, A.APP_END_MIN
+			,A.APP_PLACE, A.ESTM_TYPE, A.LIMIT_CRIT, A.PROM_CRIT
+			,A.BID_USER_ID, A.BID_USER_NM
+			,A.ESTM_USER_ID, A.ESTM_USER_NM
+			,A.OPEN_USER_ID, A.OPEN_USER_NM
+			,A.EV_TPL_CNT, A.EV_TPL_NUM, A.EI_NUM
+			,A.EV_USER_ID, A.EV_USER_NM
+			,A.TECH_EV_TYPE, A.APP_ETC, A.ATT_FILE_NUM
+			,A.ANNO_OPEN_FLAG, A.ANNO_FLAG
+			,A.ANNO_DATE, A.ANNO_TIME_FROM, A.ANNO_MIN_FROM, A.ANNO_TIME_TO, A.ANNO_MIN_TO
+			,A.ANNO_PLACE, A.ANNO_NOTIFIER, A.ANNO_RESP, A.ANNO_RMK
+			,A.PROP_OPEN_FLAG, A.PROP_FLAG
+			,A.PROP_DATE, A.PROP_TIME_FROM, A.PROP_MIN_FROM, A.PROP_TIME_TO, A.PROP_MIN_TO
+			,A.PROP_PLACE, A.PROP_NOTIFIER, A.PROP_RESP, A.PROP_RMK
+			,A.BUYER_CD, A.DEPT_CD
+			,A.BID_NUM, A.BID_CNT, A.ORI_BID_CNT
+			,A.APP_DOC_NUM, A.APP_DOC_CNT, A.BID_STATUS, A.SIGN_STATUS
+			,A.VENDOR_LIST, A.VENDOR_NMS, A.VENDOR_CDS
+			,PG.BID_BEGIN_DATE
+			,SUBSTR(PG.BID_BEGIN_TIME, 1, 2) AS BID_BEGIN_TIME
+			,SUBSTR(PG.BID_BEGIN_TIME, 3, 2) AS BID_BEGIN_MIN
+			,PG.BID_END_DATE
+			,SUBSTR(PG.BID_END_TIME, 1, 2) AS BID_END_TIME
+			,SUBSTR(PG.BID_END_TIME, 3, 2) AS BID_END_MIN
+			,PG.OPEN_DATE
+			,SUBSTR(PG.OPEN_TIME, 1, 2) AS OPEN_TIME
+			,SUBSTR(PG.OPEN_TIME, 3, 2) AS OPEN_MIN
+		FROM (
+			SELECT
+				 HD.GATE_CD, HD.ANN_NO, HD.ANN_DATE, HD.ANN_ITEM
+				,HD.CONT_TYPE1, HD.CONT_TYPE2, HD.CONT_TYPE3
+				,HD.TCO_FLAG, HD.TCO_YEAR_CNT
+				,HD.CUR, HD.PR_AMT, HD.VAT_TYPE
+				,HD.ESTM_OPEN_FLAG, HD.ESTM_LIMIT_RATE
+				,HD.FINA_SOLV_FLAG, HD.DIFF_GUAR_FLAG
+				,HD.RATE_CURR, HD.RATE_SDEPT, HD.MIN_TECH_SCORE, HD.MIN_TOT_SCORE
+				,HD.PRC_SCORE, HD.TECH_SCORE, HD.BASIC_AMT, HD.CONF_STD_SCORE, HD.SB_LIMIT_RATE
+				,HD.CONT_TERM, HD.VOTE_LIMIT_CNT
+				,HD.APP_BEGIN_DATE
+				,SUBSTR(HD.APP_BEGIN_TIME, 1, 2) AS APP_BEGIN_TIME
+				,SUBSTR(HD.APP_BEGIN_TIME, 3, 2) AS APP_BEGIN_MIN
+				,HD.APP_END_DATE
+				,SUBSTR(HD.APP_END_TIME, 1, 2) AS APP_END_TIME
+				,SUBSTR(HD.APP_END_TIME, 3, 2) AS APP_END_MIN
+				,HD.APP_PLACE, HD.ESTM_TYPE, HD.LIMIT_CRIT, HD.PROM_CRIT
+				,HD.BID_USER_ID, <include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.BID_USER_ID, #{ses.langCd}) AS BID_USER_NM
+				,HD.ESTM_USER_ID, <include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.ESTM_USER_ID, #{ses.langCd}) AS ESTM_USER_NM
+				,HD.OPEN_USER_ID, <include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.OPEN_USER_ID, #{ses.langCd}) AS OPEN_USER_NM
+				,(CASE WHEN HD.EI_NUM IS NOT NULL THEN 1 ELSE 0 END) AS EV_TPL_CNT
+				,HD.EV_TPL_NUM, HD.EI_NUM
+				,HD.EV_USER_ID, <include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.EV_USER_ID, #{ses.langCd}) AS EV_USER_NM
+				,HD.TECH_EV_TYPE, HD.APP_ETC, HD.ATT_FILE_NUM
+				,HD.ANNO_OPEN_FLAG, HD.ANNO_FLAG
+				,HD.ANNO_DATE
+				,SUBSTR(HD.ANNO_TIME_FROM, 1, 2) AS ANNO_TIME_FROM
+				,SUBSTR(HD.ANNO_TIME_FROM, 3, 2) AS ANNO_MIN_FROM
+				,SUBSTR(HD.ANNO_TIME_TO, 1, 2) AS ANNO_TIME_TO
+				,SUBSTR(HD.ANNO_TIME_TO, 3, 2) AS ANNO_MIN_TO
+				,HD.ANNO_PLACE
+				,<include refid="common.sql.strDecStart"/>HD.ANNO_NOTIFIER<include refid="common.sql.strDecEnd"/> AS ANNO_NOTIFIER
+				,<include refid="common.sql.strDecStart"/>HD.ANNO_RESP<include refid="common.sql.strDecEnd"/> AS ANNO_RESP
+				,HD.ANNO_RMK, HD.PROP_OPEN_FLAG, HD.PROP_FLAG
+				,HD.PROP_DATE
+				,SUBSTR(HD.PROP_TIME_FROM, 1, 2) AS PROP_TIME_FROM
+				,SUBSTR(HD.PROP_TIME_FROM, 3, 2) AS PROP_MIN_FROM
+				,SUBSTR(HD.PROP_TIME_TO, 1, 2) AS PROP_TIME_TO
+				,SUBSTR(HD.PROP_TIME_TO, 3, 2) AS PROP_MIN_TO
+				,HD.PROP_PLACE
+				,<include refid="common.sql.strDecStart"/>HD.PROP_NOTIFIER<include refid="common.sql.strDecEnd"/> AS PROP_NOTIFIER
+				,<include refid="common.sql.strDecStart"/>HD.PROP_RESP<include refid="common.sql.strDecEnd"/> AS PROP_RESP
+				,HD.PROP_RMK
+				,HD.BUYER_CD, HD.DEPT_CD
+				,HD.BID_NUM, (CASE WHEN (#{baseDataType} = 'ModBID' OR #{baseDataType} = 'CancelBID') THEN TO_NUMBER(HD.BID_CNT) + 1 ELSE HD.BID_CNT END) AS BID_CNT
+				,HD.BID_CNT AS ORI_BID_CNT
+                ,HD.BID_STATUS
+				,(CASE WHEN (#{baseDataType} = 'ModBID' OR #{baseDataType} = 'CancelBID' OR #{baseDataType} = 'ReBID' OR HD.SIGN_STATUS = 'T') THEN '' ELSE HD.APP_DOC_NUM END) AS APP_DOC_NUM
+				,(CASE WHEN (#{baseDataType} = 'ModBID' OR #{baseDataType} = 'CancelBID' OR #{baseDataType} = 'ReBID' OR HD.SIGN_STATUS = 'T') THEN '' ELSE TO_CHAR(HD.APP_DOC_CNT) END) AS APP_DOC_CNT
+				,(CASE WHEN (#{baseDataType} = 'ModBID' OR #{baseDataType} = 'CancelBID' OR #{baseDataType} = 'ReBID') THEN '' ELSE HD.SIGN_STATUS END) AS SIGN_STATUS
+				,(SELECT COUNT(AP.VENDOR_CD) FROM STOCBDAP AP
+				   WHERE AP.GATE_CD  = HD.GATE_CD
+				     AND AP.BUYER_CD = HD.BUYER_CD
+				     AND AP.BID_NUM  = HD.BID_NUM
+				     AND AP.BID_CNT  = HD.BID_CNT
+				     AND AP.DEL_FLAG = '0') AS VENDOR_LIST
+				,(SELECT SUBSTR(XMLAGG(XMLELEMENT(A, ', ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETVENDORNAME(AP.GATE_CD, AP.VENDOR_CD, #{ses.langCd})) ORDER BY AP.VENDOR_CD).EXTRACT('//text()'), 2)
+					FROM STOCBDAP AP
+				   WHERE AP.GATE_CD  = HD.GATE_CD
+				     AND AP.BUYER_CD = HD.BUYER_CD
+				     AND AP.BID_NUM  = HD.BID_NUM
+				     AND AP.BID_CNT  = HD.BID_CNT
+				     AND AP.DEL_FLAG = '0') AS VENDOR_NMS
+				,(SELECT SUBSTR(XMLAGG(XMLELEMENT(A, ',' <include refid="common.sql.stringMerge"/> AP.VENDOR_CD) ORDER BY AP.VENDOR_CD).EXTRACT('//text()'), 2)
+					FROM STOCBDAP AP
+				   WHERE AP.GATE_CD  = HD.GATE_CD
+				     AND AP.BUYER_CD = HD.BUYER_CD
+				     AND AP.BID_NUM  = HD.BID_NUM
+				     AND AP.BID_CNT  = HD.BID_CNT
+				     AND AP.DEL_FLAG = '0') AS VENDOR_CDS
+			  FROM STOCBDHD HD
+			 WHERE HD.GATE_CD  = #{ses.gateCd}
+			   AND HD.BUYER_CD = #{BUYER_CD}
+		<choose>
+			<when test="BID_NUM != '' and BID_NUM != null">
+			   AND HD.BID_NUM  = #{BID_NUM}
+			   AND HD.BID_CNT  = #{BID_CNT}
+			</when>
+			<otherwise>
+			   AND HD.APP_DOC_NUM = #{APP_DOC_NUM}
+			   AND HD.APP_DOC_CNT = #{APP_DOC_CNT}
+			</otherwise>
+		</choose>
+		    ) A
+		  LEFT JOIN STOCBDPG PG
+		  	   ON (PG.GATE_CD  = A.GATE_CD
+		       AND PG.BUYER_CD = A.BUYER_CD
+		       AND PG.BID_NUM  = A.BID_NUM
+		       AND PG.BID_CNT  = A.ORI_BID_CNT
+		       AND PG.DEL_FLAG = '0')
+		 WHERE PG.VOTE_CNT = (SELECT MAX(P.VOTE_CNT) FROM STOCBDPG P
+		 					   WHERE P.GATE_CD  = A.GATE_CD
+		 					     AND P.BUYER_CD = A.BUYER_CD
+		 					     AND P.BID_NUM  = A.BID_NUM
+		 					     AND P.BID_CNT  = A.ORI_BID_CNT
+		 					     AND P.DEL_FLAG = '0')
+    </select>
+	
+	<!-- 입찰공고 생성 (CBDI0011) : PR 기준 입찰품목 가져오기 -->
+	<select id="cbdi0011_doSearchItemByPr" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 A.PR_BUYER_CD, A.PR_DEPT_CD, A.PR_BUYER_DEPT_NM
+			,A.PURCHASE_TYPE ,A.ITEM_CD, A.ITEM_DESC, A.ITEM_SPEC, A.MAKER_CD, A.MAKER_ART_NO, A.ORIGIN_CD
+		    ,A.PR_QT, A.UNIT_CD, A.UNIT_PRC, A.PR_AMT, A.DUE_DATE
+		    ,A.PR_NUM, A.PR_SQ
+		    ,A.BUYER_CD, A.BID_NUM, A.BID_CNT, A.ITEM_SQ, A.PB_BUYER_CD
+		  FROM (
+			SELECT
+				 DT.PR_BUYER_CD
+				,DT.PR_DEPT_CD
+				,<include refid="common.sql.dbo"/>GETCOMPANYNAME(DT.GATE_CD, DT.PR_BUYER_CD, #{ses.langCd})
+				 <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+				 <include refid="common.sql.dbo"/>GETDEPTNAME(DT.GATE_CD, DT.PR_BUYER_CD, DT.PR_DEPT_CD, #{ses.langCd}) AS PR_BUYER_DEPT_NM
+				,DT.PURCHASE_TYPE
+				,DT.ITEM_CD
+				,DT.ITEM_DESC
+				,DT.ITEM_SPEC
+				,DT.MAKER_CD
+				,<include refid="common.sql.dbo"/>GETMKBRNAME(DT.GATE_CD, DT.BUYER_CD, 'MK', DT.MAKER_CD) AS MAKER_NM
+				,DT.MAKER_PART_NO AS MAKER_ART_NO
+				,DT.ORIGIN_CD
+				,DT.PR_QT
+				,DT.UNIT_CD
+				,DT.UNIT_PRC
+				,DT.PR_AMT
+				,<include refid="common.sql.toChar"/>(DT.DUE_DATE, 'yyyyMMdd') AS DUE_DATE
+				,DT.PR_NUM
+				,DT.PR_SQ
+				,DT.EC_BUYER_CD AS BUYER_CD
+				,'' AS BID_NUM
+				,'' AS BID_CNT
+				,'' AS ITEM_SQ
+				,DT.BUYER_CD AS PB_BUYER_CD
+			  FROM STOCPRDT DT
+			 WHERE DT.GATE_CD     = #{ses.gateCd}
+			   AND DT.EC_BUYER_CD = #{ses.companyCd}
+			   AND DT.PR_BUYER_CD <include refid="common.sql.stringMerge"/> DT.PR_NUM <include refid="common.sql.stringMerge"/> DT.PR_SQ IN ${paramPrNumSq}
+			   AND DT.DEL_FLAG    = '0'
+		  ) A
+		 ORDER BY A.PR_BUYER_CD
+		 		, A.PR_DEPT_CD
+		 		, A.PR_NUM
+		 		, A.PR_SQ
+	</select>
+
+	<select id="cbdi0011_doSearchDT" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 A.PR_BUYER_CD, A.PR_BUYER_DEPT_NM, A.BUYER_CD, A.PURCHASE_TYPE
+			,A.ITEM_CD, A.ITEM_DESC, A.ITEM_SPEC, A.MAKER_CD, A.MAKER_ART_NO, A.ORIGIN_CD
+			,A.PR_QT, A.UNIT_CD, A.UNIT_PRC, A.PR_AMT
+			,A.PR_NUM, A.PR_SQ, A.BID_NUM, A.BID_CNT, A.ITEM_SQ
+			,A.DUE_DATE, A.PR_DEPT_CD, A.PB_BUYER_CD
+		  FROM (
+			SELECT
+				 DT.PR_BUYER_CD
+				,<include refid="common.sql.dbo"/>GETCOMPANYNAME(DT.GATE_CD, DT.PR_BUYER_CD, #{ses.langCd})
+                 <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+                 <include refid="common.sql.dbo"/>GETDEPTNAME(DT.GATE_CD, DT.PR_BUYER_CD, DT.PR_DEPT_CD, #{ses.langCd}) AS PR_BUYER_DEPT_NM
+				,DT.BUYER_CD
+				,DT.PURCHASE_TYPE
+				,DT.ITEM_CD
+				,DT.ITEM_DESC
+				,DT.ITEM_SPEC
+				,DT.MAKER_CD
+				,<include refid="common.sql.dbo"/>GETMKBRNAME(DT.GATE_CD, DT.BUYER_CD, 'MK', DT.MAKER_CD) AS MAKER_NM
+				,DT.MAKER_ART_NO
+				,DT.ORIGIN_CD
+				,DT.PR_QT
+				,DT.UNIT_CD
+				,DT.UNIT_PRC
+				,DT.PR_AMT
+				,DT.PR_NUM
+				,DT.PR_SQ
+				,DT.BID_NUM
+				,DT.BID_CNT
+				,DT.ITEM_SQ
+				,<include refid="common.sql.toChar"/>(DT.DUE_DATE, 'yyyyMMdd') AS DUE_DATE
+				,DT.PR_DEPT_CD
+				,DT.PB_BUYER_CD
+			  FROM STOCBDDT DT
+			 WHERE DT.GATE_CD  = #{ses.gateCd}
+			   AND DT.BUYER_CD = #{BUYER_CD}
+			   AND DT.BID_NUM  = #{BID_NUM}
+			   AND DT.BID_CNT  = (CASE WHEN (#{baseDataType} = 'ModBID' OR #{baseDataType} = 'ReBID') THEN #{ORI_BID_CNT} ELSE #{BID_CNT} END)
+			   AND DT.DEL_FLAG = '0'
+		  ) A
+		 ORDER BY A.ITEM_SQ
+	</select>
+
+	<select id="cbdi0011_doSearchEU" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 BDEU.EU_TYPE
+			,BDEU.EU_USER_ID
+			,<include refid="common.sql.strDecStart"/>BDEU.EU_USER_NM<include refid="common.sql.strDecEnd"/> AS EU_USER_NM
+			,<include refid="common.sql.strDecStart"/>BDEU.EU_EMAIL<include refid="common.sql.strDecEnd"/> AS EU_EMAIL
+			,<include refid="common.sql.strDecStart"/>BDEU.EU_PHONE_NUM<include refid="common.sql.strDecEnd"/> AS EU_PHONE_NUM
+			,BDEU.BUYER_CD
+			,BDEU.EI_NUM
+			,BDEU.EU_SQ
+			,BDEU.PROGRESS_CD
+			,(SELECT MAX(E.PROGRESS_CD) FROM STOCBDEU E WHERE E.GATE_CD = BDEU.GATE_CD AND E.BUYER_CD = BDEU.BUYER_CD AND E.EI_NUM = BDEU.EI_NUM AND E.DEL_FLAG = '0') AS MAX_PROGRESS_CD
+		  FROM STOCBDEU BDEU
+		 WHERE BDEU.GATE_CD  = #{ses.gateCd}
+		   AND BDEU.BUYER_CD = #{BUYER_CD}
+		   AND BDEU.EI_NUM   = #{EI_NUM}
+		   AND BDEU.DEL_FLAG = '0'
+		 ORDER BY BDEU.EU_SQ
+	</select>
+
+	<insert id="cbdi0011_doMergeHD" parameterType="hashmap">
+
+		MERGE <include refid="common.sql.mergeInto"/> STOCBDHD BDHD
+		USING (SELECT
+					 #{ses.gateCd} AS GATE_CD
+					,#{BUYER_CD} AS BUYER_CD
+					,#{BID_NUM} AS BID_NUM
+					,#{BID_CNT} AS BID_CNT
+				 <include refid="common.sql.dual"/>) B
+			  ON (BDHD.GATE_CD  = B.GATE_CD
+			  AND BDHD.BUYER_CD = B.BUYER_CD
+			  AND BDHD.BID_NUM  = B.BID_NUM
+			  AND BDHD.BID_CNT  = B.BID_CNT)
+		WHEN MATCHED THEN
+		UPDATE SET
+			 MOD_DATE = SYSDATE
+			,MOD_USER_ID = #{ses.userId}
+			,DEPT_CD = #{DEPT_CD}
+			,ANN_NO = #{ANN_NO}
+			,ANN_DATE = #{ANN_DATE}
+			,ANN_ITEM = #{ANN_ITEM}
+			,CONT_TYPE1 = #{CONT_TYPE1}
+			,CONT_TYPE2 = #{CONT_TYPE2}
+			,CONT_TYPE3 = #{CONT_TYPE3}
+			,TCO_FLAG = #{TCO_FLAG}
+			,TCO_YEAR_CNT = #{TCO_YEAR_CNT}
+			,CUR = #{CUR}
+			,PR_AMT = #{PR_AMT}
+			,VAT_TYPE = #{VAT_TYPE}
+			,ESTM_OPEN_FLAG = #{ESTM_OPEN_FLAG}
+			,FINA_SOLV_FLAG = #{FINA_SOLV_FLAG}
+			,ESTM_LIMIT_RATE = #{ESTM_LIMIT_RATE}
+			,RATE_SDEPT = #{RATE_SDEPT}
+			,RATE_CURR = #{RATE_CURR}
+			,DIFF_GUAR_FLAG = #{DIFF_GUAR_FLAG}
+			,TECH_SCORE = #{TECH_SCORE}
+			,PRC_SCORE = #{PRC_SCORE}
+			,MIN_TECH_SCORE = #{MIN_TECH_SCORE}
+			,MIN_TOT_SCORE = #{MIN_TOT_SCORE}
+			,BASIC_AMT = #{BASIC_AMT}
+			,CONF_STD_SCORE = #{CONF_STD_SCORE}
+			,SB_LIMIT_RATE = #{SB_LIMIT_RATE}
+			,CONT_TERM = #{CONT_TERM}
+			,VOTE_LIMIT_CNT = #{VOTE_LIMIT_CNT}
+			,APP_BEGIN_DATE = #{APP_BEGIN_DATE}
+			,APP_BEGIN_TIME = #{APP_BEGIN_TIME} <include refid="common.sql.stringMerge"/> #{APP_BEGIN_MIN} <include refid="common.sql.stringMerge"/> '00'
+			,APP_END_DATE = #{APP_END_DATE}
+			,APP_END_TIME = #{APP_END_TIME} <include refid="common.sql.stringMerge"/> #{APP_END_MIN} <include refid="common.sql.stringMerge"/> '00'
+			,APP_PLACE = #{APP_PLACE}
+			,ESTM_TYPE = #{ESTM_TYPE}
+			,LIMIT_CRIT = #{LIMIT_CRIT}
+			,PROM_CRIT = #{PROM_CRIT}
+			,BID_USER_ID = #{BID_USER_ID}
+			,ESTM_USER_ID = #{ESTM_USER_ID}
+			,OPEN_USER_ID = #{OPEN_USER_ID}
+			,TECH_EV_TYPE = #{TECH_EV_TYPE}
+			,EV_USER_ID = #{EV_USER_ID}
+			,EV_TPL_NUM = #{EV_TPL_NUM}
+			,EI_NUM = #{EI_NUM}
+			,APP_ETC = #{APP_ETC_NUM}
+			,ATT_FILE_NUM = #{ATT_FILE_NUM}
+			,ANNO_OPEN_FLAG = #{ANNO_OPEN_FLAG}
+			,ANNO_FLAG = #{ANNO_FLAG}
+			,ANNO_DATE = #{ANNO_DATE}
+			,ANNO_TIME_FROM = #{ANNO_TIME_FROM} <include refid="common.sql.stringMerge"/> #{ANNO_MIN_FROM} <include refid="common.sql.stringMerge"/> '00'
+			,ANNO_TIME_TO = #{ANNO_TIME_TO} <include refid="common.sql.stringMerge"/> #{ANNO_MIN_TO} <include refid="common.sql.stringMerge"/> '00'
+			,ANNO_PLACE = #{ANNO_PLACE}
+			,ANNO_NOTIFIER = <include refid="common.sql.strEncStart"/>#{ANNO_NOTIFIER}<include refid="common.sql.strEncEnd"/>
+			,ANNO_RESP = <include refid="common.sql.strEncStart"/>#{ANNO_RESP}<include refid="common.sql.strEncEnd"/>
+			,ANNO_RMK = #{ANNO_RMK}
+			,PROP_OPEN_FLAG = #{PROP_OPEN_FLAG}
+			,PROP_FLAG = #{PROP_FLAG}
+			,PROP_DATE = #{PROP_DATE}
+			,PROP_TIME_FROM = #{PROP_TIME_FROM} <include refid="common.sql.stringMerge"/> #{PROP_MIN_FROM} <include refid="common.sql.stringMerge"/> '00'
+			,PROP_TIME_TO = #{PROP_TIME_TO} <include refid="common.sql.stringMerge"/> #{PROP_MIN_TO} <include refid="common.sql.stringMerge"/> '00'
+			,PROP_PLACE = #{PROP_PLACE}
+			,PROP_NOTIFIER = <include refid="common.sql.strEncStart"/>#{PROP_NOTIFIER}<include refid="common.sql.strEncEnd"/>
+			,PROP_RESP = <include refid="common.sql.strEncStart"/>#{PROP_RESP}<include refid="common.sql.strEncEnd"/>
+			,PROP_RMK = #{PROP_RMK}
+			,SIGN_STATUS = #{SIGN_STATUS}
+			,BID_STATUS = #{BID_STATUS}
+		WHEN NOT MATCHED THEN
+		INSERT (
+			 GATE_CD
+			,BUYER_CD
+			,BID_NUM
+			,BID_CNT
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,DEPT_CD
+			,ANN_NO
+			,ANN_DATE
+			,ANN_ITEM
+			,CONT_TYPE1
+			,CONT_TYPE2
+			,CONT_TYPE3
+			,TCO_FLAG
+			,TCO_YEAR_CNT
+			,CUR
+			,PR_AMT
+			,VAT_TYPE
+			,ESTM_OPEN_FLAG
+			,FINA_SOLV_FLAG
+			,ESTM_LIMIT_RATE
+			,RATE_SDEPT
+			,RATE_CURR
+			,DIFF_GUAR_FLAG
+			,TECH_SCORE
+			,PRC_SCORE
+			,MIN_TECH_SCORE
+			,MIN_TOT_SCORE
+			,BASIC_AMT
+			,CONF_STD_SCORE
+			,SB_LIMIT_RATE
+			,CONT_TERM
+			,VOTE_LIMIT_CNT
+			,APP_BEGIN_DATE
+			,APP_BEGIN_TIME
+			,APP_END_DATE
+			,APP_END_TIME
+			,APP_PLACE
+			,ESTM_TYPE
+			,LIMIT_CRIT
+			,PROM_CRIT
+			,BID_USER_ID
+			,ESTM_USER_ID
+			,OPEN_USER_ID
+			,TECH_EV_TYPE
+			,EV_USER_ID
+			,EV_TPL_NUM
+			,EI_NUM
+			,APP_ETC
+			,ATT_FILE_NUM
+			,ANNO_OPEN_FLAG
+			,ANNO_FLAG
+			,ANNO_DATE
+			,ANNO_TIME_FROM
+			,ANNO_TIME_TO
+			,ANNO_PLACE
+			,ANNO_NOTIFIER
+			,ANNO_RESP
+			,ANNO_RMK
+			,PROP_OPEN_FLAG
+			,PROP_FLAG
+			,PROP_DATE
+			,PROP_TIME_FROM
+			,PROP_TIME_TO
+			,PROP_PLACE
+			,PROP_NOTIFIER
+			,PROP_RESP
+			,PROP_RMK
+			,SIGN_STATUS
+			,BID_STATUS
+			,PRE_BID_NUM
+			,PRE_BID_CNT
+		) VALUES (
+			 #{ses.gateCd}
+			,#{BUYER_CD}
+			,#{BID_NUM}
+			,#{BID_CNT}
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+			,'0'
+			,#{DEPT_CD}
+			,#{ANN_NO}
+			,#{ANN_DATE}
+			,#{ANN_ITEM}
+			,#{CONT_TYPE1}
+			,#{CONT_TYPE2}
+			,#{CONT_TYPE3}
+			,#{TCO_FLAG}
+			,#{TCO_YEAR_CNT}
+			,#{CUR}
+			,#{PR_AMT}
+			,#{VAT_TYPE}
+			,#{ESTM_OPEN_FLAG}
+			,#{FINA_SOLV_FLAG}
+			,#{ESTM_LIMIT_RATE}
+			,#{RATE_SDEPT}
+			,#{RATE_CURR}
+			,#{DIFF_GUAR_FLAG}
+			,#{TECH_SCORE}
+			,#{PRC_SCORE}
+			,#{MIN_TECH_SCORE}
+			,#{MIN_TOT_SCORE}
+			,#{BASIC_AMT}
+			,#{CONF_STD_SCORE}
+			,#{SB_LIMIT_RATE}
+			,#{CONT_TERM}
+			,#{VOTE_LIMIT_CNT}
+			,#{APP_BEGIN_DATE}
+			,#{APP_BEGIN_TIME} <include refid="common.sql.stringMerge"/> #{APP_BEGIN_MIN} <include refid="common.sql.stringMerge"/> '00'
+			,#{APP_END_DATE}
+			,#{APP_END_TIME} <include refid="common.sql.stringMerge"/> #{APP_END_MIN} <include refid="common.sql.stringMerge"/> '00'
+			,#{APP_PLACE}
+			,#{ESTM_TYPE}
+			,#{LIMIT_CRIT}
+			,#{PROM_CRIT}
+			,#{BID_USER_ID}
+			,#{ESTM_USER_ID}
+			,#{OPEN_USER_ID}
+			,#{TECH_EV_TYPE}
+			,#{EV_USER_ID}
+			,#{EV_TPL_NUM}
+			,#{EI_NUM}
+			,#{APP_ETC_NUM}
+			,#{ATT_FILE_NUM}
+			,#{ANNO_OPEN_FLAG}
+			,#{ANNO_FLAG}
+			,#{ANNO_DATE}
+			,#{ANNO_TIME_FROM} <include refid="common.sql.stringMerge"/> #{ANNO_MIN_FROM} <include refid="common.sql.stringMerge"/> '00'
+			,#{ANNO_TIME_TO} <include refid="common.sql.stringMerge"/> #{ANNO_MIN_TO} <include refid="common.sql.stringMerge"/> '00'
+			,#{ANNO_PLACE}
+			,<include refid="common.sql.strEncStart"/>#{ANNO_NOTIFIER}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{ANNO_RESP}<include refid="common.sql.strEncEnd"/>
+			,#{ANNO_RMK}
+			,#{PROP_OPEN_FLAG}
+			,#{PROP_FLAG}
+			,#{PROP_DATE}
+			,#{PROP_TIME_FROM} <include refid="common.sql.stringMerge"/> #{PROP_MIN_FROM} <include refid="common.sql.stringMerge"/> '00'
+			,#{PROP_TIME_TO} <include refid="common.sql.stringMerge"/> #{PROP_MIN_TO} <include refid="common.sql.stringMerge"/> '00'
+			,#{PROP_PLACE}
+			,<include refid="common.sql.strEncStart"/>#{PROP_NOTIFIER}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{PROP_RESP}<include refid="common.sql.strEncEnd"/>
+			,#{PROP_RMK}
+			,#{SIGN_STATUS}
+			,#{BID_STATUS}
+			,#{PRE_BID_NUM}
+			,#{PRE_BID_CNT}
+		)
+		<include refid="common.sql.comma"/>
+	</insert>
+
+	<insert id="cbdi0011_doMergePG" parameterType="hashmap">
+
+		MERGE <include refid="common.sql.mergeInto"/> STOCBDPG BDPG
+		USING (SELECT
+					#{ses.gateCd} AS GATE_CD
+					,#{BUYER_CD} AS BUYER_CD
+					,#{BID_NUM} AS BID_NUM
+					,#{BID_CNT} AS BID_CNT
+					,#{VOTE_CNT} AS VOTE_CNT
+				 <include refid="common.sql.dual"/>) B
+			  ON (BDPG.GATE_CD  = B.GATE_CD
+			  AND BDPG.BUYER_CD = B.BUYER_CD
+			  AND BDPG.BID_NUM  = B.BID_NUM
+			  AND BDPG.BID_CNT  = B.BID_CNT
+			  AND BDPG.VOTE_CNT = B.VOTE_CNT)
+		WHEN MATCHED THEN
+		UPDATE SET
+			 MOD_DATE = SYSDATE
+			,MOD_USER_ID = #{ses.userId}
+			,BID_BEGIN_DATE = #{BID_BEGIN_DATE}
+			,BID_BEGIN_TIME = #{BID_BEGIN_TIME} <include refid="common.sql.stringMerge"/> #{BID_BEGIN_MIN} <include refid="common.sql.stringMerge"/> '00'
+			,BID_END_DATE = #{BID_END_DATE}
+			,BID_END_TIME = #{BID_END_TIME} <include refid="common.sql.stringMerge"/> #{BID_END_MIN} <include refid="common.sql.stringMerge"/> '00'
+			,OPEN_DATE = #{OPEN_DATE}
+			,OPEN_TIME = #{OPEN_TIME} <include refid="common.sql.stringMerge"/> #{OPEN_MIN} <include refid="common.sql.stringMerge"/> '00'
+		WHEN NOT MATCHED THEN
+		INSERT (
+			 GATE_CD
+			,BUYER_CD
+			,BID_NUM
+			,BID_CNT
+			,VOTE_CNT
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,BID_BEGIN_DATE
+			,BID_BEGIN_TIME
+			,BID_END_DATE
+			,BID_END_TIME
+			,OPEN_DATE
+			,OPEN_TIME
+		) VALUES (
+			 #{ses.gateCd}
+			,#{BUYER_CD}
+			,#{BID_NUM}
+			,#{BID_CNT}
+			,#{VOTE_CNT}
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+			,'0'
+			,#{BID_BEGIN_DATE}
+			,#{BID_BEGIN_TIME} <include refid="common.sql.stringMerge"/> #{BID_BEGIN_MIN} <include refid="common.sql.stringMerge"/> '00'
+			,#{BID_END_DATE}
+			,#{BID_END_TIME} <include refid="common.sql.stringMerge"/> #{BID_END_MIN} <include refid="common.sql.stringMerge"/> '00'
+			,#{OPEN_DATE}
+			,#{OPEN_TIME} <include refid="common.sql.stringMerge"/> #{OPEN_MIN} <include refid="common.sql.stringMerge"/> '00'
+		)
+		<include refid="common.sql.comma"/>
+
+	</insert>
+
+	<delete id="cbdi0011_doDeleteAP" parameterType="hashMap">
+
+        DELETE FROM STOCBDAP
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM = #{BID_NUM}
+           AND BID_CNT = #{BID_CNT}
+
+    </delete>
+
+	<insert id="cbdi0011_doInsertAP" parameterType="hashMap">
+
+		INSERT INTO STOCBDAP (
+			 GATE_CD
+			,BUYER_CD
+			,BID_NUM
+			,BID_CNT
+			,VENDOR_CD
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+		) VALUES (
+			 #{ses.gateCd}
+			,#{BUYER_CD}
+			,#{BID_NUM}
+			,#{BID_CNT}
+			,#{VENDOR_CD}
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+			,'0'
+		)
+
+    </insert>
+
+	<delete id="cbdi0011_doDeleteAllEU" parameterType="hashMap">
+
+		DELETE FROM STOCBDEU
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND EI_NUM = #{EI_NUM}
+
+	</delete>
+
+	<insert id="cbdi0011_doInsertEU" parameterType="hashMap" useGeneratedKeys="true">
+
+		<selectKey keyProperty="EU_SQ_KEY" resultType="int" order="BEFORE">
+			SELECT (CASE WHEN <include refid="common.sql.nvl"/>(TO_CHAR(#{EU_SQ}), '-') = '-' THEN <include refid="common.sql.nvl"/>(MAX(EU_SQ), 0) + 1 ELSE TO_NUMBER(#{EU_SQ}) END) FROM STOCBDEU
+			 WHERE GATE_CD = #{ses.gateCd}
+			   AND BUYER_CD = #{BUYER_CD}
+			   AND EI_NUM = #{EI_NUM}
+		</selectKey>
+
+		INSERT INTO STOCBDEU (
+			 GATE_CD
+			,BUYER_CD
+			,EI_NUM
+			,EU_SQ
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,EU_TYPE
+			,EU_USER_ID
+			,EU_USER_NM
+			,EU_PHONE_NUM
+			,EU_EMAIL
+			,PROGRESS_CD
+			,EU_REQ_DATE
+		) VALUES (
+			 #{ses.gateCd}
+			,#{BUYER_CD}
+			,#{EI_NUM}
+		<choose>
+			<when test="EU_SQ == '' or EU_SQ == null">
+				,(SELECT <include refid="common.sql.nvl"/>(MAX(EU_SQ), 0) + 1 FROM STOCBDEU
+				   WHERE GATE_CD = #{ses.gateCd}
+				     AND BUYER_CD = #{BUYER_CD}
+				     AND EI_NUM = #{EI_NUM})
+			</when>
+			<otherwise>
+				,#{EU_SQ}
+			</otherwise>
+		</choose>
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+			,'0'
+			,#{EU_TYPE}
+			,#{EU_USER_ID}
+			,<include refid="common.sql.strEncStart"/>#{EU_USER_NM}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{EU_PHONE_NUM}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{EU_EMAIL}<include refid="common.sql.strEncEnd"/>
+			,#{PROGRESS_CD}
+		<choose>
+			<when test='PROGRESS_CD == "200"'>
+				,SYSDATE
+			</when>
+			<otherwise>,null</otherwise>
+		</choose>
+		)
+
+	</insert>
+
+	<delete id="cbdi0011_doDeleteAllDT" parameterType="hashMap">
+
+		DELETE FROM STOCBDDT
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND BID_NUM = #{BID_NUM}
+		   AND BID_CNT = #{BID_CNT}
+
+	</delete>
+
+	<insert id="cbdi0011_doInsertDT" parameterType="hashMap" useGeneratedKeys="true">
+
+		<selectKey keyProperty="ITEM_SQ_KEY" resultType="int" order="BEFORE">
+			SELECT (CASE WHEN <include refid="common.sql.nvl"/>(TO_CHAR(#{ITEM_SQ}), '-') = '-' THEN <include refid="common.sql.nvl"/>(MAX(ITEM_SQ), 0) + 1 ELSE TO_NUMBER(#{ITEM_SQ}) END) FROM STOCBDDT
+			 WHERE GATE_CD = #{ses.gateCd}
+			   AND BUYER_CD = #{BUYER_CD}
+			   AND BID_NUM = #{BID_NUM}
+			   AND BID_CNT IN ('0', #{BID_CNT})
+		</selectKey>
+
+		INSERT INTO STOCBDDT (
+			 GATE_CD
+			,BUYER_CD
+			,BID_NUM
+			,BID_CNT
+			,ITEM_SQ
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,PR_BUYER_CD
+			,PR_DEPT_CD
+			,PURCHASE_TYPE
+			,ITEM_CD
+			,ITEM_DESC
+			,ITEM_SPEC
+			,MAKER_CD
+			,MAKER_ART_NO
+			,ORIGIN_CD
+			,PR_QT
+			,UNIT_CD
+			,UNIT_PRC
+			,PR_AMT
+			,DUE_DATE
+			,PR_NUM
+			,PR_SQ
+			,TCO_YEAR_CNT
+			,PB_BUYER_CD
+		) VALUES (
+			 #{ses.gateCd}
+			,#{BUYER_CD}
+			,#{BID_NUM}
+			,#{BID_CNT}
+			,(SELECT <include refid="common.sql.nvl"/>(MAX(ITEM_SQ), 0) + 1 FROM STOCBDDT
+			   WHERE GATE_CD = #{ses.gateCd}
+			     AND BUYER_CD = #{BUYER_CD}
+			     AND BID_NUM = #{BID_NUM}
+			     AND BID_CNT IN ('0', #{BID_CNT}))
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+			,'0'
+			,#{PR_BUYER_CD}
+			,#{PR_DEPT_CD}
+			,#{PURCHASE_TYPE}
+			,#{ITEM_CD}
+			,#{ITEM_DESC}
+			,#{ITEM_SPEC}
+			,#{MAKER_CD}
+			,#{MAKER_ART_NO}
+			,#{ORIGIN_CD}
+			,#{PR_QT}
+			,#{UNIT_CD}
+			,#{UNIT_PRC}
+			,#{PR_AMT}
+			,<include refid="common.sql.toDate"/>(#{DUE_DATE}, 'YYYYMMDDHH24MISS')
+			,#{PR_NUM}
+			,#{PR_SQ}
+			,#{TCO_YEAR_CNT}
+			,#{PB_BUYER_CD}
+		)
+
+	</insert>
+
+	<insert id="cbdi0011_doUpdatePrdtProgressCd" parameterType="hashMap">
+
+		UPDATE STOCPRDT SET
+			 MOD_DATE = SYSDATE
+			,MOD_USER_ID = #{ses.userId}
+			,PROGRESS_CD = #{PROGRESS_CD}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND PR_NUM = #{PR_NUM}
+		   AND PR_SQ = #{PR_SQ}
+		   AND BUYER_CD = #{PR_BUYER_CD}
+
+	</insert>
+
+	<insert id="insertDONUData" parameterType="hashMap">
+
+		INSERT INTO STOCDONU (
+			 GATE_CD
+		<if test='_databaseId == "oracle"'>,DOC_SQ</if>
+			,RFX_NUM
+			,RFX_CNT
+			,RFX_SQ
+		) VALUES (
+			 #{ses.gateCd}
+		<if test='_databaseId == "oracle"'>,SEQ_STOCDONU.NEXTVAL</if>
+			,#{RFX_NUM}
+			,#{RFX_CNT}
+			,#{RFX_SQ}
+		)
+
+	</insert>
+
+    <update id="cbdi0011_doDeleteBDHD" parameterType="hashMap">
+
+        UPDATE STOCBDHD SET
+             DEL_FLAG = '1'
+            ,MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM = #{BID_NUM}
+           AND BID_CNT = #{BID_CNT}
+
+    </update>
+
+    <update id="cbdi0011_doDeleteBDPG" parameterType="hashMap">
+
+        UPDATE STOCBDPG SET
+             DEL_FLAG = '1'
+            ,MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM = #{BID_NUM}
+           AND BID_CNT = #{BID_CNT}
+
+    </update>
+
+    <update id="cbdi0011_doDeleteBDAP" parameterType="hashMap">
+
+        UPDATE STOCBDAP SET
+             DEL_FLAG = '1'
+            ,MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM = #{BID_NUM}
+           AND BID_CNT = #{BID_CNT}
+
+    </update>
+
+    <update id="cbdi0011_doDeleteBDEU" parameterType="hashMap">
+
+        UPDATE STOCBDEU SET
+             DEL_FLAG = '1'
+            ,MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND EI_NUM = #{EI_NUM}
+
+    </update>
+
+    <update id="cbdi0011_doDeleteBDDT" parameterType="hashMap">
+
+        UPDATE STOCBDDT SET
+             DEL_FLAG = '1'
+            ,MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM = #{BID_NUM}
+           AND BID_CNT = #{BID_CNT}
+
+    </update>
+
+    <select id="getPrSqs" parameterType="hashmap" resultType="hashMap">
+
+		SELECT PB_BUYER_CD,PR_NUM, PR_SQ FROM STOCBDDT
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM = #{BID_NUM}
+           AND BID_CNT = #{BID_CNT}
+
+	</select>
+
+	<update id="updatePrProgressCd" parameterType="hashMap">
+
+        UPDATE STOCPRDT SET
+         	 PROGRESS_CD = #{PROGRESS_CD}
+         	,MOD_DATE = SYSDATE
+         	,MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{PB_BUYER_CD}
+           AND PR_NUM = #{PR_NUM}
+           AND PR_SQ = #{PR_SQ}
+
+    </update>
+
+	<select id="cbdr0012_doSearch" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 HD.ANN_NO
+			,HD.ANN_ITEM
+			,HD.BUYER_CD
+			,CASE WHEN HD.ESTM_OPEN_FLAG = '1' THEN
+					   CASE WHEN CONT_TYPE2 = 'QE' THEN
+					   			 TO_CHAR(HD.BASIC_AMT, 'FM999,999,999,999,999')
+					        ELSE TO_CHAR(HD.PR_AMT, 'FM999,999,999,999,999')
+					    END <include refid="common.sql.stringMerge"/> '원' <include refid="common.sql.stringMerge"/> '(' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M100', HD.VAT_TYPE, 0, #{ses.langCd}) <include refid="common.sql.stringMerge"/> ')'
+			      ELSE '비공개'
+			  END AS PR_AMT
+			,CASE WHEN HD.ESTM_OPEN_FLAG = '1' THEN
+					   TO_CHAR(HD.BASIC_AMT, 'FM999,999,999,999,999') <include refid="common.sql.stringMerge"/> '원' <include refid="common.sql.stringMerge"/> '(' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M100', HD.VAT_TYPE, 0, #{ses.langCd}) <include refid="common.sql.stringMerge"/> ')'
+			      ELSE '비공개'
+			  END AS BASIC_AMT
+			,CASE WHEN HD.BID_CNT != '1' THEN '여 (관련공고 :'
+			          <include refid="common.sql.stringMerge"/> (SELECT ANN_NO
+			          											   FROM STOCBDHD
+			          											  WHERE GATE_CD = HD.GATE_CD
+			          											    AND BUYER_CD = HD.BUYER_CD
+			          											    AND BID_NUM  = HD.BID_NUM
+			          											    AND BID_CNT  = HD.BID_CNT - 1)
+			          <include refid="common.sql.stringMerge"/> ')' ELSE '부' END RE_BID_YN
+			, <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', HD.CONT_TYPE1, 0, #{ses.langCd}) AS CONT_TYPE1_LOC
+			, <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M302', HD.CONT_TYPE2, 0, #{ses.langCd}) AS CONT_TYPE2_LOC
+			,CASE WHEN HD.CONT_TYPE3 = 'TA'
+				  THEN <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M303', HD.CONT_TYPE3, 0, #{ses.langCd}) <include refid="common.sql.stringMerge"/>
+				  CASE WHEN HD.TCO_FLAG = '1' THEN '(' <include refid="common.sql.stringMerge"/> HD.TCO_YEAR_CNT <include refid="common.sql.stringMerge"/> '년 TCO' <include refid="common.sql.stringMerge"/> ')'
+				  	   ELSE ' ' END
+				  ELSE <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M303', HD.CONT_TYPE3, 0, #{ses.langCd})
+				  END CONT_TYPE3_LOC
+			,HD.VOTE_LIMIT_CNT
+			,HD.APP_PLACE
+			,CASE WHEN HD.DIFF_GUAR_FLAG = '1' THEN '여' ELSE '부' END DIFF_GUAR_FLAG
+			, <include refid="common.sql.dbo"/>GETCOMPANYNAME(HD.GATE_CD, HD.BUYER_CD, #{ses.langCd}) AS CUST_NM
+			,(SELECT listagg(PR_BUYER_CD,',') WITHIN GROUP (order by PR_BUYER_CD) AS REF_USER_ID
+			    FROM (SELECT DISTINCT  <include refid="common.sql.dbo"/>GETCOMPANYNAME(GATE_CD, PR_BUYER_CD, #{ses.langCd}) PR_BUYER_CD
+						FROM STOCBDDT
+					   WHERE GATE_CD = HD.GATE_CD
+					     AND BUYER_CD = HD.BUYER_CD
+					     AND BID_NUM = HD.BID_NUM
+					     AND BID_CNT = HD.BID_CNT
+					     AND DEL_FLAG = '0')
+			 ) PR_BUYER_CD
+			,(SELECT listagg(PR_BUYER_CD,',') WITHIN GROUP (order by PR_BUYER_CD) AS REF_USER_ID
+			    FROM (SELECT DISTINCT PR_BUYER_CD
+						FROM STOCBDDT
+					   WHERE GATE_CD = HD.GATE_CD
+					     AND BUYER_CD = HD.BUYER_CD
+					     AND BID_NUM = HD.BID_NUM
+					     AND BID_CNT = HD.BID_CNT
+					     AND DEL_FLAG = '0')
+			 ) REF_BUYER_CD 
+			,HD.CONT_TERM
+			,HD.FINA_SOLV_FLAG
+			,HD.ESTM_LIMIT_RATE
+			,HD.RATE_SDEPT
+			,HD.RATE_CURR
+			,HD.TECH_SCORE
+			,HD.PRC_SCORE
+			,HD.MIN_TECH_SCORE
+			,HD.MIN_TOT_SCORE
+			,HD.CONF_STD_SCORE
+			,HD.SB_LIMIT_RATE
+			,(CASE WHEN (HD.APP_BEGIN_DATE IS NOT NULL AND HD.APP_BEGIN_TIME IS NOT NULL)
+				   THEN <include refid="common.sql.toChar"/>(TO_DATE(HD.APP_BEGIN_DATE <include refid="common.sql.stringMerge"/> HD.APP_BEGIN_TIME, 'YYYYMMDDHH24MISS'), 'YYYY.MM.DD HH24:MI')
+				   ELSE '' END) AS APP_BEGIN
+			,(CASE WHEN (HD.APP_END_DATE IS NOT NULL AND HD.APP_END_TIME IS NOT NULL)
+				   THEN <include refid="common.sql.toChar"/>(TO_DATE(HD.APP_END_DATE <include refid="common.sql.stringMerge"/> HD.APP_END_TIME, 'YYYYMMDDHH24MISS'), 'YYYY.MM.DD HH24:MI')
+				   ELSE '' END) AS APP_END
+			,(CASE WHEN (PG.BID_BEGIN_DATE IS NOT NULL AND PG.BID_BEGIN_TIME IS NOT NULL)
+				   THEN <include refid="common.sql.toChar"/>(TO_DATE(PG.BID_BEGIN_DATE <include refid="common.sql.stringMerge"/> PG.BID_BEGIN_TIME, 'YYYYMMDDHH24MISS'), 'YYYY.MM.DD HH24:MI')
+				   ELSE '' END) AS BID_BEGIN
+			,(CASE WHEN (PG.BID_END_DATE IS NOT NULL AND PG.BID_END_TIME IS NOT NULL)
+				   THEN <include refid="common.sql.toChar"/>(TO_DATE(PG.BID_END_DATE <include refid="common.sql.stringMerge"/> PG.BID_END_TIME, 'YYYYMMDDHH24MISS'), 'YYYY.MM.DD HH24:MI')
+				   ELSE '' END) AS BID_END
+			,(CASE WHEN (PG.OPEN_DATE IS NOT NULL AND PG.OPEN_TIME IS NOT NULL)
+				   THEN <include refid="common.sql.toChar"/>(TO_DATE(PG.OPEN_DATE <include refid="common.sql.stringMerge"/> PG.OPEN_TIME, 'YYYYMMDDHH24MISS'), 'YYYY.MM.DD HH24:MI')
+				   ELSE '' END) AS OPENTIME
+			,HD.ANNO_OPEN_FLAG
+			,CASE WHEN HD.ANNO_FLAG = '1' THEN '여' ELSE '부' END ANNO_FLAG
+			,CASE WHEN HD.ANNO_DATE IS NOT NULL THEN TO_CHAR(TO_DATE(HD.ANNO_DATE <include refid="common.sql.stringMerge"/> HD.ANNO_TIME_FROM, 'YYYYMMDDHH24MISS'), 'YYYY.MM.DD HH24:MI') ELSE '' END ANNO_DATE
+			,HD.ANNO_PLACE
+			,HD.ANNO_NOTIFIER
+			,HD.ANNO_RESP
+			,HD.ANNO_RMK
+			,HD.PROP_OPEN_FLAG
+			,CASE WHEN HD.PROP_FLAG = '1' THEN '여' ELSE '부' END PROP_FLAG
+			,CASE WHEN HD.PROP_DATE IS NOT NULL THEN TO_CHAR(TO_DATE(HD.PROP_DATE <include refid="common.sql.stringMerge"/> HD.PROP_TIME_FROM, 'YYYYMMDDHH24MISS'), 'YYYY.MM.DD HH24:MI') ELSE '' END PROP_DATE
+			,HD.PROP_PLACE
+			,HD.PROP_NOTIFIER
+			,HD.PROP_RESP
+			,HD.PROP_RMK
+			,(SELECT IRS_NUM FROM STOCCUST WHERE GATE_CD = HD.GATE_CD AND CUST_CD = HD.BUYER_CD) IRS_NUM
+			,HD.APP_ETC
+			,(SELECT listagg(REAL_FILE_NM,',') WITHIN GROUP (order by REAL_FILE_NM)
+				FROM STOCATCH
+			   WHERE GATE_CD = HD.GATE_CD
+			     AND UUID = HD.ATT_FILE_NUM
+			     AND DEL_FLAG = '0') ATT_FILE_NMS
+			,HD.ATT_FILE_NUM
+			,HD.ANN_DATE
+			,(CASE WHEN HD.ANN_DATE <![CDATA[<]]> '20230914' THEN 'Y' ELSE 'N' END) AS ANN_TO_DATE
+			,(SELECT <include refid="common.sql.dbo"/>GETCOMPANYNAME(A.GATE_CD, A.COMPANY_CD, #{ses.langCd}) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+					 <include refid="common.sql.dbo"/>GETDEPTNAME(A.GATE_CD, A.COMPANY_CD, A.DEPT_CD, #{ses.langCd}) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+					 A.DUTY_NM <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+					 <include refid="common.sql.strDecStart"/>(A.USER_NM)<include refid="common.sql.strDecEnd"/> <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+					 '(' <include refid="common.sql.stringMerge"/> <include refid="common.sql.strDecStart"/>(TEL_NUM)<include refid="common.sql.strDecEnd"/> <include refid="common.sql.stringMerge"/> ')' BID_USER_TEXT
+			    FROM STOCCVUR A
+			   WHERE GATE_CD = HD.GATE_CD
+			     AND USER_ID = HD.BID_USER_ID) BID_USER_TEXT
+			,(SELECT <include refid="common.sql.dbo"/>GETCOMPANYNAME(A.GATE_CD, A.COMPANY_CD, #{ses.langCd}) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+					 <include refid="common.sql.dbo"/>GETDEPTNAME(A.GATE_CD, A.COMPANY_CD, A.DEPT_CD, #{ses.langCd}) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+					 A.DUTY_NM
+			    FROM STOCCVUR A
+			   WHERE GATE_CD = HD.GATE_CD
+			     AND USER_ID = HD.BID_USER_ID) BID_USER_TEXT2
+			,(SELECT listagg(
+					 <include refid="common.sql.dbo"/>GETCOMPANYNAME(A.GATE_CD, A.COMPANY_CD, #{ses.langCd}) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+					 <include refid="common.sql.dbo"/>GETDEPTNAME(A.GATE_CD, A.COMPANY_CD, A.DEPT_CD, #{ses.langCd}) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+					 A.DUTY_NM <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+					 <include refid="common.sql.strDecStart"/>(A.USER_NM)<include refid="common.sql.strDecEnd"/> <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+					 '(' <include refid="common.sql.stringMerge"/> <include refid="common.sql.strDecStart"/>(TEL_NUM)<include refid="common.sql.strDecEnd"/> <include refid="common.sql.stringMerge"/> ')'
+					,'MAKEBR') WITHIN GROUP (order by A.USER_NM)
+			    FROM STOCCVUR A
+			   WHERE GATE_CD = #{ses.gateCd}
+			     AND USER_ID IN (SELECT REG_USER_ID FROM STOCPRHD
+			     				  WHERE GATE_CD = #{ses.gateCd}
+			     				    AND (BUYER_CD,PR_NUM) IN (SELECT DISTINCT PB_BUYER_CD, PR_NUM
+			     				    							FROM STOCBDDT B
+			     				    						   WHERE B.GATE_CD  = #{ses.gateCd}
+			     				    						     AND B.BUYER_CD = #{buyerCd}
+			     				    						     AND B.BID_NUM  = #{bidNum}
+			     				    						     AND B.BID_CNT  = #{bidCnt}
+			     				    						     AND B.DEL_FLAG = '0'))
+			 ) PR_USER_TEXT
+			,HD.CANCEL_RMK
+			,(SELECT CASE WHEN COUNT(*) = 1 THEN MAX(ITEM_DESC)
+						  ELSE MAX(ITEM_DESC) <include refid="common.sql.stringMerge"/> ' 외' <include refid="common.sql.stringMerge"/> (COUNT(*) -1) <include refid="common.sql.stringMerge"/> '건'
+						  END
+				FROM STOCBDDT B
+			   WHERE B.GATE_CD  = HD.GATE_CD
+			     AND B.BUYER_CD = HD.BUYER_CD
+			     AND B.BID_NUM  = HD.BID_NUM
+			     AND B.BID_CNT  = HD.BID_CNT
+			     AND B.DEL_FLAG = '0') ITEM_TEXT
+			,HD.CONT_TYPE1
+			,HD.CONT_TYPE2
+			,HD.CONT_TYPE3
+			,HD.LIMIT_CRIT
+		  FROM STOCBDHD HD
+		  LEFT JOIN STOCBDPG PG
+			   ON (HD.GATE_CD  = PG.GATE_CD
+			   AND HD.BUYER_CD = PG.BUYER_CD
+			   AND HD.BID_NUM  = PG.BID_NUM
+			   AND HD.BID_CNT  = PG.BID_CNT
+			   -- 2021.06.24 : 입찰공고의 입찰서제출 및 개찰시간 = 투찰차수 1차의 기간으로 한다.
+			   AND PG.VOTE_CNT = (SELECT MIN(P.VOTE_CNT) FROM STOCBDPG P
+			   					   WHERE P.GATE_CD  = HD.GATE_CD
+			   					     AND P.BUYER_CD = HD.BUYER_CD
+			   					     AND P.BID_NUM  = HD.BID_NUM
+			   					     AND P.BID_CNT  = HD.BID_CNT
+			   					     AND P.DEL_FLAG = '0'))
+		 WHERE HD.GATE_CD = #{ses.gateCd}
+		   AND HD.DEL_FLAG = '0'
+		   AND HD.BUYER_CD = #{buyerCd}
+		   AND HD.BID_NUM = #{bidNum}
+		   AND HD.BID_CNT = #{bidCnt}
+
+	</select>
+	
+	<!-- 취소공고작성시 입찰건명 = [취소공고] + 입찰건명으로 수정 -->
+	<select id="cbdr0013_doSearchHD" parameterType="hashmap" resultType="hashMap">
+	
+		SELECT
+			  HD.ANN_NO
+			, HD.ANN_ITEM
+			, HD.PR_AMT
+			, HD.CANCEL_RMK
+			, HD.BID_USER_ID
+			, HD.BUYER_CD
+			, HD.DEPT_CD
+			, HD.BID_NUM
+			,(CASE WHEN (#{baseDataType} = 'ModBID' OR #{baseDataType} = 'CancelBID')
+				  		THEN (SELECT MAX(BID_CNT) + 1 FROM STOCBDHD
+				  			   WHERE GATE_CD  = HD.GATE_CD
+				  			     AND BUYER_CD = HD.BUYER_CD
+				  			     AND BID_NUM  = HD.BID_NUM)
+				   ELSE HD.BID_CNT END) AS BID_CNT
+			, HD.BID_CNT AS ORI_BID_CNT
+			,(CASE WHEN (#{baseDataType} = 'ModBID' OR #{baseDataType} = 'CancelBID') THEN '' ELSE HD.APP_DOC_NUM END) AS APP_DOC_NUM
+			,(CASE WHEN (#{baseDataType} = 'ModBID' OR #{baseDataType} = 'CancelBID') THEN '' ELSE TO_CHAR(HD.APP_DOC_CNT) END) AS APP_DOC_CNT
+			,(CASE WHEN (#{baseDataType} = 'ModBID' OR #{baseDataType} = 'CancelBID') THEN '' ELSE HD.SIGN_STATUS END) AS SIGN_STATUS
+			,(CASE WHEN (#{baseDataType} = 'ModBID' OR #{baseDataType} = 'CancelBID') THEN '' ELSE HD.BID_STATUS END) AS BID_STATUS
+		  FROM STOCBDHD HD
+		 WHERE HD.GATE_CD = #{ses.gateCd}
+		   AND HD.BUYER_CD = #{BUYER_CD}
+		<choose>
+			<when test="BID_NUM != '' and BID_NUM != null">
+				AND HD.BID_NUM = #{BID_NUM}
+				AND HD.BID_CNT = #{BID_CNT}
+			</when>
+			<otherwise>
+				<if test="APP_DOC_NUM != '' and APP_DOC_NUM != null">
+					AND HD.APP_DOC_NUM = #{APP_DOC_NUM}
+					AND HD.APP_DOC_CNT = #{APP_DOC_CNT}
+				</if>
+			</otherwise>
+		</choose>
+	</select>
+	
+	<!-- 2021.07.05 : 취소공고시 입찰명에 '[취소공고] ' 추가 -->
+	<insert id="cbdr0013_doCancelBid" parameterType="hashmap">
+
+		INSERT INTO STOCBDHD (
+			 GATE_CD
+			,BUYER_CD
+			,BID_NUM
+			,BID_CNT
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,DEPT_CD
+			,ANN_NO
+			,ANN_DATE
+			,ANN_ITEM
+			,CONT_TYPE1
+			,CONT_TYPE2
+			,CONT_TYPE3
+			,TCO_FLAG
+			,TCO_YEAR_CNT
+			,CUR
+			,PR_AMT
+			,VAT_TYPE
+			,ESTM_OPEN_FLAG
+			,FINA_SOLV_FLAG
+			,ESTM_LIMIT_RATE
+			,RATE_SDEPT
+			,RATE_CURR
+			,DIFF_GUAR_FLAG
+			,TECH_SCORE
+			,PRC_SCORE
+			,MIN_TECH_SCORE
+			,MIN_TOT_SCORE
+			,BASIC_AMT
+			,CONF_STD_SCORE
+			,SB_LIMIT_RATE
+			,CONT_TERM
+			,VOTE_LIMIT_CNT
+			,APP_BEGIN_DATE
+			,APP_BEGIN_TIME
+			,APP_END_DATE
+			,APP_END_TIME
+			,APP_PLACE
+			,ESTM_TYPE
+			,LIMIT_CRIT
+			,PROM_CRIT
+			,BID_USER_ID
+			,ESTM_USER_ID
+			,OPEN_USER_ID
+			,TECH_EV_TYPE
+			,EV_USER_ID
+			,EV_TPL_NUM
+			,EI_NUM
+			,APP_ETC
+			,ATT_FILE_NUM
+			,ANNO_OPEN_FLAG
+			,ANNO_FLAG
+			,ANNO_DATE
+			,ANNO_TIME_FROM
+			,ANNO_TIME_TO
+			,ANNO_PLACE
+			,ANNO_NOTIFIER
+			,ANNO_RESP
+			,ANNO_RMK
+			,PROP_OPEN_FLAG
+			,PROP_FLAG
+			,PROP_DATE
+			,PROP_TIME_FROM
+			,PROP_TIME_TO
+			,PROP_PLACE
+			,PROP_NOTIFIER
+			,PROP_RESP
+			,PROP_RMK
+			,CANCEL_RMK
+			,SIGN_STATUS
+			,BID_STATUS
+		)
+		SELECT
+			 GATE_CD
+			,BUYER_CD
+			,BID_NUM
+			,TO_NUMBER(#{BID_CNT}) AS BID_CNT
+			,SYSDATE AS REG_DATE
+			,#{ses.userId} AS REG_USER_ID
+			,SYSDATE AS MOD_DATE
+			,#{ses.userId} AS MOD_USER_ID
+			,'0' AS DEL_FLAG
+			,DEPT_CD
+			,ANN_NO
+			,ANN_DATE
+			,ANN_ITEM
+			,CONT_TYPE1
+			,CONT_TYPE2
+			,CONT_TYPE3
+			,TCO_FLAG
+			,TCO_YEAR_CNT
+			,CUR
+			,PR_AMT
+			,VAT_TYPE
+			,ESTM_OPEN_FLAG
+			,FINA_SOLV_FLAG
+			,ESTM_LIMIT_RATE
+			,RATE_SDEPT
+			,RATE_CURR
+			,DIFF_GUAR_FLAG
+			,TECH_SCORE
+			,PRC_SCORE
+			,MIN_TECH_SCORE
+			,MIN_TOT_SCORE
+			,BASIC_AMT
+			,CONF_STD_SCORE
+			,SB_LIMIT_RATE
+			,CONT_TERM
+			,VOTE_LIMIT_CNT
+			,APP_BEGIN_DATE
+			,APP_BEGIN_TIME
+			,APP_END_DATE
+			,APP_END_TIME
+			,APP_PLACE
+			,ESTM_TYPE
+			,LIMIT_CRIT
+			,PROM_CRIT
+			,BID_USER_ID
+			,ESTM_USER_ID
+			,OPEN_USER_ID
+			,TECH_EV_TYPE
+			,EV_USER_ID
+			,EV_TPL_NUM
+			,EI_NUM
+			,APP_ETC
+			,ATT_FILE_NUM
+			,ANNO_OPEN_FLAG
+			,ANNO_FLAG
+			,ANNO_DATE
+			,ANNO_TIME_FROM
+			,ANNO_TIME_TO
+			,ANNO_PLACE
+			,ANNO_NOTIFIER
+			,ANNO_RESP
+			,ANNO_RMK
+			,PROP_OPEN_FLAG
+			,PROP_FLAG
+			,PROP_DATE
+			,PROP_TIME_FROM
+			,PROP_TIME_TO
+			,PROP_PLACE
+			,PROP_NOTIFIER
+			,PROP_RESP
+			,PROP_RMK
+			,#{CANCEL_RMK_NUM} AS CANCEL_RMK
+			,#{SIGN_STATUS} AS SIGN_STATUS
+			,#{BID_STATUS} AS BID_STATUS
+		FROM STOCBDHD
+	   WHERE GATE_CD  = #{ses.gateCd}
+		 AND BUYER_CD = #{BUYER_CD}
+		 AND BID_NUM  = #{BID_NUM}
+		 AND BID_CNT  = #{ORI_BID_CNT}
+	</insert>
+
+	<insert id="cbdr0013_doCancelBidDT" parameterType="hashmap">
+
+		INSERT INTO STOCBDDT (
+			 GATE_CD
+			,BUYER_CD
+			,BID_NUM
+			,BID_CNT
+			,ITEM_SQ
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,PR_BUYER_CD
+			,PR_DEPT_CD
+			,PURCHASE_TYPE
+			,ITEM_CD
+			,ITEM_DESC
+			,ITEM_SPEC
+			,MAKER_CD
+			,MAKER_ART_NO
+			,ORIGIN_CD
+			,PR_QT
+			,UNIT_CD
+			,UNIT_PRC
+			,PR_AMT
+			,TCO_YEAR_CNT
+			,DUE_DATE
+			,ATT_FILE_NUM
+			,ITEM_RMK
+			,PR_NUM
+			,PR_SQ
+			,PB_BUYER_CD
+		)
+		SELECT
+			 GATE_CD
+			,BUYER_CD
+			,BID_NUM
+			,TO_NUMBER(#{BID_CNT}) AS BID_CNT
+			,ITEM_SQ
+			,SYSDATE AS REG_DATE
+			,#{ses.userId} AS REG_USER_ID
+			,SYSDATE AS MOD_DATE
+			,#{ses.userId} AS MOD_USER_ID
+			,'0' AS DEL_FLAG
+			,PR_BUYER_CD
+			,PR_DEPT_CD
+			,PURCHASE_TYPE
+			,ITEM_CD
+			,ITEM_DESC
+			,ITEM_SPEC
+			,MAKER_CD
+			,MAKER_ART_NO
+			,ORIGIN_CD
+			,PR_QT
+			,UNIT_CD
+			,UNIT_PRC
+			,PR_AMT
+			,TCO_YEAR_CNT
+			,DUE_DATE
+			,ATT_FILE_NUM
+			,ITEM_RMK
+			,PR_NUM
+			,PR_SQ
+			,PB_BUYER_CD
+		FROM STOCBDDT
+	   WHERE GATE_CD  = #{ses.gateCd}
+		 AND BUYER_CD = #{BUYER_CD}
+		 AND BID_NUM  = #{BID_NUM}
+		 AND BID_CNT  = #{ORI_BID_CNT}
+		 AND DEL_FLAG = '0'
+	</insert>
+	
+	<!-- 입찰취소공고시 지명경쟁인 경우 STOCBDAP도 등록 -->
+	<insert id="cbdr0013_doCancelBidAP" parameterType="hashmap">
+
+		INSERT INTO STOCBDAP (
+			  GATE_CD
+			, BUYER_CD
+			, BID_NUM
+			, BID_CNT
+			, VENDOR_CD
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+		)
+		SELECT
+			  HD.GATE_CD
+			, HD.BUYER_CD
+			, HD.BID_NUM
+			, TO_NUMBER(#{BID_CNT}) AS BID_CNT
+			, AP.VENDOR_CD
+			, SYSDATE AS REG_DATE
+			, #{ses.userId} AS REG_USER_ID
+			, SYSDATE AS MOD_DATE
+			, #{ses.userId} AS MOD_USER_ID
+			, '0' 	  AS DEL_FLAG
+		FROM STOCBDHD HD
+		JOIN STOCBDAP AP
+			 ON (AP.GATE_CD  = HD.GATE_CD
+			 AND AP.BUYER_CD = HD.BUYER_CD
+			 AND AP.BID_NUM  = HD.BID_NUM
+			 AND AP.BID_CNT  = HD.BID_CNT
+			 AND AP.DEL_FLAG = '0')
+	   WHERE HD.GATE_CD  = #{ses.gateCd}
+		 AND HD.BUYER_CD = #{BUYER_CD}
+		 AND HD.BID_NUM  = #{BID_NUM}
+		 AND HD.BID_CNT  = #{ORI_BID_CNT}
+		 AND HD.CONT_TYPE1 = 'NC'	-- 지명경쟁
+		 AND HD.DEL_FLAG = '0'
+	</insert>
+	
+	<!-- 2021.07.05 : 취소공고 삭제 -->
+	<delete id="cbdi0011_doDeleteCompBDHD" parameterType="hashMap">
+		
+        DELETE FROM STOCBDHD
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM  = #{BID_NUM}
+           AND BID_CNT  = #{BID_CNT}
+    </delete>
+	
+	<!-- 2021.07.05 : 취소공고 삭제 -->
+    <delete id="cbdi0011_doDeleteCompBDDT" parameterType="hashMap">
+		
+        DELETE FROM STOCBDDT
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM  = #{BID_NUM}
+           AND BID_CNT  = #{BID_CNT}
+    </delete>
+	
+	<!-- 2021.07.05 : 취소공고 삭제 -->
+    <delete id="cbdi0011_doDeleteCompBDAP" parameterType="hashMap">
+		
+        DELETE FROM STOCBDAP
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM  = #{BID_NUM}
+           AND BID_CNT  = #{BID_CNT}
+    </delete>
+    
+	<update id="setBidStatusForPreCnt" parameterType="hashmap">
+
+		UPDATE STOCBDHD SET
+			BID_STATUS = #{BID_STATUS}
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM  = #{BID_NUM}
+           AND BID_CNT  = #{ORI_BID_CNT}
+    </update>
+
+	<insert id="setBDESCopy" parameterType="hashmap">
+
+        INSERT INTO STOCBDES (
+			 GATE_CD
+			,BUYER_CD
+			,BID_NUM
+			,BID_CNT
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,QTA_NUM
+			,QTA_AMT
+			,PRESUM_AMT
+			,APP_DOC_NUM
+			,APP_DOC_CNT
+			,SIGN_STATUS
+			,SIGN_DATE
+			,ESTM_PRC1_ENC
+			,ESTM_PRC2_ENC
+			,ESTM_PRC3_ENC
+			,ESTM_PRC4_ENC
+			,ESTM_PRC5_ENC
+			,ESTM_PRC6_ENC
+			,ESTM_PRC7_ENC
+			,ESTM_PRC8_ENC
+			,ESTM_PRC9_ENC
+			,ESTM_PRC10_ENC
+			,ESTM_PRC11_ENC
+			,ESTM_PRC12_ENC
+			,ESTM_PRC13_ENC
+			,ESTM_PRC14_ENC
+			,ESTM_PRC15_ENC
+			,ESTM_ENCKEY
+			,ESTM_CERTV
+			,ESTM_CERTNUM
+			,ESTM_CONFIRM_DATE
+			,ESTM_CONFIRM_TIME
+			,ESTM_PRC1
+			,ESTM_PRC2
+			,ESTM_PRC3
+			,ESTM_PRC4
+			,ESTM_PRC5
+			,ESTM_PRC6
+			,ESTM_PRC7
+			,ESTM_PRC8
+			,ESTM_PRC9
+			,ESTM_PRC10
+			,ESTM_PRC11
+			,ESTM_PRC12
+			,ESTM_PRC13
+			,ESTM_PRC14
+			,ESTM_PRC15
+			,CHOIC_ESTM_PRC1
+			,CHOIC_ESTM_PRC2
+			,CHOIC_ESTM_PRC3
+			,CHOIC_ESTM_PRC4
+			,FINAL_ESTM_PRC
+			,ATT_FILE_NUM
+			,RMK
+		)
+        SELECT
+			 GATE_CD
+			,BUYER_CD
+			,BID_NUM
+			,#{BID_CNT}
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,QTA_NUM
+			,QTA_AMT
+			,PRESUM_AMT
+			,APP_DOC_NUM
+			,APP_DOC_CNT
+			,SIGN_STATUS
+			,SIGN_DATE
+			,ESTM_PRC1_ENC
+			,ESTM_PRC2_ENC
+			,ESTM_PRC3_ENC
+			,ESTM_PRC4_ENC
+			,ESTM_PRC5_ENC
+			,ESTM_PRC6_ENC
+			,ESTM_PRC7_ENC
+			,ESTM_PRC8_ENC
+			,ESTM_PRC9_ENC
+			,ESTM_PRC10_ENC
+			,ESTM_PRC11_ENC
+			,ESTM_PRC12_ENC
+			,ESTM_PRC13_ENC
+			,ESTM_PRC14_ENC
+			,ESTM_PRC15_ENC
+			,ESTM_ENCKEY
+			,ESTM_CERTV
+			,ESTM_CERTNUM
+			,ESTM_CONFIRM_DATE
+			,ESTM_CONFIRM_TIME
+			,ESTM_PRC1
+			,ESTM_PRC2
+			,ESTM_PRC3
+			,ESTM_PRC4
+			,ESTM_PRC5
+			,ESTM_PRC6
+			,ESTM_PRC7
+			,ESTM_PRC8
+			,ESTM_PRC9
+			,ESTM_PRC10
+			,ESTM_PRC11
+			,ESTM_PRC12
+			,ESTM_PRC13
+			,ESTM_PRC14
+			,ESTM_PRC15
+			,CHOIC_ESTM_PRC1
+			,CHOIC_ESTM_PRC2
+			,CHOIC_ESTM_PRC3
+			,CHOIC_ESTM_PRC4
+			,FINAL_ESTM_PRC
+			,ATT_FILE_NUM
+			,RMK
+         FROM STOCBDES
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM  = #{BID_NUM}
+           AND BID_CNT  = #{ORI_BID_CNT}
+		   AND DEL_FLAG = '0'
+    </insert>
+
+	<insert id="setBDESPreCopy" parameterType="hashmap">
+
+        INSERT INTO STOCBDES (
+			 GATE_CD
+			,BUYER_CD
+			,BID_NUM
+			,BID_CNT
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,QTA_NUM
+			,QTA_AMT
+			,PRESUM_AMT
+			,APP_DOC_NUM
+			,APP_DOC_CNT
+			,SIGN_STATUS
+			,SIGN_DATE
+			,ESTM_PRC1_ENC
+			,ESTM_PRC2_ENC
+			,ESTM_PRC3_ENC
+			,ESTM_PRC4_ENC
+			,ESTM_PRC5_ENC
+			,ESTM_PRC6_ENC
+			,ESTM_PRC7_ENC
+			,ESTM_PRC8_ENC
+			,ESTM_PRC9_ENC
+			,ESTM_PRC10_ENC
+			,ESTM_PRC11_ENC
+			,ESTM_PRC12_ENC
+			,ESTM_PRC13_ENC
+			,ESTM_PRC14_ENC
+			,ESTM_PRC15_ENC
+			,ESTM_ENCKEY
+			,ESTM_CERTV
+			,ESTM_CERTNUM
+			,ESTM_CONFIRM_DATE
+			,ESTM_CONFIRM_TIME
+			,ESTM_PRC1
+			,ESTM_PRC2
+			,ESTM_PRC3
+			,ESTM_PRC4
+			,ESTM_PRC5
+			,ESTM_PRC6
+			,ESTM_PRC7
+			,ESTM_PRC8
+			,ESTM_PRC9
+			,ESTM_PRC10
+			,ESTM_PRC11
+			,ESTM_PRC12
+			,ESTM_PRC13
+			,ESTM_PRC14
+			,ESTM_PRC15
+			,CHOIC_ESTM_PRC1
+			,CHOIC_ESTM_PRC2
+			,CHOIC_ESTM_PRC3
+			,CHOIC_ESTM_PRC4
+			,FINAL_ESTM_PRC
+			,ATT_FILE_NUM
+			,RMK
+		)
+        SELECT
+			 GATE_CD
+			,BUYER_CD
+			,#{BID_NUM}
+			,#{BID_CNT}
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,QTA_NUM
+			,QTA_AMT
+			,PRESUM_AMT
+			,APP_DOC_NUM
+			,APP_DOC_CNT
+			,SIGN_STATUS
+			,SIGN_DATE
+			,ESTM_PRC1_ENC
+			,ESTM_PRC2_ENC
+			,ESTM_PRC3_ENC
+			,ESTM_PRC4_ENC
+			,ESTM_PRC5_ENC
+			,ESTM_PRC6_ENC
+			,ESTM_PRC7_ENC
+			,ESTM_PRC8_ENC
+			,ESTM_PRC9_ENC
+			,ESTM_PRC10_ENC
+			,ESTM_PRC11_ENC
+			,ESTM_PRC12_ENC
+			,ESTM_PRC13_ENC
+			,ESTM_PRC14_ENC
+			,ESTM_PRC15_ENC
+			,ESTM_ENCKEY
+			,ESTM_CERTV
+			,ESTM_CERTNUM
+			,ESTM_CONFIRM_DATE
+			,ESTM_CONFIRM_TIME
+			,ESTM_PRC1
+			,ESTM_PRC2
+			,ESTM_PRC3
+			,ESTM_PRC4
+			,ESTM_PRC5
+			,ESTM_PRC6
+			,ESTM_PRC7
+			,ESTM_PRC8
+			,ESTM_PRC9
+			,ESTM_PRC10
+			,ESTM_PRC11
+			,ESTM_PRC12
+			,ESTM_PRC13
+			,ESTM_PRC14
+			,ESTM_PRC15
+			,CHOIC_ESTM_PRC1
+			,CHOIC_ESTM_PRC2
+			,CHOIC_ESTM_PRC3
+			,CHOIC_ESTM_PRC4
+			,FINAL_ESTM_PRC
+			,ATT_FILE_NUM
+			,RMK
+         FROM STOCBDES
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM  = #{PRE_BID_NUM}
+           AND BID_CNT  = #{PRE_BID_CNT}
+		   AND DEL_FLAG = '0'
+    </insert>
+
+	<update id="cbdr0013_doUpdateBid" parameterType="hashmap">
+
+		UPDATE STOCBDHD SET
+			   BID_STATUS  = #{BID_STATUS}
+			 , CANCEL_RMK  = #{CANCEL_RMK_NUM}
+			 , SIGN_STATUS = #{SIGN_STATUS}
+			 , MOD_DATE    = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM  = #{BID_NUM}
+           AND BID_CNT  = #{ORI_BID_CNT}
+    </update>
+
+	<select id="cbdr0015_doSearchHD" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 HD.ANN_NO, HD.ANN_ITEM
+			,SUBSTR(HD.ANN_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.ANN_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.ANN_DATE, 7, 2) AS ANN_DATE
+            ,<include refid="common.sql.dbo"/>getContTypeTxt(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, #{ses.langCd}) AS CONT_TYPE_TXT
+			,SUBSTR(HD.APP_END_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '년 ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '월 ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 7, 2) <include refid="common.sql.stringMerge"/> '일 ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 1, 2) || '시 ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 3, 2) <include refid="common.sql.stringMerge"/> '분' AS APP_END_DATE
+			,HD.BID_USER_ID, HD.EV_USER_ID
+			,HD.LIMIT_CRIT
+			,HD.PROM_CRIT
+			,HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, HD.BID_STATUS
+			,HD.CONT_TYPE1, HD.CONT_TYPE2, HD.CONT_TYPE3
+			,HD.EI_NUM
+		  FROM STOCBDHD HD
+		 WHERE HD.GATE_CD  = #{ses.gateCd}
+		   AND HD.BUYER_CD = #{BUYER_CD}
+		   AND HD.BID_NUM  = #{BID_NUM}
+		   AND HD.BID_CNT  = #{BID_CNT}
+	</select>
+
+	<select id="getMaxProgressCd" parameterType="hashmap" resultType="java.lang.String">
+
+		SELECT MAX(BDEU.PROGRESS_CD) FROM STOCBDEU BDEU
+		 WHERE BDEU.GATE_CD = #{ses.gateCd}
+		   AND BDEU.BUYER_CD = #{BUYER_CD}
+		   AND BDEU.EI_NUM = #{EI_NUM}
+		   AND BDEU.DEL_FLAG = '0'
+	</select>
+
+	<update id="cbdr0015_doEval" parameterType="hashmap">
+
+		UPDATE STOCBDEU SET
+			 PROGRESS_CD = #{PROGRESS_CD}
+			,EU_REQ_DATE = SYSDATE
+			,MOD_DATE = SYSDATE
+			,MOD_USER_ID = #{ses.userId}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND EI_NUM   = #{EI_NUM}
+		   AND EU_SQ    = #{EU_SQ}
+	</update>
+
+	<update id="cbdr0015_setBidStatus" parameterType="hashmap">
+
+		UPDATE STOCBDHD SET
+			 BID_STATUS = #{BID_STATUS}
+			,MOD_DATE = SYSDATE
+			,MOD_USER_ID = #{ses.userId}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND BID_NUM  = #{BID_NUM}
+		   AND BID_CNT  = #{BID_CNT}
+	</update>
+
+	<select id="cbdr0016_doSearchCandidate" parameterType="hashMap" resultType="hashMap">
+
+			SELECT
+				  <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M014', VNGL.REG_TYPE, 0, #{ses.langCd}) AS REG_TYPE_LOC
+				, <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP040', VNGL.BUSINESS_DIVISION, 0, #{ses.langCd}) AS BUSINESS_DIVISION_LOC
+				, <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP063', VNGL.GROUP_YN, 0, #{ses.langCd}) AS GROUP_YN_LOC
+				, VNGL.VENDOR_CD
+				, <include refid="common.sql.dbo"/>GETVENDORNAME(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+				, VNGL.IRS_NO
+				, <include refid="common.sql.strDecStart"/>VNGL.TEL_NO<include refid="common.sql.strDecEnd"/> AS TEL_NO
+				, <include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+			  FROM STOCVNGL VNGL
+			 WHERE VNGL.GATE_CD  = #{ses.gateCd}
+			   AND VNGL.DEL_FLAG = '0'
+			   AND VNGL.PROGRESS_CD = 'E'
+			   AND NVL(VNGL.BLOCK_FLAG,'0') != '1'
+			   AND EXISTS (SELECT 1 FROM STOCVNCM VNCM
+			   				WHERE VNCM.GATE_CD   = VNGL.GATE_CD
+			   				  AND VNCM.VENDOR_CD = VNGL.VENDOR_CD
+			   				  AND VNCM.BUYER_CD  = #{ses.companyCd}
+			   				  AND VNCM.CONFIRM_FLAG = 'E'	-- 거래요청고객사 (E=승인)
+			   				  AND VNCM.DEL_FLAG  = '0')
+				
+		<if test="selectedVendors == null or selectedVendors.isEmpty">
+			<if test="vdList != null">AND VNGL.VENDOR_CD IN
+				<foreach item="node" collection="vdList" open="(" separator="," close=")">
+					#{node.VENDOR_CD}
+				</foreach>
+			</if>
+			<if test="VENDOR_CD != '' and VENDOR_CD != null">
+				AND UPPER(VNGL.VENDOR_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_CD}) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+			<if test="VENDOR_NM != '' and VENDOR_NM != null">
+				AND UPPER(<include refid="common.sql.dbo"/>GETVENDORNAME(#{ses.gateCd}, VNGL.VENDOR_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+		</if>
+		<if test="selectedVendors != null and !selectedVendors.isEmpty">
+			AND VNGL.VENDOR_CD IN
+			<foreach open="(" collection="selectedVendors" item="vendor" separator="union" close=")">
+				SELECT #{vendor} <include refid="common.sql.dual"/>
+			</foreach>
+		</if>
+	</select>
+
+	<select id="cbdi0016_doSearchEVTD" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 EVIM.EV_ITEM_SUBJECT
+			,<include refid="common.sql.dbo"/>GETCOMCODE(EVIM.GATE_CD, (CASE EVIM.EV_ITEM_KIND_CD WHEN 'E' THEN 'M114' ELSE 'M113' END), EVIM.EV_ITEM_TYPE_CD, '0', #{ses.langCd}) AS EV_ITEM_TYPE_NM
+			,EVIM.EV_ITEM_METHOD_CD
+			,EVIM.SCALE_TYPE_CD
+			,EVTD.WEIGHT
+			,EVTD.SORT_SQ
+			,EVIM.EV_ITEM_CONTENTS
+			,EVIM.EV_ITEM_KIND_CD
+			,EVTD.EV_ITEM_NUM
+			,EVIM.EV_ITEM_TYPE_CD
+			,EVIM.EV_ITEM_DIV_CD
+			,QTY_ITEM_CD
+			,(SELECT COUNT(GATE_CD) FROM STOCEVID WHERE GATE_CD = EVIM.GATE_CD AND BUYER_CD = EVIM.BUYER_CD AND EV_ITEM_NUM = EVIM.EV_ITEM_NUM AND DEL_FLAG ='0' ) AS SCALE_COUNT
+			,(SELECT TM.EV_TPL_SUBJECT FROM STOCEVTM TM WHERE TM.GATE_CD = EVTD.GATE_CD AND TM.BUYER_CD = EVTD.BUYER_CD AND TM.EV_TPL_NUM = EVTD.EV_TPL_NUM) AS EV_TPL_SUBJECT
+		  FROM STOCEVTD EVTD 
+		  LEFT JOIN STOCEVIM EVIM
+			   ON (EVTD.GATE_CD  = EVIM.GATE_CD
+			   AND EVTD.BUYER_CD = EVIM.BUYER_CD
+			   AND EVTD.EV_ITEM_NUM = EVIM.EV_ITEM_NUM)
+		 WHERE EVTD.GATE_CD = #{ses.gateCd}
+		   AND EVTD.BUYER_CD = #{ses.companyCd}
+		   AND EVTD.EV_TPL_NUM = #{EV_TPL_NUM}
+		   AND EVTD.DEL_FLAG = '0'
+		   AND EVIM.DEL_FLAG = '0'
+		   AND EVIM.CREATE_TYPE_CD = 'S'
+		 ORDER BY EVTD.SORT_SQ
+	</select>
+
+	<select id="cbdi0016_doSearchBDEV" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 BDEV.EV_ITEM_SUBJECT
+			,<include refid="common.sql.dbo"/>GETCOMCODE(BDEV.GATE_CD, (CASE BDEV.EV_ITEM_KIND_CD WHEN 'E' THEN 'M114' ELSE 'M113' END), BDEV.EV_ITEM_TYPE_CD, '0', #{ses.langCd}) AS EV_ITEM_TYPE_NM
+			,BDEV.EV_ITEM_METHOD_CD
+			,BDEV.SCALE_TYPE_CD
+			,BDEV.WEIGHT
+			,BDEV.SORT_SQ
+			,BDEV.EV_ITEM_CONTENTS
+			,BDEV.EV_ITEM_KIND_CD
+			,'' AS EV_ITEM_NUM
+			,BDEV.EV_ITEM_TYPE_CD
+			,BDEV.EV_ITEM_DIV_CD
+			,BDEV.QTY_ITEM_CD
+			,0 AS SCALE_COUNT
+			,(SELECT TM.EV_TPL_SUBJECT FROM STOCEVTM TM WHERE TM.GATE_CD = BDEV.GATE_CD AND TM.BUYER_CD = BDEV.BUYER_CD AND TM.EV_TPL_NUM = #{EV_TPL_NUM}) AS EV_TPL_SUBJECT
+			,BDEV.EI_NUM
+			,BDEV.EI_SQ
+		  FROM STOCBDEV BDEV
+		 WHERE BDEV.GATE_CD  = #{ses.gateCd}
+		   AND BDEV.BUYER_CD = #{ses.companyCd}
+		   AND BDEV.EI_NUM   = #{EI_NUM}
+		   AND BDEV.DEL_FLAG = '0'
+		 ORDER BY BDEV.SORT_SQ
+	</select>
+
+	<select id="cbdi0016_doSearchEvalItemMgtDetail1" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+        	 EVID.EV_ID_ORDER
+			,EVID.EV_ID_CONTENTS
+			,EVID.EV_ID_SCORE
+	        ,'' AS EI_NUM
+	        ,'' AS EI_SQ
+	        ,'' AS EI_ID_SQ
+	        ,'U' AS INSERT_FLAG
+		  FROM STOCEVID EVID
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND EVID.BUYER_CD = #{ses.companyCd}
+		   AND EVID.DEL_FLAG = '0'
+		   AND EVID.EV_ITEM_NUM = #{EV_ITEM_NUM}
+	     ORDER BY EVID.EV_ID_ORDER
+
+    </select>
+
+	<select id="cbdi0016_doSearchEvalItemMgtDetail2" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+        	 EVID.EV_ID_ORDER
+			,EVID.EV_ID_CONTENTS
+			,EVID.FROM_VALUE
+			,EVID.FROM_CONDITION_CD
+			,EVID.TO_VALUE
+			,EVID.TO_CONDITION_CD
+			,EVID.EV_ID_SCORE
+	        ,'' AS EI_NUM
+	        ,'' AS EI_SQ
+	        ,'' AS EI_ID_SQ
+	        ,'U' AS INSERT_FLAG
+		  FROM STOCEVID EVID
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND EVID.BUYER_CD = #{ses.companyCd}
+		   AND DEL_FLAG = '0'
+		   AND EVID.EV_ITEM_NUM = #{EV_ITEM_NUM}
+	     ORDER BY EVID.EV_ID_ORDER
+
+    </select>
+
+	<select id="cbdi0016_doSearchBDEI" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+        	 BDEI.EV_ID_ORDER
+			,BDEI.EV_ID_CONTENTS
+			,BDEI.EV_ID_SCORE
+			,BDEI.FROM_VALUE
+			,BDEI.FROM_CONDITION_CD
+			,BDEI.TO_VALUE
+			,BDEI.TO_CONDITION_CD
+			,BDEI.EV_ID_SCORE
+	        ,BDEI.EI_NUM
+	        ,BDEI.EI_SQ
+	        ,BDEI.EI_ID_SQ
+	        ,'U' AS INSERT_FLAG
+		  FROM STOCBDEI BDEI
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BDEI.BUYER_CD = #{ses.companyCd}
+		   AND BDEI.EI_NUM = #{EI_NUM}
+		   AND BDEI.EI_SQ = #{EI_SQ_RT}
+		   AND DEL_FLAG = '0'
+	     ORDER BY BDEI.EV_ID_ORDER
+
+    </select>
+
+	<insert id="cbdi0016_doMergeBDEV" parameterType="hashmap" useGeneratedKeys="true">
+
+		<selectKey keyProperty="EI_SQ_KEY" resultType="int" order="BEFORE">
+			SELECT (CASE WHEN <include refid="common.sql.nvl"/>(TO_CHAR(#{EI_SQ}), '-') = '-' THEN <include refid="common.sql.nvl"/>(MAX(TO_NUMBER(EI_SQ)), 0) + 1 ELSE TO_NUMBER(#{EI_SQ}) END) FROM STOCBDEV
+			 WHERE GATE_CD = #{ses.gateCd}
+			   AND BUYER_CD = #{BUYER_CD}
+			   AND EI_NUM = #{EI_NUM}
+		</selectKey>
+
+		MERGE <include refid="common.sql.mergeInto"/> STOCBDEV BDEV
+		USING (SELECT
+					 #{ses.gateCd} AS GATE_CD
+					,#{BUYER_CD} AS BUYER_CD
+					,#{EI_NUM} AS EI_NUM
+					,#{EI_SQ} AS EI_SQ
+				<include refid="common.sql.dual"/>) B
+		  ON (BDEV.GATE_CD = B.GATE_CD
+		  AND BDEV.BUYER_CD = B.BUYER_CD
+		  AND BDEV.EI_NUM = B.EI_NUM
+		  AND BDEV.EI_SQ = B.EI_SQ)
+		WHEN MATCHED THEN
+		UPDATE SET
+			 MOD_DATE = SYSDATE
+			,MOD_USER_ID = #{ses.userId}
+			,EV_ITEM_KIND_CD = #{EV_ITEM_KIND_CD}
+			,EV_ITEM_SUBJECT = #{EV_ITEM_SUBJECT}
+			,EV_ITEM_CONTENTS = #{EV_ITEM_CONTENTS}
+			,SCALE_TYPE_CD = #{SCALE_TYPE_CD}
+			,EV_ITEM_METHOD_CD = #{EV_ITEM_METHOD_CD}
+			,EV_ITEM_TYPE_CD = #{EV_ITEM_TYPE_CD}
+			,WEIGHT = <include refid="common.sql.nvl"/>(#{WEIGHT}, '0')
+			,SORT_SQ = #{SORT_SQ}
+		WHEN NOT MATCHED THEN
+		INSERT (
+			 GATE_CD
+			,BUYER_CD
+			,EI_NUM
+			,EI_SQ
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,EV_ITEM_TYPE_CD
+			,EV_ITEM_SUBJECT
+			,EV_ITEM_CONTENTS
+			,EV_ITEM_KIND_CD
+			,SCALE_TYPE_CD
+			,EV_ITEM_METHOD_CD
+			,WEIGHT
+			,SORT_SQ
+		) VALUES (
+			 #{ses.gateCd}
+			,#{BUYER_CD}
+			,#{EI_NUM}
+		<choose>
+			<when test="EI_SQ == '' or EI_SQ == null">
+				,(SELECT <include refid="common.sql.nvl"/>(MAX(TO_NUMBER(EI_SQ)), 0) + 1 FROM STOCBDEV
+				   WHERE GATE_CD = #{ses.gateCd}
+				     AND BUYER_CD = #{BUYER_CD}
+				     AND EI_NUM = #{EI_NUM})
+			</when>
+			<otherwise>
+				,#{EI_SQ}
+			</otherwise>
+		</choose>
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+			,'0'
+			,#{EV_ITEM_TYPE_CD}
+			,#{EV_ITEM_SUBJECT}
+			,#{EV_ITEM_CONTENTS}
+			,#{EV_ITEM_KIND_CD}
+			,#{SCALE_TYPE_CD}
+			,#{EV_ITEM_METHOD_CD}
+			,<include refid="common.sql.nvl"/>(#{WEIGHT}, '0')
+			,#{SORT_SQ}
+		)
+		<include refid="common.sql.comma"/>
+
+	</insert>
+
+	<insert id="cbdi0016_doInsertBDEI" parameterType="hashMap">
+
+		INSERT INTO STOCBDEI (
+			 GATE_CD
+			,BUYER_CD
+			,EI_NUM
+			,EI_SQ
+			,EI_ID_SQ
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,EV_ID_ORDER
+			,EV_ID_CONTENTS
+			,EV_ID_SCORE
+			,FROM_VALUE
+			,FROM_CONDITION_CD
+			,TO_VALUE
+			,TO_CONDITION_CD
+		)(SELECT
+				 EVID.GATE_CD
+				,EVID.BUYER_CD
+				,#{EI_NUM}
+				,#{EI_SQ}
+				,EVID.EV_ID_SQ
+				,SYSDATE
+				,#{ses.userId}
+				,SYSDATE
+				,#{ses.userId}
+				,'0'
+				,EVID.EV_ID_ORDER
+				,EVID.EV_ID_CONTENTS
+				,EVID.EV_ID_SCORE
+				,EVID.FROM_VALUE
+				,EVID.FROM_CONDITION_CD
+				,EVID.TO_VALUE
+				,EVID.TO_CONDITION_CD
+		    FROM STOCEVID EVID
+		   WHERE EVID.GATE_CD = #{ses.gateCd}
+		     AND EVID.BUYER_CD = #{BUYER_CD}
+		     AND EVID.EV_ITEM_NUM = #{EV_ITEM_NUM}
+		     AND EVID.DEL_FLAG = '0')
+
+	</insert>
+
+	<delete id="cbdi0016_doDeleteBDEV" parameterType="hashmap">
+
+		DELETE FROM STOCBDEV
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND EI_NUM = #{EI_NUM}
+		   AND EI_SQ = #{EI_SQ}
+
+    </delete>
+
+	<delete id="cbdi0016_doDeleteBDEI" parameterType="hashmap">
+
+		DELETE FROM STOCBDEI
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND EI_NUM = #{EI_NUM}
+		   AND EI_SQ = #{EI_SQ}
+
+    </delete>
+
+	<insert id="cbdi0016_doMergeBDEI" parameterType="hashmap" useGeneratedKeys="true">
+
+		<selectKey keyProperty="EI_ID_SQ_KEY" resultType="int" order="BEFORE">
+			SELECT (CASE WHEN <include refid="common.sql.nvl"/>(TO_CHAR(#{EI_ID_SQ}), '-') = '-' THEN <include refid="common.sql.nvl"/>(MAX(TO_NUMBER(EI_ID_SQ)), 0) + 1 ELSE TO_NUMBER(#{EI_ID_SQ}) END) FROM STOCBDEI
+			 WHERE GATE_CD = #{ses.gateCd}
+			   AND BUYER_CD = #{BUYER_CD}
+			   AND EI_NUM = #{EI_NUM}
+			   AND EI_SQ = #{EI_SQ}
+		</selectKey>
+
+		MERGE <include refid="common.sql.mergeInto"/> STOCBDEI BDEI
+		USING (SELECT
+					 #{ses.gateCd} AS GATE_CD
+					,#{BUYER_CD} AS BUYER_CD
+					,#{EI_NUM} AS EI_NUM
+					,#{EI_SQ} AS EI_SQ
+					,#{EI_ID_SQ} AS EI_ID_SQ
+				<include refid="common.sql.dual"/>) B
+		  ON (BDEI.GATE_CD = B.GATE_CD
+		  AND BDEI.BUYER_CD = B.BUYER_CD
+		  AND BDEI.EI_NUM = B.EI_NUM
+		  AND BDEI.EI_SQ = B.EI_SQ
+		  AND BDEI.EI_ID_SQ = B.EI_ID_SQ)
+		WHEN MATCHED THEN
+		UPDATE SET
+			 MOD_DATE = SYSDATE
+			,MOD_USER_ID = #{ses.userId}
+			,EV_ID_ORDER = #{EV_ID_ORDER}
+			,EV_ID_CONTENTS = #{EV_ID_CONTENTS}
+			,EV_ID_SCORE = #{EV_ID_SCORE}
+			,FROM_VALUE = #{FROM_VALUE}
+			,FROM_CONDITION_CD = #{FROM_CONDITION_CD}
+			,TO_VALUE = #{TO_VALUE}
+			,TO_CONDITION_CD = #{TO_CONDITION_CD}
+		WHEN NOT MATCHED THEN
+		INSERT (
+			 GATE_CD
+			,BUYER_CD
+			,EI_NUM
+			,EI_SQ
+			,EI_ID_SQ
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,EV_ID_ORDER
+			,EV_ID_CONTENTS
+			,EV_ID_SCORE
+			,FROM_VALUE
+			,FROM_CONDITION_CD
+			,TO_VALUE
+			,TO_CONDITION_CD
+		) VALUES (
+			 #{ses.gateCd}
+			,#{BUYER_CD}
+			,#{EI_NUM}
+			,#{EI_SQ}
+		<choose>
+			<when test="EI_ID_SQ == '' or EI_ID_SQ == null">
+				,(SELECT <include refid="common.sql.nvl"/>(MAX(TO_NUMBER(EI_ID_SQ)), 0) + 1 FROM STOCBDEI
+				   WHERE GATE_CD = #{ses.gateCd}
+				     AND BUYER_CD = #{BUYER_CD}
+				     AND EI_NUM = #{EI_NUM}
+				     AND EI_SQ = #{EI_SQ})
+			</when>
+			<otherwise>
+				,#{EI_ID_SQ}
+			</otherwise>
+		</choose>
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+			,'0'
+			,#{EV_ID_ORDER}
+			,#{EV_ID_CONTENTS}
+			,#{EV_ID_SCORE}
+			,#{FROM_VALUE}
+			,#{FROM_CONDITION_CD}
+			,#{TO_VALUE}
+			,#{TO_CONDITION_CD}
+		)
+		<include refid="common.sql.comma"/>
+
+	</insert>
+
+	<delete id="cbdi0016_doDeleteR" parameterType="hashmap">
+
+		DELETE FROM STOCBDEI
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND EI_NUM = #{EI_NUM}
+		   AND EI_SQ = #{EI_SQ}
+		   AND EI_ID_SQ = #{EI_ID_SQ}
+
+    </delete>
+
+	<update id="cbdi0016_doDeleteBDEUGarbage1" parameterType="hashMap">
+
+		DELETE FROM STOCBDEU BDEU
+		 WHERE BDEU.GATE_CD = #{ses.gateCd}
+		   AND BDEU.BUYER_CD = #{BUYER_CD}
+		   AND NOT EXISTS (SELECT 1 FROM STOCBDHD BDHD WHERE BDHD.GATE_CD = BDEU.GATE_CD AND BDHD.BUYER_CD = BDEU.BUYER_CD AND BDHD.EI_NUM = BDEU.EI_NUM)
+		   AND BDEU.REG_DATE <![CDATA[<]]> SYSDATE - 2
+		   AND BDEU.DEL_FLAG = '0'
+
+	</update>
+
+	<update id="cbdi0016_doDeleteBDEIGarbage2" parameterType="hashMap">
+
+		DELETE FROM STOCBDEI BDEI
+		 WHERE BDEI.GATE_CD = #{ses.gateCd}
+		   AND BDEI.BUYER_CD = #{BUYER_CD}
+		   AND NOT EXISTS (SELECT 1 FROM STOCBDHD BDHD WHERE BDHD.GATE_CD = BDEI.GATE_CD AND BDHD.BUYER_CD = BDEI.BUYER_CD AND BDHD.EI_NUM = BDEI.EI_NUM)
+		   AND BDEI.REG_DATE <![CDATA[<]]> SYSDATE - 2
+		   AND BDEI.DEL_FLAG = '0'
+
+	</update>
+
+	<update id="cbdi0016_doDeleteBDEVGarbage3" parameterType="hashMap">
+
+		DELETE FROM STOCBDEV BDEV
+		 WHERE BDEV.GATE_CD = #{ses.gateCd}
+		   AND BDEV.BUYER_CD = #{BUYER_CD}
+		   AND NOT EXISTS (SELECT 1 FROM STOCBDHD BDHD WHERE BDHD.GATE_CD = BDEV.GATE_CD AND BDHD.BUYER_CD = BDEV.BUYER_CD AND BDHD.EI_NUM = BDEV.EI_NUM)
+		   AND BDEV.REG_DATE <![CDATA[<]]> SYSDATE - 2
+		   AND BDEV.DEL_FLAG = '0'
+
+	</update>
+	
+	<!-- 2021.07.06 : 입찰관리 > 입찰등록 -->
+	<select id="cbdi0020_doSearch" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			  HD.BUYER_CD
+			, HD.BID_NUM
+			, HD.BID_CNT
+			, PG.VOTE_CNT
+			,<include refid="common.sql.dbo"/>getBuyerNames(HD.GATE_CD, HD.BUYER_CD, 'BID', HD.BID_NUM, HD.BID_CNT, null, #{ses.langCd}) AS BUYER_NM
+			, HD.ANN_NO
+			,(CASE WHEN HD.BID_STATUS IN ('2303', '2330') THEN '[취소]' || HD.ANN_ITEM ELSE HD.ANN_ITEM END ) AS ANN_ITEM
+			, HD.ANN_DATE
+			, HD.CONT_TYPE1
+			, HD.CONT_TYPE2
+			, HD.CONT_TYPE3
+			, SUBSTR(HD.APP_BEGIN_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_DATE, 7, 2) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_TIME, 1, 2) <include refid="common.sql.stringMerge"/> ':' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_TIME, 3, 2) AS APP_BEGIN_DATETIME
+			, SUBSTR(HD.APP_END_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 7, 2) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 1, 2) <include refid="common.sql.stringMerge"/> ':' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 3, 2) AS APP_END_DATETIME
+			,<include refid="common.sql.dbo"/>getBidAppProgressCd(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, 'CD') AS BID_STATUS
+			,<include refid="common.sql.dbo"/>getBidAppProgressCd(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, 'LOC') AS BID_STATUS_LOC
+			, HD.BID_STATUS AS ORI_BID_STATUS
+			, HD.BID_USER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.BID_USER_ID, #{ses.langCd}) AS BID_USER_NM
+			, HD.SIGN_STATUS
+            ,(CASE WHEN HD.ESTM_TYPE IN ('SE', 'PE')
+	                    THEN (CASE WHEN (SELECT COUNT(ES.BID_CNT) AS NON_FINISH_CNT
+	                                       FROM STOCBDES ES
+	                                      WHERE ES.GATE_CD  = HD.GATE_CD
+	                                        AND ES.BUYER_CD = HD.BUYER_CD
+	                                        AND ES.BID_NUM  = HD.BID_NUM
+	                                        AND ES.BID_CNT  = HD.BID_CNT
+	                                        AND ES.SIGN_STATUS = 'E'
+	                                        AND ES.ESTM_CONFIRM_DATE IS NOT NULL
+	                                        AND ES.DEL_FLAG = '0') <![CDATA[>]]> 0 THEN 'Y'
+	                               ELSE 'N'
+	                          END)
+                   ELSE 'Y'
+              END) AS ESTM_FINISH_FLAG
+            , PG.PERIOD_MOD_DATE
+		    , PG.PERIOD_MOD_RSN  
+		 FROM STOCBDHD HD
+		 LEFT JOIN STOCBDPG PG
+	  	   	  ON (HD.GATE_CD  = PG.GATE_CD
+	  	   	  AND HD.BUYER_CD = PG.BUYER_CD
+	  	   	  AND HD.BID_NUM  = PG.BID_NUM
+	  	   	  AND HD.BID_CNT  = PG.BID_CNT
+	  	   	  AND PG.VOTE_CNT = (SELECT MAX(VOTE_CNT) FROM STOCBDPG
+	  	   					   	  WHERE GATE_CD  = PG.GATE_CD
+	  	   					     	AND BUYER_CD = PG.BUYER_CD
+	  	   					     	AND BID_NUM  = PG.BID_NUM
+	  	   					     	AND BID_CNT  = PG.BID_CNT
+	  	   					     	AND DEL_FLAG = '0'))
+		 WHERE HD.GATE_CD  = #{ses.gateCd}
+		   AND HD.BUYER_CD = #{ses.companyCd}
+		   AND HD.DEL_FLAG = '0'
+		   AND HD.BID_STATUS NOT IN ('1300', '2303', '9999')	-- 유찰, 취소공고작성중, 취소공고완료된 이전차수 입찰건 제외
+		   AND TO_NUMBER(HD.BID_STATUS) <![CDATA[<]]> 2350
+		   AND HD.SIGN_STATUS = 'E'
+		   AND ((TO_CHAR(SYSDATE, 'YYYYMMDD') <![CDATA[>=]]> HD.APP_BEGIN_DATE AND TO_CHAR(SYSDATE, 'YYYYMMDD') <![CDATA[<]]> HD.APP_END_DATE) OR
+		   	    (TO_CHAR(SYSDATE, 'YYYYMMDD') <![CDATA[>=]]> HD.APP_END_DATE OR HD.BID_STATUS IN ('2350','2353','2363')))
+
+		<if test="APP_END_FROM !='' and APP_END_FROM != null and APP_END_TO !='' and APP_END_TO != null">
+			AND HD.APP_END_DATE <![CDATA[>=]]> #{APP_END_FROM}
+			AND HD.APP_END_DATE <![CDATA[<=]]> #{APP_END_TO}
+		</if>
+		<if test="BID_STATUS != '' and BID_STATUS != null">
+			AND <include refid="common.sql.dbo"/>getBidAppProgressCd(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, 'CD') = #{BID_STATUS}
+		</if>
+		<if test="BID_USER_ID != '' and BID_USER_ID != null">
+			AND HD.BID_USER_ID = #{BID_USER_ID}
+		</if>
+		<if test="BID_USER_NM != '' and BID_USER_NM != null">
+			AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.BID_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BID_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="ANN_NO != '' and ANN_NO != null">
+			AND UPPER(HD.ANN_NO) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ANN_NO}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="ANN_ITEM != '' and ANN_ITEM != null">
+			AND UPPER(REPLACE(HD.ANN_ITEM, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{ANN_ITEM}, ' ', '')) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="(BUYER_CD != '' and BUYER_CD != null) or (BUYER_NM != '' and BUYER_NM != null)">
+			AND EXISTS (SELECT 1 FROM STOCBDDT DT
+						 WHERE DT.GATE_CD            = HD.GATE_CD
+						   AND DT.BUYER_CD           = HD.BUYER_CD
+						   AND DT.BID_NUM            = HD.BID_NUM
+						   AND DT.BID_CNT            = HD.BID_CNT
+						   <if test="BUYER_CD != '' and BUYER_CD != null">
+						   AND UPPER(DT.PR_BUYER_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_CD}) <include refid="common.sql.stringMerge"/> '%'
+						   </if>
+						   <if test="BUYER_NM != '' and BUYER_NM != null">
+						   AND UPPER(<include refid="common.sql.dbo"/>getCustName(DT.GATE_CD, DT.PR_BUYER_CD)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+						   </if>
+						   AND DT.DEL_FLAG           = '0')
+		</if>
+
+		 ORDER BY HD.APP_END_DATE, HD.APP_END_TIME
+	</select>
+	
+	<!-- 2020.12.02 로직 추가 -->
+	<!-- 입찰마감시 대한 현재의 진행상태 체크 -->
+	<select id="cbdi0020_doCheckProgressCd" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+              HD.GATE_CD
+            , HD.BUYER_CD
+            , HD.BID_NUM
+            , HD.BID_CNT
+            , HD.BID_STATUS AS ORI_BID_STATUS
+			,<include refid="common.sql.dbo"/>getBidAppProgressCd(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, 'CD') AS BID_STATUS
+            ,(CASE WHEN HD.ESTM_TYPE IN ('SE', 'PE')
+                   THEN (CASE WHEN (SELECT COUNT(ES.BID_CNT) AS NON_FINISH_CNT
+                                      FROM STOCBDES ES
+                                     WHERE ES.GATE_CD  = HD.GATE_CD
+                                       AND ES.BUYER_CD = HD.BUYER_CD
+                                       AND ES.BID_NUM  = HD.BID_NUM
+                                       AND ES.BID_CNT  = HD.BID_CNT
+                                       AND ES.SIGN_STATUS = 'E'
+                                       AND ES.ESTM_CONFIRM_DATE IS NOT NULL
+                                       AND ES.DEL_FLAG = '0') <![CDATA[>]]> 0 THEN 'Y' ELSE 'N' END)
+                   ELSE 'Y' END) AS ESTM_FINISH_FLAG
+		  FROM STOCBDHD HD
+		 WHERE HD.GATE_CD  = #{ses.gateCd}
+		   AND HD.BUYER_CD = #{S_BUYER_CD}
+		   AND HD.BID_NUM  = #{BID_NUM}
+		   AND HD.BID_CNT  = #{BID_CNT}
+		   AND HD.DEL_FLAG = '0'
+		   AND HD.BID_STATUS NOT IN ('1300', '2303', '9999')
+		   AND TO_NUMBER(HD.BID_STATUS) <![CDATA[<]]> 2350
+		   AND HD.SIGN_STATUS = 'E'
+		   AND ((TO_CHAR(SYSDATE, 'YYYYMMDD') <![CDATA[>=]]> HD.APP_BEGIN_DATE AND TO_CHAR(SYSDATE, 'YYYYMMDD') <![CDATA[<]]> HD.APP_END_DATE) OR
+		   	    (TO_CHAR(SYSDATE, 'YYYYMMDD') <![CDATA[>=]]> HD.APP_END_DATE OR HD.BID_STATUS IN ('2350','2353','2363')))
+	</select>
+	
+    <update id="cbdi0020_doFailBidding" parameterType="hashMap">
+
+		UPDATE STOCBDHD SET
+			  MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, BID_STATUS = #{BID_STATUS}
+			<if test="ORI_BID_STATUS != null and ORI_BID_STATUS != ''">
+			, PRE_BID_STATUS = #{ORI_BID_STATUS}
+			</if>
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND BID_NUM  = #{BID_NUM}
+		   AND BID_CNT  = #{BID_CNT}
+	</update>
+
+	<select id="cbdi0020_getPrList" parameterType="hashmap" resultType="hashmap">
+
+		SELECT
+			DT.GATE_CD, DT.PR_NUM, DT.PR_SQ, PB_BUYER_CD
+		  FROM STOCBDDT DT
+		 WHERE DT.GATE_CD = #{ses.gateCd}
+		   AND DT.BUYER_CD = #{BUYER_CD}
+		   AND DT.BID_NUM = #{BID_NUM}
+		   AND DT.BID_CNT = #{BID_CNT}
+
+	</select>
+
+	<update id="cbdi0020_doUpdatePrProgressCd" parameterType="hashMap">
+
+		UPDATE STOCPRDT SET
+			 MOD_DATE = SYSDATE
+			,MOD_USER_ID = #{ses.userId}
+			,PROGRESS_CD = #{PROGRESS_CD}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND PR_NUM = #{PR_NUM}
+		   AND PR_SQ = #{PR_SQ}
+		   AND BUYER_CD = #{PB_BUYER_CD}
+
+	</update>
+
+	<select id="cbdi0021_doSearchHD" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 HD.ANN_NO, HD.ANN_ITEM
+			,SUBSTR(HD.ANN_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.ANN_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.ANN_DATE, 7, 2) AS ANN_DATE
+            ,<include refid="common.sql.dbo"/>getContTypeTxt(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, #{ses.langCd}) AS CONT_TYPE_TXT
+			,SUBSTR(HD.APP_END_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '년 ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '월 ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 7, 2) <include refid="common.sql.stringMerge"/> '일 ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 1, 2) || '시 ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 3, 2) <include refid="common.sql.stringMerge"/> '분' AS APP_END_DATE
+			,HD.BID_USER_ID, HD.EV_USER_ID
+			,HD.LIMIT_CRIT
+			,HD.PROM_CRIT
+			,HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, HD.BID_STATUS
+			,HD.CONT_TYPE1, HD.CONT_TYPE2, HD.CONT_TYPE3
+			,HD.EI_NUM
+		  FROM STOCBDHD HD
+		 WHERE HD.GATE_CD = #{ses.gateCd}
+		   AND HD.BUYER_CD = #{BUYER_CD}
+		   AND HD.BID_NUM = #{BID_NUM}
+		   AND HD.BID_CNT = #{BID_CNT}
+
+	</select>
+
+	<select id="cbdi0021_doSearch" parameterType="hashmap" resultType="hashMap">
+
+        SELECT
+             A.VENDOR_CD, A.VENDOR_NM, A.CEO_USER_NM
+            ,A.APP_DATETIME
+            ,A.GUAR_CNT, A.BID_GUAR_TYPE, A.GUARANTEER, A.GUAR_ATT_FILE_NUM
+            ,<include refid="common.sql.nvl"/>(SUBSTR(A.GUAR_NUM, 7, 18), '') AS GUAR_NUM
+            ,A.GUAR_REQ_NUM
+            ,A.UNT_FLAG, A.ACHV_FLAG, A.FINAL_FLAG
+            ,A.INCO_REASON, A.ATT_FILE_NUM, A.ATT_FILE_CNT
+            ,A.BUYER_CD, A.BID_NUM, A.BID_CNT, A.ESTM_TYPE
+        	,A.GUAR_AMT_CERTV, A.IRS_NO, A.VID_RANDOM
+        	,(CASE WHEN A.APP_ATT_FILE_CNT = 0 THEN NULL ELSE A.APP_ATT_FILE_CNT END) AS APP_ATT_FILE_CNT, A.APP_ATT_FILE_NUM
+        	,A.VENDOR_PIC_USER_NM, A.VENDOR_PIC_USER_CELL_NUM, A.VENDOR_PIC_USER_EMAIL, A.PR_AMT, A.BID_AMT, A.ESTM_PRC_AMT
+        	,(CASE WHEN A.ESTM_TYPE IN ('SE') 
+		      	   THEN (CASE WHEN A.BID_AMT IS NOT NULL THEN (CASE WHEN A.ESTM_PRC_AMT <![CDATA[<]]> A.BID_AMT THEN 'Y' ELSE 'N' END) ELSE '' END)
+			   	   ELSE '' END) AS ESTM_AMT_OVER_FLAG
+        	,(CASE WHEN A.BID_AMT IS NOT NULL
+        	       THEN (CASE WHEN A.PR_AMT <![CDATA[<]]> A.BID_AMT THEN 'Y' ELSE 'N' END) 
+        	       ELSE '' END) AS PR_AMT_OVER_FLAG
+          FROM (
+            SELECT
+                 AP.VENDOR_CD, <include refid="common.sql.dbo"/>GETVENDORNAME(AP.GATE_CD, AP.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+                ,<include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+                ,(CASE WHEN AP.APP_DATE IS NOT NULL
+                       THEN SUBSTR(AP.APP_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(AP.APP_DATE, 5, 2)
+                            <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(AP.APP_DATE, 7, 2)
+                            <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> SUBSTR(AP.APP_TIME, 1, 2)
+                            <include refid="common.sql.stringMerge"/> ':' <include refid="common.sql.stringMerge"/> SUBSTR(AP.APP_TIME, 3, 2)
+                       ELSE '-' END) AS APP_DATETIME
+                ,(CASE WHEN <include refid="common.sql.nvl"/>(AP.BID_GUAR_TYPE, 'T') = 'F'
+                       THEN (CASE WHEN AP.GUAR_ATT_FILE_NUM IS NULL THEN '' ELSE TO_CHAR(<include refid="common.sql.dbo"/>GETFILECOUNT(AP.GATE_CD, AP.GUAR_ATT_FILE_NUM)) END)
+                       ELSE '' END) AS GUAR_CNT
+                ,AP.UNT_FLAG
+                ,AP.ACHV_FLAG
+                ,AP.FINAL_FLAG
+                ,AP.INCO_REASON
+                ,AP.ATT_FILE_NUM, <include refid="common.sql.dbo"/>getFileCount(AP.GATE_CD, AP.ATT_FILE_NUM) AS ATT_FILE_CNT
+                ,AP.BID_GUAR_TYPE, AP.GUARANTEER, AP.GUAR_ATT_FILE_NUM, AP.GUAR_NUM, AP.GUAR_REQ_NUM
+                ,AP.BUYER_CD, AP.BID_NUM, AP.BID_CNT
+            	,AP.GUAR_AMT_CERTV
+                ,AP.VID_RANDOM
+                ,REPLACE(VNGL.IRS_NO, '-', '') AS IRS_NO
+                ,AP.APP_ATT_FILE_NUM, <include refid="common.sql.dbo"/>getFileCount(AP.GATE_CD, AP.APP_ATT_FILE_NUM) AS APP_ATT_FILE_CNT
+                ,<include refid="common.sql.strDecStart"/>AP.VENDOR_PIC_USER_NM<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_NM
+				,<include refid="common.sql.strDecStart"/>AP.VENDOR_PIC_USER_CELL_NUM<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_CELL_NUM
+		        ,<include refid="common.sql.strDecStart"/>AP.VENDOR_PIC_USER_EMAIL<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_EMAIL
+		        ,HD.BID_STATUS
+		        ,HD.ESTM_TYPE
+		        ,(CASE WHEN HD.CONT_TYPE2 = 'QE' THEN  <include refid="common.sql.nvl"/>(<include refid="common.sql.nvl"/>(HD.BASIC_AMT, HD.PR_AMT), 0) ELSE <include refid="common.sql.nvl"/>(HD.PR_AMT, 0) END) AS PR_AMT
+		        , <include refid="common.sql.nvl"/>(GETDECPERSONALINFO(ES.ESTM_PRC1_ENC), 0) AS ESTM_PRC_AMT
+		        ,(CASE WHEN (<include refid="common.sql.nvl"/>(AP.FINAL_FLAG, '100') = '600' OR <include refid="common.sql.nvl"/>(AP.EV_FINAL_FLAG, '100') = '600') THEN NULL 
+					   ELSE (CASE WHEN VO.BID_AMT_ENC IS NOT NULL 
+					              THEN (<include refid="common.sql.nvl"/>(<include refid="common.sql.strDecStart"/>VO.BID_AMT_ENC<include refid="common.sql.strDecEnd"/>, 0) +  <include refid="common.sql.nvl"/>(<include refid="common.sql.strDecStart"/>VO.TCO_AMT_ENC<include refid="common.sql.strDecEnd"/>, 0))
+		                          ELSE NULL END)
+		               END) AS BID_AMT
+              FROM STOCBDHD HD
+              JOIN STOCBDAP AP
+	               ON (HD.GATE_CD  = AP.GATE_CD
+	               AND HD.BUYER_CD = AP.BUYER_CD
+	               AND HD.BID_NUM  = AP.BID_NUM
+	               AND HD.BID_CNT  = AP.BID_CNT
+	               AND AP.DEL_FLAG = '0')
+              LEFT JOIN STOCVNGL VNGL
+	               ON (AP.GATE_CD   = VNGL.GATE_CD
+	               AND AP.VENDOR_CD = VNGL.VENDOR_CD)
+	          LEFT JOIN STOCBDVO VO
+			       ON (AP.GATE_CD   = VO.GATE_CD
+			   	   AND AP.BUYER_CD  = VO.BUYER_CD
+			   	   AND AP.BID_NUM   = VO.BID_NUM
+			   	   AND AP.BID_CNT   = VO.BID_CNT
+			   	   AND AP.VENDOR_CD = VO.VENDOR_CD
+			   	   AND VO.VOTE_CNT = '1'
+			   	   AND <include refid="common.sql.nvl"/>(<include refid="common.sql.strDecStart"/>VO.BID_AMT_ENC<include refid="common.sql.strDecEnd"/>, 0)  <![CDATA[>]]>  0
+			       AND VO.DEL_FLAG = '0')    
+			  LEFT JOIN STOCBDES ES
+	           	   ON (HD.GATE_CD = ES.GATE_CD
+	           	   AND HD.BUYER_CD = ES.BUYER_CD
+			   	   AND HD.BID_NUM  = ES.BID_NUM
+			   	   AND HD.BID_CNT  = ES.BID_CNT
+	           	   AND ES.DEL_FLAG = '0'
+	           	   AND ES.ESTM_CONFIRM_DATE IS NOT NULL)      
+             WHERE HD.GATE_CD  = #{ses.gateCd}
+               AND HD.BUYER_CD = #{BUYER_CD}
+               AND HD.BID_NUM  = #{BID_NUM}
+               AND HD.BID_CNT  = #{BID_CNT}
+               AND HD.DEL_FLAG = '0'
+          ) A
+         ORDER BY A.APP_DATETIME, A.VENDOR_NM
+
+	</select>
+
+	<select id="getClosePossibleFlag" parameterType="hashmap" resultType="java.lang.String">
+
+		SELECT
+			(CASE WHEN <include refid="common.sql.dbo"/>getBidAppProgressCd(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, 'CD') = '200' AND TO_NUMBER(HD.BID_STATUS) <![CDATA[<]]> TO_NUMBER('2350') THEN 'Y' ELSE 'N' END) AS POSSIBLE_FLAG
+		  FROM STOCBDHD HD
+		 WHERE HD.GATE_CD = #{ses.gateCd}
+		   AND HD.BUYER_CD = #{BUYER_CD}
+		   AND HD.BID_NUM = #{BID_NUM}
+		   AND HD.BID_CNT = #{BID_CNT}
+
+	</select>
+
+	<update id="cbdi0021_doFinalFlagUpdate" parameterType="hashmap">
+
+		UPDATE STOCBDAP SET
+			 MOD_DATE = SYSDATE
+			,MOD_USER_ID = #{ses.userId}
+			,UNT_FLAG = #{UNT_FLAG}
+			,ACHV_FLAG = #{ACHV_FLAG}
+			,FINAL_FLAG = #{FINAL_FLAG}
+			,INCO_REASON = #{INCO_REASON}
+			,ATT_FILE_NUM = #{ATT_FILE_NUM}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND BID_NUM = #{BID_NUM}
+		   AND BID_CNT = #{BID_CNT}
+		   AND VENDOR_CD = #{VENDOR_CD}
+
+	</update>
+
+	<select id="getComCodeAndText" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			CODD.CODE, CODD.CODE_DESC
+		  FROM STOCCODH CODH LEFT JOIN STOCCODD CODD
+		   ON (CODH.GATE_CD = CODD.GATE_CD
+		   AND CODH.CODE_TYPE = CODD.CODE_TYPE
+		   AND CODH.LANG_CD = CODD.LANG_CD)
+		 WHERE CODH.GATE_CD = #{ses.gateCd}
+		   AND CODH.CODE_TYPE = #{CODE_TYPE}
+		   AND CODH.LANG_CD = #{LANG_CD}
+		   AND CODD.USE_FLAG = '1'
+		   AND CODH.USE_FLAG = '1'
+		   AND CODD.DEL_FLAG = '0'
+		   AND CODH.DEL_FLAG = '0'
+		 ORDER BY
+		<if test='_databaseId == "oracle"'>
+			TO_NUMBER(CODD.SORT_SQ)
+		</if>
+		<if test='_databaseId == "mssql"'>
+			CAST(CODD.SORT_SQ AS INT)
+		</if>
+		, UPPER(CODD.CODE_DESC)
+
+	</select>
+
+	<select id="getSignStatus" parameterType="hashMap" resultType="java.lang.String">
+
+		SELECT SIGN_STATUS FROM STOCBDHD
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND BID_NUM = #{BID_NUM}
+		   AND BID_CNT = #{BID_CNT}
+
+	</select>
+
+	<update id="updateAppNum" parameterType="hashMap">
+
+		UPDATE STOCBDHD SET
+			 APP_DOC_NUM = #{APP_DOC_NUM}
+			,APP_DOC_CNT = #{APP_DOC_CNT}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND BID_NUM = #{BID_NUM}
+		   AND BID_CNT = #{BID_CNT}
+	</update>
+	
+	<!-- 입찰등록, 입찰진행 > 입찰기간변경 -->
+	<select id="cbdi0022_doSearch" parameterType="hashmap" resultType="hashMap">
+		SELECT
+			  A.BUYER_CD
+			, A.BID_NUM
+			, A.BID_CNT
+			, A.ORI_BID_CNT
+			, PG.VOTE_CNT
+			, A.ANN_NO
+			, A.ANN_DATE
+			, A.ANN_ITEM
+			, A.CONT_TEXT1 || ' / ' || A.CONT_TEXT2 || ' / ' || A.CONT_TEXT3 AS CONT_TEXT
+			, A.CONT_TYPE2
+			, A.APP_BEGIN_DATE, A.APP_BEGIN_TIME, A.APP_BEGIN_MIN
+			, A.APP_END_DATE, A.APP_END_TIME, A.APP_END_MIN
+			, PG.BID_BEGIN_DATE
+			, SUBSTR(PG.BID_BEGIN_TIME, 1, 2) AS BID_BEGIN_TIME
+			, SUBSTR(PG.BID_BEGIN_TIME, 3, 2) AS BID_BEGIN_MIN
+			, PG.BID_END_DATE
+			, SUBSTR(PG.BID_END_TIME, 1, 2) AS BID_END_TIME
+			, SUBSTR(PG.BID_END_TIME, 3, 2) AS BID_END_MIN
+			, PG.OPEN_DATE
+			, SUBSTR(PG.OPEN_TIME, 1, 2) AS OPEN_TIME
+			, SUBSTR(PG.OPEN_TIME, 3, 2) AS OPEN_MIN
+			, A.ATT_FILE_NUM
+		FROM (
+			SELECT
+				  HD.GATE_CD
+				, HD.BUYER_CD
+				, HD.BID_NUM
+				, HD.BID_CNT
+				, HD.BID_CNT AS ORI_BID_CNT
+				, HD.ANN_NO
+				, HD.ANN_DATE
+				, HD.ANN_ITEM
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', HD.CONT_TYPE1, 0, #{ses.langCd}) AS CONT_TEXT1
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M302', HD.CONT_TYPE2, 0, #{ses.langCd}) AS CONT_TEXT2
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M303', HD.CONT_TYPE3, 0, #{ses.langCd}) AS CONT_TEXT3
+				, HD.CONT_TYPE2
+				, HD.APP_BEGIN_DATE
+				, SUBSTR(HD.APP_BEGIN_TIME, 1, 2) AS APP_BEGIN_TIME
+				, SUBSTR(HD.APP_BEGIN_TIME, 3, 2) AS APP_BEGIN_MIN
+				, HD.APP_END_DATE
+				, SUBSTR(HD.APP_END_TIME, 1, 2) AS APP_END_TIME
+				, SUBSTR(HD.APP_END_TIME, 3, 2) AS APP_END_MIN
+				, HD.ATT_FILE_NUM
+			  FROM STOCBDHD HD
+			 WHERE HD.GATE_CD  = #{ses.gateCd}
+			   AND HD.BUYER_CD = #{BUYER_CD}
+		   	   AND HD.BID_NUM  = #{BID_NUM}
+	           AND HD.BID_CNT  = #{BID_CNT}
+		    ) A
+		  LEFT JOIN STOCBDPG PG
+		  	   ON (PG.GATE_CD  = A.GATE_CD
+		       AND PG.BUYER_CD = A.BUYER_CD
+		       AND PG.BID_NUM  = A.BID_NUM
+		       AND PG.BID_CNT  = A.ORI_BID_CNT)
+		 WHERE PG.VOTE_CNT = (SELECT MAX(P.VOTE_CNT) FROM STOCBDPG P
+		 					   WHERE P.GATE_CD  = A.GATE_CD
+		 					     AND P.BUYER_CD = A.BUYER_CD
+		 					     AND P.BID_NUM  = A.BID_NUM
+		 					     AND P.BID_CNT  = A.ORI_BID_CNT
+		 					     AND P.DEL_FLAG = '0')
+    </select>
+    
+    <!-- 입찰진행상태 가져오기 -->
+    <select id="getBidAppStatus" parameterType="hashMap" resultType="java.lang.String">
+		SELECT <include refid="common.sql.dbo"/>getBidAppProgressCd(GATE_CD, BUYER_CD, BID_NUM, BID_CNT, 'CD') FROM STOCBDHD
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND BID_NUM  = #{BID_NUM}
+		   AND BID_CNT  = #{BID_CNT}
+	</select>
+	
+    <select id="getBidStatus" parameterType="hashMap" resultType="java.lang.String">
+		SELECT <include refid="common.sql.dbo"/>getBidProgressCd(GATE_CD, BUYER_CD, BID_NUM, BID_CNT, 'CD') FROM STOCBDHD
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND BID_NUM  = #{BID_NUM}
+		   AND BID_CNT  = #{BID_CNT}
+	</select>
+	
+	<select id="getOriBidStatus" parameterType="hashMap" resultType="java.lang.String">
+		SELECT BID_STATUS FROM STOCBDHD
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND BID_NUM  = #{BID_NUM}
+		   AND BID_CNT  = #{BID_CNT}
+	</select>
+    
+    <update id="cbdi0022_doSaveHD" parameterType="hashMap">
+		UPDATE STOCBDHD SET
+			  APP_BEGIN_DATE = #{APP_BEGIN_DATE}
+			, APP_BEGIN_TIME = #{APP_BEGIN_TIME} <include refid="common.sql.stringMerge"/> #{APP_BEGIN_MIN} <include refid="common.sql.stringMerge"/> '00'
+			, APP_END_DATE   = #{APP_END_DATE}
+			, APP_END_TIME   = #{APP_END_TIME} <include refid="common.sql.stringMerge"/> #{APP_END_MIN} <include refid="common.sql.stringMerge"/> '00'
+			, MOD_DATE       = SYSDATE
+            , MOD_USER_ID    = #{ses.userId}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD   = #{BUYER_CD}
+		   AND BID_NUM    = #{BID_NUM}
+		   AND BID_CNT    = #{BID_CNT}
+	</update>
+	
+	<update id="cbdi0022_doSavePG" parameterType="hashMap">
+		UPDATE STOCBDPG SET
+			  PERIOD_MOD_RSN = #{PERIOD_MOD_RSN}
+			, PERIOD_MOD_USER_ID = #{ses.userId}
+			, PERIOD_MOD_DATE = SYSDATE
+			<if test="BID_BEGIN_DATE != null and BID_BEGIN_DATE != ''">
+			, BID_BEGIN_DATE = #{BID_BEGIN_DATE}
+			</if>
+			<if test="BID_BEGIN_TIME != null and BID_BEGIN_TIME != ''">
+			, BID_BEGIN_TIME = #{BID_BEGIN_TIME} <include refid="common.sql.stringMerge"/> #{BID_BEGIN_MIN} <include refid="common.sql.stringMerge"/> '00'
+			</if>
+			<if test="BID_END_DATE != null and BID_END_DATE != ''">
+			, BID_END_DATE = #{BID_END_DATE}
+			</if>
+			<if test="BID_END_TIME != null and BID_END_TIME != ''">
+			, BID_END_TIME = #{BID_END_TIME} <include refid="common.sql.stringMerge"/> #{BID_END_MIN} <include refid="common.sql.stringMerge"/> '00'
+			</if>
+			<if test="OPEN_DATE != null and OPEN_DATE != ''">
+			, OPEN_DATE = #{OPEN_DATE}
+			</if>
+			<if test="OPEN_TIME != null and OPEN_TIME != ''">
+			, OPEN_TIME = #{OPEN_TIME} <include refid="common.sql.stringMerge"/> #{OPEN_MIN} <include refid="common.sql.stringMerge"/> '00'
+			</if>
+			, MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD   = #{BUYER_CD}
+		   AND BID_NUM    = #{BID_NUM}
+		   AND BID_CNT    = #{BID_CNT}
+		   AND VOTE_CNT   = #{VOTE_CNT}
+	</update>
+
+</mapper>

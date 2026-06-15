@@ -1,0 +1,215 @@
+package com.st_ones.nhepro.OCUR.service;
+
+import com.st_ones.common.docNum.service.DocNumService;
+import com.st_ones.common.login.domain.UserInfo;
+import com.st_ones.common.message.service.MessageService;
+import com.st_ones.common.util.clazz.EverEncryption;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.common.util.service.LargeTextService;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.everf.serverside.info.UserInfoManager;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.nhepro.OCUR.OCUR0030_Mapper;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : OCUR0030_Service.java
+ * @date 2020. 03. 09.
+ * @version 1.0
+ */
+@Service(value = "ocur0030_Service")
+public class OCUR0030_Service extends BaseService {
+
+    @Autowired private DocNumService docNumService;
+
+    @Autowired private MessageService msg;
+
+    @Autowired private LargeTextService largeTextService;
+
+    @Autowired private OCUR0030_Mapper ocur_Mapper;
+
+    /**
+     * 화면명 : 고객사별 사용자현황
+     * 처리내용 : 시스템에 등록된 고객사들의 사용자들을 조회/관리하는 화면.
+     * 경로 : 시스템운영사 > 회원사관리 > 고객사 관리 > 고객사별 사용자현황
+     */
+    public List<Map<String, Object>> ocur0030_doSearch(Map<String, String> param) throws Exception {
+        return ocur_Mapper.ocur0030_doSearch(param);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public String ocur0030_doUpdate(List<Map<String, Object>> gridDatas) throws Exception {
+
+        for(Map<String, Object> gridData : gridDatas) {
+            ocur_Mapper.ocur0030_doUpdate(gridData);
+        }
+        return msg.getMessage("0031");
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public String ocur0030_doDelete(List<Map<String, Object>> gridDatas) throws Exception {
+
+        for(Map<String, Object> gridData : gridDatas) {
+            ocur_Mapper.ocur0030_doDelete(gridData);
+        }
+        return msg.getMessage("0017");
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public String ocur0030_doInitPassword(List<Map<String, Object>> gridDatas) throws Exception {
+
+        for(Map<String, Object> gridData : gridDatas) {
+
+            // 비밀번호 난수발생 > 업데이트
+            String password = RandomStringUtils.randomAlphanumeric(10);
+            gridData.put("PASSWORD", EverEncryption.getEncryptedUserPassword(EverString.nullToEmptyString(password)));
+            ocur_Mapper.ocur0030_doInitPassword(gridData);
+
+            // 변경된 비밀번호 문자발송
+            Map<String, String> map = new HashMap<String, String>();
+            String smsMessage = "[FIRSTePro] 임시비밀번호 : " + password + "로 로그인 한 후 비밀번호를 변경하세요";
+        /*
+            map.put("RECV_USER_ID",  generalForm.get("USER_ID"));
+            map.put("RECV_USER_NM",  generalForm.get("USER_NM"));
+            map.put("RECV_TEL_NUM",  generalForm.get("CELL_NUM"));
+            map.put("SEND_USER_ID",  PropertiesManager.getString("eversrm.userId.default"));
+            map.put("SEND_USER_NM",  "SYSTEM");
+            map.put("SEND_TEL_NUM",  PropertiesManager.getString("eversrm.system.sms.default.telNo"));
+            map.put("CONTENTS",      smsMessage);
+            map.put("VENDOR_CD",     generalForm.get("COMPANY_CD"));	//업체코드
+            map.put("REF_NUM", "");
+            map.put("REF_MODULE_CD", "BADU");	//참조모듈
+            map.put("BUYER_CD",      "1000");
+
+            everSmsService.sendSms(map);
+         */
+        }
+        return msg.getMessage("0094");
+    }
+
+    public String ocur0030_doResetPwd(Map<String, String> param) throws Exception {
+        List<Map<String, Object>> list = ocur_Mapper.ocur0030_doSearch(param);
+
+        for(Map<String, Object> data : list) {
+            data.put("PASSWORD", EverEncryption.getEncryptedUserPassword(String.valueOf(data.get("USER_ID"))));
+            ocur_Mapper.ocur0030_doSearch_pw(data);
+        }
+
+        return msg.getMessage("0094");
+    }
+
+
+    /**
+     * 화면명 : 고객사별 사용자 등록/상세 (팝업)
+     * 처리내용 : 시스템에 등록된 고객사들의 사용자들의 상세정보를 조회, 신규 사용자를 등록하는 화면.
+     * 경로 : 시스템운영사 > 회원사관리 > 고객사 관리 > 고객사별 사용자현황 > 고객사별 사용자 등록/상세 (팝업)
+     */
+    public Map<String, String> ocur0031_doSearchInfo(Map<String, String> param) throws Exception {
+        return ocur_Mapper.ocur0031_doSearchInfo(param);
+    }
+
+    public List<Map<String, Object>> ocur0031_doSearchAuth(Map<String, String> param) throws Exception {
+        return ocur_Mapper.ocur0031_doSearchAuth(param);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public String ocur0031_doSave(Map<String, String> formData) throws Exception {
+
+        // 아이디중복체크
+        String oriUserId = EverString.nullToEmptyString(formData.get("ORI_USER_ID"));
+        if(oriUserId.equals("")) {
+            Map<String, String> params = new HashMap<String, String>();
+            params.put("USER_ID", EverString.nullToEmptyString(formData.get("USER_ID")));
+
+            String possibleFlag = ocur_Mapper.ocur0031_doCheckUserId(params);
+            if(possibleFlag.equals("N")) {
+                throw new Exception(msg.getMessageByScreenId("OCUR0031", "006"));
+            }
+        }
+
+        if("Y".equals(formData.get("CHANGE_PW"))){
+            formData.put("PASSWORD", EverEncryption.getEncryptedUserPassword(formData.get("PASSWORD")));
+            // 비밀번호저장시 기존비밀번호와 동일하면 리턴
+            int checkPW = ocur_Mapper.CheckUserInfoPassWordSame(formData);
+            if (checkPW > 0) {
+                throw new Exception(msg.getMessage("0153"));
+            }
+        }
+
+        // 사용자 등록/수정
+        ocur_Mapper.ocur0031_doMerge(formData);
+
+        if(oriUserId.equals("")) {
+            // 사용자처음등록시 프로파일 등록
+            formData.put("AUTH_CD", "PF0131");
+            ocur_Mapper.ocur0031_doInsertUSAP(formData);
+        }
+
+        // 수동 사용자 생성 및 수정 후 TB_CO_USER에 INSERT OR UPDATE
+        //if("1".equals(formData.get("RELAT_YN"))){
+            Map<String, String> userData = ocur_Mapper.ocur0031_getUserData(formData);
+            if(userData != null) {
+                ocur_Mapper.ocur0031_doMergeTB(userData);
+            }
+        //}
+        return msg.getMessage("0031");
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public String ocur0031_doSaveAuth(Map<String, String> formData, List<Map<String, Object>> gridDatas) throws Exception {
+
+        UserInfo userInfo = UserInfoManager.getUserInfo();
+
+        for(Map<String, Object> gridData : gridDatas) {
+
+            gridData.put("BUYER_CD", formData.get("COMPANY_CD"));
+            gridData.put("CTRL_USER_ID", formData.get("USER_ID"));
+
+            // 중복체크
+            int existCnt = ocur_Mapper.getExistCtrlCd(gridData);
+            if (existCnt > 1) {
+                throw new Exception(msg.getMessageByScreenId("OCUR0031", "024"));
+            }
+            // 사용자 권한정보 등록/수정
+            ocur_Mapper.ocur0031_doMergeAuth(gridData);
+        }
+        return msg.getMessage("0031");
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public String ocur0031_doDeleteAuth(Map<String, String> formData, List<Map<String, Object>> gridDatas) throws Exception {
+
+        UserInfo userInfo = UserInfoManager.getUserInfo();
+
+        for(Map<String, Object> gridData : gridDatas) {
+
+            gridData.put("BUYER_CD", formData.get("COMPANY_CD"));
+            gridData.put("CTRL_USER_ID", formData.get("USER_ID"));
+
+            // 사용자 권한정보 삭제
+            ocur_Mapper.ocur0031_doDeleteAuth(gridData);
+        }
+        return msg.getMessage("0031");
+    }
+
+    public String ocur0031_doCheckUserId(Map<String, String> param) throws Exception {
+        return ocur_Mapper.ocur0031_doCheckUserId(param);
+    }
+
+}

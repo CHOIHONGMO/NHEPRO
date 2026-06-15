@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.st_ones.nosession.interfacez.PmsMapper">
+
+
+
+    <select id="prCheck" parameterType="hashmap" resultType="hashmap">
+			SELECT
+				  CASE WHEN COUNT(*) = 0 THEN 'N' ELSE 'Y' END EXIST_YN
+				, MAX(SIGN_STATUS) SIGN_STATUS
+				, MAX(BUYER_CD) BUYER_CD
+				, MAX(PR_NUM) PR_NUM
+			FROM STOCPRHD A
+			WHERE GATE_CD = '100'
+			AND PROJECT_CD =#{PROJECT_CD}
+			AND PROJECT_SQ =#{PROJECT_SQ}
+	</select>
+
+    <insert id="insPrhd" parameterType="hashmap">
+		INSERT INTO STOCPRHD (
+			 GATE_CD
+			,PR_NUM
+			,BUYER_CD
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,SUBJECT
+			,REQ_DATE
+			,DEPT_CD
+			,REQ_USER_ID
+			,PR_TYPE
+			,PR_AMT
+			,CUR
+			,ATT_FILE_NUM
+			,APP_DOC_NUM
+			,APP_DOC_CNT
+			,SIGN_STATUS
+			,SIGN_DATE
+			,RMK_TEXT_NUM
+			,ITEM_RMK
+			,DIRECT_DATE
+			,CM_REQ_ID
+			,PROJECT_CD
+			,PROJECT_SQ
+			,PROJECT_TYPE
+			,IF_TYPE
+			,MNT_YN
+		) SELECT
+			 '100' --GATE_CD
+			,#{PR_NUM} --PR_NUM
+			,#{BUYER_CD} --BUYER_CD
+			,SYSDATE --REG_DATE
+			,#{REQ_USER_ID} --REG_USER_ID
+			,SYSDATE --MOD_DATE
+			,#{REQ_USER_ID} --MOD_USER_ID
+			,'0' --DEL_FLAG
+			,#{SUBJECT} --SUBJECT
+			,SYSDATE --REQ_DATE
+			,(SELECT DEPT_CD FROM STOCCVUR WHERE GATE_CD='100' AND USER_ID=#{REQ_USER_ID}) --DEPT_CD
+			,#{REQ_USER_ID} --REQ_USER_ID
+			,null --PR_TYPE
+			,#{PR_AMT} --PR_AMT
+			,#{CUR} --CUR
+			,null --ATT_FILE_NUM
+			,null --APP_DOC_NUM
+			,null --APP_DOC_CNT
+			,'T' --SIGN_STATUS
+			,SYSDATE --SIGN_DATE
+			,#{RMK_TEXT_NUM} --RMK_TEXT_NUM
+			,null --ITEM_RMK
+			,null --DIRECT_DATE
+			,null --CM_REQ_ID
+			,#{PROJECT_CD} --PROJECT_CD
+			,#{PROJECT_SQ} --PROJECT_SQ
+			,#{PROJECT_TYPE} --PROJECT_TYPE
+			,'PMS' --IF_TYPE
+			,null --MNT_YN
+		<include refid="common.sql.dual"/>
+	</insert>
+    <update id="upsPrhd" parameterType="hashmap">
+		UPDATE  STOCPRHD SET
+			 SUBJECT      = #{SUBJECT}
+			,DEPT_CD      = (SELECT DEPT_CD FROM STOCCVUR WHERE GATE_CD='100' AND USER_ID=#{REQ_USER_ID}) --DEPT_CD
+			,REQ_USER_ID  = #{REQ_USER_ID}
+			,PR_AMT       = #{PR_AMT}
+			,CUR          = #{CUR}
+			,ITEM_RMK     = null
+			,PROJECT_TYPE = #{PROJECT_TYPE}
+			,RMK_TEXT_NUM = #{RMK_TEXT_NUM}
+		WHERE GATE_CD = '100'
+		AND BUYER_CD  = #{BUYER_CD}
+		AND PR_NUM    = #{PR_NUM}
+	</update>
+
+    <delete id="delPrdt" parameterType="hashmap">
+		DELETE STOCPRDT
+		WHERE GATE_CD = '100'
+		AND BUYER_CD  = #{BUYER_CD}
+		AND PR_NUM    = #{PR_NUM}
+	</delete>
+
+    <insert id="insPrdt" parameterType="hashmap">
+		INSERT INTO STOCPRDT (
+			GATE_CD
+			,PR_NUM
+			,PR_SQ
+			,BUYER_CD
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,PROGRESS_CD
+			,ITEM_CD
+			,ITEM_DESC
+			,ITEM_SPEC
+			,MAKER_CD
+			,MAKER_PART_NO
+			,ORIGIN_CD
+			,PR_QT
+			,UNIT_CD
+			,UNIT_PRC
+			,PR_AMT
+			,DUE_DATE
+			,DELY_TO_CD
+			,DELY_TO_NM
+			,ATT_FILE_NUM
+			,ITEM_RMK
+			,VENDOR_CD
+			,PURCHASE_TYPE
+			,VENDOR_OPEN_TYPE
+			,SUBMIT_TYPE
+			,AMT_TYPE
+			,CTRL_CD
+			,CTRL_USER_ID
+			,RECEIPT_DATE
+			,REJECT_RMK
+			,REJECT_DATE
+			,PO_REQ_DATE
+			,CN_DATE
+			,RECEIPT_FLAG
+			,LAST_VENDOR_CD
+			,LAST_UNIT_PRC
+			,LAST_ITEM_AMT
+			,LAST_PO_NUM
+			,LAST_PO_SQ
+			,LAST_PO_FLAG
+			,LAST_PO_CUR
+			,MNT_SANGJU_YN
+			,CONSUMER_AMT
+			,FC_MNT_TERM
+			,CH_RATE
+			,DOIB_AMT
+			,MNT_RATE
+			,MNT_SDAY
+			,MNT_EDAY
+			,MNT_GUR_MONTH
+			,RT_INSP_PERIOD
+			,FALT_RC_TG_TIME
+			,CM_REQ_ID
+			,CM_REQ_DET_ID
+			,MULPUM_ID
+			,PR_DEPT_CD
+			,EC_BUYER_CD
+			,EC_DEPT_CD
+			,CM_TYPE
+			,CM_REQ_DET_NM
+			,BZ_TIMELINE_SDAY
+			,BZ_TIMELINE_EDAY
+			,ACC_CD
+			,ACC_HNG_NM
+			,ACC_MOK_NM
+			,ACC_DET_NM
+			,BDGT_INFO
+			,MNT_AMT
+			,PAY_PERIOD_MTHD
+			,PAY_PERIOD_MTHD2
+			,PROJECT_CD
+			,PROJECT_SQ
+			,PROJECT_TYPE
+			,CONT_GROUND
+			,CONT_RMK
+			,VAT_TYPE
+			,PR_BUYER_CD
+		) SELECT
+			 '100' --GATE_CD
+			,#{PR_NUM} --PR_NUM
+			,#{PR_SQ} --PR_SQ
+			,#{BUYER_CD} --BUYER_CD
+			,SYSDATE --REG_DATE
+			,#{REQ_USER_ID} --REG_USER_ID
+			,SYSDATE --MOD_DATE
+			,#{REQ_USER_ID} --MOD_USER_ID
+			,'0' --DEL_FLAG
+			,'2100' --PROGRESS_CD
+			,#{ITEM_CD} --ITEM_CD
+			,#{ITEM_DESC} --ITEM_DESC
+			,#{ITEM_SPEC} --ITEM_SPEC
+			,null --MAKER_CD
+			,null --MAKER_PART_NO
+			,null --ORIGIN_CD
+			,#{PR_QT} --PR_QT
+			,#{UNIT_CD} --UNIT_CD
+			,#{UNIT_PRC} --UNIT_PRC
+			,#{PR_QT} * #{UNIT_PRC} --PR_AMT
+			,#{DUE_DATE} --DUE_DATE
+			,null --DELY_TO_CD
+			,#{DELY_TO_NM} --DELY_TO_NM
+			,null --ATT_FILE_NUM
+			,#{ITEM_RMK} --ITEM_RMK
+			,(
+
+			  SELECT
+			  		'[{"VENDOR_NM":"'||VENDOR_NM||'"'
+						||',"REG_TYPE_LOC":"'||GETCOMCODE(GATE_CD, 'M014', REG_TYPE, 0, 'KO')||'"'
+						||',"BUSINESS_DIVISION_LOC":"'||GETCOMCODE(GATE_CD, 'MP040', BUSINESS_DIVISION, 0, 'KO')||'"'
+						||',"GROUP_YN_LOC":"'||GETCOMCODE(GATE_CD, 'MP063', GROUP_YN, 0, 'KO')||'"'
+						||',"IRS_NO":"'||IRS_NO||'"'
+						||',"TEL_NO":"'||<include refid="common.sql.strDecStart"/>TEL_NO<include refid="common.sql.strDecEnd"/>||'"'
+						||',"CEO_USER_NM":"'||<include refid="common.sql.strDecStart"/>CEO_USER_NM<include refid="common.sql.strDecEnd"/>||'"'
+						||',"VENDOR_CD":"'||VENDOR_CD||'"'
+					||'}]'
+			  FROM STOCVNGL WHERE GATE_CD='100' AND IRS_NO=replace(#{VENDOR_IRS_NUM},'-','')
+			  AND ROWNUM = 1
+
+			  ) --VENDOR_CD
+			,null --PURCHASE_TYPE
+			,null --VENDOR_OPEN_TYPE
+			,null --SUBMIT_TYPE
+			,null --AMT_TYPE
+			,null --CTRL_CD
+			,#{CTRL_USER_ID} --CTRL_USER_ID
+			,null --RECEIPT_DATE
+			,null --REJECT_RMK
+			,null --REJECT_DATE
+			,null --PO_REQ_DATE
+			,null --CN_DATE
+			,null --RECEIPT_FLAG
+			,null --LAST_VENDOR_CD
+			,null --LAST_UNIT_PRC
+			,null --LAST_ITEM_AMT
+			,null --LAST_PO_NUM
+			,null --LAST_PO_SQ
+			,null --LAST_PO_FLAG
+			,null --LAST_PO_CUR
+			,null --MNT_SANGJU_YN
+			,null --CONSUMER_AMT
+			,null --FC_MNT_TERM
+			,null --CH_RATE
+			,null --DOIB_AMT
+			,null --MNT_RATE
+			,null --MNT_SDAY
+			,null --MNT_EDAY
+			,null --MNT_GUR_MONTH
+			,null --RT_INSP_PERIOD
+			,null --FALT_RC_TG_TIME
+			,null --CM_REQ_ID
+			,null --CM_REQ_DET_ID
+			,null --MULPUM_ID
+
+			,(SELECT DEPT_CD FROM STOCCVUR WHERE GATE_CD='100' AND USER_ID=#{REQ_USER_ID}) --PR_DEPT_CD
+			,(SELECT COMPANY_CD FROM STOCCVUR WHERE GATE_CD='100' AND USER_ID=#{CTRL_USER_ID}) --EC_BUYER_CD
+			,(SELECT DEPT_CD FROM STOCCVUR WHERE GATE_CD='100' AND USER_ID=#{CTRL_USER_ID}) --EC_DEPT_CD
+
+			,null --CM_TYPE
+			,null --CM_REQ_DET_NM
+			,null --BZ_TIMELINE_SDAY
+			,null --BZ_TIMELINE_EDAY
+			,null --ACC_CD
+			,null --ACC_HNG_NM
+			,null --ACC_MOK_NM
+			,null --ACC_DET_NM
+			,null --BDGT_INFO
+			,null --MNT_AMT
+			,null --PAY_PERIOD_MTHD
+			,null --PAY_PERIOD_MTHD2
+			,#{PROJECT_CD} --PROJECT_CD
+			,#{PROJECT_SQ} --PROJECT_SQ
+			,#{PROJECT_TYPE} --PROJECT_TYPE
+			,null --CONT_GROUND
+			,null --CONT_RMK
+			,null --VAT_TYPE
+
+			,#{BUYER_CD} --PR_BUYER_CD
+		<include refid="common.sql.dual"/>
+	</insert>
+
+
+
+    <insert id="insPmsPrhd" parameterType="hashmap">
+		INSERT INTO PMSPRHD (
+			PROJECT_CD
+			,PROJECT_SQ
+			,INTERFACE_DATE
+			,SUBJECT
+			,PROJECT_TYPE
+			,PROJECT_TYPE_NM
+			,REQ_DATE
+			,PR_AMT
+			,CUR
+			,REQ_USER_ID
+			,REQ_DEPT_NM
+			,INSPECT_USER_ID
+			,RMK_TEXT
+		) VALUES (
+			 #{PROJECT_CD}
+			,#{PROJECT_SQ}
+			,SYSDATE
+			,#{SUBJECT}
+			,#{PROJECT_TYPE}
+			,#{PROJECT_TYPE_NM}
+			,#{REQ_DATE}
+			,#{PR_AMT}
+			,#{CUR}
+			,#{REQ_USER_ID}
+			,#{REQ_DEPT_NM}
+			,#{INSPECT_USER_ID}
+			,#{RMK_TEXT}
+		)
+	</insert>
+    <insert id="insPmsPrdt" parameterType="hashmap">
+		INSERT INTO PMSPRDT (
+			 PROJECT_CD
+			,PROJECT_SQ
+			,INTERFACE_DATE
+			,PR_SQ
+			,ITEM_CD
+			,ITEM_DESC
+			,ITEM_SPEC
+			,PR_QT
+			,UNIT_CD
+			,UNIT_PRC
+			,ITEM_AMT
+			,DUE_DATE
+			,DELY_TO_NM
+			,ITEM_RMK
+			,VENDOR_IRS_NUM
+			,VENDOR_NM
+			,CTRL_USER_ID
+		) VALUES (
+			 #{PROJECT_CD}
+			,#{PROJECT_SQ}
+			,SYSDATE
+			,#{PR_SQ}
+			,#{ITEM_CD}
+			,#{ITEM_DESC}
+			,#{ITEM_SPEC}
+			,#{PR_QT}
+			,#{UNIT_CD}
+			,#{UNIT_PRC}
+			,#{ITEM_AMT}
+			,#{DUE_DATE}
+			,#{DELY_TO_NM}
+			,#{ITEM_RMK}
+			,#{VENDOR_IRS_NUM}
+			,#{VENDOR_NM}
+			,#{CTRL_USER_ID}
+		)
+	</insert>
+
+
+
+
+</mapper>

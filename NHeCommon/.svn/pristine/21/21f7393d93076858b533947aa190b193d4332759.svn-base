@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.st_ones.common.util.UtilMapper">
+
+    <select id="getCheckCnt" parameterType="hashMap" resultType="hashMap">
+
+    	SELECT <include refid="common.sql.mtop1"/>
+             SCAC.SCREEN_ID
+            ,SCAC.ACTION_CD
+            ,SCRN.SCREEN_URL
+            ,SCAC.PACKAGE_NM
+            ,<include refid="common.sql.dbo"/>GETMULTINAME(SCAC.GATE_CD, 'SA', #{ses.langCd}, SCAC.ACTION_CD, SCAC.SCREEN_ID) AS ACTION_NM
+          FROM STOCSCAC SCAC LEFT OUTER JOIN STOCACPF ACPF
+		   ON (SCAC.GATE_CD = ACPF.GATE_CD
+		   AND SCAC.SCREEN_ID = ACPF.SCREEN_ID
+		   AND SCAC.ACTION_CD = ACPF.ACTION_CD
+		   AND ACPF.DEL_FLAG = '0')
+		  LEFT OUTER JOIN STOCACPH ACPH
+		   ON (ACPF.GATE_CD = ACPH.GATE_CD
+		   AND ACPF.ACTION_PROFILE_CD = ACPH.ACTION_PROFILE_CD
+		   AND ACPH.DEL_FLAG = '0')
+		  LEFT OUTER JOIN STOCUSAC USAC
+		   ON (ACPH.GATE_CD = USAC.GATE_CD
+		   AND ACPH.ACTION_PROFILE_CD = USAC.ACTION_PROFILE_CD
+		   AND USAC.USER_ID =  <include refid="common.sql.nvl"/>(#{ses.userId}, 'SYSTEM')
+		   AND USAC.DEL_FLAG = '0')
+		  LEFT JOIN STOCSCRN SCRN
+		   ON (SCAC.GATE_CD = SCRN.GATE_CD
+		   AND SCAC.SCREEN_ID = SCRN.SCREEN_ID)
+         WHERE SCAC.GATE_CD = <include refid="common.sql.nvl"/>(#{ses.gateCd}, '100')
+		   AND <include refid="common.sql.nvl"/>(SCAC.PACKAGE_NM, '-') = #{PACKAGE_NM}
+		   AND SCAC.DEL_FLAG = '0'
+           <include refid="common.sql.otop1"/>
+
+        ORDER BY SCAC.REG_DATE DESC
+
+    </select>
+
+    <insert id="setLogForJob" parameterType="hashMap">
+
+        INSERT INTO STOCULOG(
+             GATE_CD
+        <if test="_databaseId == 'oracle'">
+            ,JOB_SQ
+        </if>
+            ,JOB_DATE
+            ,JOB_TYPE
+            ,MODULE_NM
+            ,METHOD_NM
+            ,JOB_DESC
+            ,USER_TYPE
+            ,IP_ADDR
+            ,USER_ID
+            ,SCREEN_ID
+            ,ACTION_CD
+            ,FAIL_TYPE
+            ,USER_STATUS
+            ,BUYER_CD
+        ) VALUES (
+        <choose>
+            <when test="ses.gateCd == null or ses.gateCd == ''"> '100'</when>
+            <otherwise> #{ses.gateCd}</otherwise>
+        </choose>
+        <if test="_databaseId == 'oracle'">
+            ,SEQ_STOCULOG.NEXTVAL
+        </if>
+            ,SYSDATE
+            ,(CASE WHEN #{jobType} is null THEN 'G' ELSE #{jobType} END)
+            ,#{moduleName}
+            ,#{methodName}
+            ,#{jobDesc}
+        <choose>
+            <when test="ses.userType == null or ses.gateCd == ''">,#{userType}</when>
+            <otherwise>,#{ses.userType}</otherwise>
+        </choose>
+        <choose>
+            <when test="ses.ipAddress == null or ses.ipAddress == ''">,#{ipAddress}</when>
+            <otherwise>,#{ses.ipAddress}</otherwise>
+        </choose>
+        <choose>
+            <when test="userId != null and userId != ''">,#{userId}</when>
+            <when test="ses.userId == null or ses.userId == ''">,'SYSTEM'</when>
+            <otherwise>,#{ses.userId}</otherwise>
+        </choose>
+            ,#{screenId}
+            ,#{actionCode}
+            ,#{failType}
+            ,(SELECT <include refid="common.sql.nvl"/>(STATUS, '') FROM STOCUSER WHERE GATE_CD = '100' AND USER_ID = #{userId})
+            ,#{ses.companyCd}
+        )
+
+    </insert>
+
+    <select id="getItemSearchByCode" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+			  ITEM_CD
+			, ITEM_DESC
+			, ITEM_DESC_ENG
+			, ITEM_KIND_CD
+			, UNIT_CD
+		    , <include refid="common.sql.dbo"/>GETCOMCODE(GATE_CD, 'M037', UNIT_CD, '0', #{ses.langCd}) AS UNIT_CD_LOC
+			, ITEM_SPEC
+			, PROGRESS_CD
+			, MAKER
+			, ORDER_HALT_FLAG
+			, ITEM_CLS1
+		    , <include refid="common.sql.dbo"/>GETITEMCLASS(GATE_CD, ITEM_CLS1, '1') AS ITEM_CLS1_LOC
+			, ITEM_CLS2
+		    , <include refid="common.sql.dbo"/>GETITEMCLASS(GATE_CD, ITEM_CLS2, '2') AS ITEM_CLS2_LOC
+			, ITEM_CLS3
+		    , <include refid="common.sql.dbo"/>GETITEMCLASS(GATE_CD, ITEM_CLS3, '3') AS ITEM_CLS3_LOC
+			, ITEM_CLS4
+		    , <include refid="common.sql.dbo"/>GETITEMCLASS(GATE_CD, ITEM_CLS4, '4') AS ITEM_CLS4_LOC
+          FROM STOCMTGL
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND ITEM_CD = #{ITEM_CD}
+		   AND DEL_FLAG = '0'
+		   AND PROGRESS_CD = 'E'
+
+    </select>
+
+    <insert id="menuClickSave" parameterType="hashMap">
+
+        INSERT INTO STOCULOG (
+            GATE_CD,
+        <if test="_databaseId == 'oracle'">
+            JOB_SQ,
+        </if>
+            JOB_DATE,
+            JOB_TYPE,
+            MODULE_NM,
+            METHOD_NM,
+            JOB_DESC,
+            USER_TYPE,
+            IP_ADDR,
+            USER_ID,
+            SCREEN_ID,
+            ACTION_CD,
+            TMPL_MENU_CD,
+            BUYER_CD
+        ) VALUES (
+            #{ses.gateCd},
+        <if test="_databaseId == 'oracle'">
+            SEQ_STOCULOG.NEXTVAL,
+        </if>
+            SYSDATE,
+            (CASE WHEN #{jobType} is null THEN 'G' ELSE #{jobType} END),
+            #{moduleName},
+            #{methodName},
+            #{jobDesc},
+            #{ses.userType},
+            #{ses.ipAddress},
+            #{ses.userId},
+        	(SELECT <include refid="common.sql.mtop1"/> screen_id FROM stocmutm WHERE gate_cd = #{ses.gateCd} AND tmpl_menu_cd = #{tmpl_menu_cd} <include refid="common.sql.otop1"/>),
+            #{actionCode},
+            #{tmpl_menu_cd},
+            #{ses.companyCd}
+        )
+
+    </insert>
+
+    <insert id="setLogForPJob" parameterType="hashMap">
+
+        INSERT INTO STOCPLOG(
+             JOB_SQ
+            ,GATE_CD
+            ,BUYER_CD
+            ,DOC_NUM
+            ,DOC_CNT
+            ,USER_ID
+            ,USER_TYPE
+            ,JOB_DATE
+            ,SCREEN_ID
+            ,ACTION_CD
+            ,ACTION_NAME
+            ,IP_ADDR
+        ) VALUES (
+        <if test="_databaseId == 'oracle'">
+             SEQ_STOCULOG.NEXTVAL,
+        </if>
+        <if test="_databaseId == 'mssql'">
+             (SELECT MAX(JOB_SQ) + 1 FROM STOCULOG WHERE GATE_CD = #{ses.gateCd}),
+        </if>
+        <choose>
+            <when test="ses.gateCd == null or ses.gateCd == ''">,'100'</when>
+            <otherwise>,#{ses.gateCd}</otherwise>
+        </choose>
+        	,,#{ses.companyCd}
+            ,#{DOC_NUM}
+            ,#{DOC_CNT}
+        <choose>
+            <when test="ses.userId == null or ses.userId == ''">,'SYSTEM'</when>
+            <otherwise>,#{ses.userId}</otherwise>
+        </choose>
+        <choose>
+            <when test="ses.userType == null or ses.gateCd == ''">,'N'</when>
+            <otherwise>,#{ses.userType}</otherwise>
+        </choose>
+            ,SYSDATE
+            ,#{SCREEN_ID}
+            ,#{ACTION_CD}
+            ,#{ACTION_NAME}
+        <choose>
+            <when test="ses.ipAddress == null or ses.ipAddress == ''">,#{IP_ADDRESS}</when>
+            <otherwise>,#{ses.ipAddress}</otherwise>
+        </choose>
+        )
+
+    </insert>
+
+    <insert id="setLogForMaskJob">
+        INSERT INTO STOCMASK (
+               GATE_CD
+             , MASK_SQ
+             , ACCESS_DATE
+             , USER_ID
+             , SCREEN_ID
+             , REG_DATE
+             , REG_USER_ID
+             , DEL_FLAG
+             , IP_ADDR
+             , RMK
+             , SCREEN_CRUD
+        ) VALUES (
+               #{ses.gateCd}
+             , (SELECT NVL(MAX(MASK_SQ), 0) + 1
+                  FROM STOCMASK
+                 WHERE GATE_CD = #{ses.gateCd}
+                   AND ACCESS_DATE = <include refid="common.sql.toChar"/>(SYSDATE, 'yyyyMMdd')
+                   AND USER_ID = #{ses.userId})
+             , <include refid="common.sql.toChar"/>(SYSDATE, 'yyyyMMdd')
+             , #{ses.userId}
+             , #{SCREEN_ID}
+             , SYSDATE
+             , #{ses.userId}
+             , '0'
+             , #{ses.ipAddress}
+             , #{RMK}
+             , #{SCREEN_CRUD}
+        )
+    </insert>
+
+</mapper>

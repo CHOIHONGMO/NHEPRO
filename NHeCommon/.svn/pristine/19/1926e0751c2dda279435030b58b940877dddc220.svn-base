@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.screen.MSRA0020_Mapper">
+
+    <select id="doSearchScreenActionManagement" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+              SCAC.SCREEN_ID
+            , SCAC.SCREEN_ID AS SCREEN_ID_ORI
+            , SCAC.GATE_CD
+            , <include refid="common.sql.toChar"/>(SCAC.REG_DATE, 'YYYYMMDD') AS REG_DATE
+            , <include refid="common.sql.dbo"/>GETMULTINAME(SCAC.GATE_CD, 'SA', #{ses.langCd}, SCAC.ACTION_CD, SCAC.SCREEN_ID) AS ACTION_NM
+            , <include refid="common.sql.dbo"/>GETMULTINAME(SCAC.GATE_CD, 'SC', #{ses.langCd}, '', SCAC.SCREEN_ID) AS SCREEN_NM
+            , SCAC.REG_USER_ID
+            , SCAC.ACTION_CD
+            , SCAC.ACTION_CD AS ACTION_CD_ORI
+            , SCRN.MODULE_TYPE
+            , 'U' AS INSERT_FLAG
+            , (SELECT UR.USER_NM FROM STOCUSER UR WHERE UR.GATE_CD = SCAC.GATE_CD AND UR.USER_ID = SCAC.REG_USER_ID) AS REG_USER_NM
+            , SCAC.FP_EQ_FLAG
+            , SCAC.FP_EO_FLAG
+            , SCAC.FP_EI_FLAG
+            , SCAC.FP_ETC_TEXT
+            , ('') AS SCREEN_NM_IMG
+            , BUTTON_ICON_NM
+            , BUTTON_AUTH
+            ,<include refid="common.sql.nvl"/>(INVISIBLE_FLAG, '0') AS INVISIBLE_FLAG
+            , SCAC.PACKAGE_NM
+          FROM STOCSCRN SCRN
+          INNER JOIN STOCSCAC SCAC
+            ON (SCRN.SCREEN_ID = SCAC.SCREEN_ID
+            AND SCRN.GATE_CD = SCAC.GATE_CD)
+         WHERE SCRN.GATE_CD = #{ses.gateCd}
+           AND SCRN.DEL_FLAG = '0'
+           AND SCAC.DEL_FLAG = '0'
+        <!--AND USERS.DEL_FLAG = '0' -->
+        <if test="MODULE_TYPE !='' and MODULE_TYPE != null">
+            AND MODULE_TYPE = #{MODULE_TYPE}
+        </if>
+        <if test="SCREEN_ID !='' and SCREEN_ID != null">
+            AND UPPER(SCAC.SCREEN_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SCREEN_ID}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="SCREEN_NM !='' and SCREEN_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETMULTINAME(SCAC.GATE_CD, 'SC', #{ses.langCd}, '', SCAC.SCREEN_ID)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SCREEN_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="ACTION_CD !='' and ACTION_CD != null">
+            AND UPPER(SCAC.ACTION_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ACTION_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="ACTION_NM !='' and ACTION_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETMULTINAME(SCAC.GATE_CD, 'SA', #{ses.langCd}, SCAC.ACTION_CD, SCAC.SCREEN_ID)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ACTION_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+    </select>
+
+    <select id="getAvailableButtonCodeList" parameterType="hashmap" resultType="hashmap">
+
+        SELECT CTRL_CD, CTRL_NM
+          FROM STOCBACO
+         WHERE GATE_CD = #{ses.gateCd}
+           AND DEL_FLAG = '0'
+           AND USE_FLAG = '1'
+
+    </select>
+
+    <select id="checkScreenActionManagement" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT COUNT(ACTION_CD)
+          FROM STOCSCAC
+         WHERE GATE_CD = #{ses.gateCd}
+           AND ACTION_CD = (<include refid="common.sql.dbo"/>SF_TRIM(#{ACTION_CD}))
+           AND SCREEN_ID = #{SCREEN_ID}
+
+    </select>
+
+    <update id="doUpdateScreenActionManagement" parameterType="hashMap">
+
+        UPDATE STOCSCAC SET
+              ACTION_CD = (<include refid="common.sql.dbo"/>SF_TRIM(#{ACTION_CD}) )
+            , SCREEN_ID = #{SCREEN_ID}
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , FP_EQ_FLAG = #{FP_EQ_FLAG}
+            , FP_EO_FLAG = #{FP_EO_FLAG}
+            , FP_EI_FLAG = #{FP_EI_FLAG}
+            , FP_ETC_TEXT = #{FP_ETC_TEXT}
+            , BUTTON_ICON_NM = #{BUTTON_ICON_NM}
+            , BUTTON_AUTH = #{BUTTON_AUTH}
+            , INVISIBLE_FLAG = #{INVISIBLE_FLAG}
+            , PACKAGE_NM = #{PACKAGE_NM}
+            , DEL_FLAG = '0'
+         WHERE GATE_CD = #{GATE_CD}
+           AND ACTION_CD = #{ACTION_CD}
+           AND SCREEN_ID = #{SCREEN_ID}
+
+    </update>
+
+    <insert id="doInsertScreenActionManagement" parameterType="hashMap">
+
+        INSERT INTO STOCSCAC (
+              GATE_CD
+            , SCREEN_ID
+            , ACTION_CD
+            , REG_DATE
+            , REG_USER_ID
+            , DEL_FLAG
+            , FP_EQ_FLAG
+            , FP_EO_FLAG
+            , FP_EI_FLAG
+            , FP_ETC_TEXT
+            , BUTTON_ICON_NM
+            , BUTTON_AUTH
+            , INVISIBLE_FLAG
+            , PACKAGE_NM
+        ) VALUES (
+              #{ses.gateCd}
+            , #{SCREEN_ID}
+            , (<include refid="common.sql.dbo"/>SF_TRIM(#{ACTION_CD}) )
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{FP_EQ_FLAG}
+            , #{FP_EO_FLAG}
+            , #{FP_EI_FLAG}
+            , #{FP_ETC_TEXT}
+            , #{BUTTON_ICON_NM}
+            , #{BUTTON_AUTH}
+            , #{INVISIBLE_FLAG}
+            , #{PACKAGE_NM}
+        )
+
+    </insert>
+
+    <update id="doDeleteScreenActionManagement" parameterType="hashMap">
+
+        UPDATE STOCSCAC SET
+              DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{GATE_CD}
+           AND ACTION_CD = #{ACTION_CD_ORI}
+           AND SCREEN_ID = #{SCREEN_ID_ORI}
+
+    </update>
+
+</mapper>

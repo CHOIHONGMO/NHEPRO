@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.batch.nhebatch.BNH0015_Mapper">
+	
+	<!-- 입찰서 제출기한 안내 : 입찰서 제출 기한이 2시간 10분 이내로 남았지만, 아직 제출하지 않은 협력사에게 SMS 통지 -->
+    <select id="getTagrgetData1" resultType="hashmap" parameterType="hashMap">
+
+		SELECT
+            A.*
+          FROM (
+            SELECT
+                  HD.GATE_CD
+				, HD.BUYER_CD
+				, HD.BID_NUM
+				, HD.BID_CNT
+				, HD.ANN_NO
+				, HD.ANN_ITEM
+				, AP.VENDOR_CD AS RECV_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(AP.GATE_CD, AP.REG_USER_ID, #{ses.langCd}) AS RECV_USER_NM
+				, PG.VOTE_CNT
+                , SUBSTR(PG.BID_END_DATE, 1, 4)
+                 <include refid="common.sql.stringMerge"/>'-'
+                 <include refid="common.sql.stringMerge"/>SUBSTR(PG.BID_END_DATE, 5, 2)
+                 <include refid="common.sql.stringMerge"/>'-'
+                 <include refid="common.sql.stringMerge"/>SUBSTR(PG.BID_END_DATE, 7, 2)
+                 <include refid="common.sql.stringMerge"/>' '
+                 <include refid="common.sql.stringMerge"/>SUBSTR(PG.BID_END_TIME, 1, 2)
+                 <include refid="common.sql.stringMerge"/>':'
+                 <include refid="common.sql.stringMerge"/>SUBSTR(PG.BID_END_TIME, 3, 2) AS BID_END_DATETIME
+                ,<include refid="common.sql.dbo"/>getSupBidProgressCd(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, PG.VOTE_CNT, AP.VENDOR_CD, 'CD') AS BID_STATUS
+                , HD.BID_STATUS AS ORI_BID_STATUS
+                ,(CASE WHEN (SELECT COUNT(VO.VENDOR_CD) FROM STOCBDVO VO
+                              WHERE VO.GATE_CD   = AP.GATE_CD
+                                AND VO.BUYER_CD  = AP.BUYER_CD
+                                AND VO.BID_NUM   = AP.BID_NUM
+                                AND VO.BID_CNT   = AP.BID_CNT
+                                AND VO.VOTE_CNT  = PG.VOTE_CNT
+                                AND VO.VENDOR_CD = AP.VENDOR_CD
+                                AND VO.DEL_FLAG  = '0') <![CDATA[>]]> 0 THEN 'Y'
+                       ELSE 'N'
+                  END) AS SEND_FLAG
+                ,(CASE WHEN (SELECT COUNT(VO.VENDOR_CD) FROM STOCBDVO VO
+                              WHERE VO.GATE_CD   = AP.GATE_CD
+                                AND VO.BUYER_CD  = AP.BUYER_CD
+                                AND VO.BID_NUM   = AP.BID_NUM
+                                AND VO.BID_CNT   = AP.BID_CNT
+                                AND VO.VOTE_CNT  = PG.VOTE_CNT
+                                AND VO.VENDOR_CD = AP.VENDOR_CD
+                                AND VO.DEL_FLAG  = '0') <![CDATA[>]]> 0 THEN 'N'
+                       ELSE (CASE WHEN HD.CONT_TYPE2 = 'TD' THEN (CASE WHEN AP.EV_FINAL_FLAG = '600' THEN 'N' ELSE 'Y' END) ELSE 'Y' END)
+                  END) AS SEND_POSSIBLE_FLAG
+                ,(SELECT V.VOTE_CNT
+                    FROM (
+	                    SELECT VOTE_CNT
+	                         , RANK() OVER (PARTITION BY PG.GATE_CD, PG.BUYER_CD, PG.BID_NUM, PG.BID_CNT ORDER BY PG.MOD_DATE DESC) AS RANK
+	                      FROM STOCBDPG PG
+	                     WHERE PG.GATE_CD  = HD.GATE_CD
+	                       AND PG.BUYER_CD = HD.BUYER_CD
+	                       AND PG.BID_NUM  = HD.BID_NUM
+	                       AND PG.BID_CNT  = HD.BID_CNT) V
+                   WHERE V.RANK = 1) AS PRECENT_VOTE
+                 -- 2021.07.02 : 입찰서 제출기한 안내 SMS 수수료 추가
+				,(SELECT IRS_NUM FROM STOCCUST
+	               WHERE GATE_CD = HD.GATE_CD
+	                 AND CUST_CD = HD.BUYER_CD) 	AS CORP_NO
+	            ,(SELECT DEPT_CD FROM STOCCVUR
+				   WHERE GATE_CD = HD.GATE_CD
+				     AND USER_ID = HD.BID_USER_ID) 	AS BRC
+	            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+	            , HD.BID_USER_ID 	AS USER_ID
+	            , 'SMS_BID_BATCH_SEND'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.GATE_CD  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.BUYER_CD 			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.BID_NUM  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.BID_CNT 		AS CONT_TBL_PK
+	            , NULL 				AS FILE_SIZE
+	            , 'STOCBDHD'		AS CONT_TBL_ID
+              FROM STOCBDHD HD
+              JOIN STOCBDAP AP
+	               ON (HD.GATE_CD  = AP.GATE_CD
+	               AND HD.BUYER_CD = AP.BUYER_CD
+	               AND HD.BID_NUM  = AP.BID_NUM
+	               AND HD.BID_CNT  = AP.BID_CNT
+	               AND AP.DEL_FLAG = '0')
+              JOIN STOCBDPG PG
+	               ON (HD.GATE_CD  = PG.GATE_CD
+	               AND HD.BUYER_CD = PG.BUYER_CD
+	               AND HD.BID_NUM  = PG.BID_NUM
+	               AND HD.BID_CNT  = PG.BID_CNT)
+             WHERE HD.GATE_CD     = #{ses.gateCd}
+               AND HD.DEL_FLAG    = '0'
+               AND HD.BID_STATUS NOT IN ('1300', '2303', '2330', '2500', '9999')
+               AND HD.SIGN_STATUS = 'E'
+               AND (<include refid="common.sql.nvl"/>(AP.FINAL_FLAG, '100') != '600' AND <include refid="common.sql.nvl"/>(AP.EV_FINAL_FLAG, '100') != '600')
+               AND PG.BID_END_DATE <include refid="common.sql.stringMerge"/> PG.BID_END_TIME <![CDATA[>=]]> TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+               AND PG.BID_END_DATE <include refid="common.sql.stringMerge"/> PG.BID_END_TIME <![CDATA[<=]]> TO_CHAR((SYSDATE + (2/24) + (10/(24 * 60))), 'YYYYMMDDHH24MISS')
+               AND <include refid="common.sql.dbo"/>getSupBidProgressCd(HD.GATE_CD, HD.BUYER_CD, HD.BID_NUM, HD.BID_CNT, PG.VOTE_CNT, AP.VENDOR_CD, 'CD') IN ('100', '200')
+          ) A
+         <!-- 진행상태가 2400(선정대기) 보다 작거나 2550(재입찰)인 경우, 조회 가능. -->
+         <!-- 협상에 의한 종합평가에서 특정 업체에 대해서만 재입찰시 진행상태가 2410(협상중)이고, 해당 업체의 진행상태가 200(협상중)인 경우, 조회 가능. -->
+         WHERE (CASE WHEN (TO_NUMBER(A.ORI_BID_STATUS) <![CDATA[<]]> 2400 OR A.ORI_BID_STATUS = '2550') THEN '1'
+                     WHEN (A.ORI_BID_STATUS = '2410' AND (SELECT MAX(<include refid="common.sql.nvl"/>(SV.BID_STATUS, '100'))
+                     										FROM STOCBDVO SV
+                                                           WHERE SV.GATE_CD   = A.GATE_CD
+                                                             AND SV.BUYER_CD  = A.BUYER_CD
+                                                             AND SV.BID_NUM   = A.BID_NUM
+                                                             AND SV.BID_CNT   = A.BID_CNT
+                                                             AND SV.VENDOR_CD = A.RECV_USER_ID
+                                                             AND SV.DEL_FLAG  = '0') = '200'
+                                                     AND A.VOTE_CNT <![CDATA[<=]]> PRECENT_VOTE) THEN '1'
+                     ELSE '0' END) = '1'
+       	   AND A.SEND_FLAG = 'N'
+		   AND A.SEND_POSSIBLE_FLAG = 'Y'
+	</select>
+	
+	<!-- 입찰 마감 기한 안내 : 입찰서 제출시작 이전에 입찰 마감이 되지 않은 건이 존재하는 경우 구매담당자에게 SMS 발송 -->
+	<!-- 마감처리시 진행상태 변경 ==> 최저가, 적격 : 2350, 분리(2단계) : 2353, 동시(2단계) : 2363, 협상 : 2367 -->
+    <select id="getTagrgetData2" resultType="hashmap" parameterType="hashMap">
+
+		SELECT
+			  HD.BUYER_CD
+			, HD.BID_NUM
+			, HD.BID_CNT
+			, HD.ANN_NO
+			, HD.ANN_ITEM
+			, SUBSTR(HD.APP_END_DATE, 1, 4) 
+			 <include refid="common.sql.stringMerge"/>'-'
+			 <include refid="common.sql.stringMerge"/>SUBSTR(HD.APP_END_DATE, 5, 2)
+			 <include refid="common.sql.stringMerge"/>'-'
+			 <include refid="common.sql.stringMerge"/>SUBSTR(HD.APP_END_DATE, 7, 2)
+			 <include refid="common.sql.stringMerge"/>' '
+			 <include refid="common.sql.stringMerge"/>SUBSTR(HD.APP_END_TIME, 1, 2)
+			 <include refid="common.sql.stringMerge"/>':'
+			 <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 3, 2) AS APP_END_DATETIME
+			, SUBSTR(PG.BID_BEGIN_DATE, 1, 4)
+             <include refid="common.sql.stringMerge"/>'-'
+             <include refid="common.sql.stringMerge"/>SUBSTR(PG.BID_BEGIN_DATE, 5, 2)
+             <include refid="common.sql.stringMerge"/>'-'
+             <include refid="common.sql.stringMerge"/>SUBSTR(PG.BID_BEGIN_DATE, 7, 2)
+             <include refid="common.sql.stringMerge"/>' '
+             <include refid="common.sql.stringMerge"/>SUBSTR(PG.BID_BEGIN_TIME, 1, 2)
+             <include refid="common.sql.stringMerge"/>':'
+             <include refid="common.sql.stringMerge"/>SUBSTR(PG.BID_BEGIN_TIME, 3, 2) AS BID_BEGIN_DATETIME
+			, HD.BID_STATUS AS ORI_BID_STATUS
+			, HD.BID_USER_ID AS RECV_USER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.BID_USER_ID, #{ses.langCd}) AS RECV_USER_NM
+			 -- 2021.07.02 : 입찰서 제출기한 안내 SMS 수수료 추가
+			,(SELECT IRS_NUM FROM STOCCUST
+               WHERE GATE_CD = HD.GATE_CD
+                 AND CUST_CD = HD.BUYER_CD) 	AS CORP_NO
+            ,(SELECT DEPT_CD FROM STOCCVUR
+			   WHERE GATE_CD = HD.GATE_CD
+			     AND USER_ID = HD.BID_USER_ID) 	AS BRC
+            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+            , HD.BID_USER_ID 	AS USER_ID
+            , 'SMS_BID_BATCH_CLOSE'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              HD.GATE_CD  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              HD.BUYER_CD 			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              HD.BID_NUM  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              HD.BID_CNT 		AS CONT_TBL_PK
+            , NULL 				AS FILE_SIZE
+            , 'STOCBDHD'		AS CONT_TBL_ID
+		  FROM STOCBDHD HD
+		  JOIN STOCBDPG PG
+               ON (HD.GATE_CD  = PG.GATE_CD
+               AND HD.BUYER_CD = PG.BUYER_CD
+               AND HD.BID_NUM  = PG.BID_NUM
+               AND HD.BID_CNT  = PG.BID_CNT)
+		 WHERE HD.GATE_CD     = #{ses.gateCd}
+		   AND HD.DEL_FLAG    = '0'
+		   AND HD.CONT_TYPE2 NOT IN ('TD')
+		   AND HD.BID_STATUS NOT IN ('1300', '2303', '2330', '9999')
+		   AND TO_NUMBER(HD.BID_STATUS) <![CDATA[<]]> 2350
+		   AND HD.SIGN_STATUS = 'E'
+		   AND HD.APP_END_DATE <include refid="common.sql.stringMerge"/> HD.APP_END_TIME <![CDATA[>=]]> TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+		   AND PG.VOTE_CNT = (SELECT MAX(P.VOTE_CNT) FROM STOCBDPG P
+							   WHERE P.GATE_CD  = HD.GATE_CD
+								 AND P.BUYER_CD = HD.BUYER_CD
+								 AND P.BID_NUM  = HD.BID_NUM
+								 AND P.BID_CNT  = HD.BID_CNT)
+           AND PG.BID_BEGIN_DATE <include refid="common.sql.stringMerge"/> PG.BID_BEGIN_TIME <![CDATA[<=]]> TO_CHAR((SYSDATE + (2/24) + (10/(24 * 60))), 'YYYYMMDDHH24MISS')
+	</select>
+	
+	<!-- 2021.09.28 추가 -->
+	<!-- 견적요청서 결재완료 이후 협력사 전송되지 않은 건에 대해 견적담당자에게 sms전송 -->
+    <select id="getTagrgetData3" resultType="hashmap" parameterType="hashMap">
+
+		SELECT
+			  HD.BUYER_CD
+			, HD.RFX_NUM
+			, HD.RFX_CNT
+			, HD.RFX_SUBJECT
+			,<include refid="common.sql.toChar"/>(HD.RFX_START_DATE, 'YYYY-MM-DD HH24:MI:SS') AS RFX_START_DATE
+			,<include refid="common.sql.toChar"/>(HD.RFX_END_DATE, 'YYYY-MM-DD HH24:MI:SS') AS RFX_END_DATE
+			, HD.CTRL_USER_ID AS RECV_USER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.CTRL_USER_ID, #{ses.langCd}) AS RECV_USER_NM
+			,(SELECT IRS_NUM FROM STOCCUST
+               WHERE GATE_CD = HD.GATE_CD
+                 AND CUST_CD = HD.BUYER_CD) 	AS CORP_NO
+            ,(SELECT DEPT_CD FROM STOCCVUR
+			   WHERE GATE_CD = HD.GATE_CD
+			     AND USER_ID = HD.CTRL_USER_ID) AS BRC
+            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+            , HD.CTRL_USER_ID 	AS USER_ID
+            , 'SMS_RFX_BATCH_REQ'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              HD.GATE_CD  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              HD.BUYER_CD 			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              HD.RFX_NUM  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              HD.RFX_CNT 		AS CONT_TBL_PK
+            , NULL 				AS FILE_SIZE
+            , 'STOCRQHD'		AS CONT_TBL_ID
+		  FROM STOCRQHD HD
+		 WHERE HD.GATE_CD     = #{ses.gateCd}
+		   AND HD.PROGRESS_CD = '2300'	-- 작성중
+		   AND HD.SIGN_STATUS = 'E'		-- 결재승인
+		   AND <include refid="common.sql.nvl"/>(HD.SEND_YN, '0') = '0'
+		   AND TO_CHAR (HD.RFX_START_DATE, 'YYYYMMDDHH24MISS') <![CDATA[<=]]> TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+		   AND TO_CHAR (HD.RFX_END_DATE, 'YYYYMMDDHH24MISS')   <![CDATA[>=]]> TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+		   AND HD.DEL_FLAG    = '0'
+	</select>
+	
+	
+	<!-- 견적요청 알림 SMS 1회만 발송되도록 처리 -->
+	<update id="doSendYn" parameterType="hashmap">
+		UPDATE STOCRQHD
+		   SET SEND_YN = '1'
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND RFX_NUM = #{RFX_NUM}
+		   AND RFX_CNT = #{RFX_CNT}
+	</update>
+
+</mapper>

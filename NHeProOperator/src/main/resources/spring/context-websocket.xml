@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--*
+  * Copyright (c) 2013 ST-Ones (http://www.st-ones.com/) All rights reserved.
+  * @LastModified 17. 11. 3 오후 1:28
+  -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!--<bean id="serverLogHandler" clacom.st_ones.common.webSocketcket.ServerLogHandler"/>-->
+
+    <!--<webSocketcket:handlers>&ndash;&gt;-->
+    <!--<webSocketcket:mapping path="/serverLogHandler" handler="serverLogHandler" />&ndash;&gt;-->
+    <!--<webSocketcket:sockjs />&ndash;&gt;-->
+    <!--<!webSocketcket:handlers>&ndash;&gt;-->
+
+    <bean id="nettySocketServer" class="com.st_ones.common.websocket.NettySocketServer"></bean>
+
+    <bean id="bossGroup" class="io.netty.channel.nio.NioEventLoopGroup">
+        <constructor-arg type="int" index="0" value="10">
+        </constructor-arg>
+    </bean>
+
+    <bean id="workerGroup" class="io.netty.channel.nio.NioEventLoopGroup">
+        <constructor-arg type="int" index="0" value="50">
+        </constructor-arg>
+    </bean>
+</beans>

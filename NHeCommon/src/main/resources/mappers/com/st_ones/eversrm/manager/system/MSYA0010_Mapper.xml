@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:36 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.system.MSYA0010_Mapper">
+
+	<select id="getComboList" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			  COMMON_ID
+			, TYPE_CD
+			, <include refid="common.sql.dbo"/>GETMULTINAME_COMMONID(GATE_CD, #{ses.langCd}, COMMON_ID, 'TT') AS TITLE_TEXT
+			, <include refid="common.sql.dbo"/>GETMULTINAME_COMMONID(GATE_CD, #{ses.langCd}, COMMON_ID, 'LT') AS LIST_ITEM_TEXT
+			, <include refid="common.sql.dbo"/>GETMULTINAME_COMMONID(GATE_CD, #{ses.langCd}, COMMON_ID, 'CC') AS COMMON_DESC
+			, LIST_ITEM_CD
+			, SQL_TEXT
+			, DATABASE_CD
+		  FROM STOCCMPC
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND DEL_FLAG = '0'
+		<if test="USE_FLAG != '' and USE_FLAG != null">
+			AND USE_FLAG = #{USE_FLAG}
+		</if>
+		<if test="TYPE != '' and  TYPE != null">
+    		AND	TYPE_CD = #{TYPE}
+		</if>
+		<if test="DATABASE != '' and DATABASE != null">
+    		AND	DATABASE_CD = #{DATABASE}
+		</if>
+		<if test="COMMON_ID != '' and COMMON_ID != null">
+            AND UPPER(COMMON_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMMON_ID}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+		<if test="COMMON_DESC != '' and COMMON_DESC != null">
+            AND ( UPPER(<include refid="common.sql.dbo"/>GETMULTINAME_COMMONID(GATE_CD, #{ses.langCd}, COMMON_ID, 'CC')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMMON_DESC})<include refid="common.sql.stringMerge"/> '%'
+				OR UPPER(<include refid="common.sql.dbo"/>getMultiNameByCommonId(GATE_CD, #{ses.langCd}, COMMON_ID, 'TT')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMMON_DESC}) <include refid="common.sql.stringMerge"/> '%')
+        </if>
+		<if test="SQL_TEXT != '' and SQL_TEXT != null">
+            AND UPPER(SQL_TEXT) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SQL_TEXT}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+
+		ORDER BY COMMON_ID, DATABASE_CD
+
+	</select>
+
+</mapper>

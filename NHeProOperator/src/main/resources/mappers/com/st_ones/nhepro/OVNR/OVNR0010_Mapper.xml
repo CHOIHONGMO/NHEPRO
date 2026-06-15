@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.OVNR.OVNR0010_Mapper">
+
+    <select id="ovnr0010_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT VNGL.GATE_CD
+            , VNGL.REG_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M014', VNGL.REG_TYPE, '0', #{ses.langCd}) AS REG_TYPE_NM
+            , VNGL.VENDOR_CD
+            , VNGL.VENDOR_NM
+            , <include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+            , VNGL.IRS_NO
+            , <include refid="common.sql.toChar"/>(VNGL.REG_DATE, 'YYYY-MM-DD HH24:MI') AS REG_DATE
+            , VNGL.INDUSTRY_TYPE
+            , VNGL.BUSINESS_TYPE
+            , <include refid="common.sql.strDecStart"/>VNGL.TEL_NO<include refid="common.sql.strDecEnd"/> AS TEL_NO
+            , VNGL.BLOCK_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M044', VNGL.BLOCK_FLAG, '0', #{ses.langCd}) AS BLOCK_FLAG_NM
+            , VNGL.BLOCK_REASON
+        FROM STOCVNGL VNGL
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+        AND VNGL.DEL_FLAG = '0'
+        AND VNGL.PROGRESS_CD = 'E'
+        <if test="REG_TYPE != '' and REG_TYPE != null">
+            AND VNGL.REG_TYPE = #{REG_TYPE}
+        </if>
+        <if test="VENDOR_CD != '' and VENDOR_CD != null">
+            AND UPPER(VNGL.VENDOR_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VENDOR_NM != '' and VENDOR_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="BUYER_CD != '' and BUYER_CD != null">
+            AND VNGL.VENDOR_CD IN ( SELECT VNCM.VENDOR_CD
+                                    FROM STOCVNCM VNCM
+                                    WHERE VNCM.GATE_CD = #{ses.gateCd}
+                                    AND VNCM.DEL_FLAG = '0'
+                                    AND UPPER(VNCM.BUYER_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_CD}) <include refid="common.sql.stringMerge"/> '%'
+                                    )
+        </if>
+        <if test="BUYER_NM != '' and BUYER_NM != null">
+            AND VNGL.VENDOR_CD IN ( SELECT VNCM.VENDOR_CD
+                                    FROM STOCVNCM VNCM
+                                    WHERE VNCM.GATE_CD = #{ses.gateCd}
+                                    AND VNCM.DEL_FLAG = '0'
+                                    AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(VNCM.GATE_CD, VNCM.BUYER_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+                                    )
+        </if>
+        <if test="CEO_USER_NM != '' and CEO_USER_NM != null">
+            AND UPPER(<include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/>) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CEO_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="IRS_NO != '' and IRS_NO != null">
+            AND UPPER(VNGL.IRS_NO) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{IRS_NO}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REG_FROM_DATE != '' and REG_FROM_DATE != null">
+            AND VNGL.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_FROM_DATE})
+        </if>
+        <if test="REG_TO_DATE != '' and REG_TO_DATE != null">
+            AND VNGL.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_TO_DATE})
+        </if>
+        <if test="BLOCK_FLAG != '' and BLOCK_FLAG != null">
+            AND VNGL.BLOCK_FLAG = #{BLOCK_FLAG}
+        </if>
+    </select>
+    
+    <!-- 협력업체 BLOCK -->
+    <update id="ovnr0010_doBlock" parameterType="hashMap">
+        UPDATE STOCVNGL SET
+            BLOCK_FLAG = '1'
+            , BLOCK_REASON = #{BLOCK_REASON}
+            , MOD_USER_ID = #{ses.userId}
+            , MOD_DATE = SYSDATE
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND VENDOR_CD = #{VENDOR_CD}
+    </update>
+    
+    <!-- 협력업체 BLOCK 해제-->
+    <update id="ovnr0010_doBlockRemove" parameterType="hashMap">
+        UPDATE STOCVNGL SET
+            BLOCK_FLAG = '0'
+            , BLOCK_REASON = ''
+            , MOD_USER_ID = #{ses.userId}
+            , MOD_DATE = SYSDATE
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND VENDOR_CD = #{VENDOR_CD}
+    </update>
+
+    <select id="ovnr0011_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT VNGL.GATE_CD
+            , VNGL.VENDOR_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+            , VNGL.VENDOR_ENG_NM
+            , VNGL.REG_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M014', VNGL.REG_TYPE, '0', #{ses.langCd}) AS REG_TYPE_NM
+            , VNGL.IRS_NO
+            , VNGL.COMPANY_REG_NO
+            , <include refid="common.sql.strDecStart"/>VNGL.HQ_ZIP_CD<include refid="common.sql.strDecEnd"/> AS HQ_ZIP_CD
+            , <include refid="common.sql.strDecStart"/>VNGL.HQ_ADDR_1<include refid="common.sql.strDecEnd"/> AS HQ_ADDR_1
+            , <include refid="common.sql.strDecStart"/>VNGL.HQ_ADDR_2<include refid="common.sql.strDecEnd"/> AS HQ_ADDR_2
+            , <include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+            , VNGL.BUSINESS_TYPE
+            , VNGL.INDUSTRY_TYPE
+            , <include refid="common.sql.toChar"/>(VNGL.FOUNDATION_DATE, 'YYYY-MM-DD') AS FOUNDATION_DATE
+            , <include refid="common.sql.strDecStart"/>VNGL.TEL_NO<include refid="common.sql.strDecEnd"/> AS TEL_NO
+            , <include refid="common.sql.strDecStart"/>VNGL.FAX_NO<include refid="common.sql.strDecEnd"/> AS FAX_NO
+            , <include refid="common.sql.strDecStart"/>VNGL.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+            , VNGL.BUSINESS_SIZE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP039', VNGL.BUSINESS_SIZE, '0', #{ses.langCd}) AS BUSINESS_SIZE_NM
+            , VNGL.BUSINESS_DIVISION
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP040', VNGL.BUSINESS_DIVISION, '0', #{ses.langCd}) AS BUSINESS_DIVISION_NM
+            , '' AS REGION_CD
+            , VNGL.BUSINESS_REMARK
+            , VNGL.REMARK_TEXT
+            , VNGL.RELAT_YN
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'NH0005', VNGL.RELAT_YN, '0', #{ses.langCd}) AS RELAT_YN_NM
+            , VNGL.CORP_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'NH0002', VNGL.CORP_TYPE, '0', #{ses.langCd}) AS CORP_TYPE_NM
+
+            -- 재무정보
+            , VNFI.FI_YEAR
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M174', VNFI.FI_YEAR, '0', #{ses.langCd}) AS FI_YEAR_NM
+            , VNFI.EVIDENCE_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP048', VNFI.EVIDENCE_TYPE, '0', #{ses.langCd}) AS EVIDENCE_TYPE_NM
+            , VNFI.OWNER_CAPITAL_AMOUNT
+            , VNFI.TOT_FUND_AMT
+            , VNFI.TOT_LIAB_AMT
+            , VNFI.TOTAL_LIABILITY_RATE
+            , VNFI.CURRENT_ASSET_AMOUNT
+            , VNFI.CURRENT_ASSET_LIABILITY_AMOUNT
+            ,(VNFI.CURRENT_ASSET_AMOUNT / (CASE WHEN <include refid="common.sql.nvl"/>(VNFI.CURRENT_ASSET_LIABILITY_AMOUNT,0) = 0 THEN 1 ELSE VNFI.CURRENT_ASSET_LIABILITY_AMOUNT END)) * 100 AS CURRENT_ASSET_LIABILITY_RATE
+            , VNFI.SALES_AMOUNT
+            , VNFI.NET_PROFIT_AMOUNT
+            , VNFI.ATT_FILE_NUM AS VNFI_ATT_FILE_NUM
+            , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(VNFI.GATE_CD, VNFI.ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(VNFI.GATE_CD, VNFI.ATT_FILE_NUM)
+              END AS VNFI_ATT_FILE_NUM_CNT
+
+            -- 관리정보
+            , VNGL.CREDIT_EVAL_COMPANY
+            , VNGL.CREDIT_CD
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP003', VNGL.CREDIT_CD, '0', #{ses.langCd}) AS CREDIT_NM
+            , VNGL.EV_ATT_FILE_NUM AS EV_ATT_FILE_NUM
+            , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(VNGL.GATE_CD, VNGL.EV_ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(VNGL.GATE_CD, VNGL.EV_ATT_FILE_NUM)
+              END AS EV_ATT_FILE_NUM_CNT
+            , VNGL.E_BILL_ASP_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP075', VNGL.E_BILL_ASP_TYPE, '0', #{ses.langCd}) AS E_BILL_ASP_TYPE_NM
+            , VNGL.TAX_ASP_NM
+            , VNGL.TAX_SEND_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP064', VNGL.TAX_SEND_TYPE, '0', #{ses.langCd}) AS TAX_SEND_TYPE_NM
+            , VNGL.BLOCK_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP006', VNGL.BLOCK_FLAG, '0', #{ses.langCd}) AS BLOCK_FLAG_NM
+            , VNGL.BLOCK_REASON
+            , VNGL.PROGRESS_CD
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M019', VNGL.PROGRESS_CD, '0', #{ses.langCd}) AS PROGRESS_NM
+            , VNGL.SIGN_STATUS
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'M019', VNGL.SIGN_STATUS, '0', #{ses.langCd}) AS SIGN_STATUS_NM
+            , VNGL.MOD_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(VNGL.GATE_CD,  VNGL.MOD_USER_ID , #{ses.langCd}) AS MOD_USER_NM
+            , <include refid="common.sql.toChar"/>(VNGL.MOD_DATE, 'YYYY-MM-DD HH24:MI') AS MOD_DATE
+            , DBK.CLIP_GRD AS NICE_DB_GRD
+            , INT.CR_GRD AS KED_GRD
+            , <include refid="common.sql.toChar"/>(VNGL.REG_DATE, 'YYYY-MM-DD HH24:MI') AS REG_DATE
+
+            -- 결제정보
+            , VNGL.PAY_CONDITION
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP045', VNGL.PAY_CONDITION, '0', #{ses.langCd}) AS PAY_CONDITION_NM
+            , VNGL.PAY_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP046', VNGL.PAY_TYPE, '0', #{ses.langCd}) AS PAY_TYPE_NM
+            , VNGL.PAY_PUBLIC_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP047', VNGL.PAY_PUBLIC_TYPE, '0', #{ses.langCd}) AS PAY_PUBLIC_TYPE_NM
+        FROM STOCVNGL VNGL
+        LEFT JOIN STOCVNFI VNFI
+            ON (VNFI.GATE_CD = VNGL.GATE_CD
+            AND VNFI.VENDOR_CD = VNGL.VENDOR_CD
+            AND VNFI.FI_YEAR = (SELECT MAX(FI_YEAR)
+                                FROM STOCVNFI S
+                                WHERE S.GATE_CD = VNFI.GATE_CD
+                                AND S.VENDOR_CD = VNFI.VENDOR_CD
+                                AND S.DEL_FLAG = '0'))
+        LEFT JOIN DBK_RPT01 DBK
+            ON (VNGL.IRS_NO = DBK.BIZ_NO)
+        LEFT JOIN INTR INT
+            ON (VNGL.IRS_NO = INT.BZNO)
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+        AND VNGL.DEL_FLAG = '0'
+        AND VNGL.VENDOR_CD = #{VENDOR_CD}
+    </select>
+
+    <select id="ovnr0011_doSearchVNSL" parameterType="hashMap" resultType="hashMap">
+        SELECT VNSL.SL_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNSL.GATE_CD, 'NH0006', VNSL.SL_TYPE, '0', #{ses.langCd}) AS SL_TYPE_NM
+            , VNSL.SL_NUM
+            , VNSL.SL_NM
+            , VNSL.ISSUE_NM
+            , VNSL.EXPIRY_DATE
+            , VNSL.ATT_FILE_NUM
+            , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(VNSL.GATE_CD, VNSL.ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(VNSL.GATE_CD, VNSL.ATT_FILE_NUM)
+              END AS ATT_FILE_NUM_CNT
+        FROM STOCVNSL VNSL
+        WHERE VNSL.GATE_CD = #{ses.gateCd}
+        AND VNSL.COMPANY_CD = #{VENDOR_CD}
+        AND VNSL.DEL_FLAG = '0'
+    </select>
+
+    <select id="ovnr0011_doSearchVNAP" parameterType="hashMap" resultType="hashMap">
+        SELECT VNAP.SEQ
+             , VNAP.VENDOR_CD
+             , <include refid="common.sql.toChar"/>(VNAP.MOD_DATE, 'YYYY-MM-DD HH24:MI') AS MOD_DATE
+             , VNAP.MOD_USER_ID
+             , <include refid="common.sql.dbo"/>GETUSERNAME(VNAP.GATE_CD,  VNAP.MOD_USER_ID , #{ses.langCd}) AS MOD_USER_NM
+             , VNAP.DEL_FLAG
+             , VNAP.PAY_ACC_NM
+             , VNAP.PAY_BANK
+             , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACCOUNT_NUM<include refid="common.sql.strDecEnd"/> AS PAY_ACCOUNT_NUM
+             , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACCOUNT_USER_NM<include refid="common.sql.strDecEnd"/> AS PAY_ACCOUNT_USER_NM
+             , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACC_MNG_NM<include refid="common.sql.strDecEnd"/> AS PAY_ACC_MNG_NM
+             , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACC_NMG_TEL_NUM<include refid="common.sql.strDecEnd"/> AS PAY_ACC_NMG_TEL_NUM
+             , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACC_MNG_EMAIL<include refid="common.sql.strDecEnd"/> AS PAY_ACC_MNG_EMAIL
+             , VNAP.ATT_FILE_NUM AS PAY_ATT_FILE_NUM
+             , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(VNAP.GATE_CD, VNAP.ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(VNAP.GATE_CD, VNAP.ATT_FILE_NUM)
+              END AS PAY_ATT_FILE_NUM_CNT
+        FROM STOCVNAP VNAP
+        WHERE VNAP.GATE_CD = #{ses.gateCd}
+        AND VNAP.VENDOR_CD = #{VENDOR_CD}
+        AND VNAP.DEL_FLAG = '0'
+    </select>
+
+    <select id="ovnr0011_doSearchATTD" parameterType="hashMap" resultType="hashMap">
+        SELECT ATTD.GATE_CD
+            , ATTD.TMPL_FILE_NM
+            , ATTD.VALID_PERIOD
+            , <include refid="common.sql.toChar"/>(ATTS.VALID_START_DATE, 'YYYY-MM-DD') AS VALID_START_DATE
+            , <include refid="common.sql.toChar"/>(ATTS.VALID_END_DATE, 'YYYY-MM-DD') AS VALID_END_DATE
+            , ATTD.REQUIRED_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(ATTD.GATE_CD, 'M044', ATTD.REQUIRED_FLAG, '0', #{ses.langCd}) AS REQUIRED_FLAG_NM
+            , ATTS.ATT_FILE_NUM AS ATTS_ATT_FILE_NUM
+            , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(ATTS.GATE_CD, ATTS.ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(ATTS.GATE_CD, ATTS.ATT_FILE_NUM)
+              END AS ATTS_ATT_FILE_NUM_CNT
+        FROM STOCATTD ATTD
+        LEFT JOIN STOCATTS ATTS
+            ON (ATTS.GATE_CD = ATTD.GATE_CD
+            AND ATTS.BUYER_CD = ATTD.BUYER_CD
+            AND ATTS.DOC_TYPE = ATTD.DOC_TYPE
+            AND ATTS.TMPL_NUM = ATTD.TMPL_NUM
+            AND ATTS.TMPL_SQ = ATTD.TMPL_SQ
+            AND ATTS.VENDOR_CD = #{VENDOR_CD}
+            AND ATTs.DEL_FLAG = '0')
+        WHERE ATTD.GATE_CD = #{ses.gateCd}
+        AND ATTD.DEL_FLAG = '0'
+        AND ATTD.USE_FLAG = '1'
+        AND ATTD.BUYER_CD IN (  SELECT #{ses.manageCd} FROM DUAL UNION ALL
+                                SELECT VNCM.BUYER_CD
+                                FROM STOCVNCM VNCM
+                                WHERE VNCM.GATE_CD = #{ses.gateCd}
+                                AND VNCM.DEL_FLAG = '0'
+                                AND VNCM.VENDOR_CD = #{VENDOR_CD}
+                                )
+        AND ATTD.DOC_TYPE = 'D02'
+        ORDER BY ATTD.BUYER_CD, ATTD.SORT_SQ
+    </select>
+
+    <select id="ovnr0011_doSearchVNCM" parameterType="hashMap" resultType="hashMap">
+        SELECT VNCM.BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(VNCM.GATE_CD, VNCM.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+            , VNCM.DEPT_CD
+            , <include refid="common.sql.dbo"/>getDeptName(VNCM.GATE_CD, VNCM.BUYER_CD, VNCM.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+            , VNCM.CONFIRM_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNCM.GATE_CD, 'M019', VNCM.CONFIRM_FLAG, '0', #{ses.langCd}) AS CONFIRM_FLAG_NM
+            , <include refid="common.sql.toChar"/>(VNCM.CONFIRM_DATE, 'YYYY-MM-DD') AS CONFIRM_DATE
+            , VNCM.CONFIRM_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(VNCM.GATE_CD,  VNCM.CONFIRM_USER_ID , #{ses.langCd}) AS CONFIRM_USER_NM
+            , VNCM.CONFIRM_REASON
+            , VNCM.REQ_REASON
+        FROM STOCVNCM VNCM
+        WHERE VNCM.GATE_CD = #{ses.gateCd}
+        AND VNCM.DEL_FLAG = '0'
+        AND VNCM.VENDOR_CD = #{VENDOR_CD}
+    </select>
+</mapper>

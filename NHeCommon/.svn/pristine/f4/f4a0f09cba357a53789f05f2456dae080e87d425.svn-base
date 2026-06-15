@@ -1,0 +1,131 @@
+package com.st_ones.eversrm.eApproval.eApprovalEnd.PCONT.service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.st_ones.common.mail.service.EverMailService;
+import com.st_ones.common.sms.service.EverSmsService;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.eversrm.eApproval.eApprovalModule.service.BAPM_Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.st_ones.common.config.service.EverConfigService;
+import com.st_ones.common.docNum.service.DocNumService;
+import com.st_ones.common.message.service.MessageService;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.everf.serverside.util.clazz.AuthorityIgnore;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.PCONT.EApprovalEndPcont_Mapper;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2014 ST-Ones CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : EApprovalEndPcont_Service.java
+ * @date 2020. 4. 02.
+ * @version 1.0
+ */
+@Service(value = "eApprovalEndPcont_Service")
+public class EApprovalEndPcont_Service extends BaseService {
+
+    @Autowired private MessageService msg;
+
+	@Autowired private EverConfigService everConfigService;
+
+	@Autowired private EverMailService evermailservice;
+
+	@Autowired private EverSmsService eversmsservice;
+
+    @Autowired private DocNumService docNumService;
+
+	@Autowired private EApprovalEndPcont_Mapper endPcont_Mapper;
+
+	@Autowired private BAPM_Service bapm_Service;
+
+	/**
+	 * 모듈명 : 개인근로 [PCONT]
+	 * 처리내용 : SIGN_STATUS, SIGN_DATE, PROGRESS_CD 변경.
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String endApproval(String buyerCd, String appDocNum, String appDocCnt, String signStatus) throws Exception {
+
+		Map<String, String> param = new HashMap<String, String>();
+		param.put("BUYER_CD", buyerCd);
+		param.put("APP_DOC_NUM", appDocNum);
+		param.put("APP_DOC_CNT", appDocCnt);
+		param.put("SIGN_STATUS", signStatus);
+
+		// 결재번호에 해당하는 입찰번호 가져오기
+		Map<String, String> bidMap = endPcont_Mapper.getContNum(param);
+		param.put("CONT_NUM", bidMap.get("CONT_NUM"));
+		param.put("CONT_CNT", String.valueOf(bidMap.get("CONT_CNT")));
+
+		// STOCBDHD.SIGN_STATUS 변경
+		endPcont_Mapper.setContSignStatus(param);
+
+		// signStatus = 'E'인 경우...
+		if(signStatus.equals("E")) {
+
+			// 개인근로자에게 Mail/SMS 발송.
+			String companyName = PropertiesManager.getString("eversrm.system.mailSenderCompanyName", "");
+	        String senderName  = PropertiesManager.getString("eversrm.system.mailSenderName", "");
+			String linkUrl = PropertiesManager.getString("eversrm.urls.maintain.real") ;
+			
+			List<Map<String, String>> mailTargetList = endPcont_Mapper.getMailTargetList(param);
+
+			int sendIdx = 0;
+			for(Map<String, String> mailTargetData : mailTargetList) {
+				
+				String contMngNum = (String)mailTargetData.get("CONT_NUM");
+				
+				if( EverString.isNotEmpty(String.valueOf(mailTargetData.get("EMAIL"))) && !"null".equals(String.valueOf(mailTargetData.get("EMAIL"))) ) {
+
+					Map<String, String> mailMap = new HashMap<String, String>();
+					mailMap.put("SUBJECT", "[전자구매시스템][" + mailTargetData.get("BUYER_NM") + "] 신규 계약 체결 검토 요청");
+					mailMap.put("REF_MODULE_CD", "PC");
+					mailMap.put("REF_NUM", contMngNum);
+					mailMap.put("RECV_USER_ID", mailTargetData.get("WORKER_ID"));
+
+					StringBuffer content = new StringBuffer(255);
+					content.append("<BR> 안녕하십니까!귀하에게 새로운 계약 체결 건이 전송 되었습니다																							");
+					content.append("<BR>																										");
+					content.append("<BR> 회사 : [" + companyName + "]													");
+					content.append("<BR> 계약번호 : [" + contMngNum + "]														");
+					content.append("<BR> 입찰일 : [" + mailTargetData.get("CONT_DESC") + "]													");
+					content.append("<BR> 계약담당자 : [" + String.valueOf(EverString.nullToEmptyString(mailTargetData.get("CONT_USER_NM"))) + " (TEL : " + String.valueOf(EverString.nullToEmptyString(mailTargetData.get("CONT_TEL_NUM"))) + "]												");
+					content.append("<BR>																										");
+					content.append("<BR> 전자구매시스템에 <a href=\"" + linkUrl + "\" target=\"newP\">로그인</a> 하시어, 계약서 내용 검토 후 전자 서명 처리 바랍니다.		");
+					content.append("<BR>																										");
+					content.append("<BR> 감사합니다.																								");
+					mailMap.put("CONTENTS", content.toString());
+
+					evermailservice.SendMail(mailMap);
+
+					Map<String, String> smsMap = new HashMap<String, String>();
+					smsMap.put("CONTENTS", "[전자구매시스템] [" + mailTargetData.get("WORKER_NM") + "] 계약 체결 건이 전송 되었습니다. 계약서 내용 검토 바랍니다. (계약번호 : " + contMngNum + ")");
+					smsMap.put("REF_MODULE_CD", "PC");
+					smsMap.put("RECV_USER_ID", mailTargetData.get("WORKER_ID"));
+
+					eversmsservice.sendSmsNhe(smsMap);
+				}
+			}
+        }
+
+		String rtnMsg = (signStatus.equals("E") ? msg.getMessage("0057")
+						: (signStatus.equals("R") ? msg.getMessage("0058")
+						: (signStatus.equals("C") ? msg.getMessage("0061")
+						: msg.getMessage("0001"))));
+
+		return rtnMsg;
+	}
+
+}

@@ -1,0 +1,833 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:38 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCUR.CCUR0010_Mapper">
+
+	<select id="ccur0010_doSearchInfo" parameterType="hashmap" resultType="hashmap">
+
+		SELECT
+			 CUST.CUST_CD, CUST.CUST_NM, CUST.CUST_ENG_NM
+			,CUST.COMPANY_TYPE
+			,CUST.RELAT_YN
+			,CUST.CORP_TYPE
+			,CUST.IRS_NUM
+			,CUST.COMPANY_REG_NUM
+			,CUST.SCALE_TYPE
+			,<include refid="common.sql.strDecStart"/>CUST.ZIP_CD<include refid="common.sql.strDecEnd"/> AS HQ_ZIP_CD
+			,<include refid="common.sql.strDecStart"/>CUST.ADDR1<include refid="common.sql.strDecEnd"/> AS HQ_ADDR_1
+			,<include refid="common.sql.strDecStart"/>CUST.ADDR2<include refid="common.sql.strDecEnd"/> AS HQ_ADDR_2
+			,<include refid="common.sql.strDecStart"/>CUST.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+			,CUST.BUSINESS_TYPE
+			,CUST.INDUSTRY_TYPE
+			,<include refid="common.sql.toChar"/>(CUST.FOUNDATION_DATE , 'YYYYMMDD') AS FOUNDATION_DATE
+			,<include refid="common.sql.strDecStart"/>CUST.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+			,<include refid="common.sql.strDecStart"/>CUST.FAX_NUM<include refid="common.sql.strDecEnd"/> AS FAX_NUM
+			,<include refid="common.sql.strDecStart"/>CUST.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+			,CUST.ABOUT_US
+			,CUST.REMARK
+			,CUST.E_BILL_ASP_TYPE
+			,CUST.TAX_ASP_NM
+			,CUST.TAX_SEND_TYPE
+			,<include refid="common.sql.strDecStart"/>CUST.CREDIT_AGENCY_NM<include refid="common.sql.strDecEnd"/> AS CREDIT_AGENCY_NM
+			,CUST.CREDIT_CD
+			,CUST.PROGRESS_CD, <include refid="common.sql.dbo"/>GETCODENAME(CUST.GATE_CD, 'M050', CUST.PROGRESS_CD, #{ses.langCd}) AS PROGRESS_NM
+			,<include refid="common.sql.dbo"/>getUserName(CUST.GATE_CD, CUST.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+			,<include refid="common.sql.toChar"/>(CUST.MOD_DATE , 'YYYY-MM-DD HH24:MI') AS MOD_DATE
+			,CUST.STD_YYYY
+			,CUST.DATA_REF_CD
+			,<include refid="common.sql.nvl"/>(CUST.TOT_ASSET, 0) AS TOT_ASSET
+			,<include refid="common.sql.nvl"/>(CUST.TOT_FUND, 0)  AS TOT_FUND
+			,<include refid="common.sql.nvl"/>(CUST.TOT_SDEPT, 0) AS TOT_SDEPT
+			,<include refid="common.sql.nvl"/>(CUST.RATE_SDEPT, 0) AS RATE_SDEPT
+			,<include refid="common.sql.nvl"/>(CUST.CURR_ASSET, 0) AS CURR_ASSET
+			,<include refid="common.sql.nvl"/>(CUST.CURR_SDEPT, 0) AS CURR_SDEPT
+			,<include refid="common.sql.nvl"/>(CUST.RATE_CURR, 0) AS RATE_CURR
+			,<include refid="common.sql.nvl"/>(CUST.TOT_SALES, 0) AS TOT_SALES
+			,<include refid="common.sql.nvl"/>(CUST.NET_INCOM, 0) AS NET_INCOM
+			,CUST.ATTACH_FILE_NUM, <include refid="common.sql.dbo"/>getFileName(CUST.GATE_CD, CUST.ATTACH_FILE_NUM) AS ATTACH_FILE_NM
+			,CUST.ASSET_FILE_NUM, <include refid="common.sql.dbo"/>getFileName(CUST.GATE_CD, CUST.ASSET_FILE_NUM) AS ASSET_FILE_NM
+		  FROM STOCCUST CUST
+		 WHERE CUST.GATE_CD = #{ses.gateCd}
+		   AND CUST.CUST_CD = #{ses.companyCd}
+		   AND CUST.DEL_FLAG = '0'
+
+	</select>
+
+	<select id="getTmplNum" parameterType="hashmap" resultType="java.lang.String">
+
+		SELECT
+			MAX(TMPL_NUM) AS TMPL_NUM
+		  FROM STOCATTH
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{PARAM_BUYER_CD}
+		   AND DOC_TYPE = 'D01'
+		   AND DEL_FLAG = '0'
+		   AND USE_FLAG = '1'
+
+	</select>
+
+	<select id="ccur0010_doSearchTs" parameterType="hashmap" resultType="hashmap">
+
+		SELECT
+			 TD.TMPL_FILE_NM
+			,TD.VALID_PERIOD
+			,(SELECT <include refid="common.sql.toChar"/>(TS.VALID_START_DATE, 'yyyyMMdd') FROM STOCATTS TS
+			   WHERE TS.GATE_CD = TD.GATE_CD
+			     AND TS.BUYER_CD = #{BUYER_CD}
+			     AND TS.DOC_TYPE = TD.DOC_TYPE
+			     AND TS.TMPL_NUM = TD.TMPL_NUM
+			     AND TS.TMPL_SQ = TD.TMPL_SQ
+			     AND TS.DEL_FLAG = '0') AS VALID_START_DATE
+			,(SELECT <include refid="common.sql.toChar"/>(TS.VALID_END_DATE, 'yyyyMMdd') FROM STOCATTS TS
+			   WHERE TS.GATE_CD = TD.GATE_CD
+			     AND TS.BUYER_CD = #{BUYER_CD}
+			     AND TS.DOC_TYPE = TD.DOC_TYPE
+			     AND TS.TMPL_NUM = TD.TMPL_NUM
+			     AND TS.TMPL_SQ = TD.TMPL_SQ
+			     AND TS.DEL_FLAG = '0') AS VALID_END_DATE
+			,TD.REQUIRED_FLAG
+			,(SELECT <include refid="common.sql.dbo"/>getFileCount(TS.GATE_CD, TS.ATT_FILE_NUM) FROM STOCATTS TS
+			   WHERE TS.GATE_CD = TD.GATE_CD
+			     AND TS.BUYER_CD = #{BUYER_CD}
+			     AND TS.DOC_TYPE = TD.DOC_TYPE
+			     AND TS.TMPL_NUM = TD.TMPL_NUM
+			     AND TS.TMPL_SQ = TD.TMPL_SQ
+			     AND TS.DEL_FLAG = '0') AS ATT_FILE_CNT
+			,(SELECT TS.ATT_FILE_NUM FROM STOCATTS TS
+			   WHERE TS.GATE_CD = TD.GATE_CD
+			     AND TS.BUYER_CD = #{BUYER_CD}
+			     AND TS.DOC_TYPE = TD.DOC_TYPE
+			     AND TS.TMPL_NUM = TD.TMPL_NUM
+			     AND TS.TMPL_SQ = TD.TMPL_SQ
+			     AND TS.DEL_FLAG = '0') AS ATT_FILE_NUM
+			,TD.TMPL_FILE_NUM
+			,TD.REMARK
+			,TD.BUYER_CD
+			,TD.DOC_TYPE
+			,TD.TMPL_NUM
+			,TD.TMPL_SQ
+		  FROM STOCATTD TD LEFT OUTER JOIN STOCATTS TS
+		   ON (TD.GATE_CD = TS.GATE_CD
+		   AND TD.BUYER_CD = TS.BUYER_CD
+		   AND TD.DOC_TYPE = TS.DOC_TYPE
+		   AND TD.TMPL_NUM = TS.TMPL_NUM
+		   AND TD.TMPL_SQ = TS.TMPL_SQ)
+		 WHERE TD.TMPL_NUM = #{PARAM_TMPL_NUM}
+		   AND TD.BUYER_CD = #{PARAM_BUYER_CD}
+		   AND TD.GATE_CD = #{ses.gateCd}
+		   AND TD.DEL_FLAG = '0'
+		   AND TD.USE_FLAG = '1'
+		 ORDER BY TD.SORT_SQ
+
+	</select>
+
+	<!-- 회사정보 수정 -->
+	<insert id="ccur0010_doUpdateCust" parameterType="hashMap">
+
+		UPDATE STOCCUST SET
+			  MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, CUST_NM = #{CUST_NM}
+			, CUST_ENG_NM = #{CUST_ENG_NM}
+			, COMPANY_TYPE = #{COMPANY_TYPE}
+			, CORP_TYPE = #{CORP_TYPE}
+			, SCALE_TYPE = #{SCALE_TYPE}
+			, IRS_NUM = #{IRS_NUM}
+			, COMPANY_REG_NUM = #{COMPANY_REG_NUM}
+			, ZIP_CD = <include refid="common.sql.strEncStart"/>#{HQ_ZIP_CD}<include refid="common.sql.strEncEnd"/>
+			, ADDR1 = <include refid="common.sql.strEncStart"/>#{HQ_ADDR_1}<include refid="common.sql.strEncEnd"/>
+			, ADDR2 = <include refid="common.sql.strEncStart"/>#{HQ_ADDR_2}<include refid="common.sql.strEncEnd"/>
+			, BUSINESS_TYPE = #{BUSINESS_TYPE}
+			, INDUSTRY_TYPE = #{INDUSTRY_TYPE}
+			, CEO_USER_NM = <include refid="common.sql.strEncStart"/>#{CEO_USER_NM}<include refid="common.sql.strEncEnd"/>
+			, TEL_NUM = <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+			, FAX_NUM = <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+			, EMAIL = <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+			, FOUNDATION_DATE = <include refid="common.sql.toDate"/>(#{FOUNDATION_DATE}, 'yyyyMMdd')
+			, CREDIT_AGENCY_NM = <include refid="common.sql.strEncStart"/>#{CREDIT_AGENCY_NM}<include refid="common.sql.strEncEnd"/>
+			, CREDIT_CD = #{CREDIT_CD}
+			, ATTACH_FILE_NUM = #{ATTACH_FILE_NUM}
+			, ABOUT_US = #{ABOUT_US}
+			, REMARK = #{REMARK}
+			, STD_YYYY = #{STD_YYYY}
+			, DATA_REF_CD = #{DATA_REF_CD}
+			, TOT_ASSET = <include refid="common.sql.nvl"/>(#{TOT_ASSET}, 0)
+			, TOT_SDEPT = <include refid="common.sql.nvl"/>(#{TOT_SDEPT}, 0)
+			, TOT_FUND = <include refid="common.sql.nvl"/>(#{TOT_FUND}, 0)
+			, TOT_SALES = <include refid="common.sql.nvl"/>(#{TOT_SALES}, 0)
+			, NET_INCOM = <include refid="common.sql.nvl"/>(#{NET_INCOM}, 0)
+			, RATE_SDEPT = <include refid="common.sql.nvl"/>(#{RATE_SDEPT}, 0)
+			, CURR_ASSET = <include refid="common.sql.nvl"/>(#{CURR_ASSET}, 0)
+			, CURR_SDEPT = <include refid="common.sql.nvl"/>(#{CURR_SDEPT}, 0)
+			, RATE_CURR = <include refid="common.sql.nvl"/>(#{RATE_CURR}, 0)
+			, RELAT_YN = #{RELAT_YN}
+			, TAX_ASP_NM = #{TAX_ASP_NM}
+			, TAX_SEND_TYPE = #{TAX_SEND_TYPE}
+			, E_BILL_ASP_TYPE = #{E_BILL_ASP_TYPE}
+			, ASSET_FILE_NUM = #{ASSET_FILE_NUM}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND CUST_CD = #{CUST_CD}
+
+	</insert>
+
+	<!-- 회사정보 수정시 History 등록 -->
+	<insert id="ccur0010_doInsertCVSH" parameterType="hashMap">
+
+		INSERT INTO STOCCUSH (
+			  GATE_CD
+			, CUST_CD
+			, SEQ
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, CEO_USER_NM
+			, ZIP_CD
+			, ADDR_1
+			, ADDR_2
+			, CH_DATE
+			, CH_USER_ID
+		)
+		VALUES (
+			  #{ses.gateCd}
+			, #{CUST_CD}
+			, <include refid="common.sql.nvl"/>((SELECT MAX(SEQ)+1 FROM STOCCUSH WHERE GATE_CD = #{ses.gateCd} AND CUST_CD = #{CUST_CD}), 0)
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, <include refid="common.sql.strEncStart"/>#{CEO_USER_NM}<include refid="common.sql.strEncEnd"/>
+			, <include refid="common.sql.strEncStart"/>#{HQ_ZIP_CD}<include refid="common.sql.strEncEnd"/>
+			, <include refid="common.sql.strEncStart"/>#{HQ_ADDR_1}<include refid="common.sql.strEncEnd"/>
+			, <include refid="common.sql.strEncStart"/>#{HQ_ADDR_2}<include refid="common.sql.strEncEnd"/>
+			, SYSDATE
+			, #{ses.userId}
+		)
+
+	</insert>
+
+    <!-- 회사정보 수정시 첨부파일 등록 -->
+    <insert id="ccur0010_doInsertATTS" parameterType="hashMap">
+
+		MERGE <include refid="common.sql.mergeInto"/> STOCATTS ATTS
+		USING (SELECT #{ses.gateCd} AS GATE_CD
+					 ,#{CUST_CD} AS BUYER_CD
+					 ,#{DOC_TYPE} AS DOC_TYPE
+					 ,#{TMPL_NUM} AS TMPL_NUM
+					 ,#{TMPL_SQ} AS TMPL_SQ
+					 ,#{DOC_NUM} AS DOC_NUM
+					 ,#{DOC_CNT} AS DOC_CNT
+					 ,#{VENDOR_CD} AS VENDOR_CD
+				 <include refid="common.sql.dual"/>) B
+		 ON (ATTS.GATE_CD = B.GATE_CD
+		 AND ATTS.BUYER_CD = B.BUYER_CD
+		 AND ATTS.DOC_TYPE = B.DOC_TYPE
+		 AND ATTS.TMPL_NUM = B.TMPL_NUM
+		 AND ATTS.TMPL_SQ = B.TMPL_SQ
+		 AND ATTS.DOC_NUM = B.DOC_NUM
+		 AND ATTS.DOC_CNT = B.DOC_CNT
+		 AND ATTS.VENDOR_CD = B.VENDOR_CD)
+		WHEN MATCHED THEN
+		UPDATE SET
+			  MOD_USER_ID = #{ses.userId}
+			, MOD_DATE = SYSDATE
+			, VALID_START_DATE = <include refid="common.sql.toDate"/>(#{VALID_START_DATE}, 'yyyyMMdd')
+			, VALID_END_DATE = <include refid="common.sql.toDate"/>(#{VALID_END_DATE}, 'yyyyMMdd')
+			, ATT_FILE_NUM = #{ATT_FILE_NUM}
+		WHEN NOT MATCHED THEN
+		INSERT (
+			  GATE_CD
+			, BUYER_CD
+			, DOC_TYPE
+			, TMPL_NUM
+			, TMPL_SQ
+			, DOC_NUM
+			, DOC_CNT
+			, VENDOR_CD
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, VALID_START_DATE
+			, VALID_END_DATE
+			, ATT_FILE_NUM
+		) VALUES (
+			  #{ses.gateCd}
+			, #{CUST_CD}
+			, #{DOC_TYPE}
+			, #{TMPL_NUM}
+			, #{TMPL_SQ}
+			, #{DOC_NUM}
+			, #{DOC_CNT}
+			, #{VENDOR_CD}
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, <include refid="common.sql.toDate"/>(#{VALID_START_DATE}, 'yyyyMMdd')
+			, <include refid="common.sql.toDate"/>(#{VALID_END_DATE}, 'yyyyMMdd')
+			, #{ATT_FILE_NUM}
+		)
+		<include refid="common.sql.comma"/>
+
+    </insert>
+
+	<select id="ccur0010_getTbData" parameterType="hashmap" resultType="hashmap">
+
+		SELECT
+			 CUST.IRS_NUM AS CORP_NO
+			,CUST.CORP_TYPE AS NH_CORP_CODE
+			,CUST.CUST_NM AS CORP_NM
+			,CUST.CEO_USER_NM AS REP_NM
+			,CUST.BUSINESS_TYPE AS BIZTP
+			,CUST.INDUSTRY_TYPE AS BZC
+			,CUST.ZIP_CD AS ZIP
+			,CUST.ADDR1 AS ADDR
+			,CUST.ADDR2 AS DTL_ADDR
+			,CUST.TEL_NUM AS REP_TEL
+			,CUST.FAX_NUM AS FAX
+			,CUST.COMPANY_REG_NUM AS CORP_ROW_NO
+			,(CASE WHEN CUST.CORP_TYPE = '1' THEN '02'
+				   WHEN CUST.CORP_TYPE = '2' THEN '03'
+				   WHEN CUST.CORP_TYPE = '3' THEN '04'
+				   WHEN CUST.CORP_TYPE = '5' THEN '06'
+				   WHEN CUST.CORP_TYPE = 'A' THEN '08'
+				   WHEN CUST.CORP_TYPE = 'B' THEN '09'
+				   WHEN CUST.CORP_TYPE = 'C' THEN '10'
+				   WHEN CUST.CORP_TYPE = 'D' THEN '11'
+				   ELSE '' END) AS NC_COMP_DS_C
+			,'01' AS STSC
+			,'NHEPRO' AS AGENT_ID
+			,0 AS PPAY_BAC
+			,TO_CHAR(SYSDATE, 'YYYYMMDD') AS IN_DT
+	    FROM STOCCUST CUST
+	   WHERE CUST.GATE_CD = #{ses.gateCd}
+	     AND CUST.CUST_CD = #{CUST_CD}
+
+	</select>
+
+	<insert id="ccur0010_mergeCORP" parameterType="hashmap">
+
+		MERGE <include refid="common.sql.mergeInto"/> TB_CO_CORP CORP
+		USING (SELECT #{CORP_NO} AS CORP_NO
+				 <include refid="common.sql.dual"/>) B
+		 ON (CORP.CORP_NO = B.CORP_NO)
+		WHEN MATCHED THEN
+		UPDATE SET
+			 LSCHGID = #{ses.userId}
+			,LSCHGDTM = SYSDATE
+			,NH_CORP_CODE = #{NH_CORP_CODE}
+			,CORP_NM = #{CORP_NM}
+			,REP_NM = #{REP_NM}
+			,BIZTP = #{BIZTP}
+			,BZC = #{BZC}
+			,ZIP = #{ZIP}
+			,ADDR = #{ADDR}
+			,DTL_ADDR = #{DTL_ADDR}
+			,REP_TEL = #{REP_TEL}
+			,FAX = #{FAX}
+			,CORP_ROW_NO = #{CORP_ROW_NO}
+			,NC_COMP_DS_C = #{NC_COMP_DS_C}
+		WHEN NOT MATCHED THEN
+		INSERT (
+			 CORP_NO
+			,NH_CORP_CODE
+			,CORP_NM
+			,REP_NM
+			,BIZTP
+			,BZC
+			,ZIP
+			,ADDR
+			,DTL_ADDR
+			,REP_TEL
+			,FAX
+			,CORP_ROW_NO
+			,STSC
+			,NC_COMP_DS_C
+			,AGENT_ID
+			,PPAY_BAC
+			,IN_DT
+			,FSRGDTM
+			,FSRGID
+			,LSCHGDTM
+			,LSCHGID
+		) VALUES (
+			 #{CORP_NO}
+			,#{NH_CORP_CODE}
+			,#{CORP_NM}
+			,#{REP_NM}
+			,#{BIZTP}
+			,#{BZC}
+			,#{ZIP}
+			,#{ADDR}
+			,#{DTL_ADDR}
+			,#{REP_TEL}
+			,#{FAX}
+			,#{CORP_ROW_NO}
+			,#{STSC}
+			,#{NC_COMP_DS_C}
+			,#{AGENT_ID}
+			,#{PPAY_BAC}
+			,#{IN_DT}
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+		)
+		<include refid="common.sql.comma"/>
+
+	</insert>
+
+	<select id="ccur0020_getRelatYN" parameterType="hashmap" resultType="java.lang.String">
+
+		SELECT RELAT_YN FROM STOCCUST WHERE GATE_CD = #{ses.gateCd} AND CUST_CD = #{ses.companyCd}
+
+	</select>
+
+	<select id="ccur0020_doSearch" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 OGDP.DEPT_CD
+			,OGDP.DEPT_CD AS HIDDEN_DEPT_CD
+			,OGDP.DEPT_NM
+			,OGDP.PARENT_DEPT_CD
+			,(CASE WHEN <include refid="common.sql.nvl"/>(OGDP.DEL_FLAG, '0') = '0' THEN '1' ELSE '0' END) AS DEL_FLAG
+			,OGDP.DEPT_TYPE
+			,OGDP.SEQ
+			,<include refid="common.sql.strDecStart"/>OGDP.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+			,<include refid="common.sql.strDecStart"/>OGDP.ADDR1<include refid="common.sql.strDecEnd"/> AS ADDR1
+			,<include refid="common.sql.strDecStart"/>OGDP.ADDR2<include refid="common.sql.strDecEnd"/> AS ADDR2
+			,OGDP.PARENT_DEPT_CD
+			,(CASE WHEN OGDP.LVL = '1' THEN <include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>getBuyerInfo(OGDP.GATE_CD, OGDP.BUYER_CD, 'CUST_NM'), <include refid="common.sql.dbo"/>getBuyerName(OGDP.GATE_CD, OGDP.BUYER_CD, #{ses.langCd}))
+				   ELSE (SELECT A.DEPT_NM FROM STOCOGDP A WHERE A.GATE_CD = OGDP.GATE_CD AND A.BUYER_CD = OGDP.BUYER_CD AND A.DEPT_CD = OGDP.PARENT_DEPT_CD)
+				   END) AS PARENT_DEPT_NM
+		  FROM STOCOGDP OGDP
+		 WHERE OGDP.GATE_CD = #{ses.gateCd}
+		   AND OGDP.DEPT_TYPE = #{DEPT_TYPE}
+		   AND OGDP.BUYER_CD = #{CUST_CD}
+		<if test="PARENT_DEPT_CD != '' and PARENT_DEPT_CD != null">
+			AND OGDP.PARENT_DEPT_CD = #{PARENT_DEPT_CD}
+		</if>
+		<if test="DEPT_NM != '' and DEPT_NM != null">
+			AND UPPER(OGDP.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="_databaseId == 'oracle'">
+			ORDER BY TO_NUMBER(OGDP.SEQ), OGDP.LVL, OGDP.DEPT_NM
+		</if>
+		<if test="_databaseId == 'mssql'">
+			ORDER BY convert(numeric, OGDP.SEQ), OGDP.LVL, OGDP.DEPT_NM
+		</if>
+
+	</select>
+
+	<select id="ccur0020_doSearch_parent" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 OGDP.DEPT_CD
+			,OGDP.DEPT_CD AS HIDDEN_DEPT_CD
+			,OGDP.DEPT_NM
+			,OGDP.PARENT_DEPT_CD
+			,(CASE WHEN OGDP.PARENT_DEPT_CD = '1000' THEN (SELECT A.BUYER_NM FROM STOCOGCM A WHERE A.GATE_CD = OGDP.GATE_CD AND A.BUYER_CD = OGDP.PARENT_DEPT_CD)
+				   ELSE (SELECT A.DEPT_NM FROM STOCOGDP A WHERE A.GATE_CD = OGDP.GATE_CD AND A.BUYER_CD = OGDP.BUYER_CD AND A.DEPT_CD = OGDP.PARENT_DEPT_CD)
+				   END) AS PARENT_DEPT_NM
+			,(CASE WHEN <include refid="common.sql.nvl"/>(OGDP.DEL_FLAG, '0') = '0' THEN '1' ELSE '0' END) AS DEL_FLAG
+			,OGDP.DEPT_TYPE
+			,OGDP.SEQ
+			,<include refid="common.sql.strDecStart"/>OGDP.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+			,<include refid="common.sql.strDecStart"/>OGDP.ADDR1<include refid="common.sql.strDecEnd"/> AS ADDR1
+			,<include refid="common.sql.strDecStart"/>OGDP.ADDR2<include refid="common.sql.strDecEnd"/> AS ADDR2
+		  FROM STOCOGDP OGDP
+		 WHERE OGDP.GATE_CD = #{ses.gateCd}
+		   AND OGDP.BUYER_CD = #{ses.companyCd}
+		   AND OGDP.DEPT_TYPE = #{DEPT_TYPE}
+		<if test="PARENT_DEPT_CD != '' and PARENT_DEPT_CD != null">
+			AND OGDP.PARENT_DEPT_CD = #{PARENT_DEPT_CD}
+		</if>
+		<if test="DEPT_NM != '' and DEPT_NM != null">
+			AND UPPER(OGDP.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+			<if test="STEP2 != '' and STEP2 != null">
+				OR OGDP.DEPT_CD IN (SELECT OGDP.PARENT_DEPT_CD FROM STOCOGDP OGDP
+									 WHERE OGDP.GATE_CD = #{ses.gateCd}
+									   AND OGDP.BUYER_CD = #{ses.companyCd}
+									   AND OGDP.DEPT_TYPE = '300'
+									   AND OGDP.DEL_FLAG = '0'
+									   AND UPPER(OGDP.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+			</if>
+			<if test="STEP1 != '' and STEP1 != null">
+				OR OGDP.DEPT_CD IN (SELECT T.PARENT_DEPT_CD FROM STOCOGDP T
+									 WHERE T.GATE_CD = #{ses.gateCd}
+									   AND T.BUYER_CD = #{ses.companyCd}
+									   AND T.DEPT_TYPE = '200'
+									   AND T.DEL_FLAG = '0'
+									   AND T.DEPT_CD IN (SELECT OGDP.PARENT_DEPT_CD FROM STOCOGDP OGDP
+									   					  WHERE OGDP.GATE_CD = #{ses.gateCd}
+									   					    AND OGDP.BUYER_CD = #{ses.companyCd}
+									   					    AND OGDP.DEPT_TYPE ='300'
+									   					    AND OGDP.DEL_FLAG = '0'
+									   					    AND UPPER(OGDP.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'))
+				OR OGDP.DEPT_CD IN (SELECT T.PARENT_DEPT_CD FROM STOCOGDP T
+									 WHERE T.GATE_CD = #{ses.gateCd}
+									   AND T.BUYER_CD = #{ses.companyCd}
+									   AND T.DEPT_TYPE = '200'
+									   AND T.DEL_FLAG = '0'
+									   AND UPPER(T.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+			</if>
+		</if>
+
+		ORDER BY OGDP.LVL, OGDP.DEPT_NM
+
+	</select>
+
+	<select id="existsOPDP" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT COUNT(A.DEPT_CD) AS CNT
+          FROM STOCOGDP A
+         WHERE A.GATE_CD = #{ses.gateCd}
+           AND A.BUYER_CD = #{CUST_CD}
+           AND A.DEL_FLAG = '0'
+           AND A.DEPT_CD = (CASE WHEN #{HIDDEN_DEPT_CD} = '' THEN #{DEPT_CD} ELSE (CASE WHEN #{HIDDEN_DEPT_CD} = #{DEPT_CD} THEN NULL ELSE #{DEPT_CD} END) END)
+
+    </select>
+
+	<insert id="ccur0020_mergeData" parameterType="hashmap">
+
+		MERGE <include refid="common.sql.mergeInto"/> STOCOGDP OGDP
+		USING (SELECT #{ses.gateCd} AS GATE_CD
+					 ,#{CUST_CD} AS BUYER_CD
+					 ,#{DEPT_CD} AS DEPT_CD
+				 <include refid="common.sql.dual"/>) B
+		 ON (OGDP.GATE_CD = B.GATE_CD
+		 AND OGDP.BUYER_CD = B.BUYER_CD
+		 AND OGDP.DEPT_CD = B.DEPT_CD)
+		WHEN MATCHED THEN
+		UPDATE SET
+			  MOD_USER_ID = #{ses.userId}
+			, MOD_DATE = SYSDATE
+			, DEL_FLAG = (CASE WHEN #{DEL_FLAG} = '1' THEN '0' ELSE '1' END)
+			, DEPT_NM = #{DEPT_NM}
+			, PARENT_DEPT_CD = #{PARENT_DEPT_CD}
+			, DEPT_TYPE = #{DEPT_TYPE}
+			, LVL = #{LVL}
+			, SEQ = #{SEQ}
+			, ZIP_CD = <include refid="common.sql.strEncStart"/>#{ZIP_CD}<include refid="common.sql.strEncEnd"/>
+			, ADDR1 = <include refid="common.sql.strEncStart"/>#{ADDR1}<include refid="common.sql.strEncEnd"/>
+			, ADDR2 = <include refid="common.sql.strEncStart"/>#{ADDR2}<include refid="common.sql.strEncEnd"/>
+		WHEN NOT MATCHED THEN
+		INSERT (
+			  GATE_CD
+			, BUYER_CD
+			, DEPT_CD
+			, REG_USER_ID
+			, MOD_USER_ID
+			, DEL_FLAG
+			, DEPT_NM
+			, PARENT_DEPT_CD
+			, DEPT_TYPE
+			, LVL
+			, SEQ
+			, REG_DATE
+			, MOD_DATE
+			, ZIP_CD
+			, ADDR1
+			, ADDR2
+		) VALUES (
+			  #{ses.gateCd}
+			, #{CUST_CD}
+			, #{DEPT_CD}
+			, #{ses.userId}
+			, #{ses.userId}
+			, (CASE WHEN #{DEL_FLAG} = '1' THEN '0' ELSE '1' END)
+			, #{DEPT_NM}
+			, #{PARENT_DEPT_CD}
+			, #{DEPT_TYPE}
+			, #{LVL}
+			, (SELECT NVL(MAX(SEQ) + 1, 1) FROM STOCOGDP WHERE GATE_CD = #{ses.gateCd} AND BUYER_CD = #{CUST_CD} AND PARENT_DEPT_CD = #{PARENT_DEPT_CD})
+			, SYSDATE
+			, SYSDATE
+			, <include refid="common.sql.strEncStart"/>#{ZIP_CD}<include refid="common.sql.strEncEnd"/>
+			, <include refid="common.sql.strEncStart"/>#{ADDR1}<include refid="common.sql.strEncEnd"/>
+			, <include refid="common.sql.strEncStart"/>#{ADDR2}<include refid="common.sql.strEncEnd"/>
+		)
+		<include refid="common.sql.comma"/>
+
+	</insert>
+
+	<select id="ccur0020_getTbData" parameterType="hashmap" resultType="hashmap">
+
+		SELECT DISTINCT
+			 OGDP.DEPT_NM AS BRC_BRNM
+			,OGDP.DEPT_NM AS DEPT_DEPT_NM
+			,CUST.IRS_NUM AS CORP_NO
+			,OGDP.DEPT_CD AS BRC
+			,OGDP.PARENT_DEPT_CD AS UP_DEPT_C
+			,(CASE WHEN CUST.CORP_TYPE = '1' THEN '02'
+				   WHEN CUST.CORP_TYPE = '2' THEN '03'
+				   WHEN CUST.CORP_TYPE = '3' THEN '04'
+				   WHEN CUST.CORP_TYPE = '5' THEN '06'
+				   WHEN CUST.CORP_TYPE = 'A' THEN '08'
+				   WHEN CUST.CORP_TYPE = 'B' THEN '09'
+				   WHEN CUST.CORP_TYPE = 'C' THEN '10'
+				   WHEN CUST.CORP_TYPE = 'D' THEN '11'
+				   ELSE '' END) AS NC_COMP_DS_C
+			,OGDP.ADDR1 <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> OGDP.ADDR2 AS ADDR
+			,OGDP.ZIP_CD AS ZIP
+			,OGDP.TEL_NUM AS REP_TEL
+			,OGDP.FAX_NUM AS FAX
+			,CUST.CORP_TYPE AS NH_CORP_CODE
+			,'1' AS STSC
+			,99999999 AS SQNO
+			,'NHEPRO' AS AGENT_ID
+			,SYSDATE AS FSRGDTM
+			,#{ses.userId} AS FSRGID
+			,SYSDATE AS LSCHGDTM
+			,#{ses.userId} AS LSCHGID
+		  FROM STOCOGDP OGDP
+		  LEFT JOIN STOCCUST CUST
+		   ON (OGDP.GATE_CD = CUST.GATE_CD
+		   AND OGDP.BUYER_CD = CUST.CUST_CD)
+		 WHERE OGDP.GATE_CD = #{ses.gateCd}
+		   AND OGDP.BUYER_CD = #{CUST_CD}
+		   AND OGDP.DEPT_CD = #{DEPT_CD}
+		   AND OGDP.DEL_FLAG = '0'
+		   AND CUST.DEL_FLAG = '0'
+
+	</select>
+
+	<insert id="ccur0020_mergeBRC" parameterType="hashmap">
+
+		MERGE <include refid="common.sql.mergeInto"/> TB_CO_BRC BRC
+		USING (SELECT #{CORP_NO} AS CORP_NO
+					 ,#{BRC} AS BRC
+				<include refid="common.sql.dual"/>) B
+		  ON (BRC.CORP_NO = B.CORP_NO
+		  AND BRC.BRC = B.BRC)
+		WHEN MATCHED THEN
+		UPDATE SET
+			 LSCHGID = #{ses.userId}
+			,LSCHGDTM = SYSDATE
+			,BRNM = #{BRC_BRNM}
+			,UP_BRC = #{UP_DEPT_C}
+			,DEPT_C = #{BRC}
+			,UP_DEPT_C = #{UP_DEPT_C}
+			,DEPT_NM = #{BRC_BRNM}
+			,SQNO = #{SQNO}
+			,STSC = #{STSC}
+			,NH_CORP_CODE = #{NH_CORP_CODE}
+			,ADDR = #{ADDR}
+			,ZIP = #{ZIP}
+			,REP_TEL = #{REP_TEL}
+			,FAX = #{FAX}
+			,NC_COMP_DS_C = #{NC_COMP_DS_C}
+			,AGENT_ID = #{AGENT_ID}
+		WHEN NOT MATCHED THEN
+		INSERT (
+			 CORP_NO
+			,BRC
+			,BRNM
+			,UP_BRC
+			,DEPT_C
+			,UP_DEPT_C
+			,DEPT_NM
+			,SQNO
+			,STSC
+			,NH_CORP_CODE
+			,ADDR
+			,ZIP
+			,REP_TEL
+			,FAX
+			,NC_COMP_DS_C
+			,AGENT_ID
+			,FSRGDTM
+			,FSRGID
+			,LSCHGDTM
+			,LSCHGID
+		) VALUES (
+			 #{CORP_NO}
+			,#{BRC}
+			,#{BRC_BRNM}
+			,#{UP_DEPT_C}
+			,#{BRC}
+			,#{UP_DEPT_C}
+			,#{BRC_BRNM}
+			,#{SQNO}
+			,#{STSC}
+			,#{NH_CORP_CODE}
+			,#{ADDR}
+			,#{ZIP}
+			,#{REP_TEL}
+			,#{FAX}
+			,#{NC_COMP_DS_C}
+			,#{AGENT_ID}
+			,#{FSRGDTM}
+			,#{FSRGID}
+			,#{LSCHGDTM}
+			,#{LSCHGID}
+		)
+		<include refid="common.sql.comma"/>
+
+	</insert>
+
+	<insert id="ccur0020_mergeDEPT" parameterType="hashmap">
+
+		MERGE <include refid="common.sql.mergeInto"/> TB_CO_DEPT DEPT
+		USING (SELECT #{BRC} AS DEPT_C
+				<include refid="common.sql.dual"/>) B
+		  ON (DEPT.DEPT_C = B.DEPT_C)
+		WHEN MATCHED THEN
+		UPDATE SET
+			 LSCHGID = #{ses.userId}
+			,LSCHGDTM = SYSDATE
+			,UP_DEPT_C = #{UP_DEPT_C}
+			,DEPT_NM = #{DEPT_DEPT_NM}
+			,SQNO = #{SQNO}
+			,STSC = #{STSC}
+			,NH_CORP_CODE = #{NH_CORP_CODE}
+			,CORP_NO = #{CORP_NO}
+			,BRC = #{BRC}
+			,ADDR = #{ADDR}
+			,ZIP = #{ZIP}
+			,REP_TEL = #{REP_TEL}
+			,FAX = #{FAX}
+			,NC_COMP_DS_C = #{NC_COMP_DS_C}
+			,AGENT_ID = #{AGENT_ID}
+		WHEN NOT MATCHED THEN
+		INSERT (
+			 DEPT_C
+			,UP_DEPT_C
+			,DEPT_NM
+			,SQNO
+			,STSC
+			,NH_CORP_CODE
+			,CORP_NO
+			,BRC
+			,ADDR
+			,ZIP
+			,REP_TEL
+			,FAX
+			,NC_COMP_DS_C
+			,AGENT_ID
+			,FSRGDTM
+			,FSRGID
+			,LSCHGDTM
+			,LSCHGID
+		) VALUES (
+			 #{BRC}
+			,#{UP_DEPT_C}
+			,#{DEPT_DEPT_NM}
+			,#{SQNO}
+			,#{STSC}
+			,#{NH_CORP_CODE}
+			,#{CORP_NO}
+			,#{BRC}
+			,#{ADDR}
+			,#{ZIP}
+			,#{REP_TEL}
+			,#{FAX}
+			,#{NC_COMP_DS_C}
+			,#{AGENT_ID}
+			,#{FSRGDTM}
+			,#{FSRGID}
+			,#{LSCHGDTM}
+			,#{LSCHGID}
+		)
+		<include refid="common.sql.comma"/>
+
+	</insert>
+
+	<select id="ccur0020_doSearchAccount" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 OGDA.BANK_NM
+			,OGDA.BANK_BRANCH_OFFICE
+			,<include refid="common.sql.strDecStart"/>OGDA.BANK_ACCT_NUM<include refid="common.sql.strDecEnd"/> AS BANK_ACCT_NUM
+			,<include refid="common.sql.strDecStart"/>OGDA.ACCT_HOLDER_NM<include refid="common.sql.strDecEnd"/> AS ACCT_HOLDER_NM
+			,OGDA.ACCT_NICKNAME
+			,OGDA.ATTACH_FILE_NUM
+			,<include refid="common.sql.dbo"/>GETFILECOUNT(OGDA.GATE_CD, OGDA.ATTACH_FILE_NUM) AS ATTACH_FILE_CNT
+			,OGDA.USE_FLAG
+			,OGDA.ACCOUNT_SQ
+			,OGDA.BUYER_CD
+			,OGDA.DEPT_CD
+		  FROM STOCOGDA OGDA
+		 WHERE OGDA.GATE_CD = #{ses.gateCd}
+		   AND OGDA.BUYER_CD = #{CUST_CD}
+		   AND OGDA.DEPT_CD = #{DEPT_CD}
+		   AND OGDA.DEL_FLAG = '0'
+		<if test="_databaseId == 'oracle'">
+			ORDER BY TO_NUMBER(OGDA.ACCOUNT_SQ)
+		</if>
+		<if test="_databaseId == 'mssql'">
+			ORDER BY convert(numeric, OGDA.ACCOUNT_SQ)
+		</if>
+
+	</select>
+
+	<insert id="ccur0020_mergeAccData" parameterType="hashmap">
+
+		MERGE <include refid="common.sql.mergeInto"/> STOCOGDA OGDA
+		USING (SELECT #{ses.gateCd} AS GATE_CD
+					 ,#{CUST_CD} AS BUYER_CD
+					 ,#{DEPT_CD} AS DEPT_CD
+					 ,#{ACCOUNT_SQ} AS ACCOUNT_SQ
+				 <include refid="common.sql.dual"/>) B
+		 ON (OGDA.GATE_CD = B.GATE_CD
+		 AND OGDA.BUYER_CD = B.BUYER_CD
+		 AND OGDA.DEPT_CD = B.DEPT_CD
+		 AND OGDA.ACCOUNT_SQ = B.ACCOUNT_SQ)
+		WHEN MATCHED THEN
+		UPDATE SET
+			  MOD_USER_ID = #{ses.userId}
+			, MOD_DATE = SYSDATE
+			, DEL_FLAG = #{DEL_FLAG}
+			, USE_FLAG = #{USE_FLAG}
+			, BANK_NM = #{BANK_NM}
+			, BANK_BRANCH_OFFICE = #{BANK_BRANCH_OFFICE}
+			, BANK_ACCT_NUM = <include refid="common.sql.strEncStart"/>#{BANK_ACCT_NUM}<include refid="common.sql.strEncEnd"/>
+			, ACCT_HOLDER_NM = <include refid="common.sql.strEncStart"/>#{ACCT_HOLDER_NM}<include refid="common.sql.strEncEnd"/>
+			, ACCT_NICKNAME = #{ACCT_NICKNAME}
+			, ATTACH_FILE_NUM = #{ATTACH_FILE_NUM}
+		WHEN NOT MATCHED THEN
+		INSERT (
+			  GATE_CD
+			, BUYER_CD
+			, DEPT_CD
+			, ACCOUNT_SQ
+			, REG_USER_ID
+			, REG_DATE
+			, MOD_USER_ID
+			, MOD_DATE
+			, DEL_FLAG
+			, USE_FLAG
+			, BANK_NM
+			, BANK_BRANCH_OFFICE
+			, BANK_ACCT_NUM
+			, ACCT_HOLDER_NM
+			, ACCT_NICKNAME
+			, ATTACH_FILE_NUM
+		) VALUES (
+			  #{ses.gateCd}
+			, #{CUST_CD}
+			, #{DEPT_CD}
+			, (SELECT NVL(MAX(ACCOUNT_SQ) + 1, 1) FROM STOCOGDA WHERE GATE_CD = #{ses.gateCd} AND BUYER_CD = #{CUST_CD} AND DEPT_CD = #{DEPT_CD})
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{DEL_FLAG}
+			, #{USE_FLAG}
+			, #{BANK_NM}
+			, #{BANK_BRANCH_OFFICE}
+			, <include refid="common.sql.strEncStart"/>#{BANK_ACCT_NUM}<include refid="common.sql.strEncEnd"/>
+			, <include refid="common.sql.strEncStart"/>#{ACCT_HOLDER_NM}<include refid="common.sql.strEncEnd"/>
+			, #{ACCT_NICKNAME}
+			, #{ATTACH_FILE_NUM}
+		)
+		<include refid="common.sql.comma"/>
+
+	</insert>
+
+</mapper>

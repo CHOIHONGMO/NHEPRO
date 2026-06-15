@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.eApproval.eApprovalEnd.INV.EApprovalEndInv_Mapper">
+
+    <select id="getInvNum" parameterType="hashMap" resultType="hashmap">
+        SELECT IVHD.INV_NUM
+            , SCTP.SIGN_RMK
+            , IVHD.DELIVERY_TYPE
+            , GRDT.GR_NUM
+            , GRDT.PO_NUM
+        FROM STOCIVHD IVHD
+        LEFT JOIN STOCSCTP SCTP
+            ON (SCTP.GATE_CD = IVHD.GATE_CD
+            AND SCTP.APP_DOC_NUM = IVHD.APP_DOC_NUM
+            AND SCTP.APP_DOC_CNT = IVHD.APP_DOC_CNT)
+        LEFT JOIN STOCGRDT GRDT
+            ON (GRDT.GATE_CD = IVHD.GATE_CD
+            AND GRDT.BUYER_CD = IVHD.BUYER_CD
+            AND GRDT.INV_NUM = IVHD.INV_NUM
+            AND GRDT.GR_SQ = '1'
+            AND GRDT.DEL_FLAG = '0')
+        WHERE IVHD.GATE_CD = #{ses.gateCd}
+        AND IVHD.BUYER_CD = #{BUYER_CD}
+        AND IVHD.APP_DOC_NUM = #{APP_DOC_NUM}
+        AND IVHD.APP_DOC_CNT = #{APP_DOC_CNT}
+        AND IVHD.DEL_FLAG = '0'
+    </select>
+
+    <select id="getInvList" parameterType="hashMap" resultType="hashmap">
+        SELECT IVHD.BUYER_CD
+            , GRDT.GR_NUM
+            , GRDT.GR_SQ
+            , IVDT.PO_NUM
+            , IVDT.PO_SQ
+            , IVDT.INV_QT
+            , GRDT.GR_APP_QT
+            , GRDT.GR_DATE
+        FROM STOCIVHD IVHD
+        LEFT JOIN STOCIVDT IVDT
+            ON (IVDT.GATE_CD = IVHD.GATE_CD
+            AND IVDT.BUYER_CD = IVHD.BUYER_CD
+            AND IVDT.INV_NUM = IVHD.INV_NUM
+            AND IVDT.DEL_FLAG = '0')
+        LEFT JOIN STOCGRDT GRDT
+            ON (GRDT.GATE_CD = IVHD.GATE_CD
+            AND GRDT.BUYER_CD = IVHD.BUYER_CD
+            AND GRDT.INV_NUM = IVHD.INV_NUM
+            AND GRDT.PO_NUM = IVDT.PO_NUM
+            AND GRDT.PO_SQ = IVDT.PO_SQ
+            AND GRDT.DEL_FLAG = '0')
+        WHERE IVHD.GATE_CD = #{ses.gateCd}
+        AND IVHD.BUYER_CD = #{BUYER_CD}
+        AND IVHD.APP_DOC_NUM = #{APP_DOC_NUM}
+        AND IVHD.APP_DOC_CNT = #{APP_DOC_CNT}
+        AND IVHD.DEL_FLAG = '0'
+    </select>
+
+    <select id="getMailList" parameterType="hashMap" resultType="hashMap">
+        SELECT IVGH.INV_NUM AS INV_NUM
+            , <include refid="common.sql.strDecStart"/>IVGH.VENDOR_USER_NM<include refid="common.sql.strDecEnd"/> AS PIC_USER_NM
+            , <include refid="common.sql.strDecStart"/>IVGH.VENDOR_TEL_NUM<include refid="common.sql.strDecEnd"/> AS PIC_TEL_NUM
+            , <include refid="common.sql.strDecStart"/>IVGH.VENDOR_CELL_NUM<include refid="common.sql.strDecEnd"/> AS PIC_CELL_NUM
+            , IVHD.VENDOR_CD AS VENDOR_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(POHD.GATE_CD, POHD.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+            , IVGH.BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(IVGH.GATE_CD, IVGH.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+            , POHD.CTRL_USER_ID AS CTRL_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(POHD.GATE_CD, POHD.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+            , IVGH.SUBJECT
+            , CVUR.MAIL_FLAG
+            , CVUR.SMS_FLAG
+            , CVUR.USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD, CVUR.USER_ID, #{ses.langCd}) AS USER_NM
+            , <include refid="common.sql.toChar"/>(IVGH.SEND_DATE, 'YYYY-MM-DD') AS SEND_DATE
+            , SCTP.SIGN_RMK
+            , <include refid="common.sql.toChar"/>(IVHD.SIGN_DATE, 'YYYY-MM-DD') AS SIGN_DATE
+        FROM STOCIVGH IVGH
+        LEFT JOIN  STOCIVHD IVHD
+            ON (IVHD.GATE_CD = IVGH.GATE_CD
+            AND IVHD.BUYER_CD = IVGH.BUYER_CD
+            AND IVHD.INV_NUM = IVGH.INV_NUM
+            AND IVHD.DEL_FLAG = '0')
+        LEFT JOIN STOCSCTP SCTP
+            ON (SCTP.GATE_CD = IVHD.GATE_CD
+            AND SCTP.APP_DOC_NUM = IVHD.APP_DOC_NUM
+            AND SCTP.APP_DOC_CNT = IVHD.APP_DOC_CNT)
+        LEFT JOIN  STOCPOHD POHD
+            ON (POHD.GATE_CD = IVGH.GATE_CD
+            AND POHD.BUYER_CD = IVGH.BUYER_CD
+            AND POHD.PO_NUM = IVGH.PO_NUM
+            AND POHD.DEL_FLAG = '0')
+        LEFT JOIN STOCCVUR CVUR
+            ON (CVUR.GATE_CD = IVGH.GATE_CD
+            AND CVUR.COMPANY_CD = IVGH.VENDOR_CD
+            AND CVUR.DEL_FLAG = '0')
+        WHERE IVGH.GATE_CD = #{ses.gateCd}
+        AND IVGH.BUYER_CD = #{BUYER_CD}
+        AND IVGH.INV_NUM = #{INV_NUM}
+    </select>
+
+    <select id="costSmsInfo" parameterType="hashMap" resultType="hashMap">
+        SELECT CUST.IRS_NUM AS CORP_NO
+            , CVUR.USER_ID
+            , CVUR.DEPT_CD AS BRC
+            , <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+            , 'INV' <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              CUST.GATE_CD <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              #{BUYER_CD} <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              #{INV_NUM} <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              '' AS CONT_TBL_PK
+        FROM STOCCUST CUST
+        LEFT JOIN STOCCVUR CVUR
+            ON (CVUR.GATE_CD = CUST.GATE_CD
+            AND CVUR.COMPANY_CD = CUST.CUST_CD)
+        WHERE CUST.GATE_CD = #{ses.gateCd}
+        AND CVUR.USER_ID = #{ses.userId}
+    </select>
+
+    <update id="setInvSignStatusIVHD" parameterType="hashmap">
+        UPDATE STOCIVHD SET
+            SIGN_STATUS = #{SIGN_STATUS}
+            <if test='SIGN_STATUS == "E" or SIGN_STATUS == "R"'>
+            , SIGN_DATE = SYSDATE
+            </if>
+            , PROGRESS_CD = #{PROGRESS_CD}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND BUYER_CD = #{BUYER_CD}
+        AND INV_NUM = #{INV_NUM}
+    </update>
+
+    <update id="setInvRejectIVGH" parameterType="hashmap">
+        UPDATE STOCIVGH SET
+            REJECT_RMK = #{REJECT_RMK}
+            , REJECT_DATE = CASE WHEN #{REJECT_RMK} IS NULL THEN NULL ELSE SYSDATE END
+        WHERE GATE_CD = #{ses.gateCd}
+        AND BUYER_CD = #{BUYER_CD}
+        AND INV_NUM = #{INV_NUM}
+    </update>
+
+    <update id="setInvRejectGRDT" parameterType="hashmap">
+        update STOCGRDT set
+            DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND BUYER_CD = #{BUYER_CD}
+        AND GR_NUM = #{GR_NUM}
+    </update>
+
+    <update id="setInvSignStatusGRDT" parameterType="hashmap">
+        UPDATE STOCGRDT SET
+            GR_QT = #{GR_QT}
+            , GR_ITEM_AMT = #{GR_QT} * GR_UNIT_PRICE
+        WHERE GATE_CD = #{ses.gateCd}
+        AND BUYER_CD = #{BUYER_CD}
+        AND GR_NUM = #{GR_NUM}
+        AND GR_SQ = #{GR_SQ}
+    </update>
+
+    <update id="setInvSignStatusPODT" parameterType="hashmap">
+        UPDATE STOCPODT SET
+            PROGRESS_CD =   CASE WHEN #{DELIVERY_TYPE} = 'DI' THEN CASE WHEN PO_QT = GR_QT + #{GR_QT} THEN #{PROGRESS_CD} ELSE PROGRESS_CD END
+                                 WHEN #{DELIVERY_TYPE} = 'PI' THEN CASE WHEN PO_QT = INV_QT THEN #{PROGRESS_CD} ELSE PROGRESS_CD END
+                            ELSE PROGRESS_CD
+                            END
+            <if test='DELIVERY_TYPE == "DI"'>
+                , GR_QT = GR_QT + #{GR_QT}
+            </if>
+
+
+        WHERE GATE_CD = #{ses.gateCd}
+        AND BUYER_CD = #{BUYER_CD}
+        AND PO_NUM = #{PO_NUM}
+        AND PO_SQ = #{PO_SQ}
+    </update>
+
+</mapper>

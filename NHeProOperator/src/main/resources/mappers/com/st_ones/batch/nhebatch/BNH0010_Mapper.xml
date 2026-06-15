@@ -1,0 +1,1766 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.batch.nhebatch.BNH0010_Mapper">
+	
+	<!-- IT Portal 계약의뢰정보 HD -->
+	<insert id="tbtCmReqInfo" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_REQ_INFO A
+        USING (SELECT #{CM_REQ_ID} AS CM_REQ_ID
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.CM_REQ_ID = B.CM_REQ_ID
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 H_ESTIMATE_AMOUNT = #{H_ESTIMATE_AMOUNT}
+			,LMOD_USER_ID      = #{LMOD_USER_ID}
+			,L_ESTIMATE_AMOUNT = #{L_ESTIMATE_AMOUNT}
+			,REQ_DEPT_ID       = #{REQ_DEPT_ID}
+			,CM_REQ_NM         = #{CM_REQ_NM}
+			,REG_USER_ID       = #{REG_USER_ID}
+			,REQ_USER_NM       = #{REQ_USER_NM}
+			,REG_DEPT_ID       = #{REG_DEPT_ID}
+			,REG_USER_NM       = #{REG_USER_NM}
+			,MNT_YN            = #{MNT_YN}
+			,SYSMODTIME        = #{SYSMODTIME}
+			,OFFICE_DOCU_NUM   = #{OFFICE_DOCU_NUM}
+			,CM_IGWAN_YN       = #{CM_IGWAN_YN}
+			,C_ESTIMATE_AMOUNT = #{C_ESTIMATE_AMOUNT}
+			,F_ESTIMATE_AMOUNT = #{F_ESTIMATE_AMOUNT}
+			,MNT_TYPE          = #{MNT_TYPE}
+			,REQ_DEPT_NM       = #{REQ_DEPT_NM}
+			,CM_PROC_USER_NM   = #{CM_PROC_USER_NM}
+			,ESTIMATE_AMOUNT   = #{ESTIMATE_AMOUNT}
+			,B_ESTIMATE_AMOUNT = #{B_ESTIMATE_AMOUNT}
+			,A_ESTIMATE_AMOUNT = #{A_ESTIMATE_AMOUNT}
+			,REG_DEPT_NM       = #{REG_DEPT_NM}
+			,D_ESTIMATE_AMOUNT = #{D_ESTIMATE_AMOUNT}
+			,CM_REQ_ACTING_YN  = #{CM_REQ_ACTING_YN}
+			,APPR_PHASE        = #{APPR_PHASE}
+			,CM_PROC_USER_ID   = #{CM_PROC_USER_ID}
+			,REQ_USER_ID       = #{REQ_USER_ID}
+			,DCSN_AUTH_JNAME   = #{DCSN_AUTH_JNAME}
+			,CM_LIMIT_SDAY     = #{CM_LIMIT_SDAY}
+			,E_ESTIMATE_AMOUNT = #{E_ESTIMATE_AMOUNT}
+			,REG_STIME         = #{REG_STIME}
+			,LMOD_USER_NAME    = #{LMOD_USER_NAME}
+			,UPDATE_DATE       = SYSDATE
+			,IF_TYPE           = #{IF_TYPE}
+			,PR_COMP_FLAG      = '0'
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 CM_REQ_ID
+			,H_ESTIMATE_AMOUNT
+			,LMOD_USER_ID
+			,L_ESTIMATE_AMOUNT
+			,REQ_DEPT_ID
+			,CM_REQ_NM
+			,REG_USER_ID
+			,REQ_USER_NM
+			,REG_DEPT_ID
+			,REG_USER_NM
+			,MNT_YN
+			,SYSMODTIME
+			,OFFICE_DOCU_NUM
+			,CM_IGWAN_YN
+			,C_ESTIMATE_AMOUNT
+			,F_ESTIMATE_AMOUNT
+			,MNT_TYPE
+			,REQ_DEPT_NM
+			,CM_PROC_USER_NM
+			,ESTIMATE_AMOUNT
+			,B_ESTIMATE_AMOUNT
+			,A_ESTIMATE_AMOUNT
+			,REG_DEPT_NM
+			,D_ESTIMATE_AMOUNT
+			,CM_REQ_ACTING_YN
+			,APPR_PHASE
+			,CM_PROC_USER_ID
+			,REQ_USER_ID
+			,DCSN_AUTH_JNAME
+			,CM_LIMIT_SDAY
+			,E_ESTIMATE_AMOUNT
+			,REG_STIME
+			,LMOD_USER_NAME
+			,INSERT_DATE
+			,IF_TYPE
+			,PR_COMP_FLAG
+        ) VALUES (
+			 #{CM_REQ_ID}
+			,#{H_ESTIMATE_AMOUNT}
+			,#{LMOD_USER_ID}
+			,#{L_ESTIMATE_AMOUNT}
+			,#{REQ_DEPT_ID}
+			,#{CM_REQ_NM}
+			,#{REG_USER_ID}
+			,#{REQ_USER_NM}
+			,#{REG_DEPT_ID}
+			,#{REG_USER_NM}
+			,#{MNT_YN}
+			,#{SYSMODTIME}
+			,#{OFFICE_DOCU_NUM}
+			,#{CM_IGWAN_YN}
+			,#{C_ESTIMATE_AMOUNT}
+			,#{F_ESTIMATE_AMOUNT}
+			,#{MNT_TYPE}
+			,#{REQ_DEPT_NM}
+			,#{CM_PROC_USER_NM}
+			,#{ESTIMATE_AMOUNT}
+			,#{B_ESTIMATE_AMOUNT}
+			,#{A_ESTIMATE_AMOUNT}
+			,#{REG_DEPT_NM}
+			,#{D_ESTIMATE_AMOUNT}
+			,#{CM_REQ_ACTING_YN}
+			,#{APPR_PHASE}
+			,#{CM_PROC_USER_ID}
+			,#{REQ_USER_ID}
+			,#{DCSN_AUTH_JNAME}
+			,#{CM_LIMIT_SDAY}
+			,#{E_ESTIMATE_AMOUNT}
+			,#{REG_STIME}
+			,#{LMOD_USER_NAME}
+			,SYSDATE
+			,#{IF_TYPE}
+			,'0'
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- IT Portal 계약의뢰 HD - 업체정보 및 첨부파일 -->
+	<insert id="tbtCmReqRelBzPart" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_REQ_REL_BZ_PART A
+        USING (SELECT #{CM_REQ_ID} AS CM_REQ_ID
+        			,#{BZ_PART_ID} AS BZ_PART_ID
+
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.CM_REQ_ID = B.CM_REQ_ID
+        	AND A.BZ_PART_ID = B.BZ_PART_ID
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 DEL_FLAG   = #{DEL_FLAG}
+			,UPDATE_DATE= SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 CM_REQ_ID
+			,BZ_PART_ID
+			,DEL_FLAG
+			,INSERT_DATE
+        ) VALUES (
+			 #{CM_REQ_ID}
+			,#{BZ_PART_ID}
+			,#{DEL_FLAG}
+			,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+
+	<insert id="tbtCmReqD2" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_REQ_D2 A
+        USING (SELECT #{CM_REQ_ID} AS CM_REQ_ID
+        		,#{REC_NUM} REC_NUM
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.CM_REQ_ID = B.CM_REQ_ID
+        	AND A.REC_NUM = B.REC_NUM
+
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 OM_COMP_NM  = #{OM_COMP_NM}
+			,FILE_ID     = #{FILE_ID}
+			,OM_COMP_ID  = #{OM_COMP_ID}
+			,FILE_GBN    = #{FILE_GBN}
+			,UPDATE_DATE = SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 CM_REQ_ID
+			,REC_NUM
+			,OM_COMP_NM
+			,FILE_ID
+			,OM_COMP_ID
+			,FILE_GBN
+			,INSERT_DATE
+        ) VALUES (
+			 #{CM_REQ_ID}
+			,#{REC_NUM}
+			,#{OM_COMP_NM}
+			,#{FILE_ID}
+			,#{OM_COMP_ID}
+			,#{FILE_GBN}
+			,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- IT Portal 첨부파일 정보(견적서, 방침문서등) -->
+	<insert id="tbtCmAttach" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_ATTACH A
+        USING (SELECT #{CM_KEY_ID} AS CM_KEY_ID
+                      ,#{REC_NUM} AS REC_NUM
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.CM_KEY_ID = B.CM_KEY_ID
+        	AND A.REC_NUM = B.REC_NUM
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 FILE_ID        = #{FILE_ID}
+			,TYPE           = #{TYPE}
+			,ORG_FILE_NAME  = #{ORG_FILE_NAME}
+			,NEW_FILE_NAME  = #{NEW_FILE_NAME}
+			,FILE_PATH      = #{FILE_PATH}
+			,FILE_SIZE      = #{FILE_SIZE}
+			,WRITTEN_BY_ID  = #{WRITTEN_BY_ID}
+			,WRITTEN_BY_NM  = #{WRITTEN_BY_NM}
+			,ATTACH_STIME   = #{ATTACH_STIME}
+			,BZ_PART_ID     = #{BZ_PART_ID}
+			,BZ_PART_NM     = #{BZ_PART_NM}
+			,ATTACH_TITLE   = #{ATTACH_TITLE}
+			,BIGO           = #{BIGO}
+			,LMOD_USER_ID   = #{LMOD_USER_ID}
+			,LMOD_USER_NAME = #{LMOD_USER_NAME}
+			,SYSMODTIME     = #{SYSMODTIME}
+			,INSPECT_SDAY   = #{INSPECT_SDAY}
+			,INSP_REQ_SDAY  = #{INSP_REQ_SDAY}
+			,SUB_CM_ID      = #{SUB_CM_ID}
+			,CHG_TYPE       = #{CHG_TYPE}
+			,UPDATE_DATE    = SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 CM_KEY_ID
+			,REC_NUM
+			,FILE_ID
+			,TYPE
+			,ORG_FILE_NAME
+			,NEW_FILE_NAME
+			,FILE_PATH
+			,FILE_SIZE
+			,WRITTEN_BY_ID
+			,WRITTEN_BY_NM
+			,ATTACH_STIME
+			,BZ_PART_ID
+			,BZ_PART_NM
+			,ATTACH_TITLE
+			,BIGO
+			,LMOD_USER_ID
+			,LMOD_USER_NAME
+			,SYSMODTIME
+			,INSPECT_SDAY
+			,INSP_REQ_SDAY
+			,SUB_CM_ID
+			,CHG_TYPE
+			,INSERT_DATE
+        ) VALUES (
+			 #{CM_KEY_ID}
+			,#{REC_NUM}
+			,#{FILE_ID}
+			,#{TYPE}
+			,#{ORG_FILE_NAME}
+			,#{NEW_FILE_NAME}
+			,#{FILE_PATH}
+			,#{FILE_SIZE}
+			,#{WRITTEN_BY_ID}
+			,#{WRITTEN_BY_NM}
+			,#{ATTACH_STIME}
+			,#{BZ_PART_ID}
+			,#{BZ_PART_NM}
+			,#{ATTACH_TITLE}
+			,#{BIGO}
+			,#{LMOD_USER_ID}
+			,#{LMOD_USER_NAME}
+			,#{SYSMODTIME}
+			,#{INSPECT_SDAY}
+			,#{INSP_REQ_SDAY}
+			,#{SUB_CM_ID}
+			,#{CHG_TYPE}
+			,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- IT Portal 계약의뢰 DET - 세부추진내역 -->
+	<insert id="tbtCmReqDetM" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_REQ_DET_M A
+        USING (SELECT #{CM_REQ_ID} AS CM_REQ_ID
+					,#{CM_REQ_DET_ID} AS CM_REQ_DET_ID
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.CM_REQ_ID = B.CM_REQ_ID
+        	AND A.CM_REQ_DET_ID = B.CM_REQ_DET_ID
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 JUYO_MULPUM_CD       = #{JUYO_MULPUM_CD}
+			,REG_USER_NM          = #{REG_USER_NM}
+			,PAY_PERIOD_MTHD      = #{PAY_PERIOD_MTHD}
+			,CM_REQ_DET_NM        = #{CM_REQ_DET_NM}
+			,REG_STIME            = #{REG_STIME}
+			,MNT_GUR_MONTH        = #{MNT_GUR_MONTH}
+			,SYSMODTIME           = #{SYSMODTIME}
+			,FRT_CLS_MM           = #{FRT_CLS_MM}
+			,OLD_CM_NM            = #{OLD_CM_NM}
+			,DOIB_AMOUNT          = #{DOIB_AMOUNT}
+			,MID_CLS_MM           = #{MID_CLS_MM}
+			,MAIN_PART_NM         = #{MAIN_PART_NM}
+			,YOYUL                = #{YOYUL}
+			,BDGT_AMOUNT          = #{BDGT_AMOUNT}
+			,PAY_PERIOD_MTHD2     = #{PAY_PERIOD_MTHD2}
+			,F_DET_ESTIMATE_AMOUNT= #{F_DET_ESTIMATE_AMOUNT}
+			,OLD_CM_DET_NM        = #{OLD_CM_DET_NM}
+			,DOIB_NUM             = #{DOIB_NUM}
+			,BDGT_DEPT_NM         = #{BDGT_DEPT_NM}
+			,MNT_PAY_BY           = #{MNT_PAY_BY}
+			,OLD_CM_NUM           = #{OLD_CM_NUM}
+			,CM_SAYU              = #{CM_SAYU}
+			,L_DET_ESTIMATE_AMOUNT= #{L_DET_ESTIMATE_AMOUNT}
+			,DET_ESTIMATE_AMOUNT  = #{DET_ESTIMATE_AMOUNT}
+			,A_DET_ESTIMATE_AMOUNT= #{A_DET_ESTIMATE_AMOUNT}
+			,CM_TYPE              = #{CM_TYPE}
+			,OM_COMP_NM           = #{OM_COMP_NM}
+			,ACC_DET_NM           = #{ACC_DET_NM}
+			,CM_PR_CORP           = #{CM_PR_CORP}
+			,SPC_CLS_MM           = #{SPC_CLS_MM}
+			,OLD_CM_DET_ID        = #{OLD_CM_DET_ID}
+			,REQ_MODIFY_SAYU      = #{REQ_MODIFY_SAYU}
+			,E_DET_ESTIMATE_AMOUNT= #{E_DET_ESTIMATE_AMOUNT}
+			,CM_STN_SPEC_REG_YN   = #{CM_STN_SPEC_REG_YN}
+			,B_DET_ESTIMATE_AMOUNT= #{B_DET_ESTIMATE_AMOUNT}
+			,BDGT_NUM             = #{BDGT_NUM}
+			,BDGT_AGREE_NUM       = #{BDGT_AGREE_NUM}
+			,ACC_AM_NM            = #{ACC_AM_NM}
+			,ASSET_ACQ_DEPT_NM    = #{ASSET_ACQ_DEPT_NM}
+			,D_DET_ESTIMATE_AMOUNT= #{D_DET_ESTIMATE_AMOUNT}
+			,MNT_SANGJU_YN        = #{MNT_SANGJU_YN}
+			,BZ_TIMELINE_EDAY     = #{BZ_TIMELINE_EDAY}
+			,CM_PROVISION         = #{CM_PROVISION}
+			,CM_CLASS_NM          = #{CM_CLASS_NM}
+			,OLD_CM_ID            = #{OLD_CM_ID}
+			,LMOD_USER_ID         = #{LMOD_USER_ID}
+			,TOT_CLS_MM           = #{TOT_CLS_MM}
+			,LMOD_USER_NAME       = #{LMOD_USER_NAME}
+			,ACC_CD               = #{ACC_CD}
+			,H_DET_ESTIMATE_AMOUNT= #{H_DET_ESTIMATE_AMOUNT}
+			,ACC_HNG_NM           = #{ACC_HNG_NM}
+			,ACC_MOK_NM           = #{ACC_MOK_NM}
+			,CM_DET_SPEC_REG_YN   = #{CM_DET_SPEC_REG_YN}
+			,ASSET_OWNER_GUBUN    = #{ASSET_OWNER_GUBUN}
+			,C_DET_ESTIMATE_AMOUNT= #{C_DET_ESTIMATE_AMOUNT}
+			,PAY_DEPT_NM          = #{PAY_DEPT_NM}
+			,BZ_TIMELINE_SDAY     = #{BZ_TIMELINE_SDAY}
+			,MNT_TOT_HOECHA       = #{MNT_TOT_HOECHA}
+			,HIG_CLS_MM           = #{HIG_CLS_MM}
+			,SUB_CONT_YN          = #{SUB_CONT_YN}
+			,OM_COMP_ID           = #{OM_COMP_ID}
+			,REG_USER_ID          = #{REG_USER_ID}
+			,CM_TR_CORP           = #{CM_TR_CORP}
+			,GISANIL              = #{GISANIL}
+			,BM_DRV_BZ_ID         = #{BM_DRV_BZ_ID}
+			,UPDATE_DATE          = SYSDATE
+			,PRE_BUYER_CD         = #{PRE_BUYER_CD}
+			,PRE_CONT_NUM         = #{PRE_CONT_NUM}
+			,PRE_CONT_CNT         = #{PRE_CONT_CNT}
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 CM_REQ_DET_ID
+			,JUYO_MULPUM_CD
+			,REG_USER_NM
+			,PAY_PERIOD_MTHD
+			,CM_REQ_DET_NM
+			,REG_STIME
+			,MNT_GUR_MONTH
+			,SYSMODTIME
+			,FRT_CLS_MM
+			,OLD_CM_NM
+			,DOIB_AMOUNT
+			,MID_CLS_MM
+			,MAIN_PART_NM
+			,YOYUL
+			,BDGT_AMOUNT
+			,PAY_PERIOD_MTHD2
+			,F_DET_ESTIMATE_AMOUNT
+			,OLD_CM_DET_NM
+			,DOIB_NUM
+			,BDGT_DEPT_NM
+			,MNT_PAY_BY
+			,OLD_CM_NUM
+			,CM_REQ_ID
+			,CM_SAYU
+			,L_DET_ESTIMATE_AMOUNT
+			,DET_ESTIMATE_AMOUNT
+			,A_DET_ESTIMATE_AMOUNT
+			,CM_TYPE
+			,OM_COMP_NM
+			,ACC_DET_NM
+			,CM_PR_CORP
+			,SPC_CLS_MM
+			,OLD_CM_DET_ID
+			,REQ_MODIFY_SAYU
+			,E_DET_ESTIMATE_AMOUNT
+			,CM_STN_SPEC_REG_YN
+			,B_DET_ESTIMATE_AMOUNT
+			,BDGT_NUM
+			,BDGT_AGREE_NUM
+			,ACC_AM_NM
+			,ASSET_ACQ_DEPT_NM
+			,D_DET_ESTIMATE_AMOUNT
+			,MNT_SANGJU_YN
+			,BZ_TIMELINE_EDAY
+			,CM_PROVISION
+			,CM_CLASS_NM
+			,OLD_CM_ID
+			,LMOD_USER_ID
+			,TOT_CLS_MM
+			,LMOD_USER_NAME
+			,ACC_CD
+			,H_DET_ESTIMATE_AMOUNT
+			,ACC_HNG_NM
+			,ACC_MOK_NM
+			,CM_DET_SPEC_REG_YN
+			,ASSET_OWNER_GUBUN
+			,C_DET_ESTIMATE_AMOUNT
+			,PAY_DEPT_NM
+			,BZ_TIMELINE_SDAY
+			,MNT_TOT_HOECHA
+			,HIG_CLS_MM
+			,SUB_CONT_YN
+			,OM_COMP_ID
+			,REG_USER_ID
+			,CM_TR_CORP
+			,GISANIL
+			,BM_DRV_BZ_ID
+			,INSERT_DATE
+			,PRE_BUYER_CD
+			,PRE_CONT_NUM
+			,PRE_CONT_CNT
+        ) VALUES (
+			 #{CM_REQ_DET_ID}
+			,#{JUYO_MULPUM_CD}
+			,#{REG_USER_NM}
+			,#{PAY_PERIOD_MTHD}
+			,#{CM_REQ_DET_NM}
+			,#{REG_STIME}
+			,#{MNT_GUR_MONTH}
+			,#{SYSMODTIME}
+			,#{FRT_CLS_MM}
+			,#{OLD_CM_NM}
+			,#{DOIB_AMOUNT}
+			,#{MID_CLS_MM}
+			,#{MAIN_PART_NM}
+			,#{YOYUL}
+			,#{BDGT_AMOUNT}
+			,#{PAY_PERIOD_MTHD2}
+			,#{F_DET_ESTIMATE_AMOUNT}
+			,#{OLD_CM_DET_NM}
+			,#{DOIB_NUM}
+			,#{BDGT_DEPT_NM}
+			,#{MNT_PAY_BY}
+			,#{OLD_CM_NUM}
+			,#{CM_REQ_ID}
+			,#{CM_SAYU}
+			,#{L_DET_ESTIMATE_AMOUNT}
+			,#{DET_ESTIMATE_AMOUNT}
+			,#{A_DET_ESTIMATE_AMOUNT}
+			,#{CM_TYPE}
+			,#{OM_COMP_NM}
+			,#{ACC_DET_NM}
+			,#{CM_PR_CORP}
+			,#{SPC_CLS_MM}
+			,#{OLD_CM_DET_ID}
+			,#{REQ_MODIFY_SAYU}
+			,#{E_DET_ESTIMATE_AMOUNT}
+			,#{CM_STN_SPEC_REG_YN}
+			,#{B_DET_ESTIMATE_AMOUNT}
+			,#{BDGT_NUM}
+			,#{BDGT_AGREE_NUM}
+			,#{ACC_AM_NM}
+			,#{ASSET_ACQ_DEPT_NM}
+			,#{D_DET_ESTIMATE_AMOUNT}
+			,#{MNT_SANGJU_YN}
+			,#{BZ_TIMELINE_EDAY}
+			,#{CM_PROVISION}
+			,#{CM_CLASS_NM}
+			,#{OLD_CM_ID}
+			,#{LMOD_USER_ID}
+			,#{TOT_CLS_MM}
+			,#{LMOD_USER_NAME}
+			,#{ACC_CD}
+			,#{H_DET_ESTIMATE_AMOUNT}
+			,#{ACC_HNG_NM}
+			,#{ACC_MOK_NM}
+			,#{CM_DET_SPEC_REG_YN}
+			,#{ASSET_OWNER_GUBUN}
+			,#{C_DET_ESTIMATE_AMOUNT}
+			,#{PAY_DEPT_NM}
+			,#{BZ_TIMELINE_SDAY}
+			,#{MNT_TOT_HOECHA}
+			,#{HIG_CLS_MM}
+			,#{SUB_CONT_YN}
+			,#{OM_COMP_ID}
+			,#{REG_USER_ID}
+			,#{CM_TR_CORP}
+			,#{GISANIL}
+			,#{BM_DRV_BZ_ID}
+			,SYSDATE
+			,#{PRE_BUYER_CD}
+			,#{PRE_CONT_NUM}
+			,#{PRE_CONT_CNT}
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- IT Portal 계약의뢰 DET - 세부추진내역-표준물품명세서(유지보수용) -->
+	<insert id="tbtCmReqDetStndMnt" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_REQ_DET_STND_MNT A
+        USING (SELECT #{CM_REQ_ID} AS CM_REQ_ID
+        			,#{CM_REQ_DET_ID} AS CM_REQ_DET_ID
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.CM_REQ_ID = B.CM_REQ_ID
+        	AND A.CM_REQ_DET_ID = B.CM_REQ_DET_ID
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 MODEL_NM          = #{MODEL_NM}
+			,LMOD_USER_ID      = #{LMOD_USER_ID}
+			,MNT_AMOUNT        = #{MNT_AMOUNT}
+			,DOIB_AMOUNT       = #{DOIB_AMOUNT}
+			,CM_PR_CORP        = #{CM_PR_CORP}
+			,REG_STIME         = #{REG_STIME}
+			,ASSET_NM          = #{ASSET_NM}
+			,REC_NUM           = #{REC_NUM}
+			,YOYUL             = #{YOYUL}
+			,REG_USER_NM       = #{REG_USER_NM}
+			,MNT_GRADE         = #{MNT_GRADE}
+			,GISANIL           = #{GISANIL}
+			,REG_USER_ID       = #{REG_USER_ID}
+			,SYSMODTIME        = #{SYSMODTIME}
+			,CM_AMOUNT         = #{CM_AMOUNT}
+			,ASSET_NO          = #{ASSET_NO}
+			,LMOD_USER_NAME    = #{LMOD_USER_NAME}
+			,INTRO_YONGDO      = #{INTRO_YONGDO}
+			,ACQUI_BZ_PART_INFO= #{ACQUI_BZ_PART_INFO}
+			,BIGO              = #{BIGO}
+			,AM_CNT            = #{AM_CNT}
+			,DEL_YN            = #{DEL_YN}
+			,MNT_GUR_MONTH     = #{MNT_GUR_MONTH}
+			,MULPUM_GBN        = #{MULPUM_GBN}
+			,MAF_COMP          = #{MAF_COMP}
+			,UPDATE_DATE       = SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 MODEL_NM
+			,LMOD_USER_ID
+			,MNT_AMOUNT
+			,DOIB_AMOUNT
+			,CM_PR_CORP
+			,REG_STIME
+			,ASSET_NM
+			,REC_NUM
+			,CM_REQ_DET_ID
+			,YOYUL
+			,REG_USER_NM
+			,MNT_GRADE
+			,GISANIL
+			,REG_USER_ID
+			,SYSMODTIME
+			,CM_AMOUNT
+			,ASSET_NO
+			,LMOD_USER_NAME
+			,INTRO_YONGDO
+			,ACQUI_BZ_PART_INFO
+			,BIGO
+			,AM_CNT
+			,DEL_YN
+			,CM_REQ_ID
+			,MNT_GUR_MONTH
+			,MULPUM_GBN
+			,MAF_COMP
+			,INSERT_DATE
+        ) VALUES (
+			 #{MODEL_NM}
+			,#{LMOD_USER_ID}
+			,#{MNT_AMOUNT}
+			,#{DOIB_AMOUNT}
+			,#{CM_PR_CORP}
+			,#{REG_STIME}
+			,#{ASSET_NM}
+			,#{REC_NUM}
+			,#{CM_REQ_DET_ID}
+			,#{YOYUL}
+			,#{REG_USER_NM}
+			,#{MNT_GRADE}
+			,#{GISANIL}
+			,#{REG_USER_ID}
+			,#{SYSMODTIME}
+			,#{CM_AMOUNT}
+			,#{ASSET_NO}
+			,#{LMOD_USER_NAME}
+			,#{INTRO_YONGDO}
+			,#{ACQUI_BZ_PART_INFO}
+			,#{BIGO}
+			,#{AM_CNT}
+			,#{DEL_YN}
+			,#{CM_REQ_ID}
+			,#{MNT_GUR_MONTH}
+			,#{MULPUM_GBN}
+			,#{MAF_COMP}
+			,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- IT Portal 계약의뢰 DET - 세부추진내역-검수자정보 -->
+	<select id="gettbtCmReqDetD1" parameterType="hashmap" resultType="hashMap">
+		SELECT * FROM TBT_CM_REQ_DET_D1
+		 WHERE CM_REQ_ID = #{CM_REQ_ID}
+      	   AND CM_REQ_DET_ID = #{CM_REQ_DET_ID}
+      	   AND DAMDANG_USER_ID =#{DAMDANG_USER_ID}
+	</select>
+	
+	<!-- IT Portal 계약의뢰 DET - 세부추진내역-검수자정보 -->
+	<insert id="tbtCmReqDetD1" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_REQ_DET_D1 A
+        USING (SELECT #{CM_REQ_ID} AS CM_REQ_ID
+        			,#{CM_REQ_DET_ID} AS CM_REQ_DET_ID
+        			,#{DAMDANG_USER_ID} AS DAMDANG_USER_ID
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.CM_REQ_ID = B.CM_REQ_ID
+        	AND A.CM_REQ_DET_ID = B.CM_REQ_DET_ID
+        	AND A.DAMDANG_USER_ID = B.DAMDANG_USER_ID
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 CONTACT_OFFICE  = #{CONTACT_OFFICE}
+			,REC_NUM         = #{REC_NUM}
+			,DAMDANG_DEPT_NM = #{DAMDANG_DEPT_NM}
+			,DAMDANG_USER_NM = #{DAMDANG_USER_NM}
+			,JBC_POSI        = #{JBC_POSI}
+			,DAMDANG_GBN     = #{DAMDANG_GBN}
+			,JBC_JNAME       = #{JBC_JNAME}
+			,DAMDANG_DEPT_ID = #{DAMDANG_DEPT_ID}
+			,UPDATE_DATE     = SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 DAMDANG_USER_ID
+			,CONTACT_OFFICE
+			,REC_NUM
+			,DAMDANG_DEPT_NM
+			,DAMDANG_USER_NM
+			,JBC_POSI
+			,CM_REQ_DET_ID
+			,DAMDANG_GBN
+			,JBC_JNAME
+			,CM_REQ_ID
+			,DAMDANG_DEPT_ID
+			,INSERT_DATE
+        ) VALUES (
+			 #{DAMDANG_USER_ID}
+			,#{CONTACT_OFFICE}
+			,#{REC_NUM}
+			,#{DAMDANG_DEPT_NM}
+			,#{DAMDANG_USER_NM}
+			,#{JBC_POSI}
+			,#{CM_REQ_DET_ID}
+			,#{DAMDANG_GBN}
+			,#{JBC_JNAME}
+			,#{CM_REQ_ID}
+			,#{DAMDANG_DEPT_ID}
+			,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- IT Portal 계약의뢰 DT - 표준물품명세서 -->
+	<insert id="tbtCmReqMulpumSpec" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_REQ_MULPUM_SPEC A
+        USING (SELECT #{CM_REQ_ID} AS CM_REQ_ID
+        ,#{CM_REQ_DET_ID} AS CM_REQ_DET_ID
+        ,#{MULPUM_ID} AS MULPUM_ID
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.CM_REQ_ID = B.CM_REQ_ID
+        	AND A.CM_REQ_DET_ID = B.CM_REQ_DET_ID
+        	AND A.MULPUM_ID = B.MULPUM_ID
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 CM_AMOUNT         = #{CM_AMOUNT}
+			,MULPUM_NUM        = #{MULPUM_NUM}
+			,AM_CNT_DANWI      = #{AM_CNT_DANWI}
+			,LMOD_USER_ID      = #{LMOD_USER_ID}
+			,CM_PR_CORP        = #{CM_PR_CORP}
+			,DOIB_YONGDO       = #{DOIB_YONGDO}
+			,REG_USER_NM       = #{REG_USER_NM}
+			,ACC_CD            = #{ACC_CD}
+			,MULPUM_GBN        = #{MULPUM_GBN}
+			,MULPUM_NM         = #{MULPUM_NM}
+			,USE_BIZ_PART_INFO = #{USE_BIZ_PART_INFO}
+			,ESTIMATE_AMOUNT   = #{ESTIMATE_AMOUNT}
+			,L_ESTIMATE_AMOUNT = #{L_ESTIMATE_AMOUNT}
+			,AM_CATE_TYPE      = #{AM_CATE_TYPE}
+			,ACC_MOK_NM        = #{ACC_MOK_NM}
+			,A_ESTIMATE_AMOUNT = #{A_ESTIMATE_AMOUNT}
+			,MAF_COMP          = #{MAF_COMP}
+			,CONSUME_AMOUNT    = #{CONSUME_AMOUNT}
+			,AM_CNT            = #{AM_CNT}
+			,REL_DOCU_NUM      = #{REL_DOCU_NUM}
+			,REG_STIME         = #{REG_STIME}
+			,REG_USER_ID       = #{REG_USER_ID}
+			,E_ESTIMATE_AMOUNT = #{E_ESTIMATE_AMOUNT}
+			,GIJON_ASSET_MNG_NO= #{GIJON_ASSET_MNG_NO}
+			,ACC_DET_NM        = #{ACC_DET_NM}
+			,AM_TYPE           = #{AM_TYPE}
+			,B_ESTIMATE_AMOUNT = #{B_ESTIMATE_AMOUNT}
+			,LICEN_TYPE        = #{LICEN_TYPE}
+			,C_ESTIMATE_AMOUNT = #{C_ESTIMATE_AMOUNT}
+			,CONSUME_BY_AMOUNT = #{CONSUME_BY_AMOUNT}
+			,H_ESTIMATE_AMOUNT = #{H_ESTIMATE_AMOUNT}
+			,CLS_GRADE		   = #{CLS_GRADE}
+			,TOT_TUIB_GONGSU   = #{TOT_TUIB_GONGSU}
+			,F_ESTIMATE_AMOUNT = #{F_ESTIMATE_AMOUNT}
+			,D_ESTIMATE_AMOUNT = #{D_ESTIMATE_AMOUNT}
+			,DEL_YN            = #{DEL_YN}
+			,ACC_HNG_NM        = #{ACC_HNG_NM}
+			,REL_DOCU_NM       = #{REL_DOCU_NM}
+			,ASSET_TYPE        = #{ASSET_TYPE}
+			,MNG_AM_YN         = #{MNG_AM_YN}
+			,DOIB_DESC         = #{DOIB_DESC}
+			,LMOD_USER_NAME    = #{LMOD_USER_NAME}
+			,SYSMODTIME        = #{SYSMODTIME}
+			,UPDATE_DATE       = SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 MULPUM_ID
+			,CM_REQ_ID
+			,CM_AMOUNT
+			,MULPUM_NUM
+			,AM_CNT_DANWI
+			,LMOD_USER_ID
+			,CM_PR_CORP
+			,DOIB_YONGDO
+			,REG_USER_NM
+			,ACC_CD
+			,MULPUM_GBN
+			,MULPUM_NM
+			,USE_BIZ_PART_INFO
+			,ESTIMATE_AMOUNT
+			,L_ESTIMATE_AMOUNT
+			,AM_CATE_TYPE
+			,ACC_MOK_NM
+			,A_ESTIMATE_AMOUNT
+			,MAF_COMP
+			,CONSUME_AMOUNT
+			,CM_REQ_DET_ID
+			,AM_CNT
+			,REL_DOCU_NUM
+			,REG_STIME
+			,REG_USER_ID
+			,E_ESTIMATE_AMOUNT
+			,GIJON_ASSET_MNG_NO
+			,ACC_DET_NM
+			,AM_TYPE
+			,B_ESTIMATE_AMOUNT
+			,LICEN_TYPE
+			,C_ESTIMATE_AMOUNT
+			,CONSUME_BY_AMOUNT
+			,H_ESTIMATE_AMOUNT
+			,CLS_GRADE
+			,TOT_TUIB_GONGSU
+			,F_ESTIMATE_AMOUNT
+			,D_ESTIMATE_AMOUNT
+			,DEL_YN
+			,ACC_HNG_NM
+			,REL_DOCU_NM
+			,ASSET_TYPE
+			,MNG_AM_YN
+			,DOIB_DESC
+			,LMOD_USER_NAME
+			,SYSMODTIME
+			,INSERT_DATE
+        ) VALUES (
+			 #{MULPUM_ID}
+			,#{CM_REQ_ID}
+			,#{CM_AMOUNT}
+			,#{MULPUM_NUM}
+			,#{AM_CNT_DANWI}
+			,#{LMOD_USER_ID}
+			,#{CM_PR_CORP}
+			,#{DOIB_YONGDO}
+			,#{REG_USER_NM}
+			,#{ACC_CD}
+			,#{MULPUM_GBN}
+			,#{MULPUM_NM}
+			,#{USE_BIZ_PART_INFO}
+			,#{ESTIMATE_AMOUNT}
+			,#{L_ESTIMATE_AMOUNT}
+			,#{AM_CATE_TYPE}
+			,#{ACC_MOK_NM}
+			,#{A_ESTIMATE_AMOUNT}
+			,#{MAF_COMP}
+			,#{CONSUME_AMOUNT}
+			,#{CM_REQ_DET_ID}
+			,#{AM_CNT}
+			,#{REL_DOCU_NUM}
+			,#{REG_STIME}
+			,#{REG_USER_ID}
+			,#{E_ESTIMATE_AMOUNT}
+			,#{GIJON_ASSET_MNG_NO}
+			,#{ACC_DET_NM}
+			,#{AM_TYPE}
+			,#{B_ESTIMATE_AMOUNT}
+			,#{LICEN_TYPE}
+			,#{C_ESTIMATE_AMOUNT}
+			,#{CONSUME_BY_AMOUNT}
+			,#{H_ESTIMATE_AMOUNT}
+			,#{CLS_GRADE}
+			,#{TOT_TUIB_GONGSU}
+			,#{F_ESTIMATE_AMOUNT}
+			,#{D_ESTIMATE_AMOUNT}
+			,#{DEL_YN}
+			,#{ACC_HNG_NM}
+			,#{REL_DOCU_NM}
+			,#{ASSET_TYPE}
+			,#{MNG_AM_YN}
+			,#{DOIB_DESC}
+			,#{LMOD_USER_NAME}
+			,#{SYSMODTIME}
+			,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- IT Portal 계약의뢰 DT - 표준물품-취득부서 -->
+	<insert id="tbtCmReqMulpumAcqui" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_REQ_MULPUM_ACQUI A
+        USING (SELECT #{MULPUM_ID} AS MULPUM_ID
+					,#{ACQUI_BUSEO_ID} AS ACQUI_BUSEO_ID
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.MULPUM_ID = B.MULPUM_ID
+        	AND A.ACQUI_BUSEO_ID = B.ACQUI_BUSEO_ID
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+				 SYSMODTIME    = #{SYSMODTIME}
+				,ACQUI_BUSEO_NM= #{ACQUI_BUSEO_NM}
+				,BZ_PART_ID    = #{BZ_PART_ID}
+				,REC_NUM       = #{REC_NUM}
+				,DEL_FLAG      = #{DEL_FLAG}
+				,ACQUI_AMOUNT  = #{ACQUI_AMOUNT}
+				,BZ_PART_NM    = #{BZ_PART_NM}
+				,UPDATE_DATE   = SYSDATE
+        WHEN NOT MATCHED THEN
+	        INSERT (
+				 SYSMODTIME
+				,ACQUI_BUSEO_NM
+				,BZ_PART_ID
+				,ACQUI_BUSEO_ID
+				,REC_NUM
+				,MULPUM_ID
+				,DEL_FLAG
+				,ACQUI_AMOUNT
+				,BZ_PART_NM
+				,INSERT_DATE
+	        ) VALUES (
+				 #{SYSMODTIME}
+				,#{ACQUI_BUSEO_NM}
+				,#{BZ_PART_ID}
+				,#{ACQUI_BUSEO_ID}
+				,#{REC_NUM}
+				,#{MULPUM_ID}
+				,#{DEL_FLAG}
+				,#{ACQUI_AMOUNT}
+				,#{BZ_PART_NM}
+				,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- IT Portal 계약의뢰 DT - 표준물품-예산부서 -->
+	<insert id="tbtCmReqMulpumBdgt" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_REQ_MULPUM_BDGT A
+        USING (SELECT #{MULPUM_ID} AS MULPUM_ID
+        			,#{BDGT_BUSEO_ID} AS BDGT_BUSEO_ID
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.MULPUM_ID = B.MULPUM_ID
+        	AND A.BDGT_BUSEO_ID = B.BDGT_BUSEO_ID
+        )
+
+        WHEN MATCHED THEN
+        UPDATE SET
+			 BZ_PART_ID   = #{BZ_PART_ID}
+			,DEL_FLAG     = #{DEL_FLAG}
+			,SYSMODTIME   = #{SYSMODTIME}
+			,BZ_PART_NM   = #{BZ_PART_NM}
+			,BDGT_AMOUNT  = #{BDGT_AMOUNT}
+			,BDGT_BUSEO_NM= #{BDGT_BUSEO_NM}
+			,REC_NUM      = #{REC_NUM}
+			,UPDATE_DATE  = SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 BZ_PART_ID
+			,BDGT_BUSEO_ID
+			,MULPUM_ID
+			,DEL_FLAG
+			,SYSMODTIME
+			,BZ_PART_NM
+			,BDGT_AMOUNT
+			,BDGT_BUSEO_NM
+			,REC_NUM
+			,INSERT_DATE
+        ) VALUES (
+			 #{BZ_PART_ID}
+			,#{BDGT_BUSEO_ID}
+			,#{MULPUM_ID}
+			,#{DEL_FLAG}
+			,#{SYSMODTIME}
+			,#{BZ_PART_NM}
+			,#{BDGT_AMOUNT}
+			,#{BDGT_BUSEO_NM}
+			,#{REC_NUM}
+			,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- IT Portal 계약의뢰 DT - 표준물품-대금집행부서 -->
+	<insert id="tbtCmReqMulpumPay" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_REQ_MULPUM_PAY A
+        USING (SELECT #{MULPUM_ID} AS MULPUM_ID
+					,#{PAY_BUSEO_ID} AS PAY_BUSEO_ID
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.MULPUM_ID = B.MULPUM_ID
+        	AND A.PAY_BUSEO_ID = B.PAY_BUSEO_ID
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 REC_NUM       = #{REC_NUM}
+			,SYSMODTIME    = #{SYSMODTIME}
+			,PAY_EXE_AMOUNT= #{PAY_EXE_AMOUNT}
+			,PAY_BUSEO_NM  = #{PAY_BUSEO_NM}
+			,DEL_FLAG      = #{DEL_FLAG}
+			,UPDATE_DATE   = SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 PAY_BUSEO_ID
+			,MULPUM_ID
+			,REC_NUM
+			,SYSMODTIME
+			,PAY_EXE_AMOUNT
+			,PAY_BUSEO_NM
+			,DEL_FLAG
+			,INSERT_DATE
+        ) VALUES (
+			 #{PAY_BUSEO_ID}
+			,#{MULPUM_ID}
+			,#{REC_NUM}
+			,#{SYSMODTIME}
+			,#{PAY_EXE_AMOUNT}
+			,#{PAY_BUSEO_NM}
+			,#{DEL_FLAG}
+			,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- IT Portal 계약 상태정보 -->
+	<insert id="tbtCmWf" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_WF A
+        USING (SELECT #{CM_REQ_ID} AS CM_REQ_ID
+        			,#{CM_REQ_DET_ID} AS CM_REQ_DET_ID
+
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.CM_REQ_ID = B.CM_REQ_ID
+        	AND A.CM_REQ_DET_ID = B.CM_REQ_DET_ID
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 BM_DRV_BZ_ID = #{BM_DRV_BZ_ID}
+			,CM_ID        = #{CM_ID}
+			,CM_DET_ID    = #{CM_DET_ID}
+			,CM_PAY_FIX_ID= #{CM_PAY_FIX_ID}
+			,MNT_SUGI_YN  = #{MNT_SUGI_YN}
+			,CM_STATUS    = #{CM_STATUS}
+			,ING_STATUS   = #{ING_STATUS}
+			,SYSMODTIME   = #{SYSMODTIME}
+			,UPDATE_DATE  = SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 CM_REQ_ID
+			,CM_REQ_DET_ID
+			,BM_DRV_BZ_ID
+			,CM_ID
+			,CM_DET_ID
+			,CM_PAY_FIX_ID
+			,MNT_SUGI_YN
+			,CM_STATUS
+			,ING_STATUS
+			,SYSMODTIME
+			,INSERT_DATE
+        ) VALUES (
+			 #{CM_REQ_ID}
+			,#{CM_REQ_DET_ID}
+			,#{BM_DRV_BZ_ID}
+			,#{CM_ID}
+			,#{CM_DET_ID}
+			,#{CM_PAY_FIX_ID}
+			,#{MNT_SUGI_YN}
+			,#{CM_STATUS}
+			,#{ING_STATUS}
+			,#{SYSMODTIME}
+			,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- IT Portal 코드테이블 -->
+	<insert id="tbtPtCode" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_PT_CODE A
+        USING (SELECT #{CODE_ID} AS CODE_ID
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.CODE_ID = B.CODE_ID
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 CODE       = #{CODE}
+			,CODE_NAME  = #{CODE_NAME}
+			,UPPER_CODE = #{UPPER_CODE}
+			,OUTPRNT_ORD= #{OUTPRNT_ORD}
+			,USE_PART   = #{USE_PART}
+			,USE_YN     = #{USE_YN}
+			,CODE_DESC  = #{CODE_DESC}
+			,UPDATE_DATE= SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 CODE_ID
+			,CODE
+			,CODE_NAME
+			,UPPER_CODE
+			,OUTPRNT_ORD
+			,USE_PART
+			,USE_YN
+			,CODE_DESC
+			,INSERT_DATE
+        ) VALUES (
+			 #{CODE_ID}
+			,#{CODE}
+			,#{CODE_NAME}
+			,#{UPPER_CODE}
+			,#{OUTPRNT_ORD}
+			,#{USE_PART}
+			,#{USE_YN}
+			,#{CODE_DESC}
+			,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- 테이블 없음 -->
+	<insert id="tbtCmReqDetStnd_not_find" parameterType="hashMap">
+        MERGE <include refid="common.sql.mergeInto"/> TBT_CM_REQ_DET_STND A
+        USING (SELECT #{DISCOUNT_RATE} AS DISCOUNT_RATE
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (
+        	A.DISCOUNT_RATE = B.DISCOUNT_RATE
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+			 DISCOUNT_RATE    = #{DISCOUNT_RATE}
+			,ASSET_NO         = #{ASSET_NO}
+			,AM_NEW_YN        = #{AM_NEW_YN}
+			,AM_LV3_NM        = #{AM_LV3_NM}
+			,AM_LV1_CD        = #{AM_LV1_CD}
+			,LICEN_TYPE       = #{LICEN_TYPE}
+			,LMOD_USER_NAME   = #{LMOD_USER_NAME}
+			,REG_USER_ID      = #{REG_USER_ID}
+			,CONSUME_BY_AMOUNT= #{CONSUME_BY_AMOUNT}
+			,AM_LV2_CD        = #{AM_LV2_CD}
+			,MAF_COMP         = #{MAF_COMP}
+			,REG_USER_NM      = #{REG_USER_NM}
+			,INTRO_YONGDO     = #{INTRO_YONGDO}
+			,AM_LV2_NM        = #{AM_LV2_NM}
+			,CM_BY_AMOUNT     = #{CM_BY_AMOUNT}
+			,CONSUME_AMOUNT   = #{CONSUME_AMOUNT}
+			,LMOD_USER_ID     = #{LMOD_USER_ID}
+			,AM_DET_CLASS_NM  = #{AM_DET_CLASS_NM}
+			,AM_LV1_NM        = #{AM_LV1_NM}
+			,REG_STIME        = #{REG_STIME}
+			,REC_NUM          = #{REC_NUM}
+			,ASSET_NM         = #{ASSET_NM}
+			,REL_AM_RSLT_YN   = #{REL_AM_RSLT_YN}
+			,SYSMODTIME       = #{SYSMODTIME}
+			,UPPER_ASSET_NO   = #{UPPER_ASSET_NO}
+			,MODEL_NM         = #{MODEL_NM}
+			,AM_LV3_CD        = #{AM_LV3_CD}
+			,AM_CNT           = #{AM_CNT}
+			,ASSET_TYPE       = #{ASSET_TYPE}
+			,AM_YN            = #{AM_YN}
+			,CM_AMOUNT        = #{CM_AMOUNT}
+			,CM_REQ_DET_ID    = #{CM_REQ_DET_ID}
+			,DEL_YN           = #{DEL_YN}
+			,MODEL_NO         = #{MODEL_NO}
+			,LICEN_VER        = #{LICEN_VER}
+			,BIGO             = #{BIGO}
+			,UPDATE_DATE      = SYSDATE
+        WHEN NOT MATCHED THEN
+        INSERT (
+			 DISCOUNT_RATE
+			,ASSET_NO
+			,AM_NEW_YN
+			,AM_LV3_NM
+			,AM_LV1_CD
+			,LICEN_TYPE
+			,LMOD_USER_NAME
+			,REG_USER_ID
+			,CONSUME_BY_AMOUNT
+			,AM_LV2_CD
+			,MAF_COMP
+			,REG_USER_NM
+			,INTRO_YONGDO
+			,AM_LV2_NM
+			,CM_BY_AMOUNT
+			,CONSUME_AMOUNT
+			,LMOD_USER_ID
+			,AM_DET_CLASS_NM
+			,AM_LV1_NM
+			,REG_STIME
+			,REC_NUM
+			,ASSET_NM
+			,REL_AM_RSLT_YN
+			,SYSMODTIME
+			,UPPER_ASSET_NO
+			,MODEL_NM
+			,AM_LV3_CD
+			,AM_CNT
+			,ASSET_TYPE
+			,AM_YN
+			,CM_AMOUNT
+			,CM_REQ_DET_ID
+			,DEL_YN
+			,MODEL_NO
+			,LICEN_VER
+			,BIGO
+			,INSERT_DATE
+        ) VALUES (
+			 #{DISCOUNT_RATE}
+			,#{ASSET_NO}
+			,#{AM_NEW_YN}
+			,#{AM_LV3_NM}
+			,#{AM_LV1_CD}
+			,#{LICEN_TYPE}
+			,#{LMOD_USER_NAME}
+			,#{REG_USER_ID}
+			,#{CONSUME_BY_AMOUNT}
+			,#{AM_LV2_CD}
+			,#{MAF_COMP}
+			,#{REG_USER_NM}
+			,#{INTRO_YONGDO}
+			,#{AM_LV2_NM}
+			,#{CM_BY_AMOUNT}
+			,#{CONSUME_AMOUNT}
+			,#{LMOD_USER_ID}
+			,#{AM_DET_CLASS_NM}
+			,#{AM_LV1_NM}
+			,#{REG_STIME}
+			,#{REC_NUM}
+			,#{ASSET_NM}
+			,#{REL_AM_RSLT_YN}
+			,#{SYSMODTIME}
+			,#{UPPER_ASSET_NO}
+			,#{MODEL_NM}
+			,#{AM_LV3_CD}
+			,#{AM_CNT}
+			,#{ASSET_TYPE}
+			,#{AM_YN}
+			,#{CM_AMOUNT}
+			,#{CM_REQ_DET_ID}
+			,#{DEL_YN}
+			,#{MODEL_NO}
+			,#{LICEN_VER}
+			,#{BIGO}
+			,#{INSERT_DATE}
+			,SYSDATE
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<select id="getTragetPrReqList" parameterType="hashmap" resultType="hashMap">
+		SELECT
+			 '100' AS GATE_CD
+			, HD.CM_REQ_ID
+			, HD.REG_USER_ID AS REG_USER_ID
+		FROM TBT_CM_REQ_INFO HD
+		WHERE 1 = 1
+		AND EXISTS (SELECT COMPANY_CD FROM STOHCVUR
+					 WHERE GATE_CD  = '100'
+					   AND USER_ID  = HD.REG_USER_ID
+					   AND USE_FLAG = '1')
+		AND <include refid="common.sql.nvl"/>(PR_COMP_FLAG,'0') = '0'
+		AND HD.IF_TYPE IS NOT NULL
+	</select>
+	
+	<select id="getPrReqInfo" parameterType="hashmap" resultType="hashMap">
+		SELECT
+			  A.COMPANY_CD
+			, A.USER_ID
+		 FROM STOHCVUR A
+		WHERE A.GATE_CD  = '100'
+		  AND A.USER_ID = #{REG_USER_ID}
+		  AND A.USE_FLAG = '1'
+	</select>
+	
+	<insert id="changeLongTermNonUser">
+        INSERT INTO STOCCVUR (
+                    GATE_CD
+                  , USER_ID
+                  , REG_DATE
+                  , REG_USER_ID
+                  , MOD_DATE
+                  , MOD_USER_ID
+                  , DEL_FLAG
+                  , COMPANY_CD
+                  , MNG_YN
+                  , USER_TYPE
+                  , WORK_TYPE
+                  , USER_NM
+                  , PASSWORD
+                  , EMPLOYEE_NO
+                  , DEPT_CD
+                  , DEPT_NM
+                  , POSITION_NM
+                  , TEL_NUM
+                  , FAX_NUM
+                  , CELL_NUM
+                  , EMAIL
+                  , ZIP_CD
+                  , ADDR_1
+                  , ADDR_2
+                  , SMS_FLAG
+                  , MAIL_FLAG
+                  , BLOCK_FLAG
+                  , BLOCK_REASON
+                  , PW_WRONG_CNT
+                  , PW_RESET_FLAG
+                  , PW_RESET_DATE
+                  , LAST_LOGIN_DATE
+                  , IP_ADDR
+                  , USE_FLAG
+                  , PROGRESS_CD
+                  , CONFIRM_USER_ID
+                  , CONFIRM_DATE
+                  , DATA_CREATION_TYPE
+                  , ERP_IF_ID
+                  , ERP_IF_SEND_FLAG
+                  , VNGL_ROLE
+                  , AGREE_ATT_FILE_NUM
+                  , AGREE_YN
+                  , AGREE_YN_DATE
+                  , DUTY_NM
+                  , CHIEF_USER_ID
+                  , ROLE_TEXT
+                  , ROLE_TEXT_DETAIL
+                  , ONES_DUTY_NM
+                  , PARENT_DEPT_CD
+                  , PARENT_DEPT_NM
+                  , EMPLOYEE_NUM
+                  , BLOCK_DATE
+                  , SITE_USER_ID
+                  , GENDER
+                  , BIRTH_DATE
+        )
+        SELECT GATE_CD
+             , USER_ID
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , '0' AS DEL_FLAG
+             , COMPANY_CD
+             , MNG_YN
+             , USER_TYPE
+             , WORK_TYPE
+             , USER_NM
+             , PASSWORD
+             , EMPLOYEE_NO
+             , DEPT_CD
+             , DEPT_NM
+             , POSITION_NM
+             , TEL_NUM
+             , FAX_NUM
+             , CELL_NUM
+             , EMAIL
+             , ZIP_CD
+             , ADDR_1
+             , ADDR_2
+             , SMS_FLAG
+             , MAIL_FLAG
+             , BLOCK_FLAG
+             , BLOCK_REASON
+             , PW_WRONG_CNT
+             , PW_RESET_FLAG
+             , PW_RESET_DATE
+             , SYSDATE
+             , IP_ADDR
+             , USE_FLAG
+             , PROGRESS_CD
+             , CONFIRM_USER_ID
+             , CONFIRM_DATE
+             , DATA_CREATION_TYPE
+             , ERP_IF_ID
+             , ERP_IF_SEND_FLAG
+             , VNGL_ROLE
+             , AGREE_ATT_FILE_NUM
+             , AGREE_YN
+             , AGREE_YN_DATE
+             , DUTY_NM
+             , CHIEF_USER_ID
+             , ROLE_TEXT
+             , ROLE_TEXT_DETAIL
+             , ONES_DUTY_NM
+             , PARENT_DEPT_CD
+             , PARENT_DEPT_NM
+             , EMPLOYEE_NUM
+             , BLOCK_DATE
+             , SITE_USER_ID
+             , GENDER
+             , BIRTH_DATE
+          FROM STOHCVUR
+         WHERE GATE_CD = '100'
+           AND USER_ID = #{REG_USER_ID}
+    </insert>
+    
+    <update id="changeLongTermNonUserUsap" parameterType="hashMap">
+		UPDATE STOCUSAP SET
+			  MOD_DATE = SYSDATE -- MOD_DATE
+			, MOD_USER_ID = #{REG_USER_ID} -- MOD_USER_ID
+			, DEL_FLAG = '0' -- DEL_FLAG
+		WHERE GATE_CD = '100'
+		  AND USER_ID = #{REG_USER_ID}
+	</update>
+	
+	<update id="changeLongTermNonUserBacp" parameterType="hashMap">
+		UPDATE STOCBACP SET
+			  MOD_DATE = SYSDATE -- MOD_DATE
+			, MOD_USER_ID = #{REG_USER_ID} -- MOD_USER_ID
+			, DEL_FLAG = '0' -- DEL_FLAG
+		WHERE GATE_CD = '100'
+		  AND CTRL_USER_ID = #{REG_USER_ID}
+	</update>
+
+    <delete id="deleteChangeLongTermNonUser">
+        DELETE FROM STOHCVUR
+         WHERE GATE_CD = '100'
+           AND USER_ID = #{REG_USER_ID}
+    </delete>
+    
+	<select id="getTragetPrList" parameterType="hashmap" resultType="hashMap">
+		SELECT
+			 '100' AS GATE_CD
+			, HD.CM_REQ_ID
+			, HD.CM_REQ_ID AS PR_NUM -- IT Portal CM_REQ_ID 로 넣어도 되는지 검토
+			, (SELECT COMPANY_CD FROM STOCCVUR WHERE GATE_CD = '100' AND USER_ID = HD.REG_USER_ID AND DEL_FLAG = '0' AND USE_FLAG = '1' ) AS BUYER_CD
+			, HD.REG_STIME AS REG_DATE --날짜변환
+			, HD.REG_USER_ID AS REG_USER_ID
+			, NULL AS MOD_DATE
+			, NULL AS MOD_USER_ID
+			, '0' AS DEL_FLAG
+			, HD.CM_REQ_NM AS SUBJECT
+			, SUBSTR(HD.REG_STIME, 1, 8) AS REQ_DATE --계약의뢰일자는 등록일로 사용
+			, HD.REQ_DEPT_ID AS DEPT_CD
+			, HD.REQ_USER_ID AS REQ_USER_ID
+			, NULL AS PR_TYPE
+			, NULL AS PR_AMT --PRDT 금액 SUM
+			, 'KRW' AS CUR
+			, NULL AS ATT_FILE_NUM
+			, NULL AS APP_DOC_NUM
+			, NULL AS APP_DOC_CNT
+			, 'E' AS SIGN_STATUS
+			, NULL AS SIGN_DATE
+			, NULL AS RMK_TEXT_NUM
+			, NULL AS ITEM_RMK
+			, NULL AS DIRECT_DATE
+			, HD.CM_REQ_ID AS CM_REQ_ID
+			, NULL AS PROJECT_CD
+			, NULL AS PROJECT_SQ
+			, NULL AS PROJECT_TYPE
+			, HD.IF_TYPE AS IF_TYPE
+			, HD.MNT_YN AS MNT_YN
+		FROM TBT_CM_REQ_INFO HD
+		WHERE 1 = 1
+		AND EXISTS (SELECT COMPANY_CD FROM STOCCVUR
+					 WHERE GATE_CD  = '100'
+					   AND USER_ID  = HD.REG_USER_ID
+					   AND DEL_FLAG = '0'
+					   AND USE_FLAG = '1')
+		AND <include refid="common.sql.nvl"/>(PR_COMP_FLAG,'0') = '0'
+		AND HD.IF_TYPE IS NOT NULL
+	</select>
+	
+	<!-- 2021.11.12 추가 -->
+	<!-- 변경(20) 및 자동연장(30)이더라도 이전계약정보(PRE_XXXX)가 없는 경우 신규로 지정함 -->
+	<!-- 2021.04.16 추가 -->
+	<!-- STOCPRHD의 PR_TYPE은 유지보수구분(신규:10, 변경:20, 자동연장:30)으로 사용함 -->
+	<insert id="makePrhd" parameterType="hashMap">
+		INSERT INTO STOCPRHD (
+			  GATE_CD
+			, PR_NUM
+			, BUYER_CD
+			, REG_DATE
+			, REG_USER_ID
+			, DEL_FLAG
+			, SUBJECT
+			, REQ_DATE
+			, DEPT_CD
+			, REQ_USER_ID
+			, PR_TYPE
+			, PR_AMT
+			, CUR
+			, ATT_FILE_NUM
+			, APP_DOC_NUM
+			, APP_DOC_CNT
+			, SIGN_STATUS
+			, SIGN_DATE
+			, RMK_TEXT_NUM
+			, ITEM_RMK
+			, DIRECT_DATE
+			, CM_REQ_ID
+			, PROJECT_CD
+			, PROJECT_SQ
+			, PROJECT_TYPE
+			, IF_TYPE
+			, MNT_YN
+		)
+		SELECT
+			 '100' AS GATE_CD
+			, #{PR_NUM}   AS PR_NUM
+			, #{BUYER_CD} AS BUYER_CD
+			, TO_DATE(HD.REG_STIME,'YYYYMMDDHH24MISS') AS REG_DATE
+			, HD.REG_USER_ID AS REG_USER_ID
+			, '0'  AS DEL_FLAG
+			, HD.CM_REQ_NM AS SUBJECT
+			, SUBSTR(HD.REG_STIME, 1, 8) AS REQ_DATE
+			, HD.REQ_DEPT_ID AS DEPT_CD
+			,<include refid="common.sql.nvl"/>(HD.REQ_USER_ID, HD.REG_USER_ID) AS REQ_USER_ID -- 요청자가 없는 경우 등록자를 요청자로 함
+			,(CASE WHEN TRIM(HD.MNT_TYPE) = '변경'
+						THEN (CASE WHEN (SELECT MAX(PRE_CONT_NUM) FROM TBT_CM_REQ_DET_M WHERE CM_REQ_ID = HD.CM_REQ_ID) IS NULL THEN '10' ELSE '20' END)
+				   WHEN TRIM(HD.MNT_TYPE) = '자동연장'
+				   		THEN (CASE WHEN (SELECT MAX(PRE_CONT_NUM) FROM TBT_CM_REQ_DET_M WHERE CM_REQ_ID = HD.CM_REQ_ID) IS NULL THEN '10' ELSE '30' END)
+				   ELSE '10'
+			  END) AS PR_TYPE	-- M134
+			,(SELECT SUM(PR_AMT) FROM STOCPRDT
+			   WHERE GATE_CD = '100'
+			     AND PR_NUM  = HD.CM_REQ_ID) AS PR_AMT --PRDT 금액 SUM
+			, 'KRW' AS CUR
+			, NULL AS ATT_FILE_NUM
+			, NULL AS APP_DOC_NUM
+			, NULL AS APP_DOC_CNT
+			, 'E'  AS SIGN_STATUS
+			, NULL AS SIGN_DATE
+			, NULL AS RMK_TEXT_NUM
+			, NULL AS ITEM_RMK
+			, NULL AS DIRECT_DATE
+			, HD.CM_REQ_ID
+			, NULL AS PROJECT_CD
+			, NULL AS PROJECT_SQ
+			, NULL AS PROJECT_TYPE
+			, HD.IF_TYPE
+			, HD.MNT_YN
+		 FROM TBT_CM_REQ_INFO HD
+		WHERE HD.CM_REQ_ID = #{CM_REQ_ID}
+	</insert>
+	
+	<!-- 2021.12.22 : 삭제여부 추가 (삭제되지 않는 건에 대해서만 구매의뢰 등록) -->
+	<insert id="makePrdt" parameterType="hashMap">
+		INSERT INTO STOCPRDT (
+			 GATE_CD
+			,PR_NUM
+			,PR_SQ
+			,BUYER_CD
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,PROGRESS_CD
+			,ITEM_CD
+			,ITEM_DESC
+			,ITEM_SPEC
+			,MAKER_CD
+			,MAKER_PART_NO
+			,ORIGIN_CD
+			,PR_QT
+			,UNIT_CD
+			,UNIT_PRC
+			,PR_AMT
+			,DUE_DATE
+			,DELY_TO_CD
+			,DELY_TO_NM
+			,ATT_FILE_NUM
+			,ITEM_RMK
+			,VENDOR_CD
+			,PURCHASE_TYPE
+			,VENDOR_OPEN_TYPE
+			,SUBMIT_TYPE
+			,AMT_TYPE
+			,CTRL_CD
+			,CTRL_USER_ID
+			,RECEIPT_DATE
+			,REJECT_RMK
+			,REJECT_DATE
+			,PO_REQ_DATE
+			,CN_DATE
+			,RECEIPT_FLAG
+			,LAST_VENDOR_CD
+			,LAST_UNIT_PRC
+			,LAST_ITEM_AMT
+			,LAST_PO_NUM
+			,LAST_PO_SQ
+			,LAST_PO_FLAG
+			,LAST_PO_CUR
+			,MNT_SANGJU_YN
+			,CONSUMER_AMT
+			,FC_MNT_TERM
+			,CH_RATE
+			,DOIB_AMT
+			,MNT_RATE
+			,MNT_SDAY
+			,MNT_EDAY
+			,MNT_GUR_MONTH
+			,RT_INSP_PERIOD
+			,FALT_RC_TG_TIME
+			,CM_REQ_ID
+			,CM_REQ_DET_ID
+			,MULPUM_ID
+			,PR_DEPT_CD
+			,EC_BUYER_CD
+			,EC_DEPT_CD
+			,CM_TYPE
+			,CM_REQ_DET_NM
+			,BZ_TIMELINE_SDAY
+			,BZ_TIMELINE_EDAY
+			,ACC_CD
+			,ACC_HNG_NM
+			,ACC_MOK_NM
+			,ACC_DET_NM
+			,BDGT_INFO
+			,MNT_AMT
+			,PAY_PERIOD_MTHD
+			,PAY_PERIOD_MTHD2
+			,GISANIL
+			,PROJECT_CD
+			,PROJECT_SQ
+			,PROJECT_TYPE
+			,CONT_GROUND
+			,CONT_RMK
+			,VAT_TYPE
+			,PR_BUYER_CD
+			,PRE_BUYER_CD
+			,PRE_CONT_NUM
+			,PRE_CONT_CNT
+		)
+		SELECT
+			 '100' AS GATE_CD
+			, #{PR_NUM} AS PR_NUM
+			, ROWNUM AS PR_SQ --CM_REQ_ID에 대한 TBT_CM_REQ_MULPUM_SPEC 의 ROW 차수 1,2,3,4....
+			, #{BUYER_CD} AS BUYER_CD -- HD.BUYER_CD
+			,(CASE WHEN HD.MNT_YN = 'Y' THEN TO_DATE(DM1.REG_STIME,'YYYYMMDDHH24MISS')
+			       WHEN HD.MNT_YN IN ('O','Z') THEN TO_DATE(DM1.REG_STIME,'YYYYMMDDHH24MISS')
+				   ELSE TO_DATE(DT.REG_STIME,'YYYYMMDDHH24MISS') 
+			  END) AS REG_DATE   --HD.REG_DATE
+			,(CASE WHEN HD.MNT_YN = 'Y' THEN DM1.REG_USER_ID
+			       WHEN HD.MNT_YN IN ('O','Z') THEN DM1.REG_USER_ID
+				   ELSE DT.REG_USER_ID 
+			  END) AS REG_USER_ID   --HD.REG_USER_ID
+			, NULL AS MOD_DATE
+			, NULL AS MOD_USER_ID
+			, '0' AS DEL_FLAG
+			, '2100' AS PROGRESS_CD --구매의뢰 접수대기
+			,(CASE WHEN DT.CLS_GRADE IS NULL THEN NULL ELSE DT.CLS_GRADE END) AS ITEM_CD
+			,(CASE WHEN HD.MNT_YN = 'Y' THEN DM1.CM_REQ_DET_NM
+			       WHEN HD.MNT_YN IN ('O','Z') THEN DM1.CM_REQ_DET_NM
+				   ELSE DT.MULPUM_NM
+			  END) AS ITEM_DESC
+			, NULL AS ITEM_SPEC
+			, DT.MAF_COMP AS MAKER_CD --제조사명으로 넘어옴 어떻게? 답이없음.
+			, NULL AS MAKER_PART_NO
+			, NULL AS ORIGIN_CD
+			,(CASE WHEN HD.MNT_YN = 'Y' THEN '1'
+			       WHEN HD.MNT_YN IN ('O','Z') THEN '1'
+				   ELSE <include refid="common.sql.nvl"/>(DT.AM_CNT, 1) 
+			  END) AS PR_QT
+			, DT.AM_CNT_DANWI AS UNIT_CD --단위는 어떻게 통일?
+			,(CASE WHEN HD.MNT_YN = 'Y' THEN DM1.DET_ESTIMATE_AMOUNT
+			       WHEN HD.MNT_YN IN ('O','Z') THEN DM1.DET_ESTIMATE_AMOUNT
+				   ELSE ROUND( DT.ESTIMATE_AMOUNT / <include refid="common.sql.nvl"/>(DECODE(DT.AM_CNT, 0, NULL, DT.AM_CNT), 1) ) 
+			  END) AS UNIT_PRC
+			,(CASE WHEN HD.MNT_YN = 'Y' THEN DM1.DET_ESTIMATE_AMOUNT
+			       WHEN HD.MNT_YN IN ('O','Z') THEN DM1.DET_ESTIMATE_AMOUNT
+				   ELSE DT.ESTIMATE_AMOUNT
+			  END) AS PR_AMT
+			, NULL AS DUE_DATE
+			, NULL AS DELY_TO_CD
+			, NULL AS DELY_TO_NM
+			, NULL AS ATT_FILE_NUM
+			, NULL AS ITEM_RMK
+			, NULL AS VENDOR_CD 	-- 업체정보 어떻게?, DM1.OM_COMP_NM 업체명 존재 사업자번호?   업체명으로 데이터가 들어가 있음.
+			,(CASE WHEN HD.MNT_YN = 'Y' THEN <include refid="common.sql.nvl"/>((SELECT CODE FROM STOCCODD WHERE GATE_CD = '100' AND CODE_TYPE = 'M061' AND TEXT1 = DM1.CM_CLASS_NM AND ROWNUM = 1), 'E') -- 유지보수
+				   ELSE <include refid="common.sql.nvl"/>((SELECT CODE FROM STOCCODD WHERE GATE_CD = '100' AND CODE_TYPE = 'M061' AND TEXT1 = DM1.CM_CLASS_NM AND ROWNUM = 1), 'E')
+			  END) AS PURCHASE_TYPE
+			,(SELECT CODE FROM STOCCODD WHERE GATE_CD='100' AND CODE_TYPE='M301' AND TEXT1= DM1.CM_TYPE AND ROWNUM = 1) AS VENDOR_OPEN_TYPE  --코드변환 - CM001_01_00
+			, NULL AS SUBMIT_TYPE
+			, NULL AS AMT_TYPE
+			, NULL AS CTRL_CD
+			, NULL AS CTRL_USER_ID 	--직무코드랑 직무담당자가 언제 들어가지? 담당자 지정 화면에서 들어감
+			, NULL AS RECEIPT_DATE
+			, NULL AS REJECT_RMK
+			, NULL AS REJECT_DATE
+			, NULL AS PO_REQ_DATE
+			, NULL AS CN_DATE
+			, '0'  AS RECEIPT_FLAG 	--미접수
+			, NULL AS LAST_VENDOR_CD
+			, NULL AS LAST_UNIT_PRC
+			, NULL AS LAST_ITEM_AMT
+			, NULL AS LAST_PO_NUM
+			, NULL AS LAST_PO_SQ
+			, NULL AS LAST_PO_FLAG
+			, NULL AS LAST_PO_CUR
+			, DM1.MNT_SANGJU_YN AS MNT_SANGJU_YN
+			, DT.CONSUME_AMOUNT AS CONSUMER_AMT
+			, NULL AS FC_MNT_TERM 	--무상유지보수기간 : 유지보수보장개월수?
+			, NULL AS CH_RATE 		--유상요율
+			,<include refid="common.sql.nvl"/>(DM1.DOIB_AMOUNT, DM2.DOIB_AMOUNT) AS DOIB_AMT
+			, DM2.YOYUL AS MNT_RATE
+			, NULL AS MNT_SDAY
+			, NULL AS MNT_EDAY
+			,<include refid="common.sql.nvl"/>(DM1.MNT_GUR_MONTH, DM2.MNT_GUR_MONTH) AS MNT_GUR_MONTH	-- 유지보수 개월수
+			, NULL AS RT_INSP_PERIOD
+			, NULL AS FALT_RC_TG_TIME
+			, HD.CM_REQ_ID
+			,(CASE WHEN HD.MNT_YN = 'Y' THEN DM1.CM_REQ_DET_ID
+			       WHEN HD.MNT_YN IN ('O','Z') THEN DM1.CM_REQ_DET_ID
+				   ELSE DT.CM_REQ_DET_ID 
+			  END) AS CM_REQ_DET_ID
+			, DT.MULPUM_ID AS MULPUM_ID
+			,(SELECT DEPT_CD FROM STOCCVUR
+			   WHERE GATE_CD  = '100'
+			     AND USER_ID  = <include refid="common.sql.nvl"/>(HD.REQ_USER_ID, HD.REG_USER_ID)
+			     AND DEL_FLAG = '0'
+			     AND USE_FLAG = '1') AS PR_DEPT_CD 	--TBT_CM_REQ_INFO.REQ_USER_ID의 부서/사무소(요청자가 없는 경우 등록자를 요청자로 함)
+			,(SELECT CUST_CD FROM STOCCUST
+			   WHERE GATE_CD  = '100'
+			     AND IRS_NUM  = (CASE WHEN DM1.CM_TR_CORP = '은행' THEN '1028506404' ELSE '2148206195' END)
+			     AND ROWNUM   = 1) AS EC_BUYER_CD 	--명으로 넘어옴, 은행, 중앙회 : 하드코딩해서 넣을 것
+			,(CASE WHEN DM1.CM_TR_CORP = '은행' THEN '64763' ELSE '00456' END) AS EC_DEPT_CD --EC_BUYER_CD, EC_DEPT_CD 하드코딩할 것 (프로퍼티 처리)		중앙회 IT통합구매팀 2148206195 00456 : 현재기준 : C00009, 00456		은행 IT총무팀 1028506404 64763     : 현재기준 : C00013, 64763
+			, DM1.CM_TYPE 		AS CM_TYPE
+			, DM1.CM_REQ_DET_NM AS CM_REQ_DET_NM
+			, DM1.BZ_TIMELINE_SDAY AS BZ_TIMELINE_SDAY
+			, DM1.BZ_TIMELINE_EDAY AS BZ_TIMELINE_EDAY
+			, DT.ACC_CD AS ACC_CD
+			, DT.ACC_HNG_NM AS ACC_HNG_NM
+			, DT.ACC_MOK_NM AS ACC_MOK_NM
+			, DT.ACC_DET_NM AS ACC_DET_NM
+			,(SELECT LISTAGG('['||BZ_PART_NM||']'||BDGT_BUSEO_NM||'('||REPLACE(TO_CHAR(BDGT_AMOUNT,'999,999,999,999,999'),' ','')||')',',') WITHIN GROUP(ORDER BY BDGT_BUSEO_NM)
+				FROM TBT_CM_REQ_MULPUM_BDGT
+			   WHERE DEL_FLAG  = 'N'
+				 AND MULPUM_ID = DT.MULPUM_ID) AS BDGT_INFO -- * TBT_CM_REQ_MULPUM_BDGT 에서 복수개 데이터 구성
+			, DM2.MNT_AMOUNT AS MNT_AMT
+			,(CASE WHEN DM1.PAY_PERIOD_MTHD='CM00000383' THEN '1개월'
+				   WHEN DM1.PAY_PERIOD_MTHD='CM00000384' THEN '2개월'
+				   WHEN DM1.PAY_PERIOD_MTHD='CM00000385' THEN '3개월'
+				   WHEN DM1.PAY_PERIOD_MTHD='CM00000386' THEN '6개월'
+				   WHEN DM1.PAY_PERIOD_MTHD='CM00000387' THEN '9개월'
+				   WHEN DM1.PAY_PERIOD_MTHD='CM00000901' THEN '1년'
+			  END) AS PAY_PERIOD_MTHD
+			,(SELECT CODE FROM STOCCODD
+			   WHERE GATE_CD   = '100'
+				 AND CODE_TYPE = 'MP090'
+				 AND TEXT1 	   = DM1.PAY_PERIOD_MTHD2
+				 AND ROWNUM    = 1) AS PAY_PERIOD_MTHD2 --코드변환
+			, TO_DATE(<include refid="common.sql.nvl"/>(DM1.GISANIL,DM2.GISANIL),'YYYYMMDD') AS GISANIL
+			, NULL AS PROJECT_CD
+			, NULL AS PROJECT_SQ
+			, NULL AS PROJECT_TYPE
+			,(CASE WHEN DM1.CM_PROVISION = '001' THEN '계약규정 제6조'
+		  		   WHEN DM1.CM_PROVISION = '002' THEN '계약사무처리준칙 제37조 3호 가목'
+				   WHEN DM1.CM_PROVISION = '003' THEN '계약사무처리준칙 제37조 3호 나목'
+				   WHEN DM1.CM_PROVISION = '004' THEN '계약사무처리준칙 제37조 3호 아목'
+				   WHEN DM1.CM_PROVISION = '005' THEN '계약사무처리준칙 제37조 3호 타목'
+				   WHEN DM1.CM_PROVISION = '006' THEN '계약사무처리준칙 제37조 3호 바목'
+				   WHEN DM1.CM_PROVISION = '007' THEN '계약사무처리준칙 제37조 3호 차목'
+				   WHEN DM1.CM_PROVISION = '008' THEN '계약사무처리준칙 제37조 16호'
+				   WHEN DM1.CM_PROVISION = '009' THEN '계약사무처리준칙 제32조 1호'
+				   WHEN DM1.CM_PROVISION = '010' THEN '계약사무처리준칙 제29조'
+				   WHEN DM1.CM_PROVISION = '011' THEN '계약사무처리준칙 제37조 4호 가목'
+				   WHEN DM1.CM_PROVISION = '012' THEN '계약사무처리준칙 제37조 4호 나목'
+				   WHEN DM1.CM_PROVISION = '013' THEN '계약사무처리준칙 제37조 4호 다목'
+				   WHEN DM1.CM_PROVISION = '014' THEN '계약사무처리준칙 제37조 4호 라목'
+				   WHEN DM1.CM_PROVISION = '015' THEN '계약사무처리준칙 제38조 제1항 제2호'
+				   WHEN DM1.CM_PROVISION = '016' THEN '계약사무처리준칙 제39조 1항'
+				   WHEN DM1.CM_PROVISION = '017' THEN '계약사무처리준칙 제29조'
+				   WHEN DM1.CM_PROVISION = '018' THEN '계약사무처리준칙 제63조'
+				   WHEN DM1.CM_PROVISION = '099' THEN '직접입력'
+				   ELSE DM1.CM_PROVISION
+			  END) AS CONT_GROUND
+			, DM1.CM_SAYU AS CONT_RMK
+			, NULL AS VAT_TYPE
+			,(SELECT COMPANY_CD FROM STOCCVUR 
+			   WHERE GATE_CD  = '100' 
+			     AND USER_ID  = <include refid="common.sql.nvl"/>(HD.REQ_USER_ID, HD.REG_USER_ID)
+			     AND DEL_FLAG = '0' 
+			     AND USE_FLAG = '1') AS PR_BUYER_CD -- TBT_CM_REQ_INFO.REQ_USER_ID의 부서/사무소(요청자가 없는 경우 등록자를 요청자로 함)
+			, DM1.PRE_BUYER_CD
+			, DM1.PRE_CONT_NUM
+			, DM1.PRE_CONT_CNT
+		 FROM TBT_CM_REQ_INFO HD					-- IT Portal 계약의뢰정보 HD
+         LEFT JOIN TBT_CM_REQ_DET_M DM1 			-- IT Portal 계약의뢰 DET - 세부추진내역
+         	  ON (HD.CM_REQ_ID = DM1.CM_REQ_ID)
+         LEFT JOIN TBT_CM_REQ_MULPUM_SPEC DT		-- IT Portal 계약의뢰 DT  - 표준물품명세서
+         	  ON (DT.CM_REQ_ID = DM1.CM_REQ_ID
+              AND DT.CM_REQ_DET_ID = DM1.CM_REQ_DET_ID
+              AND DT.DEL_YN    = 'N')
+         LEFT JOIN TBT_CM_REQ_DET_STND_MNT DM2 		-- IT Portal 계약의뢰 DET - 세부추진내역-표준물품명세서(유지보수용)
+         	  ON (DM2.CM_REQ_ID= DM1.CM_REQ_ID
+			  AND DM2.CM_REQ_DET_ID = DM1.CM_REQ_DET_ID
+			  AND DM2.DEL_YN   = 'N')
+		WHERE HD.CM_REQ_ID = #{CM_REQ_ID}
+	</insert>
+
+	<update id="completeTarget" parameterType="hashMap">
+		UPDATE TBT_CM_REQ_INFO
+		   SET PR_COMP_FLAG = '1'
+		 WHERE CM_REQ_ID = #{CM_REQ_ID}
+	</update>
+
+	<select id="getPrInfo" parameterType="hashmap" resultType="hashMap">
+		SELECT
+			  A.PR_NUM
+			,(SELECT CASE WHEN MAX(PROGRESS_CD) > 2200 THEN 'N' ELSE 'Y' END
+				FROM STOCPRDT
+			   WHERE GATE_CD  = A.GATE_CD
+				 AND BUYER_CD = A.BUYER_CD
+				 AND PR_NUM   = A.PR_NUM
+				 AND DEL_FLAG = '0') AS EDIT_YN
+		 FROM STOCPRHD A
+		WHERE A.CM_REQ_ID = #{CM_REQ_ID}
+		  AND ROWNUM = 1
+	</select>
+	
+	<update id="delPrhd" parameterType="hashMap">
+		DELETE FROM STOCPRHD
+		WHERE CM_REQ_ID = #{CM_REQ_ID}
+	</update>
+	
+	<update id="delPrdt" parameterType="hashMap">
+		DELETE FROM STOCPRDT
+		WHERE CM_REQ_ID = #{CM_REQ_ID}
+	</update>
+
+</mapper>

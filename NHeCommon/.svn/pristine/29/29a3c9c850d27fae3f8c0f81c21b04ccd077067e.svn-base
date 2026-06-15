@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.eApproval.eApprovalEnd.CCPI.EApprovalEndCCPI_Mapper">
+
+    <select id="getContNum" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+              CONT_NUM
+            , CONT_CNT
+            , CONT_CNT - 1 AS PRE_CONT_CNT
+          FROM STOCTCCT
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND APP_DOC_NUM = #{APP_DOC_NUM}
+           AND APP_DOC_CNT = #{APP_DOC_CNT}
+           AND DEL_FLAG = '0'
+    </select>
+
+    <update id="setCcpiSignStatus" parameterType="hashmap">
+
+        UPDATE STOCTCCT 
+        SET   MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , SIGN_STATUS = #{SIGN_STATUS}
+            , SIGN_DATE = SYSDATE
+            , PROGRESS_CD = (CASE WHEN #{SIGN_STATUS} = 'E' THEN '4210'
+			                       WHEN #{SIGN_STATUS} = 'R' OR #{SIGN_STATUS} = 'C' THEN '4230'
+			                       ELSE PROGRESS_CD END)
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND APP_DOC_NUM = #{APP_DOC_NUM}
+		   AND APP_DOC_CNT = #{APP_DOC_CNT}
+    </update>
+	
+	<!-- 2022.10.06 : 개인근로자 전자결재 후 메일발송 및 SMS 수수료 추가 -->
+   	<select id="getMailTargetList" resultType="java.util.Map">
+		
+		SELECT
+			   TCCT.GATE_CD
+			 , TCCT.CONT_NUM
+			 ,(SELECT CONT_TYPE FROM STOCECCF
+			    WHERE GATE_CD  = TCRL.GATE_CD
+			      AND FORM_NUM = TCRL.FORM_NUM) AS CONT_TYPE
+			 , TCCT.CONT_DESC
+			 ,<include refid="common.sql.dbo"/>GETCUSTNAME(TCCT.GATE_CD, TCCT.BUYER_CD) AS BUYER_NM
+			 , TCCT.CONT_USER_ID
+			 ,<include refid="common.sql.dbo"/>GETUSERNAME(TCCT.GATE_CD, TCCT.USER_ID, #{ses.langCd}) AS USER_NM
+	<!-- 	 ,<include refid="common.sql.strDecStart"/>USERD.EMAIL<include refid="common.sql.strDecEnd"/>    AS EMAIL
+			 ,<include refid="common.sql.strDecStart"/>USERD.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+			 , TCCT.CONT_USER_ID
+			 ,<include refid="common.sql.dbo"/>GETUSERNAME(TCCT.GATE_CD, TCCT.CONT_USER_ID, #{ses.langCd})  AS CONT_USER_NM
+			 ,<include refid="common.sql.strDecStart"/>USERC.TEL_NUM<include refid="common.sql.strDecEnd"/> AS CONT_TEL_NUM
+     -->			 
+			 -- 2022.10.06 :  SMS 수수료 부과
+             ,(SELECT IRS_NUM FROM STOCCUST
+                WHERE GATE_CD = TCCT.GATE_CD
+                  AND CUST_CD = TCCT.BUYER_CD)		AS CORP_NO
+             ,(SELECT DEPT_CD FROM STOCCVUR
+                WHERE GATE_CD = TCCT.GATE_CD
+                  AND USER_ID = TCCT.CONT_USER_ID)	AS BRC
+             ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+             , TCCT.CONT_USER_ID 	AS USER_ID
+             , 'SMS_CCPI_4210'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               TCCT.GATE_CD  	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               TCCT.BUYER_CD 	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               TCCT.CONT_NUM	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               TCCT.CONT_CNT	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               TCCT.USER_ID		AS CONT_TBL_PK
+             , NULL 				AS FILE_SIZE
+		  FROM STOCTCCT TCCT
+		  JOIN STOCTCRL TCRL
+			   ON (TCCT.GATE_CD  = TCRL.GATE_CD
+			   AND TCCT.BUYER_CD = TCRL.BUYER_CD
+			   AND TCCT.CONT_NUM = TCRL.CONT_NUM
+			   AND TCCT.CONT_CNT = TCRL.CONT_CNT
+			   AND TCRL.FORM_SQ  = 0)
+		 WHERE TCCT.GATE_CD     = #{ses.gateCd}
+		   AND TCCT.BUYER_CD    = #{BUYER_CD}
+		   AND TCCT.APP_DOC_NUM = #{APP_DOC_NUM}
+		   AND TCCT.APP_DOC_CNT = #{APP_DOC_CNT}
+ 	</select>
+
+</mapper>

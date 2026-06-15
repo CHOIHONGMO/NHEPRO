@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.OVNR.OVNR0030_Mapper">
+
+    <select id="ovnr0030_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT
+              VNGL.GATE_CD
+            , VNCM.BUYER_CD
+            ,(SELECT CUST_NM FROM STOCCUST WHERE GATE_CD = VNCM.GATE_CD AND CUST_CD = VNCM.BUYER_CD) AS BUYER_NM
+            , VNCM.CONFIRM_FLAG AS PROGRESS_CD
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNCM.GATE_CD, 'M019', VNCM.CONFIRM_FLAG, '0', #{ses.langCd}) AS PROGRESS_NM
+            , VNGL.VENDOR_CD
+            , VNGL.VENDOR_NM
+            , <include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+            , VNGL.IRS_NO
+            , VNGL.COMPANY_REG_NO
+            , <include refid="common.sql.toChar"/>(VNCM.REG_DATE, 'YYYY-MM-DD HH24:MI') AS REG_DATE
+            , VNGL.INDUSTRY_TYPE
+            , VNGL.BUSINESS_TYPE
+            , <include refid="common.sql.strDecStart"/>VNGL.TEL_NO<include refid="common.sql.strDecEnd"/> AS TEL_NO
+            , <include refid="common.sql.toChar"/>(VNCM.CONFIRM_DATE, 'YYYY-MM-DD') AS CONFIRM_DATE
+            , VNGL.CREDIT_CD
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VNGL.GATE_CD, 'MP003', VNGL.CREDIT_CD, '0', #{ses.langCd}) AS CREDIT_NM
+            , VNCM.CONFIRM_REASON AS REJECT_RMK
+        FROM STOCVNGL VNGL
+        JOIN STOCVNCM VNCM
+             ON (VNCM.GATE_CD   = VNGL.GATE_CD
+             AND VNCM.VENDOR_CD = VNGL.VENDOR_CD
+             AND VNCM.DEL_FLAG  = '0')
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+          AND VNGL.DEL_FLAG = '0'
+      <if test="REG_TYPE != '' and REG_TYPE != null">
+          AND VNGL.REG_TYPE = #{REG_TYPE}
+      </if>
+      <if test="VENDOR_CD != '' and VENDOR_CD != null">
+          AND UPPER(VNGL.VENDOR_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_CD}) <include refid="common.sql.stringMerge"/> '%'
+      </if>
+      <if test="VENDOR_NM != '' and VENDOR_NM != null">
+          AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+      </if>
+      <if test="IRS_NO != '' and IRS_NO != null">
+          AND UPPER(VNGL.IRS_NO) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{IRS_NO}) <include refid="common.sql.stringMerge"/> '%'
+      </if>
+      <if test="REG_FROM_DATE != '' and REG_FROM_DATE != null">
+          AND VNCM.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_FROM_DATE})
+      </if>
+      <if test="REG_TO_DATE != '' and REG_TO_DATE != null">
+          AND VNCM.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_TO_DATE})
+      </if>
+      <if test="PROGRESS_CD != '' and PROGRESS_CD != null">
+          AND VNCM.CONFIRM_FLAG = #{PROGRESS_CD}
+      </if>
+        ORDER BY VNGL.REG_DATE DESC, VNCM.VENDOR_CD, VNCM.BUYER_CD
+    </select>
+
+    <!-- 거래희망 고객사 반려 -->
+    <update id="ovnr0030_doReject" parameterType="hashMap">
+        UPDATE STOCVNCM SET
+              CONFIRM_FLAG = 'R'
+            , CONFIRM_USER_ID = #{ses.userId}
+            , CONFIRM_REASON  = #{REJECT_RMK}
+            , CONFIRM_DATE = SYSDATE
+        WHERE GATE_CD   = #{ses.gateCd}
+          AND VENDOR_CD = #{VENDOR_CD}
+          AND BUYER_CD  = #{BUYER_CD}
+    </update>
+
+</mapper>

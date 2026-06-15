@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.basic.MBSA0010_Mapper">
+
+    <update id="setDocNum" parameterType="hashmap">
+
+        UPDATE STOCDNCT SET
+             CURRENT_NUM = #{currentNo}
+            ,CURRENT_VAL = #{currentVal}
+            ,MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND COMPANY_CD = #{companyCd}
+           AND DOC_TYPE = #{docType}
+
+    </update>
+
+    <select id="doSearch" parameterType="hashmap" resultType="hashMap">
+
+        SELECT
+              CT.COMPANY_CD
+            , (CASE WHEN COMPANY_CD = #{ses.manageCd} THEN (SELECT CM.BUYER_NM FROM STOCOGCM CM WHERE CM.GATE_CD = CT.GATE_CD AND CM.BUYER_CD = CT.COMPANY_CD AND CM.DEL_FLAG = '0')
+                    ELSE <include refid="common.sql.dbo"/>GETCUSTNAME(GATE_CD, COMPANY_CD) END) AS COMPANY_NM
+            , CT.DOC_TYPE
+            , CT.PREFIX_STRING
+            , CT.YEAR_FLAG
+            , CT.MONTH_FLAG
+            , CT.DAY_FLAG
+            , CT.YEAR_TYPE
+            , CT.CURRENT_VAL
+            , CT.CURRENT_NUM
+            , CT.USE_FLAG
+            , CT.MOD_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(CT.GATE_CD, CT.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+            , <include refid="common.sql.toChar"/>(CT.MOD_DATE, 'yyyyMMdd') AS MOD_DATE
+            , 'U' AS DB_FLAG
+          FROM STOCDNCT CT
+         WHERE CT.GATE_CD = #{ses.gateCd}
+           AND CT.DEL_FLAG = '0'
+        <if test="COMPANY_CD != '' and COMPANY_CD != null">
+            AND CT.COMPANY_CD = #{COMPANY_CD}
+        </if>
+        <if test="DOC_TYPE != '' and DOC_TYPE != null">
+            AND CT.DOC_TYPE = #{DOC_TYPE}
+        </if>
+        <if test="PREFIX_STRING != '' and PREFIX_STRING != null">
+	        AND CT.PREFIX_STRING like '%' <include refid="common.sql.stringMerge"/> #{PREFIX_STRING} <include refid="common.sql.stringMerge"/> '%'
+        </if>
+
+         ORDER BY CT.COMPANY_CD, CT.DOC_TYPE
+
+    </select>
+
+    <select id="checkDocType" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT COUNT(DOC_TYPE)
+          FROM STOCDNCT
+         WHERE GATE_CD = #{ses.gateCd}
+           AND COMPANY_CD = #{COMPANY_CD}
+           AND DOC_TYPE = #{DOC_TYPE}
+
+    </select>
+
+    <insert id="doInsert" parameterType="hashMap">
+
+        INSERT INTO STOCDNCT  (
+              GATE_CD
+            , COMPANY_CD
+            , DOC_TYPE
+            , PREFIX_STRING
+            , CURRENT_NUM
+            , YEAR_FLAG
+            , MONTH_FLAG
+            , DAY_FLAG
+            , YEAR_TYPE
+            , CURRENT_VAL
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , START_NUM
+            , END_NUM2
+            , DEL_FLAG
+            , USE_FLAG
+        ) VALUES (
+              #{ses.gateCd}
+            , #{COMPANY_CD}
+            , #{DOC_TYPE}
+            , #{PREFIX_STRING}
+        <if test='_databaseId == "oracle"'>
+            , (#{PREFIX_STRING}
+              <include refid="common.sql.stringMerge"/>(CASE WHEN #{YEAR_FLAG} = '1' THEN (CASE WHEN #{YEAR_TYPE} = '4' THEN TO_CHAR(SYSDATE, 'YYYY') ELSE TO_CHAR(SYSDATE, 'YY') END) ELSE '' END)
+              <include refid="common.sql.stringMerge"/>(CASE WHEN #{MONTH_FLAG} = '1' THEN TO_CHAR(SYSDATE, 'MM') ELSE '' END)
+              <include refid="common.sql.stringMerge"/>(CASE WHEN #{DAY_FLAG} = '1' THEN TO_CHAR(SYSDATE, 'DD') ELSE '' END)
+              <include refid="common.sql.stringMerge"/><include refid="common.sql.nvl"/>(#{CURRENT_VAL},''))
+        </if>
+        <if test='_databaseId=="mssql"'>
+            , (CASE WHEN #{PREFIX_STRING} IS NULL THEN '' ELSE #{PREFIX_STRING} END
+              <include refid="common.sql.stringMerge"/>(CASE WHEN #{YEAR_FLAG} = '1' THEN (CASE WHEN #{YEAR_TYPE} = '4' THEN SUBSTRING(CONVERT(VARCHAR(8), SYSDATETIME(), 112),1,4) ELSE SUBSTRING(CONVERT(VARCHAR(8), SYSDATETIME(), 112),3,2) END) ELSE '' END)
+              <include refid="common.sql.stringMerge"/>(CASE WHEN #{MONTH_FLAG} = '1' THEN SUBSTRING(CONVERT(VARCHAR(8), SYSDATETIME(), 112),5,2) ELSE '' END)
+              <include refid="common.sql.stringMerge"/>(CASE WHEN #{DAY_FLAG} = '1' THEN SUBSTRING(CONVERT(VARCHAR(8), SYSDATETIME(), 112),7,2) ELSE '' END)
+              <include refid="common.sql.stringMerge"/><include refid="common.sql.nvl"/>(#{CURRENT_VAL},''))
+        </if>
+            , #{YEAR_FLAG}
+            , #{MONTH_FLAG}
+            , #{DAY_FLAG}
+            , #{YEAR_TYPE}
+            , #{CURRENT_VAL}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+        <if test='_databaseId == "oracle"'>
+            , TO_NUMBER(#{CURRENT_VAL})
+        </if>
+        <if test='_databaseId=="mssql"'>
+            , CONVERT(INTEGER, #{CURRENT_VAL})
+        </if>
+            , (<include refid="common.sql.dbo"/>SF_LPAD('9', <include refid="common.sql.dbo"/>SF_LENGTH(#{CURRENT_VAL}), '9'))
+            , '0'
+            , #{USE_FLAG}
+        )
+
+    </insert>
+
+    <update id="updateDocNo" parameterType="hashMap">
+
+        UPDATE STOCDNCT SET
+             CURRENT_NUM = #{CURRENT_NUM}
+            ,MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND COMPANY_CD = #{COMPANY_CD}
+           AND DOC_TYPE = #{DOC_TYPE}
+
+    </update>
+
+    <update id="doUpdate" parameterType="hashMap">
+
+        UPDATE STOCDNCT SET
+             PREFIX_STRING = #{PREFIX_STRING}
+            ,CURRENT_NUM = #{CURRENT_NUM}
+            ,YEAR_FLAG = #{YEAR_FLAG}
+            ,MONTH_FLAG = #{MONTH_FLAG}
+            ,DAY_FLAG = #{DAY_FLAG}
+            ,YEAR_TYPE = #{YEAR_TYPE}
+            ,CURRENT_VAL = #{CURRENT_VAL}
+            ,END_NUM2 = (<include refid="common.sql.dbo"/>SF_LPAD('9', <include refid="common.sql.dbo"/>SF_LENGTH(#{CURRENT_VAL}), '9'))
+            ,USE_FLAG = #{USE_FLAG}
+            ,DEL_FLAG = '0'
+            ,MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+          AND COMPANY_CD = #{COMPANY_CD}
+          AND DOC_TYPE = #{DOC_TYPE}
+
+    </update>
+
+    <update id="doDelete" parameterType="hashMap">
+
+        UPDATE STOCDNCT SET
+             DEL_FLAG = '1'
+            ,MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND COMPANY_CD = #{COMPANY_CD}
+           AND DOC_TYPE = #{DOC_TYPE}
+
+    </update>
+
+</mapper>

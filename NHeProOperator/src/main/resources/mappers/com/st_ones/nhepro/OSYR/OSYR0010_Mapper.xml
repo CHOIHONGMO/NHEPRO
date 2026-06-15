@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.OSYR.OSYR0010_Mapper">
+
+	<select id="osyr0010_selectCompany" parameterType="hashmap" resultType="hashMap">
+
+        SELECT OGCM.BUSINESS_TYPE
+            , OGCM.BUYER_CD
+            , OGCM.BUYER_CD AS BUYER_CD_ORI
+            , OGCM.BUYER_NM
+            , OGCM.BUYER_NM_ENG
+            , <include refid="common.sql.strDecStart"/>OGCM.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+            , <include refid="common.sql.strDecStart"/>OGCM.CEO_USER_NM_ENG<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM_ENG
+            , OGCM.CITY_NM
+            , OGCM.COMPANY_REG_NUM
+            , OGCM.COUNTRY_CD
+            , OGCM.CUR
+            , OGCM.DUNS_NUM
+            , <include refid="common.sql.strDecStart"/>OGCM.FAX_NUM<include refid="common.sql.strDecEnd"/> AS FAX_NUM
+            , <include refid="common.sql.strDecStart"/>OGCM.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+            , OGCM.GATE_CD
+            , OGCM.GATE_CD AS GATE_CD_ORI
+            , OGCM.GMT_CD
+            , OGCM.INDUSTRY_TYPE
+            , OGCM.IRS_NUM
+            , OGCM.LANG_CD
+            , OGCM.REG_USER_ID
+            , <include refid="common.sql.strDecStart"/>OGCM.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+            , OGCM.ACCOUNT_UNIT_CD
+            , <include refid="common.sql.strDecStart"/>OGCM.ZIP_CD_5<include refid="common.sql.strDecEnd"/> AS ZIP_CD_5
+            , CASE WHEN OGCM.USE_FLAG = '1' THEN 'Y' ELSE 'N' END AS USE_FLAG
+            , <include refid="common.sql.toChar"/>(OGCM.FOUNDATION_DATE, 'yyyy-MM-dd') AS FOUNDATION_DATE
+            , <include refid="common.sql.dbo"/>GETGATENAME(OGCM.GATE_CD, #{ses.langCd}) AS GATE_NM
+            , <include refid="common.sql.toChar"/>(OGCM.REG_DATE, 'yyyyMMdd') AS REG_DATE
+            , <include refid="common.sql.toChar"/>(OGCM.REG_DATE, 'yyyy-MM-dd') AS REG_DATE_FORM
+            , <include refid="common.sql.dbo"/>GETUSERNAME(OGCM.GATE_CD, OGCM.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+            , <include refid="common.sql.strDecStart"/>OGCM.IRS_SUB_ZIP_CD<include refid="common.sql.strDecEnd"/> AS IRS_SUB_ZIP_CD
+            , <include refid="common.sql.strDecStart"/>OGCM.SUB_ZIP_CD_5<include refid="common.sql.strDecEnd"/> AS SUB_ZIP_CD_5
+            , OGCM.IRS_SUB_NO AS IRS_SUB_NO
+            , <include refid="common.sql.strDecStart"/>OGCM.IRS_SUB_ADDR<include refid="common.sql.strDecEnd"/> AS IRS_SUB_ADDR
+            , <include refid="common.sql.strDecStart"/>OGCM.ADDR<include refid="common.sql.strDecEnd"/> AS ADDR
+            , <include refid="common.sql.strDecStart"/>OGCM.ADDR_ENG<include refid="common.sql.strDecEnd"/> AS ADDR_ENG
+            , OGCM.IRS_SUB_NM AS IRS_SUB_NM
+            , OGCM.GW_USE_FLAG AS GW_USE_FLAG
+          FROM STOCOGCM OGCM
+          INNER JOIN STOCOGHU OGHU
+           ON (OGCM.GATE_CD = OGHU.GATE_CD)
+         WHERE OGCM.GATE_CD = #{ses.gateCd}
+           AND OGCM.DEL_FLAG = '0'
+           AND OGHU.DEL_FLAG = '0'
+         ORDER BY OGCM.BUYER_CD
+
+    </select>
+
+    <select id="checkCompanyExists" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT COUNT(BUYER_CD)
+          FROM STOCOGCM
+         WHERE UPPER(GATE_CD) = UPPER(#{gateCd})
+           AND UPPER(BUYER_CD) = UPPER(#{buyerCd})
+
+    </select>
+
+    <update id="updateCompany" parameterType="hashMap">
+
+        UPDATE STOCOGCM SET
+              MOD_USER_ID = #{ses.userId}
+            , DEL_FLAG = '0'
+            , BUYER_NM = #{buyerNm}
+            , BUYER_NM_ENG = #{buyerNmEng}
+            , LANG_CD = #{langCd}
+            , COUNTRY_CD = #{countryCd}
+            , CITY_NM = #{cityNm}
+            , ADDR = GETENCPERSONALINFO(#{address})
+            , ADDR_ENG = GETENCPERSONALINFO(#{addressEng})
+            , ZIP_CD = GETENCPERSONALINFO(#{zipCd})
+            , TEL_NUM = GETENCPERSONALINFO(#{telNum})
+            , IRS_NUM = #{irsNum}
+            , FAX_NUM = GETENCPERSONALINFO(#{faxNum})
+            , CEO_USER_NM = GETENCPERSONALINFO(#{ceoUserNm})
+            , CEO_USER_NM_ENG = GETENCPERSONALINFO(#{ceoUserNmEng})
+            , BUSINESS_TYPE = #{businessType}
+            , INDUSTRY_TYPE = #{industryType}
+            , CUR = #{cur}
+            , COMPANY_REG_NUM = #{companyRegNum}
+            , DUNS_NUM = #{dunsNum}
+            , GMT_CD = #{gmtCd}
+            , ACCOUNT_UNIT_CD = #{ACCOUNT_UNIT_CD}
+            , ZIP_CD_5 = GETENCPERSONALINFO(#{ZIP_CD_5})
+            , USE_FLAG = CASE WHEN <include refid="common.sql.nvl"/>(#{USE_FLAG}, '') = '' THEN '0' ELSE '1' END
+            , GW_USE_FLAG = CASE WHEN <include refid="common.sql.nvl"/>(#{GW_USE_FLAG}, '') = '' THEN '0' ELSE '1' END
+            , MOD_DATE = SYSDATE
+            , FOUNDATION_DATE = <include refid="common.sql.toDate"/>(#{foundationDate}, 'yyyy-MM-dd')
+            , IRS_SUB_ZIP_CD = GETENCPERSONALINFO(#{IRS_SUB_ZIP_CD})
+            , IRS_SUB_NO = #{IRS_SUB_NO}
+            , IRS_SUB_ADDR = GETENCPERSONALINFO(#{IRS_SUB_ADDR})
+            , IRS_SUB_NM = #{IRS_SUB_NM}
+            , SUB_ZIP_CD_5 = GETENCPERSONALINFO(#{SUB_ZIP_CD_5})
+        WHERE  GATE_CD = #{gateCd}
+        AND  BUYER_CD = #{buyerCd}
+    </update>
+
+    <insert id="insertCompany" parameterType="hashMap">
+        INSERT INTO STOCOGCM (
+              GATE_CD
+            , BUYER_CD
+            , BUYER_NM
+            , BUYER_NM_ENG
+            , LANG_CD
+            , COUNTRY_CD
+            , CITY_NM
+            , ADDR
+            , ADDR_ENG
+            , ZIP_CD
+            , TEL_NUM
+            , IRS_NUM
+            , FAX_NUM
+            , CEO_USER_NM
+            , CEO_USER_NM_ENG
+            , CUR
+            , INDUSTRY_TYPE
+            , BUSINESS_TYPE
+            , COMPANY_REG_NUM
+            , DUNS_NUM
+            , GMT_CD
+            , DEL_FLAG
+            , REG_USER_ID
+            , MOD_USER_ID
+            , ACCOUNT_UNIT_CD
+            , ZIP_CD_5
+            , USE_FLAG
+            , GW_USE_FLAG
+            , FOUNDATION_DATE
+            , REG_DATE
+            , MOD_DATE
+            , IRS_SUB_ZIP_CD
+            , IRS_SUB_NO
+            , IRS_SUB_ADDR
+            , IRS_SUB_NM
+            , SUB_ZIP_CD_5
+        ) VALUES (
+              #{gateCd}
+            , #{buyerCd}
+            , #{buyerNm}
+            , #{buyerNmEng}
+            , #{langCd}
+            , #{countryCd}
+            , #{cityNm}
+            , GETENCPERSONALINFO(#{address})
+            , GETENCPERSONALINFO(#{addressEng})
+            , GETENCPERSONALINFO(#{zipCd})
+            , GETENCPERSONALINFO(#{telNum})
+            , #{irsNum}
+            , GETENCPERSONALINFO(#{faxNum})
+            , GETENCPERSONALINFO(#{ceoUserNm})
+            , GETENCPERSONALINFO(#{ceoUserNmEng})
+            , #{cur}
+            , #{industryType}
+            , #{businessType}
+            , #{companyRegNum}
+            , #{dunsNum}
+            , #{gmtCd}
+            , '0'
+            , #{ses.userId}
+            , #{ses.userId}
+            , #{ACCOUNT_UNIT_CD}
+            , #{ZIP_CD_5}
+            , CASE WHEN <include refid="common.sql.nvl"/>(#{USE_FLAG}, '') = '' THEN '0' ELSE '1' END
+            , CASE WHEN <include refid="common.sql.nvl"/>(#{GW_USE_FLAG}, '') = '' THEN '0' ELSE '1' END
+            , <include refid="common.sql.toDate"/>(#{foundationDate}, 'yyyy-MM-dd')
+            , SYSDATE
+            , SYSDATE
+            , GETENCPERSONALINFO(#{IRS_SUB_ZIP_CD})
+            , #{IRS_SUB_NO}
+            , GETENCPERSONALINFO(#{IRS_SUB_ADDR})
+            , #{IRS_SUB_NM}
+            , GETENCPERSONALINFO(#{SUB_ZIP_CD_5})
+        )
+    </insert>
+
+    <update id="deleteCompany" parameterType="hashMap">
+
+        UPDATE STOCOGCM SET
+              DEL_FLAG = '1'
+            , MOD_USER_ID = #{ses.userId}
+            , MOD_DATE = SYSDATE
+         WHERE GATE_CD = #{GATE_CD_ORI}
+           AND BUYER_CD = #{BUYER_CD_ORI}
+
+    </update>
+
+</mapper>

@@ -1,0 +1,33 @@
+/* page navi */
+#page-selection {
+    text-align: center;
+}
+
+.pagination > li > a,
+.pagination > li > span {
+    padding: 2px 10px;
+    font-size: 12px;
+    margin-left: 5px;
+    color: #777;
+    font-family: dotum, "돋움" !important;
+}
+
+.pagination > .active > a,
+.pagination > .active > a:focus,
+.pagination > .active > a:hover,
+.pagination > .active > span,
+.pagination > .active > span:focus,
+.pagination > .active > span:hover {
+    /*background-color: #666;
+    border-color: #666;*/
+    font-weight: 600;
+    color: blue;
+}
+
+#page-selection > ul > li.first > a,
+#page-selection > ul > li.last > a,
+#page-selection > ul > li.prev > a,
+#page-selection > ul > li.next > a {
+    border: 0px;
+    padding: 0px;
+}

@@ -1,0 +1,373 @@
+package com.st_ones.common.util.clazz;
+
+import com.st_ones.everf.serverside.config.PropertiesManager;
+
+import com.dreamsecurity.magicline.JCaosCheckCert;
+import com.dreamsecurity.jcaos.x509.X509Certificate;
+import com.dreamsecurity.jcaos.x509.X509GeneralName;
+import com.dreamsecurity.jcaos.x509.X509OtherName;
+import com.dreamsecurity.jcaos.util.encoders.Base64;
+import com.dreamsecurity.jcaos.util.encoders.Hex;
+import com.dreamsecurity.jcaos.vid.VID;
+import com.dreamsecurity.JCAOSProvider;
+import com.dreamsecurity.bcahelper.BCAHelper;
+import com.dreamsecurity.bcahelper.exception.DTException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.math.BigInteger;
+import java.net.URLDecoder;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : EverCert.java
+ * @date 2020. 07. 20.
+ * @version 1.0
+ * @see
+ */
+public class EverCert {
+
+    private static Logger logger = LoggerFactory.getLogger(EverCert.class);
+
+    public static Map<String, String> doCheckCert(String sSignData, String vidRandom, String idn, String useCard) {
+
+        if(PropertiesManager.getBoolean("eversrm.system.localserver")) {
+            if ("1".equals(useCard)) {
+            	if( !"1234567890".equals(idn) ) {
+                    idn = "2128159710"; // 법인용 공인인증서 Test용 사업자번호
+            	}
+            }
+            else if ("2".equals(useCard)) {
+                idn = "1122334455"; // 법인용 블럭체인 사설인증서 Test용 사업자번호
+            }
+            else if ("3".equals(useCard)) {
+                idn = ""; // 개인용 블럭체인 사설인증서 Test용
+            }
+        }
+
+        Map<String, String> rtnMap = new HashMap<String, String>();
+
+        // 클라이언트에서 받은 서명 데이타를 검증
+        JCaosCheckCert jcaosCheck = null;
+        String textCheck = "";
+        String sPolicy = "";
+        String sidentifyData = "";
+
+        String certRtnMsg = "SignData [" + sSignData + "]<br>\n" + "- VIDData [" + vidRandom + "]<br>\n";
+        int certRtnCd = 0;
+
+        // 서명 데이타가 있을때 서명 검증
+        if (sSignData != null && sSignData.length() > 0){
+
+            try {
+
+                // API 초기화 (한번만 실행)
+                JCAOSProvider.installProvider(false);
+                jcaosCheck = new JCaosCheckCert();
+                jcaosCheck.setVIDRandom(idn, vidRandom);
+                certRtnMsg = certRtnMsg + "<br>\n- 인증서 검증 시작<br>\n";
+
+                // 서명 검증, 검증후 원문이 리턴됨
+                int iResult = jcaosCheck.checkCert(sSignData);
+
+                logger.debug(">>>>> iResult : " + iResult);
+
+                ///////////////////////////  Start BCA Cert verify ////////////////////////////////
+                if (iResult == 0 || iResult == 3000) {
+
+                    Properties properties = new Properties();
+                    InputStream is = new FileInputStream(PropertiesManager.getString("magicline.config.path"));
+                    properties.load(is);
+
+                    String rootCerts = properties.getProperty("MagicLine.Conf.certverify.rootcert");
+                    String certverifyUrl = PropertiesManager.getString("magicline.certverify.url");
+
+                    try {
+                        BCAHelper bcaHelper = new BCAHelper();
+                        iResult = bcaHelper.verify(sSignData, rootCerts, certverifyUrl, true, 0);
+                        /* 주석처리
+                        if (PropertiesManager.getBoolean("eversrm.system.localserver") || PropertiesManager.getBoolean("eversrm.system.developmentFlag")) {
+                            iResult = bcaHelper.verify(sSignData, rootCerts, certverifyUrl, true, 0);
+                        } else {
+                            iResult = bcaHelper.verify(sSignData, rootCerts, certverifyUrl);
+                        }
+                        */
+
+                        if (iResult == 0) {
+                            certRtnMsg = certRtnMsg + "- 인증서 검증 성공<br>\n";
+                        } else if (iResult == 3000) {
+                            certRtnMsg = certRtnMsg + "- 인증서 검증 하지않음<br>\n";
+                        }
+
+                    } catch (DTException e) {
+                        logger.error(e.getMessage());
+                        iResult = e.getCode();
+                        certRtnCd = -1;
+                        certRtnMsg = e.getMessage();
+                    }
+                }
+                ///////////////////////////  END BCA Cert verify ////////////////////////////////
+
+                if ( iResult != 0 ) {
+                    // 오류 발생시 오류를 구분
+                    String sCertResult = null;
+                    certRtnCd = -1;
+                    switch(iResult){
+                        case JCaosCheckCert.STAT_ERR_WRONGCERT							:	// 정상적인 인증서가 아님
+                            certRtnMsg = "서명에 사용된 인증서가 정상적인 인증서가 아닙니다."; break;
+                        case JCaosCheckCert.STAT_ERR_RevocationCheckException			:	// CRL 검증 실패
+                        case JCaosCheckCert.STAT_ERR_NotExistSignerCertException		:	// 서명자 인증서 누락
+                        case JCaosCheckCert.STAT_ERR_IOException						:	// IOException
+                        case JCaosCheckCert.STAT_ERR_FileNotFoundException				:	// FileNotFoundException
+                        case JCaosCheckCert.STAT_ERR_ETC								:	// 기타 오류
+                        case JCaosCheckCert.STAT_ERR_BuildCertPathException 			:	// 인증서 경로 구축 실패
+                        case JCaosCheckCert.STAT_ERR_ObtainCertPathException			:	// 인증서 경로 구축 실패
+                        case JCaosCheckCert.STAT_ERR_ValidateCertPathException			:	// 인증서 경로 검증 실패
+                        case JCaosCheckCert.STAT_ERR_TrustRootException 				:	// 신뢰할수 없는 최상위 인증서
+                            certRtnMsg = "서명 인증서 검증 오류 [" + iResult + "]."; break;
+                        case JCaosCheckCert.STAT_ERR_VerifyException 					:	// 서명 검증 실패
+                            certRtnMsg = "서명에 대한 검증을 실패하였습니다."; break;
+                        case JCaosCheckCert.STAT_ERR_CertificateNotYetValidException	: 	// 인증서 유효기간 검증 오류
+                            certRtnMsg = "서명 인증서의 유효기간을 검증하는데 오류가 발생하였습니다.";
+                        case JCaosCheckCert.STAT_ERR_CertificateExpiredException 		:	// 인증서 만료
+                            certRtnMsg = "만료된 인증서입니다."; break;
+                        case JCaosCheckCert.STAT_ERR_RevokedCertException				:	// 폐지된 인증서
+                            certRtnMsg = "폐지된 인증서입니다."; break;
+                        default:
+                            certRtnMsg = "오류가 발생하였습니다. [" + iResult + "]";
+                    }
+                }
+                if( iResult == 0 || iResult == 3000 ){
+
+                    // 서명에 사용된 인증서를 가져온다
+                    X509Certificate cert = jcaosCheck.getUserCert();
+                    String signerDN = cert.getSubjectDN().getName();	// 인증서 DN
+                    BigInteger serialNumber = cert.getSerialNumber();	// 인증서 시리얼
+
+                    // 본인확인
+                    switch (jcaosCheck.getVIDCheck()){
+                        case JCaosCheckCert.STAT_VID_NOTCHECK:
+                            certRtnMsg = certRtnMsg+"- 본인 확인 하지 않음<br>\n";
+                            break;
+                        case JCaosCheckCert.STAT_VID_CHECK_OK:
+                            certRtnMsg = certRtnMsg+"- 본인 확인 성공<br>\n";
+                            break;
+                        case JCaosCheckCert.STAT_VID_CHECK_FAIL:
+                            certRtnMsg = "본인 확인에 실패했습니다.\n";
+                            certRtnCd = -1;
+                    }
+                }
+            } catch(Exception e){
+                // 인증서 검증중 오류가 난 경우
+                // 처리를 편하게 하기 위해
+                // 상용중에는 사용자의 인증서의 유효성의 문제가 잇는 경우가 대부분 입니다.
+                logger.error(e.getMessage());
+                certRtnMsg = "서명 검증에 실패 하였습니다.\n [" + e.getMessage() + "]";
+                certRtnCd = -1;
+            }
+        } else {
+            certRtnMsg = "서명 데이타가 존재하지 않습니다.";
+            certRtnCd = -1;
+        }
+
+        rtnMap.put("certRtnCd", String.valueOf(certRtnCd));
+        rtnMap.put("certRtnMsg", certRtnMsg);
+        return rtnMap;
+    }
+
+    public static boolean doCheckSignedData(String sSignData, String vidRandom, String idn, String useCard) {
+
+        // Test를 위해 값 셋팅
+        if(PropertiesManager.getBoolean("eversrm.system.localserver") || PropertiesManager.getBoolean("eversrm.system.developmentFlag")) {
+            if ("1".equals(useCard)) {
+            	if( !"1234567890".equals(idn) ) {
+                    idn = "2128159710"; // 법인용 공인인증서 Test용 사업자번호
+            	}
+            }
+            else if ("2".equals(useCard)) {
+                idn = "1122334455"; // 법인용 블럭체인 사설인증서 Test용 사업자번호
+            }
+            else if ("3".equals(useCard)) {
+                idn = ""; // 개인용 블럭체인 사설인증서 Test용
+            }
+        }
+
+        // 클라이언트에서 받은 서명 데이타를 검증
+        JCaosCheckCert jcaosCheck = null;
+        String textCheck = "";
+        String sPolicy = "";
+        String sidentifyData = "";
+
+        String certRtnMsg = "SignData [" + sSignData + "]<br>\n" + "- VIDData [" + vidRandom + "]<br>\n";
+        boolean certRtnFlag = true;
+
+        // 서명 데이타가 있을때 서명 검증
+        if (sSignData != null && sSignData != "null" && sSignData.length() > 0){
+
+            try {
+
+                // API 초기화 (한번만 실행)
+                JCAOSProvider.installProvider(false);
+                jcaosCheck = new JCaosCheckCert();
+                jcaosCheck.setVIDRandom(idn, vidRandom);
+
+                // 서명 검증, 검증후 원문이 리턴됨
+                int iResult = jcaosCheck.checkCert(sSignData);
+
+                logger.debug(">>>>> iResult : " + iResult);
+
+                ///////////////////////////  Start BCA Cert verify ////////////////////////////////
+                if (iResult == 0 || iResult == 3000) {
+
+                    Properties properties = new Properties();
+                    InputStream is = new FileInputStream(PropertiesManager.getString("magicline.config.path"));
+                    properties.load(is);
+
+                    String rootCerts = properties.getProperty("MagicLine.Conf.certverify.rootcert");
+                    String certverifyUrl = PropertiesManager.getString("magicline.certverify.url");
+
+                    try {
+                        BCAHelper bcaHelper = new BCAHelper();
+                        iResult = bcaHelper.verify(sSignData, rootCerts, certverifyUrl, true, 0);
+                        /* 주석처리
+                        if (PropertiesManager.getBoolean("eversrm.system.localserver") || PropertiesManager.getBoolean("eversrm.system.developmentFlag")) {
+                            iResult = bcaHelper.verify(sSignData, rootCerts, certverifyUrl, true, 0);
+                        } else {
+                            iResult = bcaHelper.verify(sSignData, rootCerts, certverifyUrl);
+                        }
+                        */
+                    } catch (DTException e) {
+                        logger.error(e.getMessage());
+                        certRtnFlag = false;
+                    }
+                }
+                ///////////////////////////  END BCA Cert verify ////////////////////////////////
+
+                if (iResult != 0) {
+                    // 오류 발생시 오류를 구분
+                    String sCertResult = null;
+                    certRtnFlag = false;
+                    switch (iResult) {
+                        case JCaosCheckCert.STAT_ERR_WRONGCERT:    // 정상적인 인증서가 아님
+                        case JCaosCheckCert.STAT_ERR_RevocationCheckException:    // CRL 검증 실패
+                        case JCaosCheckCert.STAT_ERR_NotExistSignerCertException:    // 서명자 인증서 누락
+                        case JCaosCheckCert.STAT_ERR_IOException:    // IOException
+                        case JCaosCheckCert.STAT_ERR_FileNotFoundException:    // FileNotFoundException
+                        case JCaosCheckCert.STAT_ERR_ETC:    // 기타 오류
+                        case JCaosCheckCert.STAT_ERR_BuildCertPathException:    // 인증서 경로 구축 실패
+                        case JCaosCheckCert.STAT_ERR_ObtainCertPathException:    // 인증서 경로 구축 실패
+                        case JCaosCheckCert.STAT_ERR_ValidateCertPathException:    // 인증서 경로 검증 실패
+                        case JCaosCheckCert.STAT_ERR_TrustRootException:    // 신뢰할수 없는 최상위 인증서
+                        case JCaosCheckCert.STAT_ERR_VerifyException:    // 서명 검증 실패
+                        case JCaosCheckCert.STAT_ERR_CertificateNotYetValidException:    // 인증서 유효기간 검증 오류
+                        case JCaosCheckCert.STAT_ERR_CertificateExpiredException:    // 인증서 만료
+                        case JCaosCheckCert.STAT_ERR_RevokedCertException:    // 폐지된 인증서
+                        default:
+                            certRtnFlag = false;
+                    }
+                }
+                if (iResult == 0 || iResult == 3000) {
+
+                    // 서명에 사용된 인증서를 가져온다
+                    X509Certificate cert = jcaosCheck.getUserCert();
+                    String signerDN = cert.getSubjectDN().getName();    // 인증서 DN
+                    BigInteger serialNumber = cert.getSerialNumber();    // 인증서 시리얼
+
+                    // 본인확인
+                    switch (jcaosCheck.getVIDCheck()) {
+                        case JCaosCheckCert.STAT_VID_NOTCHECK:
+                            // 본인 확인 하지 않음
+                            certRtnFlag = true;
+                            break;
+                        case JCaosCheckCert.STAT_VID_CHECK_OK:
+                            // 본인 확인 성공
+                            certRtnFlag = true;
+                            break;
+                        case JCaosCheckCert.STAT_VID_CHECK_FAIL:
+                            // 본인 확인 실패
+                            certRtnFlag = false;
+                    }
+                }
+            } catch(Exception e){
+                logger.error(e.getMessage());
+                // 인증서 검증중 오류가 난 경우
+                certRtnFlag = false;
+            }
+        } else {
+            // 서명 데이타가 없기 때문에 체크하지 않는다.
+            certRtnFlag = true;
+        }
+
+        return certRtnFlag;
+    }
+
+    public static String[] getOriSignedData(String sSignData, String vidRandom, String idn, String splitStr, String useCard) {
+
+        String[] rtnArgs = null;
+
+        // Test를 위해 값 셋팅
+        if(PropertiesManager.getBoolean("eversrm.system.localserver") || PropertiesManager.getBoolean("eversrm.system.developmentFlag")) {
+            if ("1".equals(useCard)) {
+            	if( !"1234567890".equals(idn) ) {
+                    idn = "2128159710"; // 법인용 공인인증서 Test용 사업자번호
+            	}
+            }
+            else if ("2".equals(useCard)) {
+                idn = "1122334455"; // 법인용 블럭체인 사설인증서 Test용 사업자번호
+            }
+            else if ("3".equals(useCard)) {
+                idn = ""; // 개인용 블럭체인 사설인증서 Test용
+            }
+        }
+
+        // 서명 데이타가 있을때 서명 검증
+        if (sSignData != null && sSignData != "null" && sSignData.length() > 0) {
+
+            try {
+
+                // API 초기화 (한번만 실행)
+                JCAOSProvider.installProvider(false);
+                JCaosCheckCert jcaosCheck = new JCaosCheckCert();
+                jcaosCheck.setVIDRandom(idn, vidRandom);
+
+                int iResult = jcaosCheck.checkCert(sSignData);
+
+                if (iResult == 0 || iResult == 3000) {
+                    // 서명에 사용된 인증서를 가져온다
+                    X509Certificate cert = jcaosCheck.getUserCert();
+                    String signerDN = cert.getSubjectDN().getName(); // 인증서 DN
+                    BigInteger serialNumber = cert.getSerialNumber(); // 인증서 시리얼
+
+                    String oriSignedDataStr = new String(jcaosCheck.getSrcByte(), "UTF-8");  // 서명데이터 원문
+                    rtnArgs = oriSignedDataStr.split(splitStr);
+
+                    if (rtnArgs.length == 0) {
+                        return null;
+                    }
+                } else {
+                    return null;
+                }
+
+            } catch (Exception e) {
+                logger.error(e.getMessage());
+                return null;
+            }
+        } else {
+            return null;
+        }
+        return rtnArgs;
+    }
+
+}

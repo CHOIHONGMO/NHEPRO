@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:43 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.st_ones.common.mail.EverMailMapper">
+
+
+	<select id="getFileName" parameterType="hashMap" resultType="string">
+		SELECT
+		'nhem_'
+		<include refid="common.sql.stringMerge"/>TO_CHAR(SYSDATE+(1 / 24 / 60),'YYMMDDHHMISS')
+		<include refid="common.sql.stringMerge"/>'_ITPT_'
+		<include refid="common.sql.stringMerge"/>SF_LPAD(ROUND(DBMS_RANDOM.VALUE(1,999999)),6,'0')
+		<include refid="common.sql.dual"/>
+	</select>
+	
+	<!-- 2021.01.06 : 쿼리문 변경 -->
+	<select id="getReceiverEmail" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 <include refid="common.sql.strDecStart"/>A.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+			,<include refid="common.sql.strDecStart"/>A.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+			,<include refid="common.sql.nvl"/>(A.RELAT_YN, '1') AS RELAT_YN
+		  FROM (
+				<!-- 운영사 사용자 -->
+				SELECT CVUR.EMAIL
+					 , CVUR.USER_NM
+					 ,(SELECT RELAT_YN FROM STOCCUST
+					    WHERE GATE_CD = CVUR.GATE_CD
+					      AND CUST_CD = CVUR.COMPANY_CD) AS RELAT_YN
+				  FROM STOCUSER CVUR
+				 WHERE CVUR.GATE_CD = #{ses.gateCd}
+				   AND CVUR.USER_ID = UPPER(#{RECV_USER_ID})
+				
+				UNION ALL
+				
+				<!-- 고객사, 협력사 사용자 -->
+				SELECT CVUR.EMAIL
+					 , CVUR.USER_NM
+					 ,(SELECT RELAT_YN FROM STOCCUST
+					    WHERE GATE_CD = CVUR.GATE_CD
+					      AND CUST_CD = CVUR.COMPANY_CD) AS RELAT_YN
+				  FROM STOCCVUR CVUR
+				 WHERE CVUR.GATE_CD    = #{ses.gateCd}
+				   AND CVUR.USER_ID    = UPPER(#{RECV_USER_ID})
+				   AND CVUR.MAIL_FLAG  = '1'			-- MAIL수신여부
+				   AND <include refid="common.sql.nvl"/>(CVUR.BLOCK_FLAG, '0') = '0'
+				
+				UNION ALL
+				
+				<!-- 협력사 제외 -->
+				SELECT CVUR.EMAIL
+					 , CVUR.USER_NM
+					 ,(SELECT RELAT_YN FROM STOCCUST
+					    WHERE GATE_CD = CVUR.GATE_CD
+					      AND CUST_CD = CVUR.COMPANY_CD) AS RELAT_YN
+				  FROM STOCCVUR CVUR
+			 	 WHERE CVUR.GATE_CD    = #{ses.gateCd}
+				   AND CVUR.COMPANY_CD = #{RECV_USER_ID}
+				   AND CVUR.USER_TYPE != 'S'			-- 고객사
+				   AND CVUR.MNG_YN     = '1'			-- 고객사 관리자
+				   AND CVUR.MAIL_FLAG  = '1'			-- MAIL수신여부
+				   AND <include refid="common.sql.nvl"/>(CVUR.BLOCK_FLAG, '0') = '0'	-- 사용자 Block여부
+				   AND ROWNUM <![CDATA[<=]]> 3			-- 3명까지만
+				
+				UNION ALL
+				
+				<!-- 협력사 : 협력사 관리자 직무(SR020) -->
+				SELECT CVUR.EMAIL
+					 , CVUR.USER_NM
+					 ,(SELECT RELAT_YN FROM STOCCUST
+					    WHERE GATE_CD = CVUR.GATE_CD
+					      AND CUST_CD = CVUR.COMPANY_CD) AS RELAT_YN
+				  FROM STOCCVUR CVUR
+				  JOIN STOCBACP BACP
+				  	   ON( CVUR.GATE_CD    = BACP.GATE_CD
+				  	   AND CVUR.COMPANY_CD = BACP.BUYER_CD
+				  	   AND CVUR.USER_ID    = BACP.CTRL_USER_ID
+				  	   AND BACP.CTRL_CD    = 'SR020'
+				  	   AND BACP.USE_FLAG   = '1'
+				  	   AND BACP.DEL_FLAG   = '0')
+				 WHERE CVUR.GATE_CD    = #{ses.gateCd}
+				   AND CVUR.COMPANY_CD = #{RECV_USER_ID}
+				   AND CVUR.USER_TYPE  = 'S'			-- 협력사
+				   AND CVUR.MNG_YN     = '1'			-- 협력사 관리자
+				   AND CVUR.MAIL_FLAG  = '1'			-- MAIL수신여부
+				   AND <include refid="common.sql.nvl"/>(CVUR.BLOCK_FLAG, '0') = '0'	-- 사용자 Block여부
+				   AND ROWNUM <![CDATA[<=]]> 3			-- 3명까지만
+				
+				UNION ALL
+				
+				SELECT #{DIRECT_TARGET} AS EMAIL
+					 ,<include refid="common.sql.strEncStart"/>#{DIRECT_USER_NM}<include refid="common.sql.strEncEnd"/> AS USER_NM
+					 , '1' AS RELAT_YN
+				  FROM DUAL
+		  ) A
+		 WHERE A.EMAIL IS NOT NULL
+    </select>
+
+    <insert id="doSendMail" parameterType="com.st_ones.common.mail.web.EverMailVo">
+
+        INSERT INTO STOCMAIL <if test="_databaseId == 'mssql'">with (ROWLOCK)</if> (
+				GATE_CD
+			  , MAIL_SQ
+			  , SEND_EMAIL
+			  , RECV_EMAIL
+			  , SEND_DATE
+			  , REF_NUM
+			  , REF_MODULE_CD
+			  , SEND_USER_NM
+			  , RECV_USER_NM
+			  , SEND_USER_ID
+			  , RECV_USER_ID
+			  , SUBJECT
+			  , MAIL_TEXT_NUM
+			  , BUYER_CD
+			  , VENDOR_CD
+			  , DEL_FLAG
+			  , ATT_FILE_NUM
+			  , SEND_FLAG
+        ) VALUES (
+				#{ses.gateCd}
+			<if test="_databaseId == 'oracle'">
+			  , SEQ_STOCMAIL.NEXTVAL
+			</if>
+			<if test="_databaseId == 'mssql'">
+			  , (SELECT <include refid="common.sql.nvl"/>(MAX(MAIL_SQ) + 1, 1) FROM STOCMAIL WHERE GATE_CD = #{ses.gateCd})
+			</if>
+			  , <include refid="common.sql.strEncStart"/>#{senderEmail}<include refid="common.sql.strEncEnd"/>
+			  , <include refid="common.sql.strEncStart"/>#{receiverEmail}<include refid="common.sql.strEncEnd"/>
+			  , SYSDATE
+			  , #{refNum}
+			  , #{refModuleCd}
+			  , <include refid="common.sql.strEncStart"/>#{senderNm}<include refid="common.sql.strEncEnd"/>
+			  , <include refid="common.sql.strEncStart"/>#{receiverNm}<include refid="common.sql.strEncEnd"/>
+			  , #{senderUserId}
+			  , #{receiverUserId}
+			  , #{subject}
+			  , #{mailTextNum}
+			  , #{ses.companyCd}
+			  , #{vendorCd}
+			  , '0'
+			  , #{attFileNum}
+			  , #{SEND_FLAG}
+        )
+
+    </insert>
+
+	<!-- 협력회사 메일은 STOCVNCP의 담당자구분에 따라 가져옴 -->
+	<!-- 구매유형이 : 부품(NORMAL)인 경우 부품담당자(PPUR), 부품이 아닌 경우 일반구매(NPUR) 담당자에게 메일 및 SMS 발송 -->
+    <select id="getReceiverMailAddress" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			  A.RECV_USER_ID 	AS RECV_USER_ID
+			, A.RECV_NM 		AS RECV_NM
+			, A.MAIL_FLAG 		AS MAIL_FLAG
+			, A.RECV_EMAIL		AS RECV_EMAIL
+			, A.VENDOR_CD 		AS VENDOR_CD
+		FROM (
+			SELECT
+				<include refid="common.sql.strDecStart"/>VNCP.EMAIL<include refid="common.sql.strDecEnd"/> AS RECV_EMAIL ,
+				<include refid="common.sql.strDecStart"/>VNCP.USER_NM<include refid="common.sql.strDecEnd"/> AS RECV_NM ,
+				VNCP.MAIL_FLAG ,
+				VNCP.VENDOR_CD AS VENDOR_CD ,
+				'' AS RECV_USER_ID
+			  FROM STOCVNCP VNCP
+			 WHERE VNCP.GATE_CD   = #{ses.gateCd}
+			   AND VNCP.VENDOR_CD = #{VENDOR_CD}
+			   AND VNCP.DEL_FLAG  = '0'
+			   AND VNCP.EMAIL IS NOT NULL
+			   AND VNCP.MAIL_FLAG = '1'
+			<if test="PURCHASE_TYPE != null and  PURCHASE_TYPE != ''">
+			   AND VNCP.PURCHASE_TYPE = <choose>
+											<when test="PURCHASE_TYPE == 'NORMAL'">'PPUR'</when>
+											<otherwise>'NPUR'</otherwise>
+										</choose>
+			</if>
+		) A
+		GROUP BY A.RECV_USER_ID, A.RECV_EMAIL, A.RECV_NM, A.MAIL_FLAG, A.VENDOR_CD
+
+    </select>
+
+    <select id="getBuyerMailAddress" parameterType="hashMap" resultType="hashMap">
+
+        SELECT <include refid="common.sql.strDecStart"/>EMAIL<include refid="common.sql.strDecEnd"/> AS RECV_EMAIL
+              ,<include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> AS RECV_NM
+              ,'1' AS MAIL_FLAG
+              ,COMPANY_CD
+              ,USER_ID AS RECV_USER_ID
+          FROM STOCUSER
+         WHERE GATE_CD  = #{GATE_CD}
+           AND USER_ID  = #{USER_ID}
+           AND DEL_FLAG = '0'
+           AND USE_FLAG = '1'
+
+    </select>
+
+</mapper>

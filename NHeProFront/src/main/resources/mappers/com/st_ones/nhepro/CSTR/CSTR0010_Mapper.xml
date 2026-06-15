@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CSTR.CSTR0010_Mapper">
+
+    <select id="cstr0010_doSearch" parameterType="hashmap" resultType="hashMap">
+    
+		 SELECT
+		        FIN.BUYER_CD
+		        ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(FIN.GATE_CD, MAX(FIN.PR_BUYER_CD), MAX(FIN.PR_DEPT_CD), #{ses.langCd}) AS PR_BUYER_NM
+		        ,FIN.BID_NUM
+		        ,FIN.BID_CNT
+		        ,MAX(FIN.ANN_NO) AS ANN_NO
+		        ,MAX(FIN.ANN_DATE) AS ANN_DATE
+		        ,MAX(FIN.ANN_ITEM) AS ANN_ITEM
+		        ,MAX(FIN.CONT_TYPE1) AS CONT_TYPE1
+		        ,<include refid="common.sql.dbo"/>GETCOMCODE(FIN.GATE_CD, 'M301', MAX(FIN.CONT_TYPE1), 0, #{ses.langCd}) AS CONT_TYPE1_NM
+		        ,MAX(FIN.CONT_TYPE2) AS CONT_TYPE2
+		        ,<include refid="common.sql.dbo"/>GETCOMCODE(FIN.GATE_CD, 'M302', MAX(FIN.CONT_TYPE2), 0, #{ses.langCd}) AS CONT_TYPE2_NM
+		        ,MAX(FIN.PURCHASE_TYPE) AS PURCHASE_TYPE
+		        ,<include refid="common.sql.dbo"/>GETCODENAME(FIN.GATE_CD, 'M061', MAX(FIN.PURCHASE_TYPE), #{ses.langCd}) AS PURCHASE_TYPE_NM
+		        ,<include refid="common.sql.dbo"/>GETCODENAME(FIN.GATE_CD, 'M044', MAX(FIN.TCO_FLAG), #{ses.langCd}) AS TCO_FLAG
+		        ,<include refid="common.sql.nvl"/>(TO_CHAR(<include refid="common.sql.dbo"/>GETDECPERSONALINFO(MAX(FIN.TECH_SCORE))), '-') AS TECH_SCORE
+                ,<include refid="common.sql.nvl"/>(TO_CHAR(MAX(FIN.PRC_SCORE)), '-') AS PRC_SCORE
+		        ,FIN.VENDOR_CD        
+		        ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(FIN.GATE_CD, FIN.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+		        ,<include refid="common.sql.dbo"/>GETDECPERSONALINFO(FIN.VENDOR_PIC_USER_NM) AS VENDOR_PIC_USER_NM
+			    ,<include refid="common.sql.dbo"/>GETDECPERSONALINFO(FIN.VENDOR_PIC_USER_CELL_NUM) AS VENDOR_PIC_USER_CELL_NUM
+			    ,<include refid="common.sql.dbo"/>GETDECPERSONALINFO(FIN.VENDOR_PIC_USER_EMAIL) AS VENDOR_PIC_USER_EMAIL    
+		        ,MAX(FIN.BID_STATUS) AS BID_STATUS
+		        ,<include refid="common.sql.dbo"/>GETCODENAME(FIN.GATE_CD, 'M343', MAX(FIN.BID_STATUS), #{ses.langCd}) AS BID_STATUS_NM        
+		        ,LISTAGG(CASE WHEN FIN.RNUM_VOTE_CNT = 1 THEN FIN.VOTE_CNT<include refid="common.sql.stringMerge"/>'차:('<include refid="common.sql.stringMerge"/>TO_CHAR(<include refid="common.sql.nvl"/>(FIN.BID_AMT,0), 'FM999,999,999,999,999')<include refid="common.sql.stringMerge"/>')' END,' ,') WITHIN GROUP (ORDER BY FIN.VOTE_CNT) AS VOTECNT         
+		        ,<include refid="common.sql.nvl"/>(SUM(CASE WHEN FIN.RNUM_PR_CNT = 1 THEN  FIN.PR_AMT END),0) AS PR_AMT
+		        ,<include refid="common.sql.nvl"/>(SUM(CASE WHEN FIN.RNUM_BID_CNT = 1 THEN  FIN.FINAL_ESTM_PRC END),0) AS FINAL_ESTM_PRC        
+		        ,<include refid="common.sql.nvl"/>(SUM(CASE WHEN FIN.RNUM_CONT_CNT = 1 AND FIN.CONT_CNT = 1 THEN  FIN.CONT_AMT END),0) AS CONT_AMT
+		        ,LISTAGG(CASE WHEN FIN.RNUM_CONT_CNT = 1 THEN  FIN.CONT_NUM_CNT END,' | ') WITHIN GROUP (ORDER BY FIN.CONT_NUM_CNT) AS CONT_NUM_CNT 
+		  FROM (
+		      SELECT
+		             BDDT.GATE_CD
+		            ,BDDT.BUYER_CD
+		            ,BDDT.BID_NUM
+		            ,BDDT.BID_CNT
+		            ,BDVO.VENDOR_CD
+		            ,BDVO.VOTE_CNT
+		            ,<include refid="common.sql.nvl"/>(BDVO.BID_AMT,0)+<include refid="common.sql.nvl"/>(BDVO.TCO_AMT,0) AS BID_AMT
+		            ,BDHD.ANN_NO
+		            ,BDHD.ANN_DATE
+		            ,BDHD.ANN_ITEM
+		            ,BDHD.CONT_TYPE1
+		            ,BDHD.CONT_TYPE2
+		            ,BDDT.PURCHASE_TYPE
+					,BDHD.TCO_FLAG
+					,BDSP.TECH_SCORE
+				    ,BDSP.PRC_SCORE
+					,BDAP.VENDOR_PIC_USER_NM
+					,BDAP.VENDOR_PIC_USER_CELL_NUM
+					,BDAP.VENDOR_PIC_USER_EMAIL
+		            ,BDVO.BID_STATUS
+		            ,CASE WHEN ECMT.CONT_NUM IS NOT NULL THEN ECMT.CONT_NUM<include refid="common.sql.stringMerge"/>'-'<include refid="common.sql.stringMerge"/>ECMT.CONT_CNT<include refid="common.sql.stringMerge"/>'/('<include refid="common.sql.stringMerge"/>TO_CHAR(ECCT.CONT_DATE,'YYYY-MM-DD')<include refid="common.sql.stringMerge"/>')/('<include refid="common.sql.stringMerge"/>TO_CHAR(<include refid="common.sql.nvl"/>(ECCT.CONT_AMT,0), 'FM999,999,999,999,999')<include refid="common.sql.stringMerge"/>')' ELSE '' END AS CONT_NUM_CNT
+		            ,<include refid="common.sql.nvl"/>(ECMT.CONT_CNT,0) AS CONT_CNT
+		            ,ECCT.CONT_DATE
+		            ,ECCT.CONT_AMT
+		            ,PRDT.PR_AMT
+		            ,BDES.FINAL_ESTM_PRC
+		            ,PRDT.PR_BUYER_CD
+		            ,PRDT.PR_DEPT_CD
+		            ,CASE WHEN ECMT.CONT_NUM IS NOT NULL THEN ROW_NUMBER() OVER (PARTITION BY BDVO.VENDOR_CD,ECMT.CONT_NUM,ECMT.CONT_CNT ORDER BY BDVO.VENDOR_CD,ECMT.CONT_NUM,ECMT.CONT_CNT DESC) ELSE 0 END AS RNUM_CONT_CNT 
+		            ,ROW_NUMBER() OVER (PARTITION BY BDVO.VENDOR_CD,BDVO.BID_NUM,BDVO.BID_CNT,BDVO.VOTE_CNT ORDER BY BDVO.VENDOR_CD,BDVO.BID_NUM,BDVO.BID_CNT,BDVO.VOTE_CNT DESC) AS RNUM_VOTE_CNT 
+		            ,ROW_NUMBER() OVER (PARTITION BY BDVO.VENDOR_CD,BDVO.BID_NUM,BDVO.BID_CNT,PRDT.PR_NUM,PRDT.PR_SQ ORDER BY BDVO.VENDOR_CD,PRDT.PR_NUM,PRDT.PR_SQ DESC) AS RNUM_PR_CNT 
+		            ,ROW_NUMBER() OVER (PARTITION BY BDVO.VENDOR_CD,BDDT.BID_NUM,BDDT.BID_CNT ORDER BY BDVO.VENDOR_CD,BDDT.BID_NUM,BDDT.BID_CNT DESC) AS RNUM_BID_CNT     
+		       FROM STOCBDDT BDDT
+		       JOIN STOCBDHD BDHD
+		            ON (BDDT.GATE_CD  = BDHD.GATE_CD
+		            AND BDDT.BUYER_CD = BDHD.BUYER_CD
+		            AND BDDT.BID_NUM  = BDHD.BID_NUM
+		            AND BDDT.BID_CNT  = BDHD.BID_CNT
+		            AND BDHD.DEL_FLAG = '0'
+		            AND BDHD.BID_STATUS IN ('2500'))  
+		       JOIN STOCBDVO BDVO
+		            ON( BDDT.GATE_CD  = BDVO.GATE_CD
+		            AND BDDT.BUYER_CD = BDVO.BUYER_CD
+		            AND BDDT.BID_NUM  = BDVO.BID_NUM
+		            AND BDDT.BID_CNT  = BDVO.BID_CNT
+		            AND BDVO.DEL_FLAG = '0')
+		       JOIN STOCBDAP BDAP
+				    ON (BDVO.GATE_CD  = BDAP.GATE_CD
+				    AND BDVO.BUYER_CD = BDAP.BUYER_CD
+				    AND BDVO.BID_NUM  = BDAP.BID_NUM
+				    AND BDVO.BID_CNT  = BDAP.BID_CNT
+				    AND BDVO.VENDOR_CD = BDAP.VENDOR_CD
+				    AND BDAP.DEL_FLAG = '0')	
+			   LEFT JOIN STOCBDSP BDSP
+			   	    ON (BDAP.GATE_CD   = BDSP.GATE_CD
+			   	    AND BDAP.BUYER_CD  = BDSP.BUYER_CD
+			   	    AND BDAP.BID_NUM   = BDSP.BID_NUM
+			   	    AND BDAP.BID_CNT   = BDSP.BID_CNT
+			   	    AND BDAP.VENDOR_CD = BDSP.VENDOR_CD
+			   	    AND BDSP.DEL_FLAG  = '0')	         
+		       JOIN STOCPRDT PRDT
+		            ON( BDDT.GATE_CD = PRDT.GATE_CD
+		            AND BDDT.PR_NUM  = PRDT.PR_NUM
+		            AND BDDT.PR_SQ   = PRDT.PR_SQ
+		            AND PRDT.DEL_FLAG = '0')   
+		       LEFT JOIN STOCECMT ECMT
+		            JOIN STOCECCT ECCT
+		                 ON( ECMT.GATE_CD  = ECCT.GATE_CD
+		                 AND ECMT.BUYER_CD = ECCT.BUYER_CD
+		                 AND ECMT.CONT_NUM = ECCT.CONT_NUM
+		                 AND ECMT.CONT_CNT = ECCT.CONT_CNT
+		                 AND ECMT.DEL_FLAG = '0'
+		                 AND ECCT.DEL_FLAG = '0')  
+		            ON( BDDT.GATE_CD  = ECMT.GATE_CD
+		            AND BDDT.BUYER_CD = ECMT.BUYER_CD
+		            AND BDDT.PR_NUM   = ECMT.PR_NUM
+		            AND BDDT.PR_SQ    = ECMT.PR_SQ)  
+		       LEFT JOIN STOCBDES BDES
+		            ON( BDDT.GATE_CD = BDES.GATE_CD
+		            AND BDDT.BUYER_CD = BDES.BUYER_CD
+		            AND BDDT.BID_NUM = BDES.BID_NUM
+		            AND BDES.BID_CNT = '1'
+		            AND BDES.DEL_FLAG = '0')        
+		      WHERE 
+		            BDDT.BUYER_CD    = #{ses.companyCd}
+		            AND BDDT.DEL_FLAG = '0'
+		         <if test="ANN_DATE_FROM !='' and ANN_DATE_FROM != null and ANN_DATE_TO !='' and ANN_DATE_TO != null">
+		            AND BDHD.ANN_DATE BETWEEN #{ANN_DATE_FROM} AND #{ANN_DATE_TO}
+		         </if>            
+		         <if test="ANN_NO != '' and ANN_NO != null">
+		            AND UPPER(BDHD.ANN_NO) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ANN_NO}) <include refid="common.sql.stringMerge"/> '%'
+		         </if>            
+		         <if test="ANN_ITEM != '' and ANN_ITEM != null">
+		            AND UPPER(REPLACE(BDHD.ANN_ITEM, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{ANN_ITEM}, ' ', '')) <include refid="common.sql.stringMerge"/> '%'
+		         </if>            		         
+		         <if test="BID_NUM != '' and BID_NUM != null">
+		            AND BDDT.BID_NUM = #{BID_NUM}
+		         </if>         
+		         <if test="SETTEL_VENDOR_CD != '' and SETTEL_VENDOR_CD != null">
+		            AND BDVO.VENDOR_CD = #{SETTEL_VENDOR_CD}
+		         </if>
+		         <if test="SETTEL_VENDOR_NM != '' and SETTEL_VENDOR_NM != null">
+		            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(BDVO.GATE_CD, BDVO.VENDOR_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SETTEL_VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+		         </if>         
+		         <if test="CONT_TYPE1 != '' and CONT_TYPE1 != null">
+		            AND BDHD.CONT_TYPE1 = #{CONT_TYPE1}
+		         </if>                          
+		
+		    ) FIN
+		    GROUP BY FIN.GATE_CD,FIN.BUYER_CD,FIN.BID_NUM,FIN.BID_CNT,FIN.VENDOR_CD,FIN.VENDOR_PIC_USER_NM, FIN.VENDOR_PIC_USER_CELL_NUM, FIN.VENDOR_PIC_USER_EMAIL
+		    ORDER BY FIN.BID_NUM DESC,FIN.BID_CNT DESC, (CASE WHEN MIN(FIN.BID_STATUS) = '300' THEN 1 ELSE 0 END) DESC
+		    		    
+    </select>
+
+
+
+    <select id="cstr0020_doSearch" parameterType="hashmap" resultType="hashMap">
+    
+	      SELECT 
+	             MIN(GETBUYERDEPTNAME(POHD.GATE_CD, POHD.BUYER_CD, POHD.DEPT_CD, 'KO')) AS BUYER_DEPT_NM
+	             ,GETBUYERDEPTNAME(POPC.GATE_CD, POPC.PY_BUYER_CD, POPC.PY_DEPT_CD, 'KO') AS PY_BUYER_DEPT_NM
+	             ,MIN(ECCT.CONT_NUM) AS CONT_NUM
+	             ,MIN(ECCT.CONT_CNT) AS CONT_CNT
+	             ,MIN(ECCT.CONT_DESC) AS CONT_DESC
+	             ,MIN(POHD.SUBJECT) AS SUBJECT             
+	             ,CASE WHEN MIN(POHD.PO_CREATE_TYPE) = 'DRAFT' THEN  MIN(ECCT.CONT_DESC)
+	                   ELSE MIN(POHD.SUBJECT)
+	              END AS CONT_NM
+	             ,POPY.PO_NUM
+	             ,MIN(POHD.PO_CREATE_DATE) AS PO_CREATE_DATE
+	             ,MIN(POHD.PO_CREATE_TYPE) AS PO_CREATE_TYPE 
+				 ,POPY.PAY_CNT                          
+				 ,MIN(POPY.PAY_CNT_NM) AS PAY_CNT_NM
+	             ,MIN(POPY.PAY_AMT) AS PAY_AMT
+	             ,MIN(NVL(IVHD.INV_AMT,0)) AS INV_AMT
+	             ,MIN(NVL(IVPC.AP_REQ_AMT,0)) AS AP_REQ_AMT
+	             ,MIN(NVL(IVAP.AP_AMT,0)) AS AP_AMT
+	             ,MIN(NVL(GETCOMCODE(IVHD.GATE_CD, 'M101', IVHD.PROGRESS_CD, 0, 'KO'),' ')) AS PROGRESS_CD_IVHD 
+	             ,MIN(NVL(GETCOMCODE(IVAP.GATE_CD, 'NH0025', IVAP.SIGN_STATUS, 0, 'KO'),' ')) AS PROGRESS_CD_IVAP 
+	             ,(CASE WHEN MIN(NVL(IVAP.SIGN_STATUS,' ')) = '70' THEN '대금지급완료' 
+		               WHEN MIN(NVL(IVAP.SIGN_STATUS,' ')) IN ('20','50') THEN '대금지급요청완료' 
+		               WHEN MIN(NVL(IVAP.SIGN_STATUS,' ')) IN ('10','40') OR (MIN(NVL(IVHD.PROGRESS_CD,' ')) IN ('300','700') AND MIN(IVAP.SIGN_STATUS) IS NULL) THEN '검수완료'  
+		               WHEN (MIN(IVHD.DELIVERY_TYPE) = 'DI' AND MIN(NVL(IVHD.PROGRESS_CD,' ')) = '200') OR (MIN(IVHD.DELIVERY_TYPE) = 'PI' AND MIN(NVL(IVHD.PROGRESS_CD,' ')) = '100') THEN '검수요청완료' 
+		               WHEN (MIN(IVHD.DELIVERY_TYPE) = 'DI' AND MIN(NVL(IVHD.PROGRESS_CD,' ')) IN ('100','400')) OR (MIN(IVHD.DELIVERY_TYPE) = 'PI' AND MIN(NVL(IVHD.PROGRESS_CD,' ')) IN ('50','500')) THEN '검수미요청' 
+		               ELSE '미진행' END) AS PROGRESS_NM	                   
+	             ,(CASE WHEN MIN(IVHD.DELIVERY_TYPE) = 'DI' THEN MIN(NVL(TO_CHAR(IVGH.INV_SEND_DATE,'YYYY-MM-DD'),' '))
+	           	     ELSE MIN(NVL(TO_CHAR(IVGH.SEND_DATE,'YYYY-MM-DD'),' '))
+	               END) AS SEND_DATE	              
+	             ,(CASE WHEN MIN(IVHD.DELIVERY_TYPE) = 'DI' THEN MIN(NVL(TO_CHAR(GRDT.GR_DATE,'YYYY-MM-DD'),' '))
+	           	     ELSE MIN(NVL(TO_CHAR(IVHD.INV_DATE,'YYYY-MM-DD'),' '))
+	               END) AS INV_DATE	              	             
+	             ,MIN(NVL(TO_CHAR(IVAP.AP_REQ_DATE,'YYYY-MM-DD'),' ')) AS AP_REQ_DATE 
+	             ,MIN(NVL(TO_CHAR(IVAP.AP_DATE,'YYYY-MM-DD'),' ')) AS AP_DATE 
+	             ,MIN(NVL(GETCOMPANYNAME(IVGH.GATE_CD, IVGH.VENDOR_CD, 'KO'),' ')) AS VENDOR_NM
+	             ,MIN(NVL(GETDECPERSONALINFO( IVHD.PIC_USER_NM ),' '))  AS PIC_USER_NM
+	             ,MIN(NVL(GETUSERNAME(POHD.GATE_CD, POHD.CTRL_USER_ID, 'KO'),' ')) AS CTRL_USER_NM
+	        FROM STOCPOPY POPY     
+			JOIN STOCPOHD POHD
+				ON (POHD.GATE_CD  = POPY.GATE_CD
+				AND POHD.BUYER_CD = POPY.BUYER_CD
+				AND POHD.PO_NUM   = POPY.PO_NUM
+				AND POHD.DEL_FLAG = '0')        
+	        JOIN STOCPODT PODT
+	            ON (PODT.GATE_CD = POHD.GATE_CD
+	            AND PODT.BUYER_CD = POHD.BUYER_CD
+	            AND PODT.PO_NUM = POHD.PO_NUM
+	            AND PODT.DEL_FLAG = '0')
+			LEFT JOIN STOCPOPC POPC
+				ON (POPC.GATE_CD  = POPY.GATE_CD
+				AND POPC.BUYER_CD = POPY.BUYER_CD
+				AND POPC.DEPT_CD  = POPY.DEPT_CD				
+				AND POPC.PO_NUM   = POPY.PO_NUM
+				AND POPC.PAY_CNT  = POPY.PAY_CNT
+				AND POPC.DEL_FLAG = '0')	                                    
+	        LEFT JOIN STOCECCT ECCT
+	            ON (ECCT.CONT_NUM = PODT.CONT_NUM
+	            AND ECCT.CONT_CNT = PODT.CONT_CNT
+	            AND PODT.DEL_FLAG = '0')                                                
+	        LEFT JOIN STOCIVGH IVGH
+				ON (IVGH.GATE_CD  = POPY.GATE_CD
+				AND IVGH.BUYER_CD = POPY.BUYER_CD
+				AND IVGH.PO_NUM   = POPY.PO_NUM
+				AND IVGH.PAY_CNT  = POPY.PAY_CNT            
+				AND IVGH.DEL_FLAG = '0')                             
+			LEFT JOIN STOCIVHD IVHD
+				ON (IVHD.GATE_CD  = IVGH.GATE_CD
+				AND IVHD.BUYER_CD = IVGH.BUYER_CD
+				AND IVHD.INV_NUM  = IVGH.INV_NUM
+				AND IVHD.DEL_FLAG = '0')
+	        LEFT JOIN STOCGRDT GRDT
+	            ON (GRDT.GATE_CD  = IVHD.GATE_CD
+	            AND GRDT.BUYER_CD = IVHD.BUYER_CD
+	            AND GRDT.INV_NUM  = IVHD.INV_NUM
+	            AND GRDT.DEL_FLAG = '0'
+	            AND GRDT.GR_SQ    = '1')				
+			LEFT JOIN STOCIVPC IVPC
+				ON (IVPC.GATE_CD  = POPC.GATE_CD
+				AND IVPC.BUYER_CD = POPC.BUYER_CD
+				AND IVPC.INV_NUM  = IVHD.INV_NUM
+				AND IVPC.PO_NUM   = POPC.PO_NUM
+				AND IVPC.DEPT_CD  = POPC.DEPT_CD
+				AND IVPC.PAY_CNT  = POPC.PAY_CNT
+				AND IVPC.PY_BUYER_CD  = POPC.PY_BUYER_CD
+				AND IVPC.PY_DEPT_CD  = POPC.PY_DEPT_CD								
+				AND IVPC.DEL_FLAG = '0')
+			LEFT JOIN STOCIVAP IVAP
+				ON (IVAP.GATE_CD  = IVPC.GATE_CD
+				AND IVAP.BUYER_CD = IVPC.BUYER_CD
+				AND IVAP.INV_NUM  = IVGH.INV_NUM
+				AND IVAP.PO_NUM   = IVGH.PO_NUM
+				AND IVAP.DEPT_CD  = IVHD.DEPT_CD
+				AND IVAP.PAY_CNT  = IVPC.PAY_CNT
+				AND IVAP.PY_BUYER_CD = IVPC.PY_BUYER_CD
+				AND IVAP.PY_DEPT_CD  = IVPC.PY_DEPT_CD
+				AND IVAP.DEL_FLAG = '0')
+	 		WHERE POPY.BUYER_CD	= #{ses.companyCd} 
+			  AND POPY.DEL_FLAG	 = '0'
+	         <if test="PO_CREATE_DATE_FROM !='' and PO_CREATE_DATE_FROM != null and PO_CREATE_DATE_TO !='' and PO_CREATE_DATE_TO != null">
+	            AND POHD.PO_CREATE_DATE BETWEEN #{PO_CREATE_DATE_FROM} AND #{PO_CREATE_DATE_TO}
+	         </if>            		
+	         <if test="PO_NUM != '' and PO_NUM != null">
+	        	AND (UPPER(POPY.PO_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PO_NUM}) <include refid="common.sql.stringMerge"/> '%'
+	             OR UPPER(REPLACE(POHD.SUBJECT, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{PO_NUM}, ' ', '')) <include refid="common.sql.stringMerge"/> '%')
+	         </if>   
+	         <if test="CONT_NUM != '' and CONT_NUM != null">
+	        	AND (UPPER(ECCT.CONT_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_NUM}) <include refid="common.sql.stringMerge"/> '%'
+	             OR UPPER(REPLACE(ECCT.CONT_DESC, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{CONT_NUM}, ' ', '')) <include refid="common.sql.stringMerge"/> '%')
+	         </if>       	
+	         <if test="BUYER_CD != '' and BUYER_CD != null">
+	            AND POPC.PY_BUYER_CD = #{BUYER_CD}
+	         </if>
+	         <if test="BUYER_NM != '' and BUYER_NM != null">
+	            AND UPPER(<include refid="common.sql.dbo"/>getCustName(POPC.GATE_CD, POPC.PY_BUYER_CD)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+	         </if>  
+	         <if test="DEPT_CD != '' and DEPT_CD != null">
+	            AND POPC.PY_DEPT_CD = #{DEPT_CD}
+	         </if>
+	         <if test="DEPT_NM != '' and DEPT_NM != null">
+	            AND UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(POPC.GATE_CD, POPC.PY_BUYER_CD, POPC.PY_DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+	         </if>  
+	         <if test="SETTEL_VENDOR_CD != '' and SETTEL_VENDOR_CD != null">
+	            AND UPPER(IVGH.VENDOR_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SETTEL_VENDOR_CD}) <include refid="common.sql.stringMerge"/> '%'
+	         </if>
+	         <if test="SETTEL_VENDOR_NM != '' and SETTEL_VENDOR_NM != null">
+	            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(IVGH.GATE_CD, IVGH.VENDOR_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SETTEL_VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+	         </if>             	  
+	         <if test="PROGRESS_NM != '' and PROGRESS_NM != null and PROGRESS_NM == '10' " >
+                AND IVAP.SIGN_STATUS IS NULL
+                AND IVHD.PROGRESS_CD IS NULL
+             </if>
+	         <if test="PROGRESS_NM != '' and PROGRESS_NM != null and PROGRESS_NM == '20' " >
+                AND IVHD.PROGRESS_CD IN ('50','500')	                         
+             </if>                
+	         <if test="PROGRESS_NM != '' and PROGRESS_NM != null and PROGRESS_NM == '30' " >
+                AND IVHD.PROGRESS_CD = '100'	                         	                         
+             </if>                
+	         <if test="PROGRESS_NM != '' and PROGRESS_NM != null and PROGRESS_NM == '40' " >
+                AND ((IVHD.PROGRESS_CD = '700' AND IVAP.SIGN_STATUS IS NULL)  OR IVAP.SIGN_STATUS IN ('10','40'))
+             </if>                
+	         <if test="PROGRESS_NM != '' and PROGRESS_NM != null and PROGRESS_NM == '50' " >
+                AND IVAP.SIGN_STATUS IN ('20','50')	                         	                         
+             </if>                                          
+	         <if test="PROGRESS_NM != '' and PROGRESS_NM != null and PROGRESS_NM == '60' " >             
+                AND IVAP.SIGN_STATUS = '70'	                         	                         	            
+             </if>
+	         <if test="PIC_USER_ID != '' and PIC_USER_ID != null">
+	            AND UPPER(IVHD.PIC_USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PIC_USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+	         </if>
+	         <if test="PIC_USER_NM != '' and PIC_USER_NM != null">
+	            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(IVHD.GATE_CD, IVHD.PIC_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PIC_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+	         </if>
+	        <if test="CTRL_USER_ID != '' and CTRL_USER_ID != null">
+	            AND UPPER(POHD.CTRL_USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CTRL_USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+	        </if>
+	        <if test="CTRL_USER_NM != '' and CTRL_USER_NM != null">
+	            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(POHD.GATE_CD, POHD.CTRL_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CTRL_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+	        </if>	         	
+	       GROUP BY POPY.PO_NUM,POPY.PAY_CNT,IVAP.AP_NUM,POPC.PY_BUYER_CD,POPC.PY_DEPT_CD,POPC.GATE_CD
+	       ORDER BY POPY.PO_NUM DESC, POPY.PAY_CNT DESC ,IVAP.AP_NUM DESC,POPC.PY_BUYER_CD DESC,POPC.PY_DEPT_CD DESC  
+    
+    </select>    
+    
+    <select id="cstr0030_doSearch" parameterType="hashmap" resultType="hashMap">
+    
+		 SELECT
+		        FIN.BUYER_CD
+		        ,FIN.PR_BUYER_CD
+		        ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(FIN.GATE_CD, MAX(FIN.PR_BUYER_CD), MAX(FIN.PR_DEPT_CD), #{ses.langCd}) AS PR_BUYER_NM
+		        ,FIN.RFX_NUM
+		        ,FIN.RFX_CNT
+		        ,MAX(FIN.RFX_SUBJECT) AS RFX_SUBJECT
+		        ,<include refid="common.sql.toChar"/>(FIN.RFX_START_DATE, 'YYYY-MM-DD HH24:MI') AS RFX_START_DATE
+	            ,<include refid="common.sql.toChar"/>(FIN.RFX_END_DATE, 'YYYY-MM-DD HH24:MI') AS RFX_END_DATE
+		        ,FIN.VENDOR_CD        
+		        ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(FIN.GATE_CD, FIN.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+		        ,<include refid="common.sql.dbo"/>GETDECPERSONALINFO(FIN.PIC_USER_NM) AS PIC_USER_NM
+			    ,<include refid="common.sql.dbo"/>GETDECPERSONALINFO(FIN.PIC_TEL_NUM) AS PIC_TEL_NUM
+			    ,<include refid="common.sql.dbo"/>GETDECPERSONALINFO(FIN.PIC_EMAIL) AS PIC_EMAIL    
+		        ,MAX(FIN.PROGRESS_CD) AS PROGRESS_CD
+		        ,<include refid="common.sql.dbo"/>GETCODENAME(FIN.GATE_CD, 'M240', MAX(FIN.PROGRESS_CD), #{ses.langCd}) AS PROGRESS_CD_NM        
+		        ,LISTAGG(CASE WHEN FIN.RNUM_VOTE_CNT = 1 THEN TO_CHAR(<include refid="common.sql.nvl"/>(FIN.QTA_AMT,0), 'FM999,999,999,999,999') END,' ,') WITHIN GROUP (ORDER BY FIN.RFX_CNT) AS QTA_AMT         
+		        ,<include refid="common.sql.nvl"/>(SUM(CASE WHEN FIN.RNUM_PR_CNT = 1 THEN FIN.PR_AMT END),0) AS PR_AMT
+		        ,<include refid="common.sql.nvl"/>(SUM(CASE WHEN FIN.RNUM_RFX_CNT = 1 THEN FIN.FINAL_ESTM_PRC END),0) AS FINAL_ESTM_PRC        
+		        ,<include refid="common.sql.nvl"/>(SUM(CASE WHEN FIN.RNUM_CONT_CNT = 1 THEN FIN.CONT_AMT END),0) AS CONT_AMT
+		        ,LISTAGG(CASE WHEN FIN.RNUM_CONT_CNT = 1 THEN  FIN.CONT_NUM_CNT END,' | ') WITHIN GROUP (ORDER BY FIN.CONT_NUM_CNT) AS CONT_NUM_CNT 
+		        ,(CASE WHEN MAX(FIN.PROGRESS_CD) IN ('2550','1300') THEN ''
+				  	   WHEN MAX(FIN.PROGRESS_CD) = '2500' THEN (CASE WHEN FIN.SETTEL_CNT = 0 THEN 'N'
+				  												 WHEN FIN.SETTEL_CNT = FIN.SEND_CNT THEN 'Y'
+				  												 WHEN (FIN.SETTEL_CNT <![CDATA[>]]> 0 AND FIN.SETTEL_CNT <![CDATA[<]]> FIN.SEND_CNT) THEN 'S'
+				  												 ELSE ''
+				  											END)
+				  	   ELSE ''	/** 선정대기(A), 탈락(N), 선정(Y), 부분선정(S) */
+				  END) AS SETTLE_FLAG
+		  FROM (
+		      SELECT
+		             RQHD.GATE_CD
+		            ,RQHD.BUYER_CD
+		            ,RQHD.RFX_NUM
+		            ,RQHD.RFX_CNT
+		            ,RQHD.RFX_SUBJECT
+		            ,RQHD.RFX_START_DATE
+                    ,RQHD.RFX_END_DATE
+		            ,QTHD.QTA_AMT 
+		            ,RQVN.VENDOR_CD
+					,QTHD.PIC_USER_NM
+					,QTHD.PIC_TEL_NUM
+					,QTHD.PIC_EMAIL
+		            ,RQHD.PROGRESS_CD
+		            ,CASE WHEN ECMT.CONT_NUM IS NOT NULL THEN ECMT.CONT_NUM<include refid="common.sql.stringMerge"/>'-'<include refid="common.sql.stringMerge"/>ECMT.CONT_CNT<include refid="common.sql.stringMerge"/>'/('<include refid="common.sql.stringMerge"/>TO_CHAR(ECCT.CONT_DATE,'YYYY-MM-DD')<include refid="common.sql.stringMerge"/>')/('<include refid="common.sql.stringMerge"/>TO_CHAR(<include refid="common.sql.nvl"/>(ECCT.CONT_AMT,0), 'FM999,999,999,999,999')<include refid="common.sql.stringMerge"/>')' ELSE '' END AS CONT_NUM_CNT
+		            ,<include refid="common.sql.nvl"/>(ECMT.CONT_CNT,0) AS CONT_CNT
+		            ,ECCT.CONT_DATE
+		            ,ECCT.CONT_AMT
+		            ,PRDT.PR_AMT
+		            ,BDES.FINAL_ESTM_PRC
+		            ,PRDT.PR_BUYER_CD
+		            ,PRDT.PR_DEPT_CD
+		            ,CASE WHEN ECMT.CONT_NUM IS NOT NULL THEN ROW_NUMBER() OVER (PARTITION BY RQVN.VENDOR_CD,ECMT.CONT_NUM,ECMT.CONT_CNT ORDER BY RQVN.VENDOR_CD,ECMT.CONT_NUM,ECMT.CONT_CNT DESC) ELSE 0 END AS RNUM_CONT_CNT 
+		            ,ROW_NUMBER() OVER (PARTITION BY RQVN.VENDOR_CD,RQHD.RFX_NUM,RQHD.RFX_CNT ORDER BY RQVN.VENDOR_CD,RQHD.RFX_NUM,RQHD.RFX_CNT DESC) AS RNUM_VOTE_CNT 
+		            ,ROW_NUMBER() OVER (PARTITION BY RQVN.VENDOR_CD,RQHD.RFX_NUM,RQHD.RFX_CNT,PRDT.PR_NUM,PRDT.PR_SQ ORDER BY RQVN.VENDOR_CD,PRDT.PR_NUM,PRDT.PR_SQ DESC) AS RNUM_PR_CNT 
+		            ,ROW_NUMBER() OVER (PARTITION BY RQVN.VENDOR_CD,RQHD.RFX_NUM,RQHD.RFX_CNT ORDER BY RQVN.VENDOR_CD,RQHD.RFX_NUM,RQHD.RFX_CNT DESC) AS RNUM_RFX_CNT     
+		            ,(SELECT COUNT(*) FROM STOCQTDT QTDT
+	                   WHERE QTDT.GATE_CD  = QTHD.GATE_CD
+	                     AND QTDT.BUYER_CD = QTHD.BUYER_CD
+	                     AND QTDT.QTA_NUM  = QTHD.QTA_NUM
+	                     AND QTDT.DEL_FLAG = '0') AS SEND_CNT
+	           		,(SELECT COUNT(*) FROM STOCQTDT QTDT
+	              	   WHERE QTDT.GATE_CD  = QTHD.GATE_CD
+	                     AND QTDT.BUYER_CD = QTHD.BUYER_CD
+	                     AND QTDT.QTA_NUM  = QTHD.QTA_NUM
+	                     AND QTDT.SETTLE_QT  <![CDATA[>]]> 0
+	                     AND QTDT.DEL_FLAG = '0') AS SETTEL_CNT
+		       FROM STOCRQDT RQDT
+		       JOIN STOCRQHD RQHD
+		            ON (RQDT.GATE_CD  = RQHD.GATE_CD
+		            AND RQDT.BUYER_CD = RQHD.BUYER_CD
+		            AND RQDT.RFX_NUM  = RQHD.RFX_NUM
+		            AND RQDT.RFX_CNT  = RQHD.RFX_CNT
+		            AND RQHD.DEL_FLAG = '0'
+		            AND RQHD.PROGRESS_CD IN ('2500'))  
+		       JOIN STOCRQVN RQVN
+		            ON( RQDT.GATE_CD  = RQVN.GATE_CD
+		            AND RQDT.BUYER_CD = RQVN.BUYER_CD
+		            AND RQDT.RFX_NUM  = RQVN.RFX_NUM
+		            AND RQDT.RFX_CNT  = RQVN.RFX_CNT
+		            AND RQVN.DEL_FLAG = '0')
+		       JOIN STOCQTHD QTHD
+				    ON (RQVN.GATE_CD  = QTHD.GATE_CD
+				    AND RQVN.BUYER_CD = QTHD.BUYER_CD
+				    AND RQVN.RFX_NUM  = QTHD.RFX_NUM
+				    AND RQVN.RFX_CNT  = QTHD.RFX_CNT
+				    AND RQVN.VENDOR_CD = QTHD.VENDOR_CD
+				    AND QTHD.DEL_FLAG = '0')	
+		       JOIN STOCPRDT PRDT
+		            ON( RQDT.GATE_CD = PRDT.GATE_CD
+		            AND RQDT.PR_NUM  = PRDT.PR_NUM
+		            AND RQDT.PR_SQ   = PRDT.PR_SQ
+		            AND PRDT.DEL_FLAG = '0')   
+		       LEFT JOIN STOCECMT ECMT
+		            JOIN STOCECCT ECCT
+		                 ON( ECMT.GATE_CD  = ECCT.GATE_CD
+		                 AND ECMT.BUYER_CD = ECCT.BUYER_CD
+		                 AND ECMT.CONT_NUM = ECCT.CONT_NUM
+		                 AND ECMT.CONT_CNT = ECCT.CONT_CNT
+		                 AND ECMT.DEL_FLAG = '0'
+		                 AND ECCT.DEL_FLAG = '0')  
+		            ON( RQDT.GATE_CD  = ECMT.GATE_CD
+		            AND RQDT.BUYER_CD = ECMT.BUYER_CD
+		            AND RQDT.PR_NUM   = ECMT.PR_NUM
+		            AND RQDT.PR_SQ    = ECMT.PR_SQ)  
+		       LEFT JOIN STOCBDES BDES
+		            ON( RQDT.GATE_CD = BDES.GATE_CD
+		            AND RQDT.BUYER_CD = BDES.BUYER_CD
+		            AND RQDT.RFX_NUM = BDES.BID_NUM
+		            AND BDES.BID_CNT = '1'
+		            AND BDES.DEL_FLAG = '0')        
+		      WHERE 
+		            RQDT.BUYER_CD    = #{ses.companyCd}
+		            AND RQDT.DEL_FLAG = '0'
+		         
+		         <!-- 조회조건 : 마감일자 -->
+		         <if test="SEL_DATE != '' and SEL_DATE != null and SEL_DATE == 'END'.toString()">
+		             <if test="FROM_DATE != '' and FROM_DATE != null">
+		                 AND RQHD.RFX_END_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{FROM_DATE})
+		             </if>
+		             <if test="TO_DATE != '' and TO_DATE != null">
+		                 AND RQHD.RFX_END_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{TO_DATE})
+		             </if>
+		         </if>
+		         <!-- 조회조건 : 시작일자 -->
+		         <if test="SEL_DATE != '' and SEL_DATE != null and SEL_DATE == 'STR'.toString()">
+		             <if test="FROM_DATE != '' and FROM_DATE != null">
+		                AND RQHD.RFX_START_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{FROM_DATE})
+		             </if>
+		             <if test="TO_DATE != '' and TO_DATE != null">
+		                AND RQHD.RFX_START_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{TO_DATE})
+		             </if>
+		         </if>
+		         
+		         <if test="PR_BUYER_CD != '' and PR_BUYER_CD != null">
+		            AND UPPER(PRDT.PR_BUYER_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_CD}) <include refid="common.sql.stringMerge"/> '%'
+		         </if>
+		         <if test="PR_BUYER_NM != '' and PR_BUYER_NM != null">
+		            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(PRDT.GATE_CD, PRDT.PR_BUYER_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		         </if>
+		         
+		         <if test="SETTEL_VENDOR_CD != '' and SETTEL_VENDOR_CD != null">
+		            AND RQVN.VENDOR_CD = #{SETTEL_VENDOR_CD}
+		         </if>
+		         <if test="SETTEL_VENDOR_NM != '' and SETTEL_VENDOR_NM != null">
+		            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(RQVN.GATE_CD, RQVN.VENDOR_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SETTEL_VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+		         </if>  
+		         
+		         <if test="RFX_NUM != '' and RFX_NUM != null">
+	             	AND (UPPER(RQHD.RFX_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{RFX_NUM}) <include refid="common.sql.stringMerge"/> '%'
+	             	  OR UPPER(REPLACE(RQHD.RFX_SUBJECT, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{RFX_NUM}, ' ', '')) <include refid="common.sql.stringMerge"/> '%')
+	        	 </if>
+		    ) FIN
+		    GROUP BY FIN.GATE_CD,FIN.BUYER_CD,FIN.PR_BUYER_CD,FIN.RFX_NUM,FIN.RFX_CNT,FIN.RFX_START_DATE,FIN.RFX_END_DATE,FIN.VENDOR_CD,FIN.PIC_USER_NM, FIN.PIC_TEL_NUM, FIN.PIC_EMAIL, FIN.SEND_CNT, FIN.SETTEL_CNT
+		    ORDER BY FIN.RFX_NUM DESC,FIN.RFX_CNT DESC, (CASE WHEN SETTLE_FLAG = 'Y' THEN 1 ELSE 0 END) DESC
+		    		    
+    </select>
+</mapper>

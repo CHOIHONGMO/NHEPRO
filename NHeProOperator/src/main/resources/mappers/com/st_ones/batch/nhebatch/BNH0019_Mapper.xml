@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.batch.nhebatch.BNH0019_Mapper">
+	 	
+ 	<!--   2021.11.03 DEL_FLAG=1인 삭제계정도 삭제 처리함-->
+	<select id="getTargetData1" resultType="hashmap" parameterType="hashMap">
+		SELECT USER_ID
+			 , <include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+		  FROM STOCTVUR
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND TO_CHAR(LAST_LOGIN_DATE, 'YYYYMMDD') <![CDATA[<]]> TO_CHAR(ADD_MONTHS(SYSDATE, #{minusMonth}), 'YYYYMMDD')		  
+	</select>
+	
+	<update id="updateSTOCTVUR"  parameterType="hashMap">
+		UPDATE STOCTVUR
+		SET SLEEP_ACC = '1'
+		  , MOD_DATE = SYSDATE -- MOD_DATE
+		  , MOD_USER_ID = 'ARO_BATCH' -- MOD_USER_ID
+		WHERE GATE_CD = #{ses.gateCd}
+		  AND USER_ID = #{USER_ID}
+	</update>
+	
+	<!-- 첨부파일테이블-->
+	<delete id="deleteSTOCATCH">
+		DELETE FROM STOCATCH
+		WHERE GATE_CD = #{ses.gateCd}
+		AND BIZ_TYPE = 'TC'
+		AND UUID IN(
+			SELECT TCCT.ATT_FILE_NUM
+			FROM STOCTCCT TCCT
+			WHERE TCCT.USER_ID = #{USER_ID})
+ 	</delete>
+ 	
+ 	<delete id="deleteSTOCATCH_VENDOR">
+		DELETE FROM STOCATCH
+		WHERE GATE_CD = #{ses.gateCd}
+		AND BIZ_TYPE = 'TC'
+		AND UUID IN(
+			SELECT TCCT.VENDOR_ATT_FILE_NUM
+			FROM STOCTCCT TCCT
+			WHERE TCCT.USER_ID = #{USER_ID})
+ 	</delete>
+ 	
+ 	<!--  계약서상세테이블-->
+ 	<delete id="deleteSTOCTCRL">
+	 	DELETE FROM STOCTCRL
+		WHERE GATE_CD = #{ses.gateCd}
+		AND CONT_NUM IN(
+			SELECT TCCT.CONT_NUM
+			FROM STOCTCCT TCCT
+			WHERE TCCT.USER_ID = #{USER_ID})
+ 	</delete>
+ 	
+ 	<!--계약서테이블-->
+ 	<delete id="deleteSTOCTCCT">
+		DELETE FROM STOCTCCT
+		WHERE GATE_CD = #{ses.gateCd}
+		AND USER_ID = #{USER_ID}
+ 	</delete>
+ 	
+ 	<!--사용자 비밀번호 변경이력테이블-->
+ 	 <delete id="deleteSTOCTUPW">
+		DELETE FROM STOCTUPW
+		WHERE GATE_CD = #{ses.gateCd}
+		AND USER_ID = #{USER_ID}
+ 	</delete>
+ 	
+ 	<!--사용자테이블-->
+	<delete id="deleteSTOCTVUR">
+		DELETE FROM STOCTVUR
+		WHERE GATE_CD = #{ses.gateCd}
+		AND USER_ID = #{USER_ID}
+ 	</delete> 
+
+
+	<select id="getUUIDInfo" resultType="hashmap" parameterType="hashMap">
+		SELECT UUID
+		      ,UUID_SQ 
+	    FROM STOCATCH 
+		WHERE GATE_CD = #{ses.gateCd} 
+		AND BIZ_TYPE = 'TC'
+		AND UUID IN (
+			SELECT ATT_FILE_NUM 
+			FROM STOCTCCT 
+			WHERE GATE_CD = #{ses.gateCd} 
+			AND PROGRESS_CD = '4300'
+			AND USER_ID = #{USER_ID})	 
+	</select>
+	
+	<select id="getUUIDInfo2" resultType="hashmap" parameterType="hashMap">
+		SELECT UUID
+		      ,UUID_SQ 
+	    FROM STOCATCH 
+		WHERE GATE_CD = #{ses.gateCd} 
+		AND BIZ_TYPE = 'TC'
+		AND UUID IN (
+			SELECT VENDOR_ATT_FILE_NUM 
+			FROM STOCTCCT 
+			WHERE GATE_CD = #{ses.gateCd} 
+			AND PROGRESS_CD = '4300'
+			AND USER_ID = #{USER_ID})	 
+	</select>
+</mapper>

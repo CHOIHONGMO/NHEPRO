@@ -1,0 +1,1049 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.SRQR.SRQR0010_Mapper">
+
+	<!-- SRQR0010 : 견적현황(협력업체) 조회 -->
+	<select id="srqr0010_doSearch" parameterType="hashmap" resultType="hashMap">
+
+		SELECT A.*
+		  FROM (
+			SELECT
+				  RQHD.RFX_NUM
+			    , RQHD.RFX_CNT
+			    , RQHD.BUYER_CD
+	            , RQHD.DEPT_CD
+	            ,<include refid="common.sql.dbo"/>GETBUYERNAMES(RQHD.GATE_CD, RQHD.BUYER_CD, 'RFX', RQHD.RFX_NUM, RQHD.RFX_CNT, NULL, #{ses.langCd}) AS BUYER_DEPT_NM
+			    ,(CASE WHEN <include refid="common.sql.nvl"/>(RQVN.RFX_PROGRESS_CD, '100') = '100'
+			    	   		THEN (CASE WHEN SYSDATE > RQHD.RFX_END_DATE THEN '400' WHEN SYSDATE > RQHD.RFX_START_DATE THEN '100' ELSE '999' END)	-- 미접수(100)일 경우 : 미접수(100)
+			    	   WHEN <include refid="common.sql.nvl"/>(RQVN.RFX_PROGRESS_CD, '100') = '200'
+			    	   		THEN (CASE WHEN SYSDATE > RQHD.RFX_END_DATE THEN '400' ELSE '200' END)	-- 미제출(200)일 경우 : 미제출(200)
+			    	   WHEN <include refid="common.sql.dbo"/>getVendorRfxProgressCode(RQVN.RFX_PROGRESS_CD, RQHD.RFX_END_DATE) = '250'
+			    			THEN (CASE WHEN SYSDATE > RQHD.RFX_END_DATE THEN '400' ELSE '200' END)	-- 작성중(250)일 경우 : 미제출(200)
+			           ELSE <include refid="common.sql.dbo"/>getVendorRfxProgressCode(RQVN.RFX_PROGRESS_CD, RQHD.RFX_END_DATE) END) AS RFX_PROGRESS_CD
+			    ,<include refid="common.sql.dbo"/>GETCODENAME(RQVN.GATE_CD, 'M072', (CASE WHEN <include refid="common.sql.nvl"/>(RQVN.RFX_PROGRESS_CD, '100') = '100'
+			                                                                              	   THEN (CASE WHEN SYSDATE > RQHD.RFX_END_DATE THEN '400' ELSE '100' END)
+			                                                                              WHEN <include refid="common.sql.nvl"/>(RQVN.RFX_PROGRESS_CD, '100') = '200'
+			    																			   THEN (CASE WHEN SYSDATE > RQHD.RFX_END_DATE THEN '400' ELSE '200' END)
+			                                                                              WHEN <include refid="common.sql.dbo"/>getVendorRfxProgressCode(RQVN.RFX_PROGRESS_CD, RQHD.RFX_END_DATE) = '250'
+			                                                                              	   THEN (CASE WHEN SYSDATE > RQHD.RFX_END_DATE THEN '400' ELSE '200' END)
+			                                                                              ELSE <include refid="common.sql.dbo"/>getVendorRfxProgressCode(RQVN.RFX_PROGRESS_CD, RQHD.RFX_END_DATE) END), #{ses.langCd}) AS RFX_PROGRESS_LOC
+			    , RQHD.RFX_SUBJECT
+			    , RQHD.CTRL_USER_ID
+			    ,<include refid="common.sql.dbo"/>GETUSERNAME(RQHD.GATE_CD, RQHD.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+			    , RQHD.RFX_TYPE
+			    ,<include refid="common.sql.dbo"/>GETCODENAME(RQHD.GATE_CD, 'M070', RQHD.RFX_TYPE, #{ses.langCd}) AS RFX_TYPE_LOC
+			    , RQHD.SETTLE_TYPE
+			    ,<include refid="common.sql.dbo"/>GETCODENAME(RQHD.GATE_CD, 'M065', RQHD.SETTLE_TYPE, #{ses.langCd}) AS SETTLE_TYPE_LOC
+			    ,<include refid="common.sql.toChar"/>(QTHD.SEND_DATE, 'YYYY-MM-DD HH24:MI') AS SEND_DATE
+			    ,<include refid="common.sql.toChar"/>(QTHD.VALID_TO_DATE, 'YYYY-MM-DD') AS VALID_TO_DATE
+			    ,<include refid="common.sql.toChar"/>(RQHD.RFX_START_DATE, 'YYYY-MM-DD HH24:MI') AS RFX_START_DATE
+			    ,<include refid="common.sql.toChar"/>(RQHD.RFX_END_DATE, 'YYYY-MM-DD HH24:MI') AS RFX_END_DATE
+			    , QTHD.QTA_NUM
+			    ,<include refid="common.sql.toChar"/>(RQVN.RFX_GIVEUP_DATE, 'YYYY-MM-DD') AS RFX_GIVEUP_DATE
+			    ,(CASE WHEN RQVN.RFX_GIVEUP_RMK IS NULL THEN '' ELSE '1' END) AS RFX_GIVEUP_IMG
+			    , RQVN.RFX_GIVEUP_RMK
+			    ,<include refid="common.sql.toChar"/>(RQVN.RFX_RECEIPT_DATE, 'YYYY-MM-DD HH24:MI') AS RFX_RECEIPT_DATE
+			    ,(CASE WHEN SYSDATE BETWEEN RQHD.RFX_START_DATE AND RQHD.RFX_END_DATE THEN 'Y' ELSE 'N' END) AS WRITE_FLAG	-- 견적서 작성 가능여부
+			  FROM STOCRQHD RQHD JOIN STOCRQVN RQVN
+										ON( RQHD.GATE_CD  = RQVN.GATE_CD
+										AND RQHD.BUYER_CD = RQVN.BUYER_CD
+										AND RQHD.RFX_NUM  = RQVN.RFX_NUM
+										AND RQHD.RFX_CNT  = RQVN.RFX_CNT
+										AND RQVN.DEL_FLAG = '0')
+								 LEFT OUTER JOIN STOCQTHD QTHD
+										ON (RQHD.GATE_CD   = QTHD.GATE_CD
+										AND RQHD.BUYER_CD  = QTHD.BUYER_CD
+										AND RQHD.RFX_NUM   = QTHD.RFX_NUM
+										AND RQHD.RFX_CNT   = QTHD.RFX_CNT
+										AND QTHD.VENDOR_CD = RQVN.VENDOR_CD
+										AND QTHD.DEL_FLAG  = '0')
+			 WHERE RQHD.GATE_CD   = #{ses.gateCd}
+			   AND RQVN.VENDOR_CD = #{ses.companyCd}
+			   AND RQHD.RFX_TYPE IN ('RFQ','RYQ','RPC','RCA')	/** 견적, 견적(연단가), 수의시담, 부속합의 */
+			   AND RQHD.SIGN_STATUS  = 'E'
+			   AND (RQHD.PROGRESS_CD = '1300' OR RQHD.PROGRESS_CD >= '2350')	/** 유찰(1300), 가격입찰중(2350) */
+			   AND RQHD.DEL_FLAG  = '0'
+
+			 <if test="START_FROM_DATE != '' and START_FROM_DATE != null and START_TO_DATE != '' and START_TO_DATE != null">
+			   AND RQHD.RFX_START_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{START_FROM_DATE})
+			   AND RQHD.RFX_START_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{START_TO_DATE})
+			 </if>
+			 <if test="RFX_NUM != '' and RFX_NUM != null">
+				 AND UPPER(RQHD.RFX_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{RFX_NUM}) <include refid="common.sql.stringMerge"/> '%'
+			 </if>
+			 <if test="RFX_SUBJECT != '' and RFX_SUBJECT != null">
+				 AND UPPER(RQHD.RFX_SUBJECT) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{RFX_SUBJECT}) <include refid="common.sql.stringMerge"/> '%'
+			 </if>
+			 <if test="RFX_TYPE != '' and RFX_TYPE != null">
+			   AND RQHD.RFX_TYPE = #{RFX_TYPE}
+			 </if>
+			 <if test="SETTLE_TYPE != '' and SETTLE_TYPE != null">
+			   AND RQHD.SETTLE_TYPE = #{SETTLE_TYPE}
+			 </if>
+		 ) A
+		 WHERE 1 = 1
+		<if test="RFX_PROGRESS_CD != '' and RFX_PROGRESS_CD != null">
+		   AND A.RFX_PROGRESS_CD = #{RFX_PROGRESS_CD}
+		</if>
+		<if test="BUYER_NM != '' and BUYER_NM != null">
+           AND UPPER(A.BUYER_DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+		 ORDER BY A.RFX_PROGRESS_CD, A.RFX_END_DATE,
+		 		  A.RFX_NUM DESC, A.RFX_CNT DESC
+	</select>
+
+	<!-- SRQR0010 : 견적관리 > 견적현황 > 견적접수 및 포기 > 견적 진행상태 체크 -->
+	<select id="checkVendorRfxProgressCode" parameterType="hashMap" resultType="java.lang.String">
+
+		SELECT
+		     (CASE WHEN <include refid="common.sql.nvl"/>(RQVN.RFX_PROGRESS_CD, '100') = '100'
+		    	   		THEN (CASE WHEN SYSDATE > RQHD.RFX_END_DATE THEN '400' WHEN SYSDATE > RQHD.RFX_START_DATE THEN '100' ELSE '999' END)	-- 미접수(100)일 경우 : 미접수(100)
+		    	   WHEN <include refid="common.sql.nvl"/>(RQVN.RFX_PROGRESS_CD, '100') = '200'
+		    	   		THEN (CASE WHEN SYSDATE > RQHD.RFX_END_DATE THEN '400' ELSE '200' END)	-- 미제출(200)일 경우 : 미제출(200)
+		    	   WHEN <include refid="common.sql.dbo"/>getVendorRfxProgressCode(RQVN.RFX_PROGRESS_CD, RQHD.RFX_END_DATE) = '250'
+		    			THEN (CASE WHEN SYSDATE > RQHD.RFX_END_DATE THEN '400' ELSE '200' END)	-- 작성중(250)일 경우 : 미제출(200)
+		           ELSE <include refid="common.sql.dbo"/>getVendorRfxProgressCode(RQVN.RFX_PROGRESS_CD, RQHD.RFX_END_DATE) END) AS VENDOR_PROGRESS_CD
+		FROM STOCRQHD RQHD JOIN STOCRQVN RQVN
+							   ON (RQVN.GATE_CD  = RQHD.GATE_CD
+							   AND RQVN.BUYER_CD = RQHD.BUYER_CD
+							   AND RQVN.RFX_NUM  = RQHD.RFX_NUM
+							   AND RQVN.RFX_CNT  = RQHD.RFX_CNT
+							   AND RQVN.DEL_FLAG = '0')
+		WHERE RQHD.GATE_CD   = #{ses.gateCd}
+		AND   RQHD.BUYER_CD  = #{BUYER_CD}
+		AND   RQHD.RFX_NUM   = #{RFX_NUM}
+		AND   RQHD.RFX_CNT   = #{RFX_CNT}
+		AND   RQVN.VENDOR_CD = (CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+		AND   RQHD.DEL_FLAG  = '0'
+	</select>
+
+	<!-- SRQI0010 : 견적관리 > 견적현황 > 협력업체 견적접수(200 : 미제출) -->
+	<update id="doAcceptRfx" parameterType="hashMap">
+
+		UPDATE STOCRQVN SET
+			  MOD_DATE = SYSDATE
+			, MOD_USER_ID =  #{ses.userId}
+			, RFX_PROGRESS_CD  = '200'		-- 미제출
+			, RFX_RECEIPT_DATE = SYSDATE	-- 접수일시
+		WHERE GATE_CD   = #{ses.gateCd}
+		  AND BUYER_CD  = #{BUYER_CD}
+		  AND RFX_NUM   = #{RFX_NUM}
+		  AND RFX_CNT   = #{RFX_CNT}
+		  AND VENDOR_CD = (CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+		  AND DEL_FLAG  = '0'
+	</update>
+
+	<!-- SRQI0010 : 견적관리 > 견적현황 > 견적포기 > 협력업체 견적포기(150) -->
+	<update id="doWaiveRfqReceiptStatus" parameterType="hashMap">
+
+		UPDATE STOCRQVN SET
+			  MOD_DATE = SYSDATE
+			, MOD_USER_ID =  #{ses.userId}
+			, RFX_PROGRESS_CD = '150'
+			, RFX_GIVEUP_DATE = SYSDATE
+			, RFX_GIVEUP_RMK  = #{RFX_GIVEUP_RMK}
+		WHERE GATE_CD   = #{ses.gateCd}
+		AND   BUYER_CD  = #{BUYER_CD}
+		AND   RFX_NUM   = #{RFX_NUM}
+		AND   RFX_CNT   = #{RFX_CNT}
+		AND   VENDOR_CD = (CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+		AND   DEL_FLAG  = '0'
+	</update>
+
+	<!-- SRQR0010 : 견적관리 > 견적현황 > 견적포기 > 단일업체 선정시 모든 협력업체가 견적포기시 강제 개찰 -->
+	<select id="getCompulsionFlag" parameterType="hashMap" resultType="java.lang.String">
+
+		SELECT
+			(CASE WHEN A.ALL_VENDOR_CNT = A.GIVE_UP_CNT THEN 'Y' ELSE 'N' END) AS COMPULSION_FLAG
+		FROM (
+		    SELECT
+		          COUNT(VN1.VENDOR_CD) AS ALL_VENDOR_CNT
+		        , MAX(<include refid="common.sql.nvl"/>(VN2.GIVE_UP_CNT, 0)) AS GIVE_UP_CNT
+		      FROM STOCRQVN VN1
+		      LEFT JOIN (SELECT SUB.GATE_CD, SUB.BUYER_CD, SUB.RFX_NUM, SUB.RFX_CNT
+		                      , COUNT(SUB.VENDOR_CD) AS GIVE_UP_CNT
+		                   FROM STOCRQVN SUB
+		                  WHERE SUB.GATE_CD  = #{ses.gateCd}
+		                    AND SUB.BUYER_CD = #{BUYER_CD}
+		                    AND SUB.RFX_NUM  = #{RFX_NUM}
+		                    AND SUB.RFX_CNT  = #{RFX_CNT}
+		                    AND SUB.RFX_PROGRESS_CD = '150'	-- 견적포기
+		                    AND SUB.DEL_FLAG = '0'
+		                  GROUP BY SUB.GATE_CD, SUB.BUYER_CD, SUB.RFX_NUM, SUB.RFX_CNT) VN2
+			       ON (VN1.GATE_CD  = VN2.GATE_CD
+			       AND VN1.BUYER_CD = VN2.BUYER_CD
+			       AND VN1.RFX_NUM  = VN2.RFX_NUM
+			       AND VN1.RFX_CNT  = VN2.RFX_CNT)
+		    WHERE VN1.GATE_CD  = #{ses.gateCd}
+		      AND VN1.BUYER_CD = #{BUYER_CD}
+		      AND VN1.RFX_NUM  = #{RFX_NUM}
+		      AND VN1.RFX_CNT  = #{RFX_CNT}
+		      AND VN1.DEL_FLAG = '0'
+		    GROUP BY VN1.GATE_CD,
+		     		 VN1.RFX_NUM,
+		     		 VN1.RFX_CNT
+		) A
+		WHERE 1 = 1
+	</select>
+
+	<!-- SRQR0010 : 견적관리 > 견적현황 > 견적포기 > 단일업체 선정시 모든 협력업체가 견적포기시 강제 개찰 -->
+	<update id="doCompulsionCloseRFX" parameterType="hashMap">
+
+		UPDATE STOCRQHD SET
+			  MOD_DATE      = SYSDATE
+			, MOD_USER_ID   =  #{ses.userId}
+			, PROGRESS_CD   = '2400'		/** 업체선정대기 */
+			, RFX_OPEN_DATE = SYSDATE		/** 개찰일시 */
+			, RFX_END_DATE  = SYSDATE		/** 견적마감일시 */
+		WHERE GATE_CD  = #{ses.gateCd}
+		  AND BUYER_CD = #{BUYER_CD}
+		  AND RFX_NUM  = #{RFX_NUM}
+		  AND RFX_CNT  = #{RFX_CNT}
+	</update>
+
+	<!-- SRQR0012 : 협력업체 견적서 상세보기(HEADER) -->
+	<select id="srqr0012_doSearchRQHD" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  RQHD.RFX_NUM
+            , RQHD.RFX_CNT
+            , RQHD.BUYER_CD
+            , RQHD.DEPT_CD
+            , <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(RQHD.GATE_CD, RQHD.BUYER_CD, RQHD.DEPT_CD, #{ses.langCd}) AS BUYER_DEPT_NM
+            , RQHD.PROGRESS_CD
+            , RQHD.RFX_TYPE
+            , <include refid="common.sql.dbo"/>GETCODENAME(RQHD.GATE_CD, 'M070', RQHD.RFX_TYPE, #{ses.langCd}) AS RFX_TYPE_NM
+            , RQHD.RFX_LIMIT_CNT AS RFX_LIMIT_NUM
+            , RQHD.RFX_SUBJECT
+            , <include refid="common.sql.toChar"/>(RQHD.RFX_START_DATE, 'YYYY-MM-DD') AS RFX_START_DATE
+            , <include refid="common.sql.toChar"/>(RQHD.RFX_START_DATE, 'HH24') AS RFX_START_HOUR
+            , <include refid="common.sql.toChar"/>(RQHD.RFX_START_DATE, 'MI') AS RFX_START_MIN
+            , <include refid="common.sql.toChar"/>(RQHD.RFX_END_DATE, 'YYYY-MM-DD') AS RFX_END_DATE
+            , <include refid="common.sql.toChar"/>(RQHD.RFX_END_DATE, 'HH24') AS RFX_END_HOUR
+            , <include refid="common.sql.toChar"/>(RQHD.RFX_END_DATE, 'MI') AS RFX_END_MIN
+            , RQHD.CTRL_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(RQHD.GATE_CD, RQHD.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+            , <include refid="common.sql.dbo"/>GETUSERINFO(RQHD.GATE_CD, RQHD.CTRL_USER_ID, 'USER_TYPE') AS CTRL_USER_TYPE
+            , RQHD.FAIL_BID_DATE
+            , RQHD.FAIL_BID_RMK
+            , RQHD.SETTLE_TYPE
+            , RQHD.AMT_TYPE
+            , RQHD.CUR
+            , RQHD.VAT_TYPE
+            , RQHD.EST_PRICE_TYPE
+            , RQHD.RMK_TEXT_NUM
+            , RQHD.ATT_FILE_NUM
+		FROM STOCRQHD RQHD
+		JOIN STOCRQVN RQVN
+				ON( RQVN.GATE_CD   = RQHD.GATE_CD
+				AND RQVN.BUYER_CD  = RQHD.BUYER_CD
+			   	AND RQVN.RFX_NUM   = RQHD.RFX_NUM
+			   	AND RQVN.RFX_CNT   = RQHD.RFX_CNT
+			   	AND RQVN.DEL_FLAG  = '0')
+        WHERE RQHD.GATE_CD  = #{ses.gateCd}
+          AND RQHD.BUYER_CD = #{BUYER_CD}
+          AND RQHD.RFX_NUM  = #{RFX_NUM}
+          AND RQHD.RFX_CNT  = #{RFX_CNT}
+          AND RQVN.VENDOR_CD = (CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+          AND RQHD.DEL_FLAG = '0'
+    </select>
+
+    <!-- SRQR0012 : 협력업체 견적서 상세보기(DETAIL) -->
+	<select id="srqr0012_doSearchRQDT" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  RQDT.RFX_NUM
+            , RQDT.RFX_CNT
+            , RQDT.RFX_SQ
+            , RQDT.BUYER_CD
+            , RQDT.PR_BUYER_CD
+            ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(RQDT.GATE_CD, RQDT.PR_BUYER_CD, #{ses.langCd}) AS PR_BUYER_NM
+            , RQDT.PR_DEPT_CD
+            ,<include refid="common.sql.dbo"/>GETDEPTNAME(RQDT.GATE_CD, RQDT.PR_BUYER_CD, RQDT.PR_DEPT_CD, #{ses.langCd}) AS PR_DEPT_NM
+            ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(RQDT.GATE_CD, RQDT.PR_BUYER_CD, RQDT.PR_DEPT_CD, #{ses.langCd}) AS PR_BUYER_DEPT_NM
+            , RQDT.PURCHASE_TYPE
+            , RQDT.ITEM_CD
+            , RQDT.ITEM_DESC
+            , RQDT.ITEM_SPEC
+            , RQDT.MAKER_CD
+            , <include refid="common.sql.dbo"/>GETMKBRNAME(RQDT.GATE_CD, RQDT.BUYER_CD, 'MK', RQDT.MAKER_CD) AS MAKER_NM
+            , RQDT.MAKER_PART_NO
+            , RQDT.ORIGIN_CD
+            , RQDT.RFX_QT AS PR_QT
+            , RQDT.UNIT_CD
+            , RQDT.UNIT_PRC
+            , RQDT.ITEM_AMT AS PR_AMT
+            ,<include refid="common.sql.toChar"/>(RQDT.DUE_DATE, 'YYYYMMDD') AS DUE_DATE
+            , RQDT.ATT_FILE_NUM
+            ,<include refid="common.sql.dbo"/>GETFILECOUNT(RQDT.GATE_CD, RQDT.ATT_FILE_NUM) AS ATT_FILE_NUM_CNT
+            ,<include refid="common.sql.toChar"/>(RQDT.VALID_FROM_DATE, 'YYYY-MM-DD') AS VALID_FROM_DATE
+            ,<include refid="common.sql.toChar"/>(RQDT.VALID_TO_DATE, 'YYYY-MM-DD') AS VALID_TO_DATE
+            , RQDT.ITEM_RMK
+            , RQDT.PR_NUM
+            , RQDT.PR_SQ
+            , RQDT.PB_BUYER_CD
+		FROM STOCRQDT RQDT
+		JOIN STOCRQVN RQVN
+				ON (RQVN.GATE_CD   = RQDT.GATE_CD
+				AND RQVN.BUYER_CD  = RQDT.BUYER_CD
+			   	AND RQVN.RFX_NUM   = RQDT.RFX_NUM
+			   	AND RQVN.RFX_CNT   = RQDT.RFX_CNT
+			   	AND RQVN.DEL_FLAG  = '0')
+   	<!-- 업체선정방식 : 품목별 > RQSE 와 JOIN -->
+   	<if test="SETTLE_TYPE != '' and SETTLE_TYPE != null and SETTLE_TYPE == 'ITEM'">
+		JOIN STOCRQSE RQSE
+				ON( RQSE.GATE_CD   = RQVN.GATE_CD
+				AND RQSE.BUYER_CD  = RQVN.BUYER_CD
+				AND RQSE.RFX_NUM   = RQVN.RFX_NUM
+				AND RQSE.RFX_CNT   = RQVN.RFX_CNT
+				AND RQSE.RFX_SQ    = RQDT.RFX_SQ
+				AND RQSE.VENDOR_CD = RQVN.VENDOR_CD
+				AND RQSE.DEL_FLAG  = '0')
+	</if>
+        WHERE RQDT.GATE_CD   = #{ses.gateCd}
+          AND RQDT.BUYER_CD  = #{BUYER_CD}
+          AND RQDT.RFX_NUM   = #{RFX_NUM}
+          AND RQDT.RFX_CNT   = #{RFX_CNT}
+	   	  AND RQVN.VENDOR_CD = (CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+    </select>
+
+	<!-- SRQI0011 : 견적서작성 > 협력업체정보 가져오기 -->
+	<select id="getVendorQtaCreation" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 RQVN.VENDOR_CD AS "value"
+			,<include refid="common.sql.dbo"/>GETVENDORNAME(RQVN.GATE_CD, RQVN.VENDOR_CD, #{ses.langCd}) AS "text"
+		FROM STOCRQVN RQVN LEFT JOIN STOCRQHD RQHD
+								   ON( RQVN.GATE_CD  = RQHD.GATE_CD
+								   AND RQVN.BUYER_CD = RQHD.BUYER_CD
+								   AND RQVN.RFX_NUM  = RQHD.RFX_NUM
+								   AND RQVN.RFX_CNT  = RQHD.RFX_CNT)
+		WHERE RQVN.GATE_CD  = #{ses.gateCd}
+		  AND RQVN.BUYER_CD = #{BUYER_CD}
+	 <choose>
+	   <when test="QTA_NUM != '' and QTA_NUM != null">
+	      AND EXISTS (SELECT '1' FROM STOCQTHD
+	       			  WHERE GATE_CD  = RQVN.GATE_CD
+	       			  AND 	BUYER_CD = RQVN.BUYER_CD
+	       			  AND 	RFX_NUM  = RQVN.RFX_NUM
+	       			  AND 	RFX_CNT  = RQVN.RFX_CNT
+	       			  AND 	QTA_NUM  = #{QTA_NUM}
+	       			  AND 	DEL_FLAG = '0')
+	   </when>
+	   <otherwise>
+	      AND RQVN.RFX_NUM  = #{RFX_NUM}
+	      AND RQVN.RFX_CNT  = #{RFX_CNT}
+	   </otherwise>
+	 </choose>
+		  AND RQVN.DEL_FLAG = '0'
+    </select>
+
+	<!-- SRQI0011 : 견적서작성 > 견적서 헤더정보 -->
+	<select id="doSearchQtaCreation_F" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			  RQHD.RFX_NUM
+			, RQHD.RFX_CNT
+		    , RQHD.BUYER_CD
+			, RQHD.RFX_TYPE
+		    , GETCODENAME(RQHD.GATE_CD, 'M070', RQHD.RFX_TYPE, #{ses.langCd}) AS RFX_TYPE_LOC
+		    , RQHD.RFX_SUBJECT
+		    ,<include refid="common.sql.toChar"/>(RQHD.RFX_START_DATE, 'YYYY-MM-DD HH24:MI')
+		     <include refid="common.sql.stringMerge"/> ' ~ ' <include refid="common.sql.stringMerge"/>
+		     <include refid="common.sql.toChar"/>(RQHD.RFX_END_DATE, 'YYYY-MM-DD HH24:MI') AS RFQ_SC_DATE
+			, QTHD.QTA_NUM
+		    ,<include refid="common.sql.strDecStart"/>QTHD.PIC_USER_NM<include refid="common.sql.strDecEnd"/> AS PIC_USER_NM
+		    ,<include refid="common.sql.strDecStart"/>QTHD.PIC_TEL_NUM<include refid="common.sql.strDecEnd"/> AS PIC_TEL_NUM
+		    ,<include refid="common.sql.strDecStart"/>QTHD.PIC_EMAIL<include refid="common.sql.strDecEnd"/> AS PIC_EMAIL
+		    , RQHD.CUR
+		    , RQHD.VAT_TYPE
+		    ,<include refid="common.sql.dbo"/>GETCODENAME(RQHD.GATE_CD, 'M100', RQHD.VAT_TYPE, #{ses.langCd}) AS VAT_TYPE_LOC
+		    ,<include refid="common.sql.toChar"/>(QTHD.SEND_DATE, 'yyyy-MM-dd') AS SEND_DATE
+		    ,<include refid="common.sql.toChar"/>(QTHD.VALID_TO_DATE, 'yyyy-MM-dd') AS VALID_TO_DATE
+		    , QTHD.QTA_RMK_TEXT_NUM
+		    , QTHD.ATT_FILE_NUM
+		    , QTHD.QTA_ATT_FILE_NUM
+		    , RQVN.VENDOR_CD
+		    , RQHD.SETTLE_TYPE
+		    ,<include refid="common.sql.dbo"/>GETCODENAME(RQHD.GATE_CD, 'M065', RQHD.SETTLE_TYPE, #{ses.langCd}) AS SETTLE_TYPE_LOC
+		    , RQHD.AMT_TYPE
+		    ,<include refid="common.sql.dbo"/>GETCODENAME(RQHD.GATE_CD, 'M303', RQHD.AMT_TYPE, #{ses.langCd}) AS AMT_TYPE_LOC
+		    , RQHD.RFX_LIMIT_CNT AS RFX_LIMIT_NUM
+		    , RQHD.VENDOR_OPEN_TYPE
+		    ,(CASE WHEN RQVN.RFX_GIVEUP_DATE IS NOT NULL THEN 'N'
+		    	   WHEN QTHD.QTA_NUM IS NULL THEN 'Y'
+		    	   WHEN #{ses.userType} = 'S' THEN 'Y'
+		    	   ELSE (CASE WHEN (SELECT CVUR.COMPANY_CD FROM STOCCVUR CVUR WHERE CVUR.GATE_CD = QTHD.GATE_CD AND CVUR.USER_ID = <include refid="common.sql.nvl"/>(QTHD.MOD_USER_ID,  #{ses.userId} )) = #{ses.companyCd}
+		    	   			  THEN 'Y' ELSE 'N' END)
+		           END) SAVE_FLAG
+		  <if test="_databaseId == 'oracle' ">
+		    ,CASE WHEN #{ses.userType} = 'C' THEN 'N'
+		    	  WHEN replace(replace(replace(<include refid="common.sql.toChar"/>(SYSDATE, 'YYYY-MM-DD HH24:MI'),'-',''),':',''),' ','') <![CDATA[>]]>
+		    	  	   replace(replace(replace(<include refid="common.sql.toChar"/>(RFX_END_DATE, 'YYYY-MM-DD HH24:MI'),'-',''),':',''),' ','') THEN 'N'
+		    	  WHEN RQVN.RFX_PROGRESS_CD = '300' THEN 'N'
+		    	  WHEN RQVN.RFX_GIVEUP_DATE IS NOT NULL THEN 'N'
+		    	  ELSE 'Y' END QT_YN
+          </if>
+          <if test="_databaseId == 'mssql' ">
+            ,CASE WHEN #{ses.userType} = 'C' THEN 'N'
+            	  WHEN replace(replace(replace(convert(varchar, SYSDATE, 120),'-',''),':',''),' ','') <![CDATA[>]]>
+            	  	   replace(replace(replace(convert(varchar, RFX_END_DATE, 120),'-',''),':',''),' ','') THEN 'N'
+            	  WHEN RQVN.RFX_PROGRESS_CD = '300' THEN 'N'
+            	  WHEN RQVN.RFX_GIVEUP_DATE IS NOT NULL THEN 'N'
+            	  ELSE 'Y' END QT_YN
+          </if>
+		    ,<include refid="common.sql.strDecStart"/>QTHD.ENC_QTA_AMT<include refid="common.sql.strEncEnd"/> AS QTA_AMT
+		    , RQHD.PROGRESS_CD
+		    , RQHD.CTRL_USER_ID AS CTRL_USER_ID
+		    ,(SELECT VNGL.IRS_NO
+		        FROM STOCVNGL VNGL
+		       WHERE VNGL.GATE_CD   = RQVN.GATE_CD
+		         AND VNGL.VENDOR_CD = RQVN.VENDOR_CD) AS IRS_NUM
+		    ,<include refid="common.sql.dbo"/>GETCODENAME(RQHD.GATE_CD, 'M065', RQHD.SETTLE_TYPE, #{ses.langCd}) AS SETTLE_TYPE_LOC
+		    , RQHD.RMK_TEXT_NUM AS B_RMK_TEXT_NUM
+			, RQHD.ATT_FILE_NUM AS B_ATT_FILE_NUM
+		FROM STOCRQHD RQHD
+		JOIN STOCRQVN RQVN
+				ON( RQVN.GATE_CD   = RQHD.GATE_CD
+				AND RQVN.BUYER_CD  = RQHD.BUYER_CD
+				AND RQVN.RFX_NUM   = RQHD.RFX_NUM
+				AND RQVN.RFX_CNT   = RQHD.RFX_CNT
+				AND RQVN.DEL_FLAG  = '0')
+		LEFT JOIN STOCQTHD QTHD
+				ON( RQVN.GATE_CD   = QTHD.GATE_CD
+				AND RQVN.BUYER_CD  = QTHD.BUYER_CD
+			   	AND RQVN.RFX_NUM   = QTHD.RFX_NUM
+			   	AND RQVN.RFX_CNT   = QTHD.RFX_CNT
+			   	AND RQVN.VENDOR_CD = QTHD.VENDOR_CD
+			   	AND QTHD.DEL_FLAG  = '0')
+		LEFT JOIN STOCCVUR UR
+			   	ON (UR.GATE_CD = QTHD.GATE_CD
+			   	AND UR.USER_ID = QTHD.REG_USER_ID)
+		WHERE RQHD.GATE_CD   = #{ses.gateCd}
+		  AND RQHD.BUYER_CD  = #{BUYER_CD}
+		  AND RQVN.VENDOR_CD = (CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+		  AND RQHD.DEL_FLAG  = '0'
+	 	<choose>
+	   		<when test="QTA_NUM != '' and QTA_NUM != null">
+	      AND QTHD.QTA_NUM   = #{QTA_NUM}
+	   		</when>
+	   		<otherwise>
+	      AND RQHD.RFX_NUM   = #{RFX_NUM}
+	      AND RQHD.RFX_CNT   = #{RFX_CNT}
+	   		</otherwise>
+	 	</choose>
+	</select>
+
+	<!-- SRQI0011 : 견적서작성 > 견적서 상세정보 -->
+	<select id="doSearchQtaCreation_G" parameterType="hashMap" resultType="hashMap">
+
+		SELECT RQDT.RFX_NUM
+		     , RQDT.RFX_CNT
+		     , RQDT.RFX_SQ
+			 , RQHD.BUYER_CD
+			 ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(RQHD.GATE_CD, RQDT.PR_BUYER_CD, RQDT.PR_DEPT_CD, #{ses.langCd}) AS BUYER_DEPT_NM
+		     , RQDT.PR_NUM
+			 , RQDT.PR_SQ
+			 , RQDT.PURCHASE_TYPE
+		     , RQDT.ITEM_CD
+		     , RQDT.ITEM_DESC
+		     , RQDT.ITEM_SPEC
+             , RQDT.MAKER_CD
+             , <include refid="common.sql.dbo"/>GETMKBRNAME(RQDT.GATE_CD, RQDT.BUYER_CD, 'MK', RQDT.MAKER_CD) AS MAKER_NM
+             , RQDT.MAKER_PART_NO
+             , RQDT.ORIGIN_CD
+		     , RQDT.RFX_QT
+		     , RQDT.UNIT_CD
+			 , QTDT.QTA_NUM
+		     , QTDT.QTA_SQ
+		     ,(CASE WHEN RQDT.RFX_CNT = 1 THEN '0'
+		      	    ELSE ( SELECT <include refid="common.sql.nvl"/>(<include refid="common.sql.strDecStart"/>A.ENC_UNIT_PRC<include refid="common.sql.strEncEnd"/>, '0')
+		      	    		 FROM STOCQTDT A
+		            		WHERE A.GATE_CD   = RQDT.GATE_CD
+		            		  AND A.BUYER_CD  = RQDT.BUYER_CD
+		                      AND A.RFX_NUM   = RQDT.RFX_NUM
+		                      AND A.RFX_CNT   =(RQDT.RFX_CNT - 1)
+		                      AND A.RFX_SQ    = RQDT.RFX_SQ
+		                      AND A.DEL_FLAG  = '0'
+		                      AND A.VENDOR_CD = #{VENDOR_CD}) END) AS PRE_UNIT_PRC
+		     ,<include refid="common.sql.strDecStart"/>QTDT.ENC_UNIT_PRC<include refid="common.sql.strDecEnd"/> AS UNIT_PRC
+		     ,<include refid="common.sql.strDecStart"/>QTDT.ENC_ITEM_AMT<include refid="common.sql.strDecEnd"/> AS ITEM_AMT
+		     ,<include refid="common.sql.toChar"/>(RQDT.VALID_FROM_DATE, 'YYYY-MM-DD') AS VALID_FROM_DATE
+		     ,<include refid="common.sql.toChar"/>(RQDT.VALID_TO_DATE, 'YYYY-MM-DD') AS VALID_TO_DATE
+		     , QTDT.GIVEUP_FLAG
+		     , RQDT.ATT_FILE_NUM AS PR_ATT_FILE_NUM
+		     ,(SELECT (CASE WHEN COUNT(*) = 0 THEN NULL ELSE COUNT(*) END)
+		         FROM STOCATCH ATCH
+		        WHERE ATCH.GATE_CD  = RQDT.GATE_CD
+		          AND ATCH.UUID     = RQDT.ATT_FILE_NUM
+		          AND ATCH.DEL_FLAG = '0') AS PR_ATT_FILE_CNT
+		     , QTDT.ATT_FILE_NUM AS VENDOR_ATT_FILE_NUM
+		     ,(SELECT (CASE WHEN COUNT(*) = 0 THEN NULL ELSE COUNT(*) END)
+		         FROM STOCATCH ATCH
+		        WHERE ATCH.GATE_CD  = QTDT.GATE_CD
+		          AND ATCH.UUID     = QTDT.ATT_FILE_NUM
+		          AND ATCH.DEL_FLAG = '0') AS VENDOR_ATT_FILE_CNT
+		     , RQDT.ITEM_RMK AS PR_ITEM_RMK
+		     ,(CASE WHEN RQDT.ITEM_RMK IS NULL THEN '' ELSE '1' END) AS PR_ITEM_IMG
+		     , QTDT.ITEM_RMK AS VENDOR_ITEM_RMK
+		     ,(CASE WHEN QTDT.ITEM_RMK IS NULL THEN '' ELSE '1' END) AS VENDOR_ITEM_IMG
+			 , #{VENDOR_CD} AS VENDOR_CD
+             , QTDT.SW_BUS_PRICE
+             , QTDT.MNT_SANGJU_YN
+             , QTDT.CONSUMER_AMT
+             , QTDT.FC_MNT_TERM
+             , QTDT.CH_RATE
+             , QTDT.DOIB_AMT
+             , QTDT.MNT_RATE
+             ,<include refid="common.sql.toChar"/>(QTDT.MNT_SDAY, 'YYYYMMDD') AS MNT_SDAY
+             ,<include refid="common.sql.toChar"/>(QTDT.MNT_EDAY, 'YYYYMMDD') AS MNT_EDAY
+             , QTDT.MNT_GUR_MONTH
+             , QTDT.RT_INSP_PERIOD
+             , QTDT.FALT_RC_TG_TIME
+             , RQDT.PB_BUYER_CD
+		  FROM STOCRQDT RQDT
+		  JOIN STOCRQHD RQHD
+			       ON (RQDT.GATE_CD  = RQHD.GATE_CD
+			       AND RQDT.BUYER_CD = RQHD.BUYER_CD
+			       AND RQDT.RFX_NUM  = RQHD.RFX_NUM
+			       AND RQDT.RFX_CNT  = RQHD.RFX_CNT
+			       AND RQHD.DEL_FLAG = '0')
+		  JOIN STOCRQVN RQVN
+			       ON (RQHD.GATE_CD   = RQVN.GATE_CD
+			       AND RQHD.BUYER_CD  = RQVN.BUYER_CD
+			       AND RQHD.RFX_NUM   = RQVN.RFX_NUM
+			       AND RQHD.RFX_CNT   = RQVN.RFX_CNT
+			       AND RQVN.DEL_FLAG  = '0')
+		  LEFT OUTER JOIN STOCQTDT QTDT
+			       ON (RQDT.GATE_CD  = QTDT.GATE_CD
+			       AND RQDT.BUYER_CD = QTDT.BUYER_CD
+			       AND RQDT.RFX_NUM  = QTDT.RFX_NUM
+			       AND RQDT.RFX_CNT  = QTDT.RFX_CNT
+			       AND RQDT.RFX_SQ   = QTDT.RFX_SQ
+			       AND QTDT.VENDOR_CD= RQVN.VENDOR_CD
+			       AND QTDT.DEL_FLAG = '0')
+	   	<!-- 업체선정방식 : 품목별 > RQSE 와 JOIN -->
+	   	<if test="SETTLE_TYPE != '' and SETTLE_TYPE != null and SETTLE_TYPE == 'ITEM'">
+		  JOIN STOCRQSE RQSE
+			       ON (RQDT.GATE_CD   = RQSE.GATE_CD
+			       AND RQDT.BUYER_CD  = RQSE.BUYER_CD
+			       AND RQDT.RFX_NUM   = RQSE.RFX_NUM
+			       AND RQDT.RFX_CNT   = RQSE.RFX_CNT
+			       AND RQDT.RFX_SQ    = RQSE.RFX_SQ
+			       AND RQSE.VENDOR_CD = RQVN.VENDOR_CD
+			       AND RQSE.DEL_FLAG  = '0')
+		</if>
+		  LEFT OUTER JOIN STOCMTGL MTGL
+			  	   ON (RQDT.GATE_CD  = MTGL.GATE_CD
+			  	   AND RQDT.BUYER_CD = MTGL.BUYER_CD
+			       AND RQDT.ITEM_CD  = MTGL.ITEM_CD)
+		WHERE RQDT.GATE_CD   = #{ses.gateCd}
+		  AND RQDT.BUYER_CD  = #{BUYER_CD}
+		  AND RQVN.VENDOR_CD = (CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+		<choose>
+		   <when test="QTA_NUM != '' and QTA_NUM != null">
+		  AND QTDT.QTA_NUM  = #{QTA_NUM}
+		   </when>
+		   <otherwise>
+		  AND RQDT.RFX_NUM  = #{RFX_NUM}
+		  AND RQDT.RFX_CNT  = #{RFX_CNT}
+		   </otherwise>
+		</choose>
+		  AND RQDT.DEL_FLAG = '0'
+		ORDER BY RQDT.RFX_SQ
+    </select>
+
+	<!-- SRQI0011 : 견적서작성 > 견적 종료여부 체크 -->
+	<select id="getRfqCloseFlag" parameterType="hashMap" resultType="java.lang.String">
+
+		SELECT (CASE WHEN RFX_END_DATE <![CDATA[<]]> SYSDATE THEN 'Y' ELSE 'N' END)
+		  FROM STOCRQHD
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND RFX_NUM  = #{RFX_NUM}
+		   AND RFX_CNT  = #{RFX_CNT}
+	</select>
+
+	<!-- SRQI0011 : 견적서작성 > 견적포기여부 체크 -->
+	<select id="checkValidVendor" parameterType="hashMap" resultType="java.lang.Integer">
+
+		SELECT
+			CASE WHEN RQVN.RFX_GIVEUP_DATE IS NOT NULL THEN 1
+				 ELSE 0 END
+          FROM STOCRQVN RQVN INNER JOIN STOCRQHD RQHD
+	           ON( RQVN.GATE_CD  = RQHD.GATE_CD
+	           AND RQVN.BUYER_CD = RQHD.BUYER_CD
+	           AND RQVN.RFX_NUM  = RQHD.RFX_NUM
+	           AND RQVN.RFX_CNT  = RQHD.RFX_CNT
+	           AND RQHD.DEL_FLAG = '0')
+         WHERE RQVN.GATE_CD   = #{ses.gateCd}
+           AND RQVN.BUYER_CD  = #{BUYER_CD}
+           AND RQVN.RFX_NUM   = #{RFX_NUM}
+           AND RQVN.RFX_CNT   = #{RFX_CNT}
+           AND RQVN.VENDOR_CD = #{VENDOR_CD}
+           AND RQVN.DEL_FLAG  = '0'
+    </select>
+
+	<!-- SRQI0011 : 견적서작성 > 견적진행상태 변경 -->
+	<update id="doUpdateQtaCreation_RQVN" parameterType="hashMap">
+
+        UPDATE STOCRQVN SET
+        	   MOD_DATE = SYSDATE
+        	 , MOD_USER_ID = #{ses.userId}
+        	 , RFX_PROGRESS_CD = #{RFX_PROGRESS_CD}
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND BUYER_CD  = #{BUYER_CD}
+           AND RFX_NUM   = #{RFX_NUM}
+           AND RFX_CNT   = #{RFX_CNT}
+		   AND VENDOR_CD = (CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+    </update>
+
+	<!-- SRQI0011 : 견적서작성 > 견적서 투찰번호 존재하는지 체크 -->
+	<select id="checkExistsQtaCreation_QTHD" parameterType="hashMap" resultType="java.lang.Integer">
+
+		SELECT COUNT(*) AS CNT
+		  FROM STOCQTHD
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND QTA_NUM  = #{QTA_NUM}
+	</select>
+
+	<!-- SRQI0011 : 견적서 작성 > 견적서 제출 -->
+	<insert id="doInsertQtaCreation_QTHD" parameterType="hashMap">
+
+        INSERT INTO STOCQTHD (
+        	  GATE_CD
+        	, BUYER_CD
+        	, QTA_NUM
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+            , MOD_USER_ID
+			, DEL_FLAG
+			, RFX_NUM
+			, RFX_CNT
+			, VENDOR_CD
+			, PIC_USER_NM
+			, PIC_TEL_NUM
+			, PIC_EMAIL
+			, VALID_TO_DATE
+            , QTA_RMK_TEXT_NUM
+			, ATT_FILE_NUM
+			, QTA_ATT_FILE_NUM	/** 2020.12.09 추가 : 협력업체 견적서 첨부파일 */
+            , ENC_QTA_AMT		/** 암호화 견적금액 */
+			, LAST_FLAG
+			, IP_ADDR
+        ) VALUES (
+	          #{ses.gateCd}
+			, #{BUYER_CD}
+			, #{QTA_NUM}
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, #{RFX_NUM}
+			, #{RFX_CNT}
+			,(CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+			,<include refid="common.sql.strEncStart"/>#{PIC_USER_NM}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{PIC_TEL_NUM}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{PIC_EMAIL}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.toDate"/>(#{VALID_TO_DATE}, 'yyyyMMdd')
+			, #{QTA_RMK_TEXT_NUM}
+			, #{ATT_FILE_NUM}
+			, #{QTA_ATT_FILE_NUM}	/** 2020.12.09 추가 : 협력업체 견적서 첨부파일 */
+			,<include refid="common.sql.strEncStart"/>#{QTA_AMT}<include refid="common.sql.strEncEnd"/>
+			, '1'					/** 최종 제출여부 */
+			, #{ses.ipAddress}
+        )
+
+    </insert>
+
+	<!-- SRQI0011 : 견적서작성 > 견적서 제출이후 이전의 제출건에 대해서는 최종여부 = 0 -->
+	<update id="doUpdatePreviousLastFlag_QTHD" parameterType="hashMap">
+
+        UPDATE STOCQTHD SET
+               MOD_DATE  = SYSDATE
+             , MOD_USER_ID = #{ses.userId}
+        	 , LAST_FLAG = '0'
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND BUYER_CD  = #{BUYER_CD}
+           AND RFX_NUM   = #{RFX_NUM}
+           AND VENDOR_CD = (CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+           AND QTA_NUM <![CDATA[<]]> #{QTA_NUM}
+	</update>
+
+	<!-- SRQI0011 : 견적서작성 > 동일 협력사 체크 -->
+	<select id="checkCompanyCode" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT
+        	(CASE WHEN #{ses.userType} = 'S' THEN 1
+    	  		  ELSE (CASE WHEN (SELECT UR.COMPANY_CD
+    	  		  					 FROM STOCCVUR UR
+    	  		  					WHERE UR.GATE_CD = QTHD.GATE_CD
+    	  		  					  AND UR.USER_ID = QTHD.REG_USER_ID) = #{ses.companyCd}
+    	  		  THEN 1 ELSE 0 END) END) AS AUTH_FLAG
+          FROM STOCQTHD QTHD
+         WHERE QTHD.GATE_CD  = #{ses.gateCd}
+           AND QTHD.BUYER_CD = #{BUYER_CD}
+           AND QTHD.QTA_NUM  = #{QTA_NUM}
+           AND QTHD.DEL_FLAG = '0'
+    </select>
+
+	<!-- SRQI0011 : 견적서 작성 > 견적서 제출 -->
+	<update id="doUpdateQtaCreation_QTHD" parameterType="hashMap">
+
+		UPDATE STOCQTHD SET
+			   MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , DEL_FLAG = '0'
+			 , RFX_NUM  = #{RFX_NUM}
+			 , RFX_CNT  = (CASE WHEN #{RFX_CNT} = '' THEN NULL ELSE #{RFX_CNT} END)
+			 , VENDOR_CD = (CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+			 , PIC_USER_NM = <include refid="common.sql.strEncStart"/>#{PIC_USER_NM}<include refid="common.sql.strEncEnd"/>
+			 , PIC_TEL_NUM = <include refid="common.sql.strEncStart"/>#{PIC_TEL_NUM}<include refid="common.sql.strEncEnd"/>
+			 , PIC_EMAIL = <include refid="common.sql.strEncStart"/>#{PIC_EMAIL}<include refid="common.sql.strEncEnd"/>
+			 , VALID_TO_DATE = <include refid="common.sql.toDate"/>(#{VALID_TO_DATE}, 'YYYY-MM-DD')
+             , QTA_RMK_TEXT_NUM = #{QTA_RMK_TEXT_NUM}
+             , ENC_QTA_AMT = <include refid="common.sql.strEncStart"/>#{QTA_AMT}<include refid="common.sql.strEncEnd"/>
+			 , ATT_FILE_NUM = #{ATT_FILE_NUM}
+			 , QTA_ATT_FILE_NUM = #{QTA_ATT_FILE_NUM}	/** 2020.12.09 추가 : 협력업체 견적서 첨부파일 */
+			 , IP_ADDR = #{ses.ipAddress}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND QTA_NUM  = #{QTA_NUM}
+
+    </update>
+
+	<!-- SRQI0011 : 견적서작성 > 품목별 견적서 투찰정보 체크 -->
+	<select id="checkExistsQtaCreation_QTDT" parameterType="hashMap" resultType="java.lang.Integer">
+
+		SELECT COUNT(*) AS CNT
+		  FROM STOCQTDT
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND QTA_NUM  = #{QTA_NUM}
+		   AND QTA_SQ   = #{QTA_SQ}
+	</select>
+
+	<select id="getQtaSq" parameterType="hashMap" resultType="java.lang.Integer">
+
+		SELECT <include refid="common.sql.nvl"/>(MAX(QTA_SQ), 0) + 1
+		  FROM STOCQTDT
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND QTA_NUM  = #{QTA_NUM}
+	</select>
+
+	<!-- SRQI0011 : 견적서 작성 > 견적서 제출 -->
+	<insert id="doInsertQtaCreation_QTDT" parameterType="hashMap">
+
+		INSERT INTO STOCQTDT (
+			  GATE_CD
+			, BUYER_CD
+			, QTA_NUM
+			, QTA_SQ
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, RFX_NUM
+			, RFX_CNT
+			, RFX_SQ
+			, VENDOR_CD
+			, ENC_UNIT_PRC
+			, ENC_ITEM_AMT
+			, SW_BUS_PRICE
+			, MNT_SANGJU_YN
+			, CONSUMER_AMT
+			, FC_MNT_TERM
+			, CH_RATE
+			, DOIB_AMT
+			, MNT_RATE
+			, MNT_SDAY
+			, MNT_EDAY
+			, MNT_GUR_MONTH
+			, RT_INSP_PERIOD
+			, FALT_RC_TG_TIME
+			, ATT_FILE_NUM
+			, ITEM_RMK
+			, GIVEUP_FLAG
+        ) VALUES (
+        	  #{ses.gateCd}
+			, #{BUYER_CD}
+			, #{QTA_NUM}
+			, #{QTA_SQ}
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, #{RFX_NUM}
+			,(CASE WHEN #{RFX_CNT} = '' THEN NULL ELSE #{RFX_CNT} END)
+			,(CASE WHEN #{RFX_SQ} = '' THEN NULL ELSE #{RFX_SQ} END)
+			,(CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END)
+			,<include refid="common.sql.strEncStart"/>#{UNIT_PRC}<include refid="common.sql.strEncEnd"/>
+		    ,<include refid="common.sql.strEncStart"/>#{ITEM_AMT}<include refid="common.sql.strEncEnd"/>
+			, #{SW_BUS_PRICE}			-- [용역] SW사업대가
+			, #{MNT_SANGJU_YN}			-- [용역] 상주여부 [코드]
+			, #{CONSUMER_AMT}			-- [물품/공사] 소비자금액
+			, #{FC_MNT_TERM}			-- [물품/공사] 무상유지보수기간
+			, #{CH_RATE}				-- [물품/공사] 유상요율
+			, #{DOIB_AMT}				-- [유지보수] 도입금액
+			, #{MNT_RATE}				-- [유지보수] 유지보수요율
+			,<include refid="common.sql.toDate"/>(#{MNT_SDAY}, 'YYYY-MM-DD')	-- [유지보수] 유지보수 시작일
+			,<include refid="common.sql.toDate"/>(#{MNT_EDAY}, 'YYYY-MM-DD')	-- [유지보수] 유지보수 종료일
+			, #{MNT_GUR_MONTH}			-- [유지보수] 유지보수보장개월수
+			, #{RT_INSP_PERIOD}			-- [유지보수] 정기점검주기 [M248]
+			, #{FALT_RC_TG_TIME}		-- [유지보수] 장애복구목표시간
+			, #{VENDOR_ATT_FILE_NUM}
+			, #{VENDOR_ITEM_RMK}
+			, #{GIVEUP_FLAG}
+		)
+	</insert>
+
+	<!-- SRQI0011 : 견적서 작성 > 견적서 제출 -->
+	<update id="doUpdateQtaCreation_QTDT" parameterType="hashMap">
+
+		UPDATE STOCQTDT SET
+			  MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, DEL_FLAG = '0'
+			, RFX_NUM = #{RFX_NUM}
+			, RFX_CNT = CASE WHEN #{RFX_CNT} = '' THEN NULL ELSE #{RFX_CNT} END
+			, RFX_SQ  = CASE WHEN #{RFX_SQ} = '' THEN NULL ELSE #{RFX_SQ} END
+			, VENDOR_CD = CASE WHEN #{ses.userType} = 'S' THEN #{ses.companyCd} ELSE #{VENDOR_CD} END
+			, ENC_UNIT_PRC = <include refid="common.sql.strEncStart"/>#{UNIT_PRC}<include refid="common.sql.strEncEnd"/>
+			, ENC_ITEM_AMT = <include refid="common.sql.strEncStart"/>#{ITEM_AMT}<include refid="common.sql.strEncEnd"/>
+			, ATT_FILE_NUM = #{VENDOR_ATT_FILE_NUM}
+			, ITEM_RMK = #{VENDOR_ITEM_RMK}
+			, GIVEUP_FLAG = #{GIVEUP_FLAG}
+			, SW_BUS_PRICE = #{SW_BUS_PRICE}			-- [용역] SW사업대가
+			, MNT_SANGJU_YN = #{MNT_SANGJU_YN}			-- [용역] 상주여부 [코드]
+			, CONSUMER_AMT = #{CONSUMER_AMT}			-- [물품/공사] 소비자금액
+			, FC_MNT_TERM = #{FC_MNT_TERM}				-- [물품/공사] 무상유지보수기간
+			, CH_RATE  = #{CH_RATE}						-- [물품/공사] 유상요율
+			, DOIB_AMT = #{DOIB_AMT}					-- [유지보수] 도입금액
+			, MNT_RATE = #{MNT_RATE}					-- [유지보수] 유지보수요율
+			, MNT_SDAY = <include refid="common.sql.toDate"/>(#{MNT_SDAY}, 'YYYY-MM-DD')	-- [유지보수] 유지보수 시작일
+			, MNT_EDAY = <include refid="common.sql.toDate"/>(#{MNT_EDAY}, 'YYYY-MM-DD')	-- [유지보수] 유지보수 종료일
+			, MNT_GUR_MONTH   = #{MNT_GUR_MONTH}		-- [유지보수] 유지보수보장개월수
+			, RT_INSP_PERIOD  = #{RT_INSP_PERIOD}		-- [유지보수] 정기점검주기 [M248]
+			, FALT_RC_TG_TIME = #{FALT_RC_TG_TIME}		-- [유지보수] 장애복구목표시간
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND QTA_NUM  = #{QTA_NUM}
+		   AND QTA_SQ   = #{QTA_SQ}
+	</update>
+
+	<!-- SRQI0011 : 견적서 작성 > 견적서 제출 -->
+	<update id="doUpdateQtaCreation_SendDate" parameterType="hashmap">
+
+        UPDATE STOCQTHD SET
+        	  MOD_DATE    = SYSDATE
+        	, MOD_USER_ID = #{ses.userId}
+        	, SEND_DATE   = SYSDATE
+        	, SIGN_DATE   = SYSDATE
+        	, SIGN_VALUE  = #{SIGN_VALUE}
+        	, VID_RANDOM  = #{VID_RANDOM}
+         WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+           AND QTA_NUM  = #{QTA_NUM}
+    </update>
+
+	<!-- SRQR0020 : 협력업체 견적결과 조회 -->
+	<select id="srqr0020_doSearch" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+		    B.*
+		  FROM (
+		    SELECT
+		         A.*
+		        ,(CASE WHEN A.RFX_PROGRESS_CD IN ('2550','1300') THEN A.RFX_PROGRESS_CD
+		        	   ELSE (CASE WHEN A.EXEC_NUM IS NULL THEN 'A'
+		        	   			  WHEN A.SETTEL_CNT = 0 THEN 'N'
+		        	   			  WHEN A.SETTEL_CNT = A.SEND_CNT THEN 'Y'
+		        	   			  WHEN (A.SETTEL_CNT <![CDATA[>]]> 0 AND A.SETTEL_CNT <![CDATA[<]]> A.SEND_CNT) THEN 'S'
+		        	   			  ELSE 'A' END)
+		        	   END) AS SETTLE_FLAG
+		        ,(CASE WHEN A.RFX_PROGRESS_CD IN ('2550','1300')
+		        	   THEN <include refid="common.sql.dbo"/>GETCODENAME(A.GATE_CD, 'M240', A.RFX_PROGRESS_CD, #{ses.langCd})
+		        	   ELSE (<include refid="common.sql.dbo"/>GETCODENAME(A.GATE_CD, 'M079', (CASE WHEN A.EXEC_NUM IS NULL THEN 'A'
+										        	   											   WHEN A.SETTEL_CNT = 0 THEN 'N'
+										        	   											   WHEN A.SETTEL_CNT = A.SEND_CNT THEN 'Y'
+										        	   											   WHEN (A.SETTEL_CNT <![CDATA[>]]> 0 AND A.SETTEL_CNT <![CDATA[<]]> A.SEND_CNT) THEN 'S'
+										        	   											   ELSE 'A'
+										        	   										  END), #{ses.langCd}))
+		        	   END) AS SETTLE_FLAG_LOC
+		      FROM (
+				SELECT
+					  RQHD.GATE_CD
+					, RQHD.RFX_NUM
+					, RQHD.RFX_CNT
+				    , RQHD.BUYER_CD
+		            , RQHD.DEPT_CD
+		            ,<include refid="common.sql.dbo"/>GETBUYERNAMES(RQHD.GATE_CD, RQHD.BUYER_CD, 'RFX', RQHD.RFX_NUM, RQHD.RFX_CNT, NULL, #{ses.langCd}) AS BUYER_DEPT_NM
+					,(CASE WHEN RQHD.PROGRESS_CD IN ('2550', '1300') THEN RQHD.PROGRESS_CD
+					 	   ELSE <include refid="common.sql.dbo"/>getVendorRfxProgressCode(RQVN.RFX_PROGRESS_CD, RQHD.RFX_END_DATE)
+					  END) AS RFX_PROGRESS_CD
+					,<include refid="common.sql.dbo"/>GETCODENAME(RQHD.GATE_CD, 'M072', <include refid="common.sql.dbo"/>getVendorRfxProgressCode(RQVN.RFX_PROGRESS_CD, RQHD.RFX_END_DATE), #{ses.langCd}) AS RFX_PROGRESS_LOC
+					, RQHD.RFX_TYPE
+					,<include refid="common.sql.dbo"/>GETCODENAME(RQHD.GATE_CD, 'M070', RQHD.RFX_TYPE, #{ses.langCd}) AS RFX_TYPE_LOC
+				    , RQHD.CTRL_USER_ID
+					,<include refid="common.sql.dbo"/>GETUSERNAME( RQHD.GATE_CD, RQHD.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+					, RQHD.RFX_SUBJECT
+					, RQHD.SETTLE_TYPE
+					,<include refid="common.sql.dbo"/>GETCODENAME(RQHD.GATE_CD, 'M065', RQHD.SETTLE_TYPE, #{ses.langCd}) AS SETTLE_TYPE_LOC
+					,<include refid="common.sql.toChar"/>(QTHD.SEND_DATE, 'YYYY-MM-DD HH24:MI') AS SEND_DATE
+					,<include refid="common.sql.toChar"/>(QTHD.VALID_TO_DATE, 'YYYY-MM-DD') VALID_TO_DATE
+					,<include refid="common.sql.toChar"/>(RQHD.RFX_START_DATE, 'YYYY-MM-DD HH24:MI') AS RFX_START_DATE
+					,<include refid="common.sql.toChar"/>(RQHD.RFX_END_DATE, 'YYYY-MM-DD HH24:MI') AS RFX_END_DATE
+					, RQHD.REG_DATE
+					, RQHD.FAIL_BID_DATE
+					, QTHD.QTA_NUM
+				    ,(CASE WHEN RQVN.RFX_GIVEUP_RMK IS NULL THEN '' ELSE '1' END) AS RFX_GIVEUP_IMG
+				    , RQVN.RFX_GIVEUP_RMK
+				    ,<include refid="common.sql.toChar"/>(RQVN.RFX_RECEIPT_DATE, 'YYYY-MM-DD HH24:MI') AS RFX_RECEIPT_DATE
+		            ,<include refid="common.sql.toChar"/>((SELECT MAX(CNHD.SIGN_DATE)
+									                         FROM STOCCNHD CNHD INNER JOIN STOCCNDT CNDT
+										                          ON (CNHD.GATE_CD  = CNDT.GATE_CD
+										                          AND CNHD.BUYER_CD = CNDT.BUYER_CD
+										                          AND CNHD.EXEC_NUM = CNDT.EXEC_NUM)
+									                        WHERE CNDT.GATE_CD  = QTHD.GATE_CD
+									                          AND CNDT.BUYER_CD = QTHD.BUYER_CD
+									                          AND CNDT.QTA_NUM  = QTHD.QTA_NUM
+									                          AND CNHD.DEL_FLAG = '0'
+									                          AND CNDT.DEL_FLAG = '0'), 'YYYY-MM-DD') AS SETTLE_NOTICE_DATE
+		            ,(SELECT MAX(CNHD.EXEC_NUM)
+		                FROM STOCCNDT CNDT INNER JOIN STOCCNHD CNHD
+								                 ON (CNHD.GATE_CD  = CNDT.GATE_CD
+								                 AND CNHD.BUYER_CD = CNDT.BUYER_CD
+								                 AND CNHD.EXEC_NUM = CNDT.EXEC_NUM
+								                 AND CNHD.DEL_FLAG = '0')
+		               WHERE CNDT.GATE_CD  = RQHD.GATE_CD
+		                 AND CNDT.BUYER_CD = RQHD.BUYER_CD
+		                 AND CNDT.RFX_NUM  = RQHD.RFX_NUM
+		                 AND CNDT.RFX_CNT  = RQHD.RFX_CNT
+		                 AND CNDT.DEL_FLAG = '0'
+		                 AND CNHD.SIGN_STATUS = 'E') AS EXEC_NUM
+		            ,(SELECT COUNT(*)
+		                FROM STOCCNDT CNDT INNER JOIN STOCCNHD CNHD
+							                 	ON (CNHD.GATE_CD  = CNDT.GATE_CD
+							                 	AND CNHD.BUYER_CD = CNDT.BUYER_CD
+												AND CNHD.EXEC_NUM = CNDT.EXEC_NUM
+												AND CNHD.DEL_FLAG = '0')
+		               WHERE CNDT.GATE_CD  = QTHD.GATE_CD
+		                 AND CNDT.BUYER_CD = QTHD.BUYER_CD
+		                 AND CNDT.QTA_NUM  = QTHD.QTA_NUM
+		                 AND CNDT.DEL_FLAG = '0'
+		                 AND CNHD.SIGN_STATUS = 'E') AS SETTEL_CNT
+		            ,(SELECT COUNT(*) FROM STOCQTDT QTDT
+		               WHERE QTDT.GATE_CD  = QTHD.GATE_CD
+		                 AND QTDT.BUYER_CD = QTHD.BUYER_CD
+		                 AND QTDT.QTA_NUM  = QTHD.QTA_NUM
+		                 AND QTDT.DEL_FLAG = '0') AS SEND_CNT
+				  FROM STOCRQHD RQHD LEFT JOIN STOCRQVN RQVN
+											ON( RQHD.GATE_CD  = RQVN.GATE_CD
+											AND RQHD.BUYER_CD = RQVN.BUYER_CD
+										   	AND RQHD.RFX_NUM  = RQVN.RFX_NUM
+										   	AND RQHD.RFX_CNT  = RQVN.RFX_CNT
+										   	AND RQVN.DEL_FLAG = '0')
+									 LEFT OUTER JOIN STOCQTHD QTHD
+										   	ON( RQVN.GATE_CD   = QTHD.GATE_CD
+										   	AND RQVN.BUYER_CD  = QTHD.BUYER_CD
+										   	AND RQVN.RFX_NUM   = QTHD.RFX_NUM
+										   	AND RQVN.RFX_CNT   = QTHD.RFX_CNT
+										   	AND RQVN.VENDOR_CD = QTHD.VENDOR_CD
+										   	AND QTHD.DEL_FLAG  = '0')
+				 WHERE RQHD.GATE_CD   = #{ses.gateCd}
+				   AND RQVN.VENDOR_CD = #{ses.companyCd}
+				   AND RQHD.RFX_TYPE IN ('RFQ','RYQ','RPC','RCA')	/** 견적, 견적(연단가), 수의시담, 부속합의 */
+				   AND (RQHD.PROGRESS_CD IN ('2335','2355','1300') OR RQHD.PROGRESS_CD <![CDATA[>=]]> '2400')	/** 가격입찰 마감, 종합입찰 마감, 유찰, >= 업체선정대기 */
+				   AND RQHD.SIGN_STATUS = 'E'
+				   AND RQHD.DEL_FLAG  = '0'
+
+				<if test="ADD_DATE_FROM != '' and ADD_DATE_FROM != null and ADD_DATE_TO !='' and ADD_DATE_TO != null">
+				   AND RQHD.RFX_END_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_DATE_FROM})
+				   AND RQHD.RFX_END_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{ADD_DATE_TO})
+				</if>
+		        <if test="RFX_SUBJECT != '' and RFX_SUBJECT != null">
+					 AND UPPER(RQHD.RFX_SUBJECT) LIKE '%' <include refid="common.sql.stringMerge"/>UPPER(#{RFX_SUBJECT})<include refid="common.sql.stringMerge"/> '%'
+		        </if>
+		         <if test="RFX_TYPE != '' and RFX_TYPE != null">
+		           AND RQHD.RFX_TYPE = #{RFX_TYPE}
+		         </if>
+		         <if test="SETTLE_TYPE != '' and SETTLE_TYPE != null">
+		           AND RQHD.SETTLE_TYPE = #{SETTLE_TYPE}
+		         </if>
+			  ) A
+		  ) B
+		WHERE 1 = 1
+		  AND B.RFX_PROGRESS_CD IN ('150', '300', '400', '1300', '2550') /** 300:제출, 150:포기, 400:마감 */
+		<if test="RFX_PROGRESS_CD != '' and RFX_PROGRESS_CD != null">
+		  AND B.RFX_PROGRESS_CD = #{RFX_PROGRESS_CD}
+		</if>
+		<if test="BUYER_NM != '' and BUYER_NM != null">
+          AND UPPER(B.BUYER_DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+		<if test="SETTLE_FLAG != '' and SETTLE_FLAG != null">
+		  AND B.SETTLE_FLAG = #{SETTLE_FLAG}
+		</if>
+        ORDER BY B.RFX_PROGRESS_CD, B.SETTLE_FLAG, B.RFX_TYPE,
+        		 B.RFX_END_DATE, B.REG_DATE DESC, B.QTA_NUM DESC
+    </select>
+
+	<!-- 메일발송 담당자 가져오기 -->
+	<select id="getMailInfo" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+		      RQHD.RFX_NUM
+		    , RQHD.RFX_SUBJECT
+		    ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(RQHD.GATE_CD, RQHD.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+		    ,<include refid="common.sql.dbo"/>GETVENDORNAME(RQVN.GATE_CD, RQVN.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+		    , RQHD.CTRL_USER_ID AS RECV_USER_ID
+		    ,<include refid="common.sql.dbo"/>GETUSERNAME(RQHD.GATE_CD, RQHD.CTRL_USER_ID, #{ses.langCd}) AS RECV_USER_NM
+		    , RQHD.CTRL_USER_ID AS USER_ID
+		    ,(CASE WHEN RQVN.RFX_PROGRESS_CD = '150' THEN '거부'
+		    	   WHEN RQVN.RFX_PROGRESS_CD = '300' THEN '등록' END) AS SEND_TYPE_LOC
+		    ,(CASE WHEN RQVN.RFX_PROGRESS_CD = '150' THEN <include refid="common.sql.toChar"/>(RQVN.RFX_GIVEUP_DATE, 'yyyy-MM-dd')
+		    	   WHEN RQVN.RFX_PROGRESS_CD = '300' THEN <include refid="common.sql.toChar"/>(QTHD.SEND_DATE, 'yyyy-MM-dd') END) AS SEND_DATE
+		    ,(SELECT IRS_NUM FROM STOCCUST
+	           WHERE GATE_CD = RQHD.GATE_CD
+	             AND CUST_CD = RQHD.BUYER_CD) AS CORP_NO
+	        ,(SELECT DEPT_CD FROM STOCCVUR
+			   WHERE GATE_CD = RQHD.GATE_CD
+			     AND USER_ID = RQHD.CTRL_USER_ID) AS BRC     
+		    ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+		    , 'QTA'		<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               RQHD.BUYER_CD <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               RQHD.RFX_NUM AS CONT_TBL_PK
+		    , NULL 				AS FILE_SIZE
+		  FROM STOCRQHD RQHD
+		  JOIN STOCRQVN RQVN
+			   ON (RQVN.GATE_CD  = RQHD.GATE_CD
+			   AND RQVN.BUYER_CD = RQHD.BUYER_CD
+			   AND RQVN.RFX_NUM  = RQHD.RFX_NUM
+			   AND RQVN.RFX_CNT  = RQHD.RFX_CNT
+			<if test="ses.userType eq'S'.toString()">
+			   AND RQVN.VENDOR_CD = #{ses.companyCd}
+	        </if>
+	        <if test="QTA_NUM == '' or QTA_NUM == null">
+	           AND RQVN.VENDOR_CD = #{VENDOR_CD}
+	        </if>
+			   AND RQVN.DEL_FLAG = '0')
+		  LEFT JOIN STOCQTHD QTHD
+			   ON (RQVN.GATE_CD   = QTHD.GATE_CD
+			   AND RQVN.BUYER_CD  = QTHD.BUYER_CD
+			   AND RQVN.RFX_NUM   = QTHD.RFX_NUM
+			   AND RQVN.RFX_CNT   = QTHD.RFX_CNT
+			   AND RQVN.VENDOR_CD = QTHD.VENDOR_CD
+			   AND QTHD.DEL_FLAG  = '0')
+		 WHERE RQHD.GATE_CD  = #{ses.gateCd}
+		   AND RQHD.BUYER_CD = #{BUYER_CD}
+		   AND RQHD.DEL_FLAG = '0'
+		 <if test="QTA_NUM != '' and QTA_NUM != null">
+		   AND QTHD.QTA_NUM = #{QTA_NUM}
+         </if>
+	</select>
+
+</mapper>

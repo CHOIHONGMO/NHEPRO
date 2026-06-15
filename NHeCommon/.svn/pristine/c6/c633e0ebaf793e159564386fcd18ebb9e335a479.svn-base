@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.eApproval.eApprovalEnd.PCONT.EApprovalEndPcont_Mapper">
+
+    <select id="getContNum" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+             CONT_NUM, CONT_CNT
+            ,CONT_CNT - 1 AS PRE_CONT_CNT
+          FROM STOCPCCT
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND APP_DOC_NUM = #{APP_DOC_NUM}
+           AND APP_DOC_CNT = #{APP_DOC_CNT}
+           AND DEL_FLAG = '0'
+
+    </select>
+
+    <update id="setContSignStatus" parameterType="hashmap">
+
+        UPDATE STOCPCCT SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,SIGN_STATUS = #{SIGN_STATUS}
+        <if test='SIGN_STATUS == "E" or SIGN_STATUS == "R"'>
+            ,SIGN_DATE = SYSDATE
+        </if>
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+
+    </update>
+
+    <select id="getMailTargetList" parameterType="hashMap" resultType="hashMap">
+    
+		SELECT
+			PCCT.CONT_NUM
+			, PCCT.CONT_CNT
+			, PCCT.CONT_DESC
+			,<include refid="common.sql.dbo"/>GETCUSTNAME(PCCT.GATE_CD, PCCT.BUYER_CD) AS BUYER_NM
+			, PCWU.PROGRESS_CD
+			, PCWU.WORKER_USER_ID AS WORKER_ID
+			, <include refid="common.sql.dbo"/>GETUSERNAME(PCWU.GATE_CD, PCWU.WORKER_USER_ID, #{ses.langCd}) AS WORKER_NM
+			, <include refid="common.sql.strDecStart"/>USERD.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+			, <include refid="common.sql.strDecStart"/>USERD.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM 
+			, <include refid="common.sql.strDecStart"/>USERD.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+			, PCCT.CONT_USER_ID
+			, <include refid="common.sql.dbo"/>GETUSERNAME(PCCT.GATE_CD, PCCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+			, <include refid="common.sql.strDecStart"/>USERC.TEL_NUM<include refid="common.sql.strDecEnd"/> AS CONT_TEL_NUM
+			, USERD.SITE_USER_ID
+			,<include refid="common.sql.dbo"/>getUserName(USERD.GATE_CD, USERD.SITE_USER_ID, #{ses.langCd}) AS SITE_USER_NM
+			, USERD.GENDER
+			, USERD.ZIP_CD
+			, USERD.ADDR
+			, USERD.ADDR_ETC
+			,<include refid="common.sql.toChar"/>(USERD.BIRTH_DATE, 'yyyyMMdd') AS BIRTH_DATE
+			, PCWU.WORKER_DEPT_NM
+			, PCWU.WORKER_JOB_NM
+			,<include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_DATE, 'yyyyMMdd') AS WORKER_CONT_DATE
+			,<include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_START_DATE, 'yyyyMMdd') AS WORKER_CONT_START_DATE
+			,<include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_END_DATE, 'yyyyMMdd') AS WORKER_CONT_END_DATE
+			, PCWU.WORKER_CONT_TYPE
+			, PCWU.BASE_PAY
+			, PCWU.BASE_PAY_RMKS
+			, PCWU.FOOD_PAY
+			, PCWU.FOOD_PAY_RMKS
+			, PCWU.JOB_PAY
+			, PCWU.JOB_PAY_RMKS
+			, PCWU.EXTEND_PAY
+			, PCWU.EXTEND_PAY_RMKS
+			, PCWU.WORK_PAY
+			, PCWU.WORK_PAY_RMKS
+			, PCWU.NIGHT_PAY
+			, PCWU.NIGHT_PAY_RMKS
+			, PCWU.ETC_PAY
+			, PCWU.ETC_PAY_RMKS
+			, PCWU.ATT_FILE_NUM
+			,<include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(PCWU.SIGN_DATE, 'YYYY-MM-DD HH24:MI'),' ') AS SIGN_DATE
+			,<include refid="common.sql.dbo"/>getFileCount(PCWU.GATE_CD, PCWU.ATT_FILE_NUM) AS ATT_FILE_CNT
+			, PCWU.WORKER_USER_ID AS ENC_WORKER_ID
+		FROM STOCPCCT PCCT
+		JOIN STOCPCWU PCWU
+			 ON( PCCT.GATE_CD  = PCWU.GATE_CD
+			 AND PCCT.BUYER_CD = PCWU.BUYER_CD
+			 AND PCCT.CONT_NUM = PCWU.CONT_NUM
+			 AND PCCT.CONT_CNT = PCWU.CONT_CNT
+		<!-- 계약체결진행현황에서 전자서명요청 -->
+		<if test="WORKER_ID != '' and WORKER_ID != null">
+			 AND PCWU.WORKER_USER_ID = #{WORKER_ID}
+		</if>
+			 AND PCWU.DEL_FLAG = '0')
+		LEFT OUTER JOIN STOCUSER USERC
+			 ON( PCCT.GATE_CD  = USERC.GATE_CD
+			 AND PCCT.CONT_USER_ID = USERC.USER_ID)
+		LEFT OUTER JOIN STOCUSER USERD
+			 ON( PCWU.GATE_CD  = USERD.GATE_CD
+			 AND PCWU.WORKER_USER_ID = USERD.USER_ID)
+		WHERE 1 = 1
+		  AND PCCT.GATE_CD  = #{ses.gateCd}
+		  AND PCCT.BUYER_CD = #{ses.companyCd}
+		<choose>
+			<when test="CONT_NUM != '' and CONT_NUM != null and CONT_CNT != '' and CONT_CNT != null">
+				AND PCCT.CONT_NUM = #{CONT_NUM}
+				AND PCCT.CONT_CNT = #{CONT_CNT}
+			</when>
+			<otherwise>
+				AND PCCT.APP_DOC_NUM = #{APP_DOC_NUM}
+				AND PCCT.APP_DOC_CNT = #{APP_DOC_CNT}
+			</otherwise>
+		</choose>
+		AND PCCT.DEL_FLAG = '0'
+		
+	</select>
+
+</mapper>

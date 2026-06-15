@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.basic.BSN_Mapper">
+
+    <select id="selectSmsMessageSendingHistory" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+             T.GATE_CD
+            ,T.SEND_DATE
+            ,T.SEND_TIME
+            ,T.SEND_TYPE
+            ,<include refid="common.sql.nvl"/>(T.SEND_USER_ID, 'SYSTEM') AS SEND_USER_ID
+            ,T.CELL_NUM
+            ,T.SEND_EMAIL
+            ,T.EMAIL
+            ,T.SEND_RESULT
+            ,T.SEND_ID
+            ,T.SEND_DATE_TIME
+            ,T.CONTENTS
+            ,T.CONTENTS_IMAGE
+            ,<include refid="common.sql.nvl"/>(VENDOR_NM, CUST_NM)AS VENDOR_NMS
+            ,CASE WHEN <include refid="common.sql.dbo"/>GETUSERNAME(T.GATE_CD, T.RECV_USER_ID, #{ses.langCd}) IS NOT NULL THEN <include refid="common.sql.dbo"/>GETUSERNAME(T.GATE_CD, T.RECV_USER_ID, #{ses.langCd})
+                  ELSE  T.RECV_USER_NM  END RECV_USER_NM
+            ,T.RL_SEND_DATE
+            ,T.TR_RSLTSTAT
+          FROM (
+             SELECT SMSH.GATE_CD
+                     , <include refid="common.sql.toChar"/>(SMSH.SEND_DATE , 'YYYY-MM-DD HH24:MI:SS') AS SEND_DATE
+                     , <include refid="common.sql.toChar"/>(SMSH.SEND_DATE , 'YYYY-MM-DD HH24:MI:SS') AS SEND_TIME
+                     , 'S' AS SEND_TYPE
+                     , <include refid="common.sql.strDecStart"/>SMSH.SEND_USER_NM<include refid="common.sql.strDecEnd"/>  AS SEND_USER_ID
+                     , <include refid="common.sql.dbo"/>GETCOMPANYNAME(SMSH.GATE_CD, SMSH.VENDOR_CD, #{ses.langCd})  AS VENDOR_NM
+                     , <include refid="common.sql.dbo"/>getComCode(SMSH.GATE_CD, 'MP072', SMSH.TR_RSLTSTAT, 0, #{ses.langCd}) AS TR_RSLTSTAT
+                     , SMSH.RECV_USER_NM
+                     , SMSH.RECV_USER_ID
+                     , SMSH.VENDOR_CD
+                     , SMSH.BUYER_CD
+                     , (SELECT CUST_NM FROM STOCCUST WHERE GATE_CD = SMSH.GATE_CD AND CUST_CD = SMSH.BUYER_CD) AS CUST_NM
+                     , <include refid="common.sql.strDecStart"/>SMSH.RECV_TEL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+                     , '' AS SEND_EMAIL
+                     , '' AS EMAIL
+                     , '1' AS SEND_RESULT
+                     , SMSH.SMS_SQ AS SEND_ID
+                     , <include refid="common.sql.toChar"/>(SMSH.SEND_DATE , 'YYYY-MM-DD HH24:MI:SS') AS SEND_DATE_TIME
+                     , (CASE WHEN SMSH.CONTENTS IS NOT NULL THEN 'Y' ELSE '' END) AS CONTENTS
+                     , 0 AS CONTENTS_IMAGE
+                     , <include refid="common.sql.toChar"/>(SMSH.RL_SEND_DATE, 'YYYY-MM-DD HH24:MI:SS') AS RL_SEND_DATE
+                FROM STOCSMSH SMSH
+                WHERE SMSH.GATE_CD = #{ses.gateCd}
+
+               <if test="startDate != '' and startDate != null and endDate != '' and endDate != null">
+                   AND SMSH.SEND_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{startDate})
+                   AND SMSH.SEND_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{endDate})
+               </if>
+               <if test='SEND_TYPE != "S" and SEND_TYPE != "" and SEND_TYPE != null' >
+                    AND 1 = 0
+               </if>
+
+            UNION ALL
+
+            SELECT MAIL.GATE_CD
+                    , <include refid="common.sql.toChar"/>(MAIL.SEND_DATE , 'YYYY-MM-DD HH24:MI:SS') AS SEND_DATE
+                    , <include refid="common.sql.toChar"/>(MAIL.SEND_DATE , 'YYYY-MM-DD HH24:MI:SS') AS SEND_TIME
+                    , 'M' AS SEND_TYPE
+                    , <include refid="common.sql.dbo"/>GETUSERNAME(MAIL.GATE_CD, MAIL.SEND_USER_ID, #{ses.langCd}) AS SEND_USER_ID
+                    , <include refid="common.sql.dbo"/>GETCOMPANYNAME(MAIL.GATE_CD, MAIL.VENDOR_CD, #{ses.langCd})  AS VENDOR_NM
+                    , <include refid="common.sql.dbo"/>getComCode(MAIL.GATE_CD, 'M034', MAIL.SEND_FLAG, 0, #{ses.langCd}) AS TR_RSLTSTAT
+                    , <include refid="common.sql.strDecStart"/>MAIL.RECV_USER_NM<include refid="common.sql.strDecEnd"/> AS RECV_USER_NM
+                    , MAIL.RECV_USER_ID
+                    , MAIL.VENDOR_CD
+                    , MAIL.BUYER_CD
+                    , (SELECT CUST_NM FROM STOCCUST WHERE GATE_CD = MAIL.GATE_CD AND CUST_CD =MAIL.BUYER_CD) AS CUST_NM
+                    , '' AS CELL_NUM
+                    , <include refid="common.sql.strDecStart"/>MAIL.SEND_EMAIL<include refid="common.sql.strDecEnd"/> AS SEND_EMAIL
+                    , <include refid="common.sql.strDecStart"/>MAIL.RECV_EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+                    , '1' AS SEND_RESULT
+                    , MAIL.MAIL_SQ AS SEND_ID
+                    , <include refid="common.sql.toChar"/>(MAIL.SEND_DATE, 'YYYY-MM-DD HH24:MI:SS') AS SEND_DATE_TIME
+                    , (CASE WHEN MAIL.SUBJECT IS NOT NULL THEN 'Y' ELSE '' END) AS CONTENTS
+                    , 0 AS CONTENTS_IMAGE
+                    , null AS RL_SEND_DATE
+            FROM STOCMAIL MAIL
+            WHERE MAIL.GATE_CD = #{ses.gateCd}
+            AND MAIL.DEL_FLAG = '0'
+
+            <if test="startDate != '' and startDate != null and endDate != '' and endDate != null">
+              AND MAIL.SEND_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{startDate})
+              AND MAIL.SEND_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{endDate})
+            </if>
+            <if test ='SEND_TYPE != "M" and SEND_TYPE != "" and SEND_TYPE != null'>
+                AND 1=0
+            </if>
+        ) T
+        WHERE 1 = 1
+        <if test ="VENDOR_NM != '' and VENDOR_NM != null">
+            AND <include refid="common.sql.nvl"/>(T.VENDOR_NM, T.CUST_NM) LIKE '%' <include refid="common.sql.stringMerge"/> #{VENDOR_NM} <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test ="SEND_USER_ID != '' and SEND_USER_ID != null">
+            AND <include refid="common.sql.nvl"/>(T.SEND_USER_ID, 'SYSTEM') LIKE '%' <include refid="common.sql.stringMerge"/> #{SEND_USER_ID} <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test ="RECV_USER_ID != '' and RECV_USER_ID !=null">
+            AND (CASE WHEN <include refid="common.sql.dbo"/>GETUSERNAME(T.GATE_CD, T.RECV_USER_ID, #{ses.langCd}) IS NOT NULL THEN <include refid="common.sql.dbo"/>GETUSERNAME(T.GATE_CD, T.RECV_USER_ID, #{ses.langCd})
+                      ELSE T.RECV_USER_NM END) LIKE '%' <include refid="common.sql.stringMerge"/> #{RECV_USER_ID} <include refid="common.sql.stringMerge"/> '%'
+        </if>
+
+        ORDER BY T.SEND_DATE_TIME DESC
+
+    </select>
+
+    <select id="getSmsContent" parameterType="hashMap" resultType="hashmap">
+
+        SELECT CONTENTS
+        FROM   STOCSMSH
+        WHERE  GATE_CD = #{ses.gateCd}
+          AND  SMS_SQ = #{sendId}
+
+    </select>
+
+    <select id="getMessageInfo" parameterType="hashMap" resultType="hashMap">
+
+        SELECT MAX(SUBJECT) AS SUBJECT
+             , MAX(MAIL_TEXT_NUM) AS MSG_TEXT_NUM
+             , MAX(ATT_FILE_NUM) AS ATT_FILE_NUM
+          FROM STOCMAIL
+         WHERE GATE_CD = #{ses.gateCd}
+           AND MAIL_SQ = #{sendId}
+
+    </select>
+
+    <select id="selectUserSearchB" parameterType="hashmap" resultType="hashmap">
+
+        SELECT DISTINCT
+               OGCM.COMPANY_REG_NUM
+             , USER_TBL.COMPANY_CD AS COMPANY_CD
+             , USER_TBL.USER_ID
+             , <include refid="common.sql.dbo"/>getUserCompanyName(USER_TBL.GATE_CD, USER_TBL.COMPANY_CD, USER_TBL.USER_TYPE, #{ses.langCd})  AS COMPANY_NM
+             , <include refid="common.sql.dbo"/>getUserName(USER_TBL.GATE_CD, USER_TBL.USER_ID, #{ses.langCd})  AS USER_NM
+             , <include refid="common.sql.strDecStart"/>USER_TBL.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+             , <include refid="common.sql.strDecStart"/>USER_TBL.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+         FROM STOCUSER USER_TBL JOIN STOCOGCM OGCM
+          ON (USER_TBL.COMPANY_CD = OGCM.BUYER_CD AND USER_TBL.GATE_CD = OGCM.GATE_CD)
+        WHERE USER_TBL.GATE_CD = #{ses.gateCd}
+          AND USER_TBL.DEL_FLAG = '0'
+          AND OGCM.DEL_FLAG = '0'
+          AND USER_TBL.USER_TYPE = 'B'
+       <!-- <if test="BUYER_CD != ''">
+          AND USER_TBL.COMPANY_CD = #{BUYER_CD}
+       </if> -->
+       <if test="COMPANY_NM != '' and COMPANY_NM != '' and COMPANY_NM != null">
+          AND UPPER(<include refid="common.sql.dbo"/>getUserCompanyName(USER_TBL.GATE_CD, USER_TBL.COMPANY_CD, USER_TBL.USER_TYPE, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMPANY_NM}) <include refid="common.sql.stringMerge"/> '%'
+       </if>
+       <if test="USER_NM != '' and USER_NM != '' and USER_NM != null">
+          AND UPPER(<include refid="common.sql.dbo"/>getUserName(USER_TBL.GATE_CD, USER_TBL.USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+       </if>
+    </select>
+
+    <select id="selectUserSearchS" parameterType="hashmap" resultType="hashmap">
+
+        SELECT DISTINCT
+               VNGL.IRS_NUM AS COMPANY_REG_NUM
+             , VNGL.VENDOR_CD AS COMPANY_CD
+             , USER_TBL.USER_ID
+             , <include refid="common.sql.dbo"/>getUserName(USER_TBL.GATE_CD, USER_TBL.USER_ID, #{ses.langCd})  as USER_NM
+             , <include refid="common.sql.strDecStart"/>USER_TBL.CELL_NUM<include refid="common.sql.strDecEnd"/> as CELL_NUM
+             , <include refid="common.sql.strDecStart"/>USER_TBL.EMAIL<include refid="common.sql.strDecEnd"/> as EMAIL
+             , <include refid="common.sql.dbo"/>getUserCompanyName(USER_TBL.GATE_CD, USER_TBL.COMPANY_CD, USER_TBL.USER_TYPE, #{ses.langCd})  AS COMPANY_NM
+         FROM STOCUSER USER_TBL JOIN STOCVNGL VNGL
+          ON (USER_TBL.COMPANY_CD = VNGL.VENDOR_CD AND USER_TBL.GATE_CD = VNGL.GATE_CD)
+        WHERE USER_TBL.GATE_CD = #{ses.gateCd}
+          AND USER_TBL.DEL_FLAG = '0'
+          AND VNGL.DEL_FLAG = '0'
+          AND USER_TBL.USER_TYPE = 'S'
+       <!-- <if test="BUYER_CD != ''">
+          AND USER_TBL.COMPANY_CD = #{BUYER_CD}
+       </if> -->
+       <if test="COMPANY_NM != '' and COMPANY_NM != '' and COMPANY_NM != null">
+          AND UPPER(<include refid="common.sql.dbo"/>getUserCompanyName(USER_TBL.GATE_CD, USER_TBL.COMPANY_CD, USER_TBL.USER_TYPE, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMPANY_NM}) <include refid="common.sql.stringMerge"/> '%'
+       </if>
+       <if test="USER_NM != '' and USER_NM != '' and USER_NM != null">
+          AND UPPER(<include refid="common.sql.dbo"/>getUserName(USER_TBL.GATE_CD, USER_TBL.USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+       </if>
+
+        UNION
+            SELECT DISTINCT
+                  VNGL.IRS_NUM AS COMPANY_REG_NUM
+                , VNGL.VENDOR_CD AS COMPANY_CD
+                , '' AS USER_ID
+                , VNCP.USER_NM
+                , <include refid="common.sql.strDecStart"/>VNCP.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+                , <include refid="common.sql.strDecStart"/>VNCP.EMAIL<include refid="common.sql.strDecEnd"/> as EMAIL
+                , <include refid="common.sql.dbo"/>GETVENDORNAME(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd})  AS COMPANY_NM
+             FROM STOCVNGL VNGL JOIN STOCVNCP VNCP
+              ON (VNGL.GATE_CD = VNCP.GATE_CD AND VNGL.VENDOR_CD = VNCP.VENDOR_CD)
+            WHERE VNGL.GATE_CD = #{ses.gateCd}
+              AND VNGL.DEL_FLAG = '0'
+              AND VNCP.DEL_FLAG = '0'
+           <!-- <if test="BUYER_CD != ''"> -->
+              <!-- AND VNGL.VENDOR_CD = #{BUYER_CD} -->
+           <!-- </if> -->
+	       <if test="COMPANY_NM != '' and COMPANY_NM != '' and COMPANY_NM != null">
+	          AND  UPPER( <include refid="common.sql.dbo"/>getVendorName(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd})  ) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMPANY_NM}) <include refid="common.sql.stringMerge"/> '%'
+
+	       </if>
+	       <if test="USER_NM != '' and USER_NM != '' and USER_NM != null">
+	          AND  UPPER( VNCP.USER_NM ) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+	       </if>
+    </select>
+
+</mapper>

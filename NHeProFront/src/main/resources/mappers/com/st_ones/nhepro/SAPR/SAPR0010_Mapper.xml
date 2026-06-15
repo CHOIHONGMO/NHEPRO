@@ -1,0 +1,894 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.SAPR.SAPR0010_Mapper">
+    <select id="sapr0010_doSearch" parameterType="hashMap" resultType="hashMap">
+    	
+        SELECT IVHD.BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(IVHD.GATE_CD, IVHD.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+            , IVHD.DEPT_CD
+            , <include refid="common.sql.dbo"/>GETDEPTNAME(IVHD.GATE_CD, IVHD.BUYER_CD, IVHD.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+            , <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(IVHD.GATE_CD, IVHD.BUYER_CD, IVHD.DEPT_CD, #{ses.langCd}) AS BUYER_DEPT_NM
+            , IVHD.PROGRESS_CD
+            , CASE WHEN IVHD.GUAR_TYPE2  = '20' THEN '1' ELSE '0' END AS GUAR_YN
+            , IVGH.INV_NUM
+            , IVGH.SEND_DATE
+            , POHD.SUBJECT
+            , POHD.PO_CREATE_TYPE
+            , IVGH.PO_NUM
+            , POHD.PO_CREATE_DATE
+            , IVHD.INV_DATE
+            , POPY.PAY_CNT_NM
+            , IVGH.PAY_CNT
+            , POHD.CUR
+            , IVHD.INV_AMT
+            , IVPC.AP_REQ_AMT AS PAY_AMT
+            , IVHD.PIC_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(IVHD.GATE_CD, IVHD.PIC_USER_ID, #{ses.langCd}) AS PIC_USER_NM
+            , <include refid="common.sql.dbo"/>GETUSERINFO(IVHD.GATE_CD, IVHD.PIC_USER_ID, 'USER_TYPE') AS PIC_USER_TYPE
+            , POHD.CTRL_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(POHD.GATE_CD, POHD.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+            , <include refid="common.sql.dbo"/>GETUSERINFO(POHD.GATE_CD, POHD.CTRL_USER_ID, 'USER_TYPE') AS CTRL_USER_TYPE
+            , IVHD.DELIVERY_TYPE
+            , IVPC.PAY_TERMS
+            , IVPC.PY_BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, #{ses.langCd}) AS PY_BUYER_NM
+            , IVPC.PY_DEPT_CD
+            , <include refid="common.sql.dbo"/>GETDEPTNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, IVPC.PY_DEPT_CD, #{ses.langCd}) AS PY_DEPT_NM
+            , <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, IVPC.PY_DEPT_CD, #{ses.langCd}) AS PY_BUYER_DEPT_NM
+            , POHD.PO_AMT
+            , IVPC.PAY_TERMS AS PAY_METHOD_TYPE
+            , POHD.PAY_TYPE
+            , IVPC.AP_REQ_AMT AS PY_AMT
+            , SUM_PAY.AP_AMT AS SUM_PAY_AMT
+        FROM STOCIVGH IVGH
+        LEFT JOIN STOCIVHD IVHD
+            ON (IVHD.GATE_CD  = IVGH.GATE_CD
+            AND IVHD.BUYER_CD = IVGH.BUYER_CD
+            AND IVHD.INV_NUM  = IVGH.INV_NUM
+            AND IVHD.DEL_FLAG = '0')
+        LEFT JOIN STOCPOHD POHD
+            ON (POHD.GATE_CD  = IVGH.GATE_CD
+            AND POHD.BUYER_CD = IVGH.BUYER_CD
+            AND POHD.PO_NUM   = IVGH.PO_NUM
+            AND POHD.DEL_FLAG = '0')
+        LEFT JOIN STOCPOPY POPY
+            ON (POPY.GATE_CD   = POHD.GATE_CD
+            AND POPY.BUYER_CD  = POHD.BUYER_CD
+            AND POPY.PO_NUM    = POHD.PO_NUM
+            AND POPY.DEPT_CD   = POHD.DEPT_CD
+            AND POPY.VENDOR_CD = POHD.VENDOR_CD
+            AND POPY.PAY_CNT   = IVGH.PAY_CNT
+            AND POPY.DEL_FLAG  = '0')
+        LEFT JOIN STOCIVPC IVPC
+            ON (IVPC.GATE_CD  = POPY.GATE_CD
+            AND IVPC.BUYER_CD = POPY.BUYER_CD
+            AND IVPC.INV_NUM  = IVHD.INV_NUM
+            AND IVPC.PO_NUM   = POPY.PO_NUM
+            AND IVPC.DEPT_CD  = POPY.DEPT_CD
+            AND IVPC.PAY_CNT  = POPY.PAY_CNT
+            AND IVPC.DEL_FLAG = '0')
+        LEFT JOIN STOCIVAP IVAP
+            ON (IVAP.GATE_CD  = IVPC.GATE_CD
+            AND IVAP.BUYER_CD = IVPC.BUYER_CD
+            AND IVAP.INV_NUM  = IVGH.INV_NUM
+            AND IVAP.PO_NUM   = IVGH.PO_NUM
+            AND IVAP.DEPT_CD  = IVHD.DEPT_CD
+            AND IVAP.PAY_CNT  = IVPC.PAY_CNT
+            AND IVAP.PY_BUYER_CD = IVPC.PY_BUYER_CD
+            AND IVAP.PY_DEPT_CD  = IVPC.PY_DEPT_CD
+            AND IVAP.DEL_FLAG = '0')
+        LEFT JOIN (SELECT AP.GATE_CD
+                        , AP.PO_NUM
+                        , AP.BUYER_CD
+                        , SUM(AP.AP_AMT) AS AP_AMT
+                    FROM STOCIVAP AP
+                    WHERE AP.GATE_CD     = #{ses.gateCd}
+                      AND AP.SIGN_STATUS = '70'
+                      AND AP.DEL_FLAG    = '0'
+                    GROUP BY AP.GATE_CD, AP.BUYER_CD, AP.PO_NUM) SUM_PAY
+            ON (SUM_PAY.GATE_CD  = IVGH.GATE_CD
+            AND SUM_PAY.BUYER_CD = IVGH.BUYER_CD
+            AND SUM_PAY.PO_NUM   = IVGH.PO_NUM)
+        WHERE IVGH.GATE_CD   = #{ses.gateCd}
+          AND IVGH.VENDOR_CD = #{ses.companyCd}
+          AND IVGH.DEL_FLAG  = '0'
+          AND IVAP.SIGN_STATUS IS NULL
+          AND IVHD.PROGRESS_CD = (CASE WHEN IVHD.DELIVERY_TYPE = 'DI' THEN '300' WHEN IVHD.DELIVERY_TYPE = 'PI' THEN '700' ELSE IVHD.PROGRESS_CD END)
+        
+        <if test="FROM_DATE != '' and FROM_DATE != null">
+            AND IVHD.INV_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{FROM_DATE})
+        </if>
+        <if test="TO_DATE != '' and TO_DATE != null">
+            AND IVHD.INV_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{TO_DATE})
+        </if>
+        <if test="DELIVERY_TYPE != '' and DELIVERY_TYPE != null">
+            AND IVHD.DELIVERY_TYPE = #{DELIVERY_TYPE}
+        </if>
+        <if test="INV_NUM != '' and INV_NUM != null">
+            AND UPPER(IVHD.INV_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{INV_NUM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="PO_NUM != '' and PO_NUM != null">
+            AND UPPER(POHD.PO_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PO_NUM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="BUYER_CD != '' and BUYER_CD != null">
+            AND UPPER(POHD.BUYER_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="BUYER_NM != '' and BUYER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(POHD.GATE_CD, POHD.BUYER_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="PAY_TERMS != '' and PAY_TERMS != null">
+            AND IVPC.PAY_TERMS = #{PAY_TERMS}
+        </if>
+        
+        ORDER BY IVHD.INV_NUM DESC
+    </select>
+
+    <select id="sapi0011_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT IVGH.INV_NUM AS INV_NUM
+            , IVHD.VENDOR_CD AS VENDOR_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(POHD.GATE_CD, POHD.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+            , #{ses.userNm} AS VENDOR_USER_NM
+            , #{ses.telNum} AS VENDOR_TEL_NUM
+            , #{ses.cellNum} AS VENDOR_CELL_NUM
+            , IVHD.CUR AS CUR
+            , IVHD.VAT_TYPE AS VAT_TYPE
+            , <include refid="common.sql.toChar"/>(POHD.PO_CREATE_DATE, 'YYYY-MM-DD') AS PO_CREATE_DATE
+            , POHD.PO_NUM AS PO_NUM
+            , POHD.SUBJECT AS SUBJECT
+            , POHD.CTRL_USER_ID AS CTRL_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(POHD.GATE_CD, POHD.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+            , POHD.INSPECT_USER_ID AS INSPECT_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(POHD.GATE_CD, POHD.INSPECT_USER_ID, #{ses.langCd}) AS INSPECT_USER_NM
+            , IVPC.PAY_TERMS AS PAY_TERMS
+            , POHD.PO_AMT AS PO_AMT
+            , IVHD.BUYER_CD AS BUYER_CD
+            , IVHD.DEPT_CD
+            , POPY.PAY_CNT AS PAY_CNT
+            , POPY.PAY_CNT_NM AS PAY_CNT_NM
+            , POPY.PAY_PERCENT AS PAY_PERCENT
+            , IVPC.AP_REQ_AMT AS PAY_AMT
+            , IVHD.INV_AMT
+            , CASE WHEN POHD.VAT_TYPE = '1' THEN TRUNC(IVPC.AP_REQ_AMT / 11)
+                   WHEN POHD.VAT_TYPE = '2' THEN TRUNC(IVPC.AP_REQ_AMT * 0.1)
+              ELSE 0 END AS VAT_AMT
+            , '' AS RMK_TEXT_NUM
+            , '' AS ATT_FILE_NUM
+            , IVHD.DELIVERY_TYPE
+            , IVPC.PY_BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, #{ses.langCd}) AS PY_BUYER_NM
+            , IVPC.PY_DEPT_CD
+            , <include refid="common.sql.dbo"/>GETDEPTNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, IVPC.PY_DEPT_CD, #{ses.langCd}) AS PY_DEPT_NM
+            , <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, IVPC.PY_DEPT_CD, #{ses.langCd}) AS PY_BUYER_DEPT_NM
+            , <include refid="common.sql.toChar"/>(IVHD.INV_DATE, 'YYYY-MM-DD') AS INV_DATE
+            , VNGL.IRS_NO
+        FROM STOCIVGH IVGH
+        LEFT JOIN STOCIVHD IVHD
+            ON (IVHD.GATE_CD  = IVGH.GATE_CD
+            AND IVHD.BUYER_CD = IVGH.BUYER_CD
+            AND IVHD.INV_NUM  = IVGH.INV_NUM
+            AND IVHD.DEL_FLAG = '0')
+        LEFT JOIN STOCPOHD POHD
+            ON (POHD.GATE_CD  = IVGH.GATE_CD
+            AND POHD.BUYER_CD = IVGH.BUYER_CD
+            AND POHD.PO_NUM   = IVGH.PO_NUM
+            AND POHD.DEL_FLAG = '0')
+        LEFT JOIN STOCPOPY POPY
+            ON (POPY.GATE_CD  = POHD.GATE_CD
+            AND POPY.BUYER_CD = POHD.BUYER_CD
+            AND POPY.PO_NUM   = IVGH.PO_NUM
+            AND POPY.PAY_CNT  = IVGH.PAY_CNT
+            AND POPY.DEL_FLAG = '0')
+        LEFT JOIN STOCIVPC IVPC
+            ON (IVPC.GATE_CD   = POPY.GATE_CD
+            AND IVPC.BUYER_CD  = POPY.BUYER_CD
+            AND IVPC.INV_NUM   = IVHD.INV_NUM
+            AND IVPC.PO_NUM    = POPY.PO_NUM
+            AND IVPC.DEPT_CD   = POPY.DEPT_CD
+            AND IVPC.VENDOR_CD = #{ses.companyCd}
+            AND IVPC.PAY_CNT   = POPY.PAY_CNT
+            AND IVPC.PY_BUYER_CD = #{PY_BUYER_CD}
+            AND IVPC.PY_DEPT_CD  = #{PY_DEPT_CD}
+            AND IVPC.DEL_FLAG  = '0')
+        LEFT JOIN STOCVNGL VNGL
+            ON (VNGL.GATE_CD   = POHD.GATE_CD
+            AND VNGL.VENDOR_CD = POHD.VENDOR_CD
+            AND VNGL.DEL_FLAG  = '0')
+        WHERE IVGH.GATE_CD  = #{ses.gateCd}
+          AND IVGH.BUYER_CD = #{BUYER_CD}
+          AND IVGH.INV_NUM  = #{INV_NUM}
+    </select>
+
+    <select id="sapi0011_doSearchIVHD" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  IVAP.AP_NUM
+            , IVAP.INV_NUM
+            , IVHD.VENDOR_CD AS VENDOR_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(POHD.GATE_CD, POHD.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+            , <include refid="common.sql.strDecStart"/>IVAP.VENDOR_USER_NM<include refid="common.sql.strDecEnd"/> AS VENDOR_USER_NM
+            , <include refid="common.sql.strDecStart"/>IVAP.VENDOR_TEL_NUM<include refid="common.sql.strDecEnd"/> AS VENDOR_TEL_NUM
+            , <include refid="common.sql.strDecStart"/>IVAP.VENDOR_CELL_NUM<include refid="common.sql.strDecEnd"/> AS VENDOR_CELL_NUM
+            , IVHD.CUR AS CUR
+            , IVHD.VAT_TYPE AS VAT_TYPE
+            , <include refid="common.sql.toChar"/>(POHD.PO_CREATE_DATE, 'YYYY-MM-DD') AS PO_CREATE_DATE
+            , POHD.PO_NUM AS PO_NUM
+            , POHD.SUBJECT AS SUBJECT
+            , POHD.CTRL_USER_ID AS CTRL_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(POHD.GATE_CD, POHD.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+            , POHD.INSPECT_USER_ID AS INSPECT_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(POHD.GATE_CD, POHD.INSPECT_USER_ID, #{ses.langCd}) AS INSPECT_USER_NM
+            , IVAP.PAY_TERMS AS PAY_TERMS
+            , POHD.PO_AMT AS PO_AMT
+            , IVHD.BUYER_CD AS BUYER_CD
+            , IVHD.DEPT_CD
+            , POPY.PAY_CNT AS PAY_CNT
+            , POPY.PAY_CNT_NM AS PAY_CNT_NM
+            , POPY.PAY_PERCENT AS PAY_PERCENT
+            , IVPC.AP_REQ_AMT AS PAY_AMT
+            , IVHD.INV_AMT
+            , CASE WHEN POHD.VAT_TYPE = '1' THEN TRUNC(IVPC.AP_REQ_AMT / 11)
+                   WHEN POHD.VAT_TYPE = '2' THEN TRUNC(IVPC.AP_REQ_AMT * 0.1)
+              ELSE 0 END AS VAT_AMT
+            , IVAP.VENDOR_RMK AS RMK_TEXT_NUM
+            , IVAP.VENDOR_ATT_FILE_NUM AS ATT_FILE_NUM
+            , IVHD.DELIVERY_TYPE
+            , IVPC.PY_BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, #{ses.langCd}) AS PY_BUYER_NM
+            , IVPC.PY_DEPT_CD
+            , <include refid="common.sql.dbo"/>GETDEPTNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, IVPC.PY_DEPT_CD, #{ses.langCd}) AS PY_DEPT_NM
+            , <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, IVPC.PY_DEPT_CD, #{ses.langCd}) AS PY_BUYER_DEPT_NM
+            , <include refid="common.sql.toChar"/>(IVHD.INV_DATE, 'YYYY-MM-DD') AS INV_DATE
+            , IVAP.AP_REQ_SUBJECT
+            , IVAP.AP_REQ_DATE
+            , <include refid="common.sql.toChar"/>(IVAP.BILL_DATE, 'YYYY-MM-DD') AS BILL_DATE
+            , IVAP.GUAR_TYPE
+            , IVAP.GUAR_PERCENT
+            , IVAP.GUAR_TYPE2
+            , IVAP.GUARANTEER
+            , IVAP.GUAR_QT
+            , IVAP.GUAR_AMT
+            , IVAP.BOND_BEGN_DATE
+            , IVAP.BOND_FNSH_DATE
+            , IVAP.GUAR_NUM
+            , IVAP.GUAR_ATT_FILE_NUM
+            , IVAP.GUAR_RMK
+            , IVAP.PAY_BANK
+            , <include refid="common.sql.dbo"/>GETCODENAME(IVAP.GATE_CD, 'M017', IVAP.PAY_BANK, #{ses.langCd}) AS PAY_BANK_NM
+            , <include refid="common.sql.strDecStart"/>IVAP.PAY_ACCOUNT_NUM<include refid="common.sql.strDecEnd"/> AS PAY_ACCOUNT_NUM
+            , IVAP.PAY_ACC_NM
+            , IVAP.PAY_ATT_FILE_NUM			  
+			,(CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(IVAP.GATE_CD, IVAP.PAY_ATT_FILE_NUM) = 0 THEN NULL
+			  	   ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(IVAP.GATE_CD, IVAP.PAY_ATT_FILE_NUM)
+			  END) AS PAY_ATT_FILE_CNT
+            , IVAP.INSU_STATUS
+            , IVAP.BILL_ATT_FILE_NUM
+            ,(CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(IVAP.GATE_CD, IVAP.BILL_ATT_FILE_NUM) = 0 THEN NULL
+               	   ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(IVAP.GATE_CD, IVAP.BILL_ATT_FILE_NUM)
+              END) AS BILL_ATT_FILE_CNT
+            , VNGL.IRS_NO
+        FROM STOCIVAP IVAP
+        LEFT JOIN STOCIVHD IVHD
+            ON (IVHD.GATE_CD  = IVAP.GATE_CD
+            AND IVHD.BUYER_CD = IVAP.BUYER_CD
+            AND IVHD.INV_NUM  = IVAP.INV_NUM
+            AND IVHD.DEL_FLAG = '0')
+        LEFT JOIN STOCPOHD POHD
+            ON (POHD.GATE_CD  = IVAP.GATE_CD
+            AND POHD.BUYER_CD = IVAP.BUYER_CD
+            AND POHD.PO_NUM   = IVAP.PO_NUM
+            AND POHD.DEL_FLAG = '0')
+        LEFT JOIN STOCPOPY POPY
+            ON (POPY.GATE_CD  = POHD.GATE_CD
+            AND POPY.BUYER_CD = POHD.BUYER_CD
+            AND POPY.PO_NUM   = IVAP.PO_NUM
+            AND POPY.PAY_CNT  = IVAP.PAY_CNT
+            AND POPY.DEL_FLAG = '0')
+        LEFT JOIN STOCIVPC IVPC
+            ON (IVPC.GATE_CD   = POPY.GATE_CD
+            AND IVPC.BUYER_CD  = POPY.BUYER_CD
+            AND IVPC.INV_NUM   = IVHD.INV_NUM
+            AND IVPC.PO_NUM    = POPY.PO_NUM
+            AND IVPC.DEPT_CD   = POPY.DEPT_CD
+            AND IVPC.VENDOR_CD = #{ses.companyCd}
+            AND IVPC.PAY_CNT   = POPY.PAY_CNT
+            AND IVPC.PY_BUYER_CD = #{PY_BUYER_CD}
+            AND IVPC.PY_DEPT_CD  = #{PY_DEPT_CD}
+            AND IVPC.DEL_FLAG  = '0')
+        LEFT JOIN STOCVNGL VNGL
+            ON (VNGL.GATE_CD   = IVHD.GATE_CD
+            AND VNGL.VENDOR_CD = IVHD.VENDOR_CD
+            AND VNGL.DEL_FLAG  = '0')
+        WHERE IVAP.GATE_CD  = #{ses.gateCd}
+          AND IVAP.BUYER_CD = #{BUYER_CD}
+          AND IVAP.AP_NUM   = #{AP_NUM}
+    </select>
+
+    <select id="sapi0011_doSearchIVDT" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  IVDT.INV_SQ
+            , IVDT.PO_NUM
+            , IVDT.PO_SQ
+            , IVDT.ITEM_CD
+            , IVDT.ITEM_DESC
+            , IVDT.ITEM_SPEC
+            , IVDT.MAKER_CD
+            , <include refid="common.sql.dbo"/>GETMKBRNAME(IVDT.GATE_CD, IVHD.BUYER_CD, 'MK', IVDT.MAKER_CD) AS MAKER_NM
+            , IVDT.MAKER_PART_NO
+            , PODT.PO_QT
+            , IVDT.UNIT_CD
+            , IVDT.UNIT_PRC
+            , PODT.ITEM_AMT
+            , <include refid="common.sql.toChar"/>(PODT.DUE_DATE, 'YYYY-MM-DD') AS DUE_DATE
+            , IVDT.INV_QT AS INV_QT
+            , IVDT.INV_QT AS OLD_INV_QT
+            , IVDT.ITEM_AMT AS INV_AMT
+            , IVDT.ITEM_AMT AS OLD_INV_AMT
+            , IVDT.VAT_AMT AS VAT_AMT
+            , SUM_IVDT.INV_QT AS SUM_INV_QT
+            , SUM_IVDT.ITEM_AMT AS SUM_INV_AMT
+            , SUM2_IVDT.INV_QT AS SUM2_INV_QT
+            , SUM2_IVDT.ITEM_AMT AS SUM2_INV_AMT
+            , PODT.PO_QT + (CASE WHEN TO_NUMBER(IVHD.PROGRESS_CD) >= '100' THEN 0 ELSE IVDT.INV_QT END) - <include refid="common.sql.nvl"/>(SUM2_IVDT.INV_QT, 0) - <include refid="common.sql.nvl"/>(SUM_IVDT.INV_QT, 0) AS PO_RE_QT
+            , PODT.ITEM_AMT + (CASE WHEN TO_NUMBER(IVHD.PROGRESS_CD) >= '100' THEN 0 ELSE IVDT.ITEM_AMT END) - <include refid="common.sql.nvl"/>(SUM2_IVDT.ITEM_AMT, 0) - <include refid="common.sql.nvl"/>(SUM_IVDT.ITEM_AMT, 0) AS PO_RE_AMT
+            , CASE WHEN IVHD.DELIVERY_TYPE = 'DI' THEN PODT.GR_QT ELSE IVDT.INV_QT END AS PY_ITEM_QT
+            , CASE WHEN IVHD.DELIVERY_TYPE = 'DI' THEN PODT.GR_QT * PODT.UNIT_PRC ELSE IVDT.ITEM_AMT END AS PY_ITEM_AMT
+            , CASE WHEN IVHD.VAT_TYPE = '1' THEN TRUNC(CASE WHEN IVHD.DELIVERY_TYPE = 'DI' THEN PODT.GR_QT * PODT.UNIT_PRC ELSE IVDT.ITEM_AMT END / 11)
+                   WHEN IVHD.VAT_TYPE = '2' THEN TRUNC(CASE WHEN IVHD.DELIVERY_TYPE = 'DI' THEN PODT.GR_QT * PODT.UNIT_PRC ELSE IVDT.ITEM_AMT END * 0.1)
+              ELSE 0 END AS PY_ITEM_VAT_AMT
+        FROM STOCIVHD IVHD
+        LEFT JOIN STOCIVDT IVDT
+            ON (IVDT.GATE_CD  = IVHD.GATE_CD
+            AND IVDT.BUYER_CD = IVHD.BUYER_CD
+            AND IVDT.INV_NUM  = IVHD.INV_NUM
+            AND IVDT.DEL_FLAG = '0')
+        LEFT JOIN STOCPODT PODT
+            ON (PODT.GATE_CD  = IVDT.GATE_CD
+            AND PODT.BUYER_CD = IVDT.BUYER_CD
+            AND PODT.PO_NUM   = IVDT.PO_NUM
+            AND PODT.PO_SQ    = IVDT.PO_SQ
+            AND PODT.DEL_FLAG = '0')
+        LEFT JOIN STOCIVGH IVGH
+            ON (IVGH.GATE_CD  = IVHD.GATE_CD
+            AND IVGH.BUYER_CD = IVHD.BUYER_CD
+            AND IVGH.INV_NUM  = IVHD.INV_NUM
+            AND IVGH.BUYER_CD = IVHD.BUYER_CD
+            AND IVGH.DEL_FLAG = '0')
+        LEFT JOIN STOCPOPY POPY
+            ON (POPY.GATE_CD  = IVGH.GATE_CD
+            AND POPY.BUYER_CD = IVGH.BUYER_CD
+            AND POPY.PO_NUM   = IVGH.PO_NUM
+            AND POPY.DEPT_CD  = IVHD.DEPT_CD
+            AND POPY.PAY_CNT  = IVGH.PAY_CNT
+            AND POPY.DEL_FLAG = '0')
+        LEFT JOIN STOCPOPC POPC
+            ON (POPC.GATE_CD  = POPY.GATE_CD
+            AND POPC.BUYER_CD = POPY.BUYER_CD
+            AND POPC.PO_NUM   = POPY.PO_NUM
+            AND POPC.DEPT_CD  = POPY.DEPT_CD
+            AND POPC.PAY_CNT  = POPY.PAY_CNT
+            AND POPC.PY_BUYER_CD = #{PY_BUYER_CD}
+            AND POPC.PY_DEPT_CD  = #{PY_DEPT_CD}
+            AND POPC.DEL_FLAG = '0')
+        LEFT JOIN (SELECT IVDT.GATE_CD
+                        , IVDT.BUYER_CD
+                        , IVDT.PO_NUM
+                        , IVDT.PO_SQ
+                        , SUM(IVDT.INV_QT) AS INV_QT
+                        , SUM(IVDT.ITEM_AMT) AS ITEM_AMT
+                    FROM STOCIVDT IVDT
+                    LEFT JOIN STOCIVHD IVHD
+                         ON (IVHD.GATE_CD  = IVDT.GATE_CD
+                         AND IVHD.BUYER_CD = IVDT.BUYER_CD
+                         AND IVHD.INV_NUM  = IVDT.INV_NUM
+                         AND IVHD.DEL_FLAG = '0')
+                    WHERE IVDT.GATE_CD  = #{ses.gateCd}
+                      AND IVDT.PO_NUM   = #{PO_NUM}
+                      AND TO_NUMBER(IVHD.PROGRESS_CD) >= '100'
+                      AND IVDT.DEL_FLAG = '0'
+                    GROUP BY IVDT.GATE_CD, IVDT.BUYER_CD, IVDT.PO_NUM, IVDT.PO_SQ) SUM_IVDT
+            ON (SUM_IVDT.GATE_CD  = PODT.GATE_CD
+            AND SUM_IVDT.BUYER_CD = PODT.BUYER_CD
+            AND SUM_IVDT.PO_NUM   = PODT.PO_NUM
+            AND SUM_IVDT.PO_SQ    = PODT.PO_SQ)
+        LEFT JOIN (SELECT IVDT.GATE_CD
+	                    , IVDT.BUYER_CD
+	                    , IVDT.PO_NUM
+	                    , IVDT.PO_SQ
+	                    , SUM(IVDT.INV_QT) AS INV_QT
+	                    , SUM(IVDT.ITEM_AMT) AS ITEM_AMT
+                FROM STOCIVDT IVDT
+                LEFT JOIN STOCIVHD IVHD
+                     ON (IVHD.GATE_CD = IVDT.GATE_CD
+                     AND IVHD.BUYER_CD = IVDT.BUYER_CD
+                     AND IVHD.INV_NUM = IVDT.INV_NUM
+                     AND IVHD.DEL_FLAG = '0')
+                WHERE IVDT.GATE_CD  = #{ses.gateCd}
+                  AND IVDT.PO_NUM   = #{PO_NUM}
+                  AND TO_NUMBER(IVHD.PROGRESS_CD) = '50'
+                  AND IVDT.DEL_FLAG = '0'
+                GROUP BY IVDT.GATE_CD, IVDT.BUYER_CD, IVDT.PO_NUM, IVDT.PO_SQ) SUM2_IVDT
+	        ON (SUM2_IVDT.GATE_CD  = PODT.GATE_CD
+	        AND SUM2_IVDT.BUYER_CD = PODT.BUYER_CD
+	        AND SUM2_IVDT.PO_NUM   = PODT.PO_NUM
+	        AND SUM2_IVDT.PO_SQ    = PODT.PO_SQ)
+        WHERE IVHD.GATE_CD  = #{ses.gateCd}
+          AND IVHD.BUYER_CD = #{BUYER_CD}
+          AND IVHD.INV_NUM  = #{INV_NUM}
+          AND IVHD.DEL_FLAG = '0'
+        ORDER BY PODT.PO_SQ
+    </select>
+	
+	<!-- 2021.01.20 : 화면 Refresh 하기 위한 PK 조회추가 -->
+    <select id="sapi0011_doSearchIVAP" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  IVAP.BUYER_CD
+        	, IVAP.AP_NUM
+        	, IVAP.PY_BUYER_CD
+        	, IVAP.PY_DEPT_CD
+            , IVAP.SIGN_STATUS
+            , IVAP.AP_REQ_DATE
+            , IVAP.AP_REQ_SUBJECT
+            , IVAP.AP_DATE
+            , IVAP.CUR
+            , IVAP.AP_REQ_AMT
+        FROM STOCIVAP IVAP
+        WHERE IVAP.GATE_CD  = #{ses.gateCd}
+          AND IVAP.BUYER_CD = #{BUYER_CD}
+          AND IVAP.AP_NUM   = #{AP_NUM}
+          AND IVAP.DEL_FLAG = '0'
+        ORDER BY IVAP.AP_NUM DESC
+    </select>
+	
+	<!-- 협력사 대금지급 요청 후 담당자에게 MAIL/SMS 보내기 -->
+    <select id="getMailList" parameterType="hashMap" resultType="hashMap">
+    	
+    	SELECT A.*
+    		 , CVUR.DEPT_CD AS BRC
+    		 ,<include refid="common.sql.nvl"/>(CVUR.SMS_FLAG, '0') AS SMS_FLAG
+    		 ,<include refid="common.sql.nvl"/>(CVUR.MAIL_FLAG, '0') AS MAIL_FLAG
+    	  FROM (
+	        SELECT
+	        	  IVAP.GATE_CD
+	        	, IVAP.BUYER_CD
+	            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(IVAP.GATE_CD, IVAP.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+	            , IVAP.AP_NUM
+	            , IVAP.VENDOR_CD AS VENDOR_CD
+	            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(IVAP.GATE_CD, IVAP.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+	            , POHD.SUBJECT
+	            , IVAP.AP_REQ_SUBJECT
+	            ,(CASE WHEN IVAP.AP_USER_ID IS NULL THEN IVPC.AP_USER_ID 
+	            	   ELSE IVAP.AP_USER_ID
+	              END) AS AP_USER_ID
+	            , <include refid="common.sql.dbo"/>GETUSERNAME(POHD.GATE_CD, POHD.INSPECT_USER_ID, #{ses.langCd}) AS INSPECT_USER_NM
+	            , <include refid="common.sql.toChar"/>(IVAP.AP_REQ_DATE, 'YYYY-MM-DD') AS AP_REQ_DATE
+	            , POPY.PAY_CNT || '차 : ' || POPY.PAY_CNT_NM AS PAY_INFO
+	            , IVPC.AP_REQ_AMT AS PAY_AMT
+	            -- 2021.06.30 : 협력사에서 대금지급요청 완료 후  SMS 수수료 부과
+	            ,(SELECT IRS_NUM FROM STOCCUST
+	               WHERE GATE_CD = IVPC.GATE_CD
+	                 AND CUST_CD = IVPC.BUYER_CD)	AS CORP_NO
+	            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+	            ,(CASE WHEN IVAP.AP_USER_ID IS NULL THEN IVPC.AP_USER_ID 
+	            	   ELSE IVAP.AP_USER_ID
+	              END) AS USER_ID
+	            , 'AP'				<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              IVAP.GATE_CD  	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              IVAP.AP_NUM	 		AS CONT_TBL_PK
+	            , NULL 					AS FILE_SIZE
+	        FROM STOCIVAP IVAP
+	        JOIN STOCIVHD IVHD
+	             ON (IVHD.GATE_CD  = IVAP.GATE_CD
+	             AND IVHD.BUYER_CD = IVAP.BUYER_CD
+	             AND IVHD.INV_NUM  = IVAP.INV_NUM
+	             AND IVHD.DEL_FLAG = '0')
+	        JOIN STOCPOHD POHD
+	             ON (POHD.GATE_CD  = IVAP.GATE_CD
+	             AND POHD.BUYER_CD = IVAP.BUYER_CD
+	             AND POHD.PO_NUM   = IVAP.PO_NUM
+	             AND POHD.DEL_FLAG = '0')
+	        JOIN STOCPOPY POPY
+	             ON (POPY.GATE_CD  = POHD.GATE_CD
+	             AND POPY.BUYER_CD = POHD.BUYER_CD
+	             AND POPY.PO_NUM   = IVAP.PO_NUM
+	             AND POPY.PAY_CNT  = IVAP.PAY_CNT
+	             AND POPY.DEL_FLAG = '0')
+	        JOIN STOCIVPC IVPC
+	             ON (IVPC.GATE_CD   = POPY.GATE_CD
+	             AND IVPC.BUYER_CD  = POPY.BUYER_CD
+	             AND IVPC.INV_NUM   = IVHD.INV_NUM
+	             AND IVPC.PO_NUM    = POPY.PO_NUM
+	             AND IVPC.DEPT_CD   = POPY.DEPT_CD
+	             AND IVPC.VENDOR_CD = #{ses.companyCd}
+	             AND IVPC.PAY_CNT   = POPY.PAY_CNT
+	             AND IVPC.PY_BUYER_CD = #{PY_BUYER_CD}
+	             AND IVPC.PY_DEPT_CD  = #{PY_DEPT_CD}
+	             AND IVPC.DEL_FLAG  = '0')
+	        WHERE IVAP.GATE_CD  = #{ses.gateCd}
+	          AND IVAP.BUYER_CD = #{BUYER_CD}
+	          AND IVAP.AP_NUM   = #{AP_NUM}
+		  ) A
+		  JOIN STOCCVUR CVUR
+		  	   ON (A.GATE_CD    = CVUR.GATE_CD
+		  	   AND A.AP_USER_ID = CVUR.USER_ID)
+		 WHERE 1 = 1
+    </select>
+
+    <insert id="sapi0011_doInsertIVAP" parameterType="hashMap">
+        INSERT INTO STOCIVAP (
+            GATE_CD
+            , AP_NUM
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , INV_NUM
+            , PO_NUM
+            , VENDOR_CD
+            , BUYER_CD
+            , DEPT_CD
+            , PAY_CNT
+            , PY_BUYER_CD
+            , PY_DEPT_CD
+            , AP_REQ_SUBJECT
+            , AP_REQ_DATE
+            , BILL_DATE
+            , CUR
+            , AP_REQ_AMT
+            , PAY_TERMS
+            , VAT_TYPE
+            , BILL_ATT_FILE_NUM
+            , VENDOR_ATT_FILE_NUM
+            , VENDOR_RMK
+            , SIGN_STATUS
+            , GUAR_TYPE
+            , GUAR_PERCENT
+            , GUAR_QT
+            , VAT_FLAG
+            , GUAR_AMT
+            , GUAR_ATT_FILE_NUM
+            , INSU_STATUS
+            , GUAR_RMK
+            , VENDOR_USER_NM
+            , VENDOR_TEL_NUM
+            , VENDOR_CELL_NUM
+            , PAY_BANK
+            , PAY_ACCOUNT_NUM
+            , PAY_ACC_NM
+            , PAY_ATT_FILE_NUM
+            , GUAR_TYPE2
+            , GUARANTEER
+            , BOND_BEGN_DATE
+            , BOND_FNSH_DATE
+        )
+        SELECT IVGH.GATE_CD
+            , #{AP_NUM}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , IVGH.INV_NUM
+            , IVGH.PO_NUM
+            , IVGH.VENDOR_CD
+            , IVGH.BUYER_CD
+            , IVHD.DEPT_CD
+            , IVGH.PAY_CNT
+            , IVPC.PY_BUYER_CD
+            , IVPC.PY_DEPT_CD
+            , #{AP_REQ_SUBJECT}
+            , CASE WHEN #{TYPE} = 'SEND' THEN SYSDATE ELSE NULL END
+            , #{BILL_DATE}
+            , IVHD.CUR
+            , #{PAY_AMT}
+            , POPY.PAY_METHOD_TYPE
+            , IVHD.VAT_TYPE
+            , #{BILL_ATT_FILE_NUM}
+            , #{ATT_FILE_NUM}
+            , #{RMK_TEXT_NUM}
+            , #{SIGN_STATUS}
+            , #{GUAR_TYPE}
+            , #{GUAR_PERCENT}
+            , #{GUAR_QT}
+            , '1'
+            , #{GUAR_AMT}
+            , #{GUAR_ATT_FILE_NUM}
+            , #{INSU_STATUS}
+            , #{GUAR_RMK}
+            , <include refid="common.sql.strEncStart"/>#{VENDOR_USER_NM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{VENDOR_TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{VENDOR_CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            , #{PAY_BANK}
+            , <include refid="common.sql.strEncStart"/>#{PAY_ACCOUNT_NUM}<include refid="common.sql.strEncEnd"/>
+            , #{PAY_ACC_NM}
+            , #{PAY_ATT_FILE_NUM}
+            , #{GUAR_TYPE2}
+            , #{GUARANTEER}
+            , #{BOND_BEGN_DATE}
+            , #{BOND_FNSH_DATE}
+        FROM STOCIVGH IVGH
+        LEFT JOIN STOCIVHD IVHD
+            ON (IVHD.GATE_CD  = IVGH.GATE_CD
+            AND IVHD.BUYER_CD = IVGH.BUYER_CD
+            AND IVHD.INV_NUM  = IVGH.INV_NUM
+            AND IVHD.DEL_FLAG = '0')
+        LEFT JOIN STOCPOPY POPY
+            ON (POPY.GATE_CD  = IVHD.GATE_CD
+            AND POPY.BUYER_CD  = IVHD.BUYER_CD
+            AND POPY.PO_NUM    = IVGH.PO_NUM
+            AND POPY.DEPT_CD   = IVHD.DEPT_CD
+            AND POPY.VENDOR_CD = IVHD.VENDOR_CD
+            AND POPY.PAY_CNT   = IVGH.PAY_CNT
+            AND POPY.DEL_FLAG  = '0')
+        LEFT JOIN STOCIVPC IVPC
+            ON (IVPC.GATE_CD  = POPY.GATE_CD
+            AND IVPC.BUYER_CD = POPY.BUYER_CD
+            AND IVPC.INV_NUM  = IVHD.INV_NUM
+            AND IVPC.PO_NUM   = POPY.PO_NUM
+            AND IVPC.DEPT_CD  = POPY.DEPT_CD
+            AND IVPC.PAY_CNT  = POPY.PAY_CNT
+            AND IVPC.PY_BUYER_CD = #{PY_BUYER_CD}
+            AND IVPC.PY_DEPT_CD  = #{PY_DEPT_CD}
+            AND IVPC.DEL_FLAG = '0')
+        WHERE IVGH.GATE_CD  = #{ses.gateCd}
+          AND IVGH.BUYER_CD = #{BUYER_CD}
+          AND IVGH.INV_NUM  = #{INV_NUM}
+    </insert>
+
+    <update id="sapi0011_doUpdateIVAP" parameterType="hashMap">
+        UPDATE STOCIVAP SET
+            AP_REQ_SUBJECT = #{AP_REQ_SUBJECT}
+            , BILL_DATE = #{BILL_DATE}
+            , BILL_ATT_FILE_NUM = #{BILL_ATT_FILE_NUM}
+            , VENDOR_ATT_FILE_NUM = #{ATT_FILE_NUM}
+            , VENDOR_RMK = #{RMK_TEXT_NUM}
+            , SIGN_STATUS = #{SIGN_STATUS}
+            , GUAR_TYPE = #{GUAR_TYPE}
+            , GUAR_PERCENT = #{GUAR_PERCENT}
+            , GUAR_QT = #{GUAR_QT}
+            , GUAR_AMT = #{GUAR_AMT}
+            , GUAR_ATT_FILE_NUM = #{GUAR_ATT_FILE_NUM}
+            , INSU_STATUS = CASE WHEN #{TYPE} = 'GUAR' THEN #{INSU_STATUS} ELSE INSU_STATUS END
+            , GUAR_RMK = #{GUAR_RMK}
+            , VENDOR_USER_NM = <include refid="common.sql.strEncStart"/>#{VENDOR_USER_NM}<include refid="common.sql.strEncEnd"/>
+            , VENDOR_TEL_NUM = <include refid="common.sql.strEncStart"/>#{VENDOR_TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            , VENDOR_CELL_NUM = <include refid="common.sql.strEncStart"/>#{VENDOR_CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            , PAY_BANK = #{PAY_BANK}
+            , PAY_ACCOUNT_NUM = <include refid="common.sql.strEncStart"/>#{PAY_ACCOUNT_NUM}<include refid="common.sql.strEncEnd"/>
+            , PAY_ACC_NM = #{PAY_ACC_NM}
+            , PAY_ATT_FILE_NUM = #{PAY_ATT_FILE_NUM}
+            , GUAR_TYPE2 = #{GUAR_TYPE2}
+            , GUARANTEER = #{GUARANTEER}
+            , BOND_BEGN_DATE = #{BOND_BEGN_DATE}
+            , BOND_FNSH_DATE = #{BOND_FNSH_DATE}
+            , AP_REQ_DATE = CASE WHEN #{TYPE} = 'SEND' THEN SYSDATE ELSE AP_REQ_DATE END
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND AP_NUM   = #{AP_NUM}
+          AND INV_NUM  = #{INV_NUM}
+          AND PO_NUM   = #{PO_NUM}
+          AND BUYER_CD = #{BUYER_CD}
+          AND DEPT_CD  = #{DEPT_CD}
+          AND PAY_CNT  = #{PAY_CNT}
+          AND PY_BUYER_CD = #{PY_BUYER_CD}
+          AND PY_DEPT_CD  = #{PY_DEPT_CD}
+    </update>
+
+    <update id="sapi0011_doUpdateSignIVAP" parameterType="hashMap">
+        UPDATE STOCIVAP SET
+            SIGN_VALUE = #{SIGN_VALUE}
+            , SIGN_RANDOM = #{SIGN_RANDOM}
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND AP_NUM   = #{AP_NUM}
+          AND INV_NUM  = #{INV_NUM}
+          AND PO_NUM   = #{PO_NUM}
+          AND BUYER_CD = #{BUYER_CD}
+          AND DEPT_CD  = #{DEPT_CD}
+          AND PAY_CNT  = #{PAY_CNT}
+          AND PY_BUYER_CD = #{PY_BUYER_CD}
+          AND PY_DEPT_CD  = #{PY_DEPT_CD}
+    </update>
+	
+	<!-- 대금지급 요청 후 발주진행상태=7300(대금청구요청) -->
+    <update id="sapi0011_doUpdatePODT" parameterType="hashMap">
+        UPDATE STOCPODT SET
+              PROGRESS_CD = CASE WHEN #{TYPE} = 'SEND' THEN #{PROGRESS_CD} ELSE PROGRESS_CD END
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+          AND PO_NUM   = #{PO_NUM}
+          AND PO_SQ    = #{PO_SQ}
+    </update>
+	
+	<!-- 2021.01.27 추가 -->
+    <!-- 대금지급 요청(TYPE=SEND) 후 구매진행상태(=7300) 변경 -->
+    <update id="setPrProgressCd" parameterType="hashMap">
+        UPDATE STOCPRDT SET
+              MOD_DATE    = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , PROGRESS_CD = CASE WHEN #{TYPE} = 'SEND' THEN #{PROGRESS_CD} ELSE PROGRESS_CD END
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND (BUYER_CD, PR_NUM, PR_SQ) IN (
+          			SELECT PB_BUYER_CD, PR_NUM, PR_SQ
+          			  FROM STOCPODT
+          			 WHERE GATE_CD  = #{ses.gateCd}
+          			   AND BUYER_CD = #{BUYER_CD}
+          			   AND PO_NUM   = #{PO_NUM}
+          			   AND PO_SQ    = #{PO_SQ}
+          	  )
+          AND DEL_FLAG = '0'
+    </update>
+    
+    <update id="sapi0011_doDeleteFlagIVAP" parameterType="hashMap">
+        UPDATE STOCIVAP SET
+            DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD   = #{ses.gateCd}
+          AND AP_NUM   = #{AP_NUM}
+          AND INV_NUM  = #{INV_NUM}
+          AND PO_NUM   = #{PO_NUM}
+          AND BUYER_CD = #{BUYER_CD}
+          AND DEPT_CD  = #{DEPT_CD}
+          AND PAY_CNT  = #{PAY_CNT}
+          AND PY_BUYER_CD = #{PY_BUYER_CD}
+          AND PY_DEPT_CD  = #{PY_DEPT_CD}
+    </update>
+
+    <select id="sapr0020_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT IVHD.BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(IVHD.GATE_CD, IVHD.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+            , IVHD.DEPT_CD
+            , <include refid="common.sql.dbo"/>GETDEPTNAME(IVHD.GATE_CD, IVHD.BUYER_CD, IVHD.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+            , <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(IVHD.GATE_CD, IVHD.BUYER_CD, IVHD.DEPT_CD, #{ses.langCd}) AS BUYER_DEPT_NM
+            , IVHD.PROGRESS_CD
+            , CASE WHEN IVHD.GUAR_TYPE2  = '20' THEN '1' ELSE '0' END AS GUAR_YN
+            , IVGH.INV_NUM
+            , IVGH.SEND_DATE
+            , IVGH.SUBJECT
+            , POHD.SUBJECT AS PO_SUBJECT
+            , POHD.PO_CREATE_TYPE
+            , IVGH.PO_NUM
+            , POHD.PO_CREATE_DATE
+            , IVHD.INV_DATE
+            , POPY.PAY_CNT_NM
+            , IVGH.PAY_CNT
+            , POHD.CUR
+            , IVHD.INV_AMT
+            , IVPC.AP_REQ_AMT AS PAY_AMT
+            , IVHD.PIC_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(IVHD.GATE_CD, IVHD.PIC_USER_ID, #{ses.langCd}) AS PIC_USER_NM
+            , <include refid="common.sql.dbo"/>GETUSERINFO(IVHD.GATE_CD, IVHD.PIC_USER_ID, 'USER_TYPE') AS PIC_USER_TYPE
+            , POHD.CTRL_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(POHD.GATE_CD, POHD.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+            , <include refid="common.sql.dbo"/>GETUSERINFO(POHD.GATE_CD, POHD.CTRL_USER_ID, 'USER_TYPE') AS CTRL_USER_TYPE
+            , IVHD.DELIVERY_TYPE
+            , IVPC.PAY_TERMS
+            , IVPC.PY_BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, #{ses.langCd}) AS PY_BUYER_NM
+            , IVPC.PY_DEPT_CD
+            , <include refid="common.sql.dbo"/>GETDEPTNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, IVPC.PY_DEPT_CD, #{ses.langCd}) AS PY_DEPT_NM
+            , <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, IVPC.PY_DEPT_CD, #{ses.langCd}) AS PY_BUYER_DEPT_NM
+            , POHD.PO_AMT
+            , POPY.PAY_METHOD_TYPE
+            , POHD.PAY_TYPE
+            , IVPC.AP_REQ_AMT AS PY_AMT
+            , IVAP.SIGN_STATUS
+            , IVAP.AP_NUM
+            , IVAP.AP_REQ_SUBJECT
+            , IVAP.AP_REQ_DATE
+            , <include refid="common.sql.strDecStart"/>IVAP.PAY_ACCOUNT_NUM<include refid="common.sql.strDecEnd"/> AS PAY_ACCOUNT_NUM
+            , <include refid="common.sql.strDecStart"/>IVAP.AP_ACCOUT<include refid="common.sql.strDecEnd"/> AS AP_ACCOUT
+            , IVAP.AP_DATE
+            , IVAP.AP_AMT
+            , IVAP.AP_REJECT_RMK
+        FROM STOCIVGH IVGH
+        LEFT JOIN STOCIVHD IVHD
+            ON (IVHD.GATE_CD  = IVGH.GATE_CD
+            AND IVHD.BUYER_CD = IVGH.BUYER_CD
+            AND IVHD.INV_NUM  = IVGH.INV_NUM
+            AND IVHD.DEL_FLAG = '0')
+        LEFT JOIN STOCPOHD POHD
+            ON (POHD.GATE_CD  = IVGH.GATE_CD
+            AND POHD.BUYER_CD = IVGH.BUYER_CD
+            AND POHD.PO_NUM   = IVGH.PO_NUM)
+        LEFT JOIN STOCPOPY POPY
+            ON (POPY.GATE_CD   = POHD.GATE_CD
+            AND POPY.BUYER_CD  = POHD.BUYER_CD
+            AND POPY.PO_NUM    = POHD.PO_NUM
+            AND POPY.DEPT_CD   = POHD.DEPT_CD
+            AND POPY.VENDOR_CD = POHD.VENDOR_CD
+            AND POPY.PAY_CNT   = IVGH.PAY_CNT
+            AND POPY.DEL_FLAG  = '0')
+        LEFT JOIN STOCIVPC IVPC
+            ON (IVPC.GATE_CD  = POPY.GATE_CD
+            AND IVPC.BUYER_CD = POPY.BUYER_CD
+            AND IVPC.PO_NUM   = POPY.PO_NUM
+            AND IVPC.DEPT_CD  = POPY.DEPT_CD
+            AND IVPC.PAY_CNT  = POPY.PAY_CNT
+            AND IVPC.DEL_FLAG = '0')
+        LEFT JOIN STOCIVAP IVAP
+            ON (IVAP.GATE_CD  = IVPC.GATE_CD
+            AND IVAP.BUYER_CD = IVPC.BUYER_CD
+            AND IVAP.INV_NUM  = IVPC.INV_NUM
+            AND IVAP.INV_NUM  = IVGH.INV_NUM
+            AND IVAP.PO_NUM   = IVGH.PO_NUM
+            AND IVAP.DEPT_CD  = IVHD.DEPT_CD
+            AND IVAP.PAY_CNT  = IVPC.PAY_CNT
+            AND IVAP.PY_BUYER_CD = IVPC.PY_BUYER_CD
+            AND IVAP.PY_DEPT_CD  = IVPC.PY_DEPT_CD
+            AND IVAP.DEL_FLAG = '0')
+        WHERE IVGH.GATE_CD   = #{ses.gateCd}
+          AND IVGH.VENDOR_CD = #{ses.companyCd}
+          AND IVGH.DEL_FLAG  = '0'
+          AND IVAP.SIGN_STATUS IS NOT NULL
+          
+	    <if test="SEL_DATE != '' and SEL_DATE != null and SEL_DATE == 'REQI'.toString()">
+	        <if test="FROM_DATE != '' and FROM_DATE != null">
+	            AND IVAP.AP_REQ_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{FROM_DATE})
+	        </if>
+	        <if test="TO_DATE != '' and TO_DATE != null">
+	            AND IVAP.AP_REQ_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{TO_DATE})
+	        </if>
+	    </if>
+	    <if test="SEL_DATE != '' and SEL_DATE != null and SEL_DATE == 'AP'.toString()">
+	        <if test="FROM_DATE != '' and FROM_DATE != null">
+	            AND IVAP.AP_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{FROM_DATE})
+	        </if>
+	        <if test="TO_DATE != '' and TO_DATE != null">
+	            AND IVAP.AP_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{TO_DATE})
+	        </if>
+	    </if>
+	    <if test="SEL_DATE != '' and SEL_DATE != null and SEL_DATE == 'INVI'.toString()">
+	        <if test="FROM_DATE != '' and FROM_DATE != null">
+	            AND IVHD.INV_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{FROM_DATE})
+	        </if>
+	        <if test="TO_DATE != '' and TO_DATE != null">
+	            AND IVHD.INV_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{TO_DATE})
+	        </if>
+	    </if>
+	    <if test="AP_NUM != '' and AP_NUM != null">
+	        AND UPPER(IVAP.AP_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{AP_NUM}) <include refid="common.sql.stringMerge"/> '%'
+	    </if>
+	    <if test="DELIVERY_TYPE != '' and DELIVERY_TYPE != null">
+	        AND IVHD.DELIVERY_TYPE = #{DELIVERY_TYPE}
+	    </if>
+	    <if test="PO_NUM != '' and PO_NUM != null">
+	        AND UPPER(POHD.PO_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PO_NUM}) <include refid="common.sql.stringMerge"/> '%'
+	    </if>
+	    <if test="INV_NUM != '' and INV_NUM != null">
+	        AND UPPER(IVHD.INV_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{INV_NUM}) <include refid="common.sql.stringMerge"/> '%'
+	    </if>
+	    <if test="SIGN_STATUS != '' and SIGN_STATUS != null">
+	        AND IVAP.SIGN_STATUS = #{SIGN_STATUS}
+	    </if>
+        
+        ORDER BY IVAP.SIGN_STATUS
+        	   , IVHD.INV_NUM DESC
+    </select>
+    
+    <select id="sapr0030_doSearchVNAP" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  VNAP.VENDOR_CD
+        	, VNAP.PAY_ACC_NM
+        	, VNAP.PAY_BANK
+            , <include refid="common.sql.dbo"/>GETCODENAME(VNAP.GATE_CD, 'M017', VNAP.PAY_BANK, #{ses.langCd}) AS PAY_BANK_NM
+        	, <include refid="common.sql.strDecStart"/>VNAP.PAY_ACCOUNT_NUM<include refid="common.sql.strDecEnd"/> AS PAY_ACCOUNT_NUM
+            , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACCOUNT_USER_NM<include refid="common.sql.strDecEnd"/> AS PAY_ACCOUNT_USER_NM
+            , <include refid="common.sql.strDecStart"/>VNAP.PAY_ACC_MNG_NM<include refid="common.sql.strDecEnd"/> AS PAY_ACC_MNG_NM
+            , VNAP.ATT_FILE_NUM AS PAY_ATT_FILE_NUM
+            , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(VNAP.GATE_CD, VNAP.ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(VNAP.GATE_CD, VNAP.ATT_FILE_NUM)
+              END AS PAY_ATT_FILE_NUM_CNT
+        FROM STOCVNAP VNAP
+        WHERE VNAP.GATE_CD  = #{ses.gateCd}
+          AND VNAP.VENDOR_CD = #{VENDOR_CD}
+          AND VNAP.DEL_FLAG = '0'
+        ORDER BY VNAP.SEQ
+    </select>
+</mapper>

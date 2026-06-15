@@ -1,0 +1,652 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CETR.CETR0040_Mapper">
+
+    <select id="cetr0040_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  VOCM.GATE_CD
+            , VOCM.VC_NO
+            , VOCM.COMPANY_CD
+            , VOCM.SUBJECT
+            , VOCM.VOC_TYPE
+            ,<include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'MP053', VOCM.VOC_TYPE, 0, #{ses.langCd}) AS VOC_TYPE_NM
+            , VOCM.PROGRESS_CD
+            ,<include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'MP052', VOCM.PROGRESS_CD, 0, #{ses.langCd}) AS PROGRESS_NM
+            , VOCM.REQ_USER_ID
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.REQ_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+            ,<include refid="common.sql.dbo"/>GETUSERINFO(VOCM.GATE_CD, VOCM.REQ_USER_ID, 'USER_TYPE') AS REQ_USER_TYPE
+            , VOCM.REQ_COM_CD
+            ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.REQ_COM_CD, #{ses.langCd}) AS REQ_COM_NM
+            ,<include refid="common.sql.toChar"/>(VOCM.REQ_DATE , 'YYYY-MM-DD HH24:MI') AS REQ_DATE
+            ,<include refid="common.sql.toChar"/>(VOCM.PH_DATE , 'yyyy-MM-dd') AS PH_DATE
+            ,<include refid="common.sql.toChar"/>(VOCM.RECV_DATE , 'yyyy-MM-dd') AS RECV_DATE
+            ,<include refid="common.sql.toChar"/>(VOCM.CD_DATE , 'yyyy-MM-dd') AS CD_DATE
+            ,<include refid="common.sql.toChar"/>(VOCM.DS_DATE , 'YYYY-MM-DD HH24:MI') AS DS_DATE
+            , VOCM.DS_USER_ID
+            ,<include refid="common.sql.dbo"/>getUserName(VOCM.GATE_CD, VOCM.DS_USER_ID, #{ses.langCd}) AS DS_USER_NM
+            ,<include refid="common.sql.dbo"/>GETUSERINFO(VOCM.GATE_CD, VOCM.DS_USER_ID, 'USER_TYPE') AS DS_USER_TYPE
+            , VOCM.ORDER_NO
+            , VOCM.ITEM_CD
+            , VOCM.RUB_TYPE
+            ,<include refid="common.sql.dbo"/>getComCode(VOCM.GATE_CD, 'MP054', VOCM.RUB_TYPE, 0, #{ses.langCd}) AS RUB_TYPE_NM
+            , VOCM.VOC_OBJ
+            , VOCM.VOC_OBJ_SUP_CD
+            ,(CASE WHEN VOCM.VOC_OBJ = 'USNI' THEN <include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, #{ses.manageCd}, #{ses.langCd})
+                   WHEN VOCM.VOC_OBJ = 'USNE' THEN <include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.VOC_OBJ_SUP_CD, #{ses.langCd})
+                   WHEN VOCM.VOC_OBJ = 'USNC' THEN <include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.VOC_OBJ_SUP_CD, #{ses.langCd})
+                   ELSE  ''
+              END)
+			 <include refid="common.sql.stringMerge"/>
+			 (CASE WHEN VOCM.VOC_OBJ_DEPT_CD IS NULL THEN ''
+			       ELSE ' ' <include refid="common.sql.stringMerge"/> (SELECT DEPT_NM FROM STOCOGDP
+														       		    WHERE GATE_CD  = VOCM.GATE_CD
+														       		      AND BUYER_CD = VOCM.VOC_OBJ_SUP_CD
+														       		      AND DEPT_CD  = VOCM.VOC_OBJ_DEPT_CD)
+			  END) AS VOC_OBJ_NM
+         FROM STOCVOCM VOCM
+        WHERE VOCM.GATE_CD   = #{ses.gateCd}
+          AND VOCM.VIEW_TYPE = 'VOC'
+          AND ((VOCM.REQ_COM_CD = #{ses.companyCd}) -- 작성업체
+            OR (VOCM.VOC_OBJ_SUP_CD = #{ses.companyCd} AND (VOCM.VOC_OBJ_DEPT_CD IS NULL OR VOCM.VOC_OBJ_DEPT_CD = #{ses.deptCd}) AND TO_NUMBER(VOCM.PROGRESS_CD) <![CDATA[>]]> 100) -- 대상고객사, 작성중(100) 제외
+              )
+          AND VOCM.DEL_FLAG  = '0'
+        
+        <if test="START_DATE != '' and START_DATE != null and END_DATE != '' and END_DATE != null">
+            AND VOCM.REQ_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{START_DATE})
+            AND VOCM.REQ_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{END_DATE})
+        </if>
+        <if test="PROGRESS_CD != '' and PROGRESS_CD != null">
+            AND VOCM.PROGRESS_CD = #{PROGRESS_CD}
+        </if>
+        <if test="REQ_USER_NM != '' and REQ_USER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.REQ_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{REQ_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VOC_OBJ_SUP_CD != '' and VOC_OBJ_SUP_CD != null">
+            AND UPPER(VOCM.VOC_OBJ_SUP_CD) LIKE '%' <include refid="common.sql.stringMerge"/> #{VOC_OBJ_SUP_CD} <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VOC_OBJ_SUP_NM != '' and VOC_OBJ_SUP_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD,<include refid="common.sql.nvl"/>(VOCM.VOC_OBJ_SUP_CD, #{ses.manageCd}), #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VOC_OBJ_SUP_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VOC_TYPE != '' and VOC_TYPE != null">
+            AND VOCM.VOC_TYPE = #{VOC_TYPE}
+        </if>
+        <if test="DS_USER_NM != '' and DS_USER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.DS_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DS_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REQ_USER_ID != '' and REQ_USER_ID != null">
+            AND VOCM.REQ_USER_ID = #{REQ_USER_ID}
+        </if>
+        <if test="SUBJECT != '' and SUBJECT != null">
+            AND VOCM.SUBJECT LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SUBJECT}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REQ_RMK != '' and REQ_RMK != null">
+            AND VOCM.REQ_RMK LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{REQ_RMK}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        
+        ORDER BY VOCM.VC_NO DESC
+    </select>
+	
+    <update id="cetr0040_doSave" parameterType="hashMap">
+        UPDATE STOCVOCM SET
+              RUB_TYPE = #{RUB_TYPE}
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD    = #{ses.gateCd}
+          AND COMPANY_CD = #{COMPANY_CD}
+          AND VC_NO      = #{VC_NO}
+    </update>
+	
+	<!-- 고객의소리(VOC) 조회 -->
+    <select id="cetr0041_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  VOCM.VC_NO
+        	, VOCM.COMPANY_CD
+            , VOCM.REQ_COM_CD
+            ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.REQ_COM_CD, #{ses.langCd}) AS REQ_COM_NM
+            , VOCM.REQ_USER_ID
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.REQ_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+            ,<include refid="common.sql.toChar"/>(VOCM.REQ_DATE , 'YYYY-MM-DD HH24:MI') AS REQ_DATE
+            , CVUR.DEPT_CD
+            , CVUR.DEPT_NM
+            , VOCM.VOC_TYPE
+            ,<include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'MP053', VOCM.VOC_TYPE, 0, #{ses.langCd}) AS VOC_TYPE_NM
+            ,<include refid="common.sql.toChar"/>(VOCM.PH_DATE , 'yyyy-MM-dd') AS PH_DATE
+            , VOCM.VOC_OBJ
+            , VOCM.VOC_OBJ_SUP_CD
+            ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.VOC_OBJ_SUP_CD, #{ses.langCd}) AS VOC_OBJ_SUP_NM
+            , VOCM.VOC_OBJ_DEPT_CD
+            ,<include refid="common.sql.dbo"/>GETDEPTNAME(VOCM.GATE_CD, VOCM.VOC_OBJ_SUP_CD, VOCM.VOC_OBJ_DEPT_CD, #{ses.langCd}) AS VOC_OBJ_DEPT_NM
+            , VOCM.ORDER_NO
+            , VOCM.ITEM_CD
+            , VOCM.SUBJECT
+            , VOCM.REQ_RMK
+            , VOCM.ATTACH_FILE_NO
+            ,<include refid="common.sql.toChar"/>(VOCM.RECV_DATE , 'YYYY-MM-DD HH24:MI') AS RECV_DATE
+            , VOCM.PROGRESS_CD
+            , VOCM.PROGRESS_CD AS ORG_PROGRESS_CD
+            ,<include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'MP052', VOCM.PROGRESS_CD, 0, #{ses.langCd}) AS PROGRESS_NM
+            , VOCM.DS_USER_ID
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.DS_USER_ID, #{ses.langCd}) AS DS_USER_NM
+            ,<include refid="common.sql.toChar"/>(VOCM.CD_DATE , 'yyyy-MM-dd') AS CD_DATE
+            ,<include refid="common.sql.toChar"/>(VOCM.DS_DATE , 'YYYY-MM-DD HH24:MI') AS DS_DATE
+            , VOCM.RUB_TYPE
+            , VOCM.DF_RMK
+            , VOCM.DS_ATTACH_FILE_NO
+         FROM STOCVOCM VOCM
+         LEFT JOIN STOCCVUR CVUR
+              ON (CVUR.GATE_CD = VOCM.GATE_CD
+              AND CVUR.USER_ID = VOCM.REQ_USER_ID)
+        WHERE VOCM.GATE_CD    = #{ses.gateCd}
+          AND VOCM.COMPANY_CD = #{COMPANY_CD}
+          AND VOCM.VC_NO      = #{VC_NO}
+          AND VOCM.DEL_FLAG   = '0'
+    </select>
+	
+	<!-- 2021.07.12 변경 : 고객사에서 VOC 조치결과를 등록한 후 SMS 수수료 부과 -->
+    <select id="costSmsInfo" parameterType="hashMap" resultType="hashMap">
+        SELECT CUST.IRS_NUM 	AS CORP_NO
+             , CVUR.DEPT_CD 	AS BRC
+             ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+             , CVUR.USER_ID		AS USER_ID
+             , 'SMS_VOC_CMPL'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               CVUR.GATE_CD 	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               #{VC_NO}      	AS CONT_TBL_PK
+             , NULL 			AS FILE_SIZE
+         FROM STOCCVUR CVUR
+         JOIN STOCCUST CUST
+              ON (CVUR.GATE_CD    = CUST.GATE_CD
+              AND CVUR.COMPANY_CD = CUST.CUST_CD)
+        WHERE CVUR.GATE_CD = #{ses.gateCd}
+          AND CVUR.USER_ID = #{ses.userId}
+    </select>
+	
+    <insert id="cetr0041_doInsert" parameterType="hashMap">
+        INSERT INTO STOCVOCM (
+              GATE_CD
+            , VC_NO
+            , COMPANY_CD
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , REQ_COM_CD
+            , REQ_COM_TYPE
+            , REQ_USER_ID
+            , REQ_DATE
+            , PROGRESS_CD
+            , VOC_TYPE
+            , PH_DATE
+            , ORDER_NO
+            , ITEM_CD
+            , SUBJECT
+            , REQ_RMK
+            , ATTACH_FILE_NO
+            , VOC_OBJ
+            , VOC_OBJ_SUP_CD
+            , VOC_OBJ_DEPT_CD
+            , VIEW_TYPE
+        )
+        VALUES (
+              #{ses.gateCd}
+            , #{VC_NO}
+            , #{COMPANY_CD}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{REQ_COM_CD}
+            , '100'
+            , #{REQ_USER_ID}
+            ,<include refid="common.sql.toDate"/>(#{REQ_DATE}, 'YYYY-MM-DD HH24:MI:SS')
+            , #{PROGRESS_CD}
+            , #{VOC_TYPE}
+            , #{PH_DATE}
+            , #{ORDER_NO}
+            , #{ITEM_CD}
+            , #{SUBJECT}
+            , #{REQ_RMK}
+            , #{ATTACH_FILE_NO}
+            , #{VOC_OBJ}
+            , #{VOC_OBJ_SUP_CD}
+            , #{VOC_OBJ_DEPT_CD}
+            ,<include refid="common.sql.nvl"/>(#{VIEW_TYPE}, 'VOC')
+        )
+    </insert>
+	
+	<!-- VOC 작성중(100) -->
+    <update id="cetr0041_doUpdate" parameterType="hashMap">
+        UPDATE STOCVOCM SET
+              PROGRESS_CD = #{PROGRESS_CD}
+            , REQ_DATE    = <include refid="common.sql.toDate"/>(#{REQ_DATE}, 'YYYY-MM-DD HH24:MI:SS')
+            , REQ_USER_ID = #{ses.userId}
+            , VOC_TYPE    = #{VOC_TYPE}
+            , VOC_OBJ     = #{VOC_OBJ}
+            , VOC_OBJ_SUP_CD  = #{VOC_OBJ_SUP_CD}  -- VOC대상고객코드
+            , VOC_OBJ_DEPT_CD = #{VOC_OBJ_DEPT_CD} -- VOC대상부서코드
+            , PH_DATE     = #{PH_DATE}
+            , ORDER_NO    = #{ORDER_NO}
+            , ITEM_CD     = #{ITEM_CD}
+            , SUBJECT     = #{SUBJECT}
+            , REQ_RMK     = #{REQ_RMK}
+            , ATTACH_FILE_NO = #{ATTACH_FILE_NO}
+            , MOD_DATE    = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD    = #{ses.gateCd}
+          AND COMPANY_CD = #{COMPANY_CD}
+          AND VC_NO      = #{VC_NO}
+    </update>
+
+    <update id="cetr0041_doUpdate2" parameterType="hashMap">
+        UPDATE STOCVOCM SET
+              PROGRESS_CD = #{PROGRESS_CD}
+            , RECV_DATE   = <include refid="common.sql.toDate"/>(#{RECV_DATE}, 'YYYY-MM-DD HH24:MI:SS')
+            , DS_USER_ID  = #{DS_USER_ID}
+            , CD_DATE     = #{CD_DATE}
+            , DS_DATE     = <include refid="common.sql.toDate"/>(#{DS_DATE}, 'YYYY-MM-DD HH24:MI:SS')
+            , DF_RMK      = #{DF_RMK}
+            , DS_ATTACH_FILE_NO = #{DS_ATTACH_FILE_NO}
+            , MOD_DATE    = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD    = #{ses.gateCd}
+          AND COMPANY_CD = #{COMPANY_CD}
+          AND VC_NO      = #{VC_NO}
+    </update>
+
+    <update id="cetr0041_doDelete" parameterType="hashMap">
+        UPDATE STOCVOCM SET
+              DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD    = #{ses.gateCd}
+          AND COMPANY_CD = #{COMPANY_CD}
+          AND VC_NO      = #{VC_NO}
+    </update>
+	
+	<!-- VOC대상 : 협력업체 -->
+    <select id="cetr0041_getSelectBACP" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  BACP.CTRL_USER_ID
+        	,<include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS CTRL_USER_NM
+        	,<include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS USER_EMAIL
+        	,<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS USER_CELL_NUM
+	<choose>
+		<when test="VOC_OBJ != '' and VOC_OBJ != null and VOC_OBJ eq 'USNI'.toString()">
+            , '1' AS MAIL_FLAG
+            , '1' AS SMS_FLAG
+		</when>
+		<otherwise>
+            ,<include refid="common.sql.nvl"/>(CVUR.MAIL_FLAG, '0') AS MAIL_FLAG
+            ,<include refid="common.sql.nvl"/>(CVUR.SMS_FLAG, '0') AS SMS_FLAG
+		</otherwise>
+	</choose>
+            , #{VOC_TYPE} AS VOC_TYPE
+            ,<include refid="common.sql.dbo"/>GETCODENAME(BACP.GATE_CD, 'MP053', #{VOC_TYPE}, #{ses.langCd}) AS VOC_TYPE_NM
+            -- 2021.07.13 : 고객사에서 VOC요청 완료 후  SMS 수수료 부과
+            ,(SELECT IRS_NUM FROM STOCCUST
+               WHERE GATE_CD = BACP.GATE_CD
+                 AND CUST_CD = #{ses.companyCd})	AS CORP_NO
+            ,(SELECT DEPT_CD FROM STOCCVUR
+               WHERE GATE_CD = BACP.GATE_CD
+                 AND USER_ID = #{ses.userId})		AS BRC
+            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+            , #{ses.userId}		AS USER_ID
+            , 'SMS_VOC_REQ'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              BACP.GATE_CD	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              #{VC_NO}			AS CONT_TBL_PK
+            , NULL 				AS FILE_SIZE
+         FROM STOCBACP BACP
+	<choose>
+		<when test="VOC_OBJ != '' and VOC_OBJ != null and VOC_OBJ eq 'USNI'.toString()">
+         JOIN STOCUSER CVUR
+              ON (CVUR.GATE_CD    = BACP.GATE_CD
+              AND CVUR.COMPANY_CD = BACP.BUYER_CD
+              AND CVUR.USER_ID    = BACP.CTRL_USER_ID
+              AND CVUR.DEL_FLAG   = '0')
+		</when>
+		<otherwise>
+         JOIN STOCCVUR CVUR
+              ON (CVUR.GATE_CD    = BACP.GATE_CD
+              AND CVUR.COMPANY_CD = BACP.BUYER_CD
+              AND CVUR.USER_ID    = BACP.CTRL_USER_ID
+              AND CVUR.DEL_FLAG   = '0')
+		</otherwise>
+	</choose>
+        WHERE BACP.GATE_CD  = #{ses.gateCd}
+          AND BACP.BUYER_CD = #{BUYER_CD}
+          AND BACP.CTRL_CD  = #{CTRL_CD}  -- 고객사:BR100, 협력회사:SR020, 운영사:AR030
+		<if test="DEPT_CD != '' and DEPT_CD != null">
+		  AND CVUR.DEPT_CD  = #{DEPT_CD}
+		</if>
+          AND BACP.USE_FLAG = '1'
+          AND BACP.DEL_FLAG = '0'
+    </select>
+    
+    <!-- 2021.03.09 고객소통창구 추가 -->
+    <select id="cetr0050_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  VOCM.GATE_CD
+            , VOCM.VC_NO
+            , VOCD.VC_SQ
+            , VOCM.COMPANY_CD
+            , VOCM.SUBJECT
+            , VOCM.VOC_TYPE
+            ,<include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'NH0045', VOCM.VOC_TYPE, 0, #{ses.langCd}) AS VOC_TYPE_NM
+            ,(CASE WHEN VOCD.PROGRESS_CD IS NULL THEN VOCM.PROGRESS_CD ELSE VOCD.PROGRESS_CD END) AS PROGRESS_CD
+            ,<include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'NH0044', (CASE WHEN VOCD.PROGRESS_CD IS NULL THEN VOCM.PROGRESS_CD ELSE VOCD.PROGRESS_CD END), 0, #{ses.langCd}) AS PROGRESS_NM
+            ,<include refid="common.sql.nvl"/>((SELECT MAX(PROGRESS_CD) FROM STOCVOCD
+									             WHERE GATE_CD    = VOCM.GATE_CD
+									               AND VC_NO      = VOCM.VC_NO
+									               AND COMPANY_CD = VOCM.COMPANY_CD), VOCM.PROGRESS_CD) AS MAX_PROGRESS_CD
+            , VOCM.REQ_USER_ID
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.REQ_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+            ,<include refid="common.sql.dbo"/>GETUSERINFO(VOCM.GATE_CD, VOCM.REQ_USER_ID, 'USER_TYPE') AS REQ_USER_TYPE
+            , VOCM.REQ_COM_CD
+            ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.REQ_COM_CD, #{ses.langCd})
+             <include refid="common.sql.stringMerge"/>' '<include refid="common.sql.stringMerge"/> (SELECT DEPT_NM FROM STOCOGDP
+																						   			 WHERE GATE_CD  = VOCM.GATE_CD
+																						   			   AND BUYER_CD = VOCM.REQ_COM_CD
+																						   			   AND DEPT_CD  = VOCM.REQ_DEPT_CD) AS REQ_COM_NM
+            , VOCM.REQ_DEPT_CD
+            ,<include refid="common.sql.toChar"/>(VOCM.REQ_DATE, 'YYYY-MM-DD HH24:MI')	AS REQ_DATE	-- 요청일시
+            ,<include refid="common.sql.toChar"/>(VOCM.PH_DATE, 'YYYY-MM-dd')   AS PH_DATE 	-- 답변요청일자
+            ,<include refid="common.sql.toChar"/>(VOCD.RECV_DATE, 'YYYY-MM-dd') AS RECV_DATE 	-- 접수일자
+            ,<include refid="common.sql.toChar"/>(VOCM.CD_DATE, 'YYYY-MM-dd')   AS CD_DATE 	-- 답변예정일자
+            ,<include refid="common.sql.toChar"/>(VOCD.CONF_DATE, 'YYYY-MM-DD HH24:MI') AS DS_DATE -- 답변일시
+            , VOCD.CONF_USER_ID AS DS_USER_ID
+            ,<include refid="common.sql.dbo"/>getUserName(VOCD.GATE_CD, VOCD.CONF_USER_ID, #{ses.langCd}) AS DS_USER_NM
+            ,<include refid="common.sql.dbo"/>GETUSERINFO(VOCD.GATE_CD, VOCD.CONF_USER_ID, 'USER_TYPE') AS DS_USER_TYPE
+            , VOCD.BUYER_CD AS VOC_OBJ_SUP_CD
+            , VOCD.DEPT_CD  AS VOC_OBJ_DEPT_CD
+            ,(SELECT A.CUST_NM FROM STOCCUST A
+			   WHERE A.GATE_CD = VOCD.GATE_CD
+				 AND A.CUST_CD = VOCD.BUYER_CD)
+			 <include refid="common.sql.stringMerge"/>
+			 (CASE WHEN VOCD.DEPT_CD IS NULL THEN ''
+			       ELSE ' ' <include refid="common.sql.stringMerge"/> (SELECT DEPT_NM FROM STOCOGDP
+														       		    WHERE GATE_CD  = VOCD.GATE_CD
+														       		      AND BUYER_CD = VOCD.BUYER_CD
+														       		      AND DEPT_CD  = VOCD.DEPT_CD)
+			  END) AS VOC_OBJ_SUP_NM
+         FROM STOCVOCM VOCM
+         JOIN STOCVOCD VOCD
+         	  ON (VOCM.GATE_CD    = VOCD.GATE_CD
+         	  AND VOCM.VC_NO      = VOCD.VC_NO
+         	  AND VOCM.COMPANY_CD = VOCD.COMPANY_CD)
+         JOIN STOCCVUR CVUR
+              ON (CVUR.GATE_CD = VOCM.GATE_CD
+              AND CVUR.USER_ID = VOCM.REQ_USER_ID)
+        WHERE VOCM.GATE_CD   = #{ses.gateCd}
+          AND VOCM.VIEW_TYPE = 'BCT'
+          AND ((VOCM.REQ_COM_CD = #{ses.companyCd} AND CVUR.DEPT_CD = #{ses.deptCd}) OR VOCM.REQ_DEPT_CD= #{ses.deptCd}  -- 작성고객사, 부서)
+            OR (VOCD.BUYER_CD   = #{ses.companyCd} AND (VOCD.DEPT_CD IS NULL OR VOCD.DEPT_CD = #{ses.deptCd}) AND TO_NUMBER(VOCM.PROGRESS_CD) <![CDATA[>]]> 100) -- 대상고객사, 작성중(100) 제외
+              )
+          AND VOCM.DEL_FLAG  = '0'
+          
+        <if test="START_DATE != '' and START_DATE != null and END_DATE != '' and END_DATE != null">
+            AND VOCM.REQ_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{START_DATE})
+            AND VOCM.REQ_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{END_DATE})
+        </if>
+        <if test="PROGRESS_CD != '' and PROGRESS_CD != null">
+            AND VOCD.PROGRESS_CD = #{PROGRESS_CD}
+        </if>
+        <if test="VOC_TYPE != '' and VOC_TYPE != null">
+            AND VOCM.VOC_TYPE = #{VOC_TYPE}
+        </if>
+        <if test="SUBJECT != '' and SUBJECT != null">
+            AND VOCM.SUBJECT LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SUBJECT}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REQ_USER_ID != '' and REQ_USER_ID != null">
+            AND VOCM.REQ_USER_ID = #{REQ_USER_ID}
+        </if>
+        <if test="REQ_USER_NM != '' and REQ_USER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.REQ_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{REQ_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VOC_OBJ_SUP_CD != '' and VOC_OBJ_SUP_CD != null">
+            AND UPPER(VOCD.BUYER_CD) LIKE '%' <include refid="common.sql.stringMerge"/> #{VOC_OBJ_SUP_CD} <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VOC_OBJ_SUP_NM != '' and VOC_OBJ_SUP_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCD.GATE_CD,<include refid="common.sql.nvl"/>(VOCM.BUYER_CD, #{ses.manageCd}), #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VOC_OBJ_SUP_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="DS_USER_NM != '' and DS_USER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(VOCD.GATE_CD, VOCD.CONF_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DS_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test='PH_FLAG != "" and PH_FLAG != null and PH_FLAG == "1"'>
+            AND VOCM.PH_DATE IS NOT NULL
+        </if>
+        
+        ORDER BY VOCM.VC_NO DESC, VOCD.VC_SQ
+    </select>
+	
+	<!-- 2021.03.09 고객소통 상세팝업 추가 -->
+    <select id="cetr0051_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  VOCM.VC_NO
+        	, VOCM.COMPANY_CD
+        	, VOCM.SUBJECT
+            , VOCM.REQ_COM_CD
+            ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.REQ_COM_CD, #{ses.langCd}) AS REQ_COM_NM
+            , VOCM.REQ_USER_ID
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.REQ_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+            ,<include refid="common.sql.toChar"/>(VOCM.REQ_DATE , 'YYYY-MM-DD HH24:MI') AS REQ_DATE
+            , VOCM.REQ_DEPT_CD
+            ,(SELECT DEPT_NM FROM STOCOGDP
+               WHERE GATE_CD  = VOCM.GATE_CD
+                 AND BUYER_CD = VOCM.REQ_COM_CD
+                 AND DEPT_CD  = VOCM.REQ_DEPT_CD) AS DEPT_NM
+            , VOCM.VOC_TYPE
+            ,<include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'NH0045', VOCM.VOC_TYPE, 0, #{ses.langCd}) AS VOC_TYPE_NM
+            ,(CASE WHEN VOCM.PH_DATE IS NOT NULL THEN '1' ELSE '0' END) AS PH_FLAG	-- 회신여부
+            ,<include refid="common.sql.toChar"/>(VOCM.PH_DATE, 'YYYY-MM-DD') AS PH_DATE	-- 회신요청일
+            , VOCM.REQ_RMK
+            , VOCM.ATTACH_FILE_NO
+		<if test="VC_SQ != '' and VC_SQ != null">
+			, VOCD.VC_SQ
+            , VOCD.BUYER_CD AS VOC_OBJ_SUP_CD
+            ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCD.GATE_CD, VOCD.BUYER_CD, #{ses.langCd}) AS VOC_OBJ_SUP_NM
+            ,<include refid="common.sql.toChar"/>(VOCD.RECV_DATE , 'YYYY-MM-DD HH24:MI:SS') AS RECV_DATE
+            , VOCD.RECV_USER_ID
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(VOCD.GATE_CD, VOCD.RECV_USER_ID, #{ses.langCd}) AS RECV_USER_NM
+            , VOCD.CONF_USER_ID AS DS_USER_ID
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(VOCD.GATE_CD, VOCD.CONF_USER_ID, #{ses.langCd}) AS DS_USER_NM
+            ,<include refid="common.sql.toChar"/>(VOCD.CONF_DATE, 'YYYY-MM-DD HH24:MI:SS') AS DS_DATE
+            , VOCD.CONF_RMKS AS DF_RMK
+            , VOCD.ATTACH_FILE_NO AS DS_ATTACH_FILE_NO
+            , VOCM.VIEW_TYPE
+        </if>
+        <choose>
+        	<when test="VC_SQ != '' and VC_SQ != null">
+	            ,<include refid="common.sql.nvl"/>(VOCD.PROGRESS_CD, '200') AS PROGRESS_CD
+	            ,<include refid="common.sql.nvl"/>(VOCD.PROGRESS_CD, '200') AS ORG_PROGRESS_CD
+        	</when>
+        	<otherwise>
+	            ,<include refid="common.sql.nvl"/>(VOCM.PROGRESS_CD, '100') AS PROGRESS_CD
+	            ,<include refid="common.sql.nvl"/>(VOCM.PROGRESS_CD, '100') AS ORG_PROGRESS_CD
+        	</otherwise>
+        </choose>
+         FROM STOCVOCM VOCM
+		<if test="VC_SQ != '' and VC_SQ != null">
+         JOIN STOCVOCD VOCD
+         	  ON (VOCM.GATE_CD    = VOCD.GATE_CD
+         	  AND VOCM.VC_NO      = VOCD.VC_NO
+         	  AND VOCM.COMPANY_CD = VOCD.COMPANY_CD)
+		</if>
+         LEFT JOIN STOCCVUR CVUR
+              ON (CVUR.GATE_CD = VOCM.GATE_CD
+              AND CVUR.USER_ID = VOCM.REQ_USER_ID)
+        WHERE VOCM.GATE_CD    = #{ses.gateCd}
+          AND VOCM.VC_NO      = #{VC_NO}
+		<if test="VC_SQ != '' and VC_SQ != null">
+          AND VOCD.VC_SQ      = #{VC_SQ}
+        </if>
+          AND VOCM.DEL_FLAG   = '0'
+    </select>
+    
+    <!-- 2021.03.09 고객소통 상세팝업 Grid 조회 추가 -->
+    <select id="cetr0051_doSearchVOCD" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  VOCD.VC_NO
+            , VOCD.BUYER_CD
+            , CUST.CUST_NM AS BUYER_NM
+            , CUST.IRS_NUM
+            , VOCD.DEPT_CD
+            ,(SELECT DEPT_NM FROM STOCOGDP
+               WHERE GATE_CD  = VOCD.GATE_CD
+                 AND BUYER_CD = VOCD.BUYER_CD
+                 AND DEPT_CD  = VOCD.DEPT_CD) AS DEPT_NM
+         FROM STOCVOCD VOCD
+         JOIN STOCCUST CUST
+              ON (VOCD.GATE_CD  = CUST.GATE_CD
+              AND VOCD.BUYER_CD = CUST.CUST_CD)
+        WHERE VOCD.GATE_CD = #{ses.gateCd}
+          AND VOCD.VC_NO   = #{VC_NO}
+		<if test="VC_SQ != '' and VC_SQ != null">
+          AND VOCD.VC_SQ   = #{VC_SQ}
+        </if>
+    </select>
+	
+	<!-- 고객소통창구 등록 -->
+    <insert id="cetr0051_doInsert" parameterType="hashMap">
+        INSERT INTO STOCVOCM (
+              GATE_CD
+            , VC_NO
+            , COMPANY_CD
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , REQ_COM_CD
+            , REQ_COM_TYPE
+            , REQ_USER_ID
+            , REQ_DATE
+            , PROGRESS_CD
+            , VOC_TYPE
+            , SUBJECT
+            , PH_DATE
+            , ORDER_NO
+            , ITEM_CD
+            , REQ_RMK
+            , ATTACH_FILE_NO
+            , VOC_OBJ
+            , VOC_OBJ_SUP_CD
+            , VIEW_TYPE
+            , REQ_DEPT_CD
+        )
+        VALUES (
+              #{ses.gateCd}
+            , #{VC_NO}
+            , #{ses.companyCd}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{REQ_COM_CD}
+            , '100'
+            , #{REQ_USER_ID}
+            ,<include refid="common.sql.toDate"/>(#{REQ_DATE}, 'YYYY-MM-DD HH24:MI:SS')
+            , #{PROGRESS_CD}
+            , #{VOC_TYPE}
+            , #{SUBJECT}
+            , #{PH_DATE}
+            , #{ORDER_NO}
+            , #{ITEM_CD}
+            , #{REQ_RMK}
+            , #{ATTACH_FILE_NO}
+            , #{VOC_OBJ}
+            , #{VOC_OBJ_SUP_CD}
+            ,<include refid="common.sql.nvl"/>(#{VIEW_TYPE}, 'BCT')
+            , #{ses.deptCd}
+        )
+    </insert>
+    
+    <!-- 2021.03.09 VOC별 대상고객사 추가 등록 -->
+    <insert id="cetr0051_doInsertVOCD" parameterType="hashMap">
+        INSERT INTO STOCVOCD (
+              GATE_CD
+            , VC_NO
+            , COMPANY_CD
+            , VC_SQ
+            , REG_DATE
+            , REG_USER_ID
+            , BUYER_CD
+            , DEPT_CD
+        )
+        VALUES (
+              #{ses.gateCd}
+            , #{VC_NO}
+            , #{ses.companyCd}
+            ,(SELECT <include refid="common.sql.nvl"/>(MAX(VC_SQ) + 1, 1) FROM STOCVOCD WHERE GATE_CD = #{ses.gateCd} AND VC_NO = #{VC_NO})
+            , SYSDATE
+            , #{ses.userId}
+            , #{BUYER_CD}
+            , #{DEPT_CD}
+        )
+    </insert>
+	
+	<!-- 임시저장(100), 요청(200) -->
+    <update id="cetr0051_doUpdate" parameterType="hashMap">
+        UPDATE STOCVOCM SET
+              MOD_DATE    = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , PROGRESS_CD = #{PROGRESS_CD}
+            , SUBJECT     = #{SUBJECT}
+            , REQ_DATE    = <include refid="common.sql.toDate"/>(#{REQ_DATE}, 'YYYY-MM-DD HH24:MI:SS')
+            , VOC_TYPE    = #{VOC_TYPE}
+            , PH_DATE     = <include refid="common.sql.nvl"/>(#{PH_DATE}, SYSDATE)
+            , ORDER_NO    = #{ORDER_NO}
+            , ITEM_CD     = #{ITEM_CD}
+            , REQ_RMK     = #{REQ_RMK}
+            , ATTACH_FILE_NO = #{ATTACH_FILE_NO}
+        WHERE GATE_CD = #{ses.gateCd}
+          AND VC_NO   = #{VC_NO}
+    </update>
+	
+	<!-- 접수(300), 조치중(400), 조치완료(500) -->
+    <update id="cetr0051_doUpdate2" parameterType="hashMap">
+        UPDATE STOCVOCD SET
+              MOD_DATE    = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , PROGRESS_CD = #{PROGRESS_CD}
+		<!-- 접수(300) -->
+		<if test='PROGRESS_CD != "" and PROGRESS_CD != null and PROGRESS_CD == "300"'>
+            , RECV_DATE   = SYSDATE
+            , RECV_USER_ID= #{ses.userId}
+            , CONF_RMKS   = #{DF_RMK}
+            , ATTACH_FILE_NO = #{DS_ATTACH_FILE_NO}
+		</if>
+		<!-- 조치중(400), 조치완료(500) -->
+		<if test='PROGRESS_CD != "" and PROGRESS_CD != null and (PROGRESS_CD == "400" or PROGRESS_CD == "500")'>
+            , RECV_DATE   = <include refid="common.sql.nvl"/>(RECV_DATE, SYSDATE)
+            , RECV_USER_ID= <include refid="common.sql.nvl"/>(RECV_USER_ID, #{ses.userId})
+            , CONF_DATE   = SYSDATE
+            , CONF_USER_ID= #{ses.userId}
+            , CONF_RMKS   = #{DF_RMK}
+            , ATTACH_FILE_NO = #{DS_ATTACH_FILE_NO}
+		</if>
+        WHERE GATE_CD = #{ses.gateCd}
+          AND VC_NO   = #{VC_NO}
+          AND VC_SQ   = #{VC_SQ}
+    </update>
+	
+	<!-- 고객소통창구 삭제 -->
+    <update id="cetr0051_doDelete" parameterType="hashMap">
+        UPDATE STOCVOCM SET
+              DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+          AND VC_NO   = #{VC_NO}
+    </update>
+    
+    <!-- 고객소통 상세삭제 -->
+    <update id="cetr0051_doDeleteVOCD" parameterType="hashMap">
+        DELETE FROM STOCVOCD
+        WHERE GATE_CD = #{ses.gateCd}
+          AND VC_NO   = #{VC_NO}
+    </update>
+
+</mapper>

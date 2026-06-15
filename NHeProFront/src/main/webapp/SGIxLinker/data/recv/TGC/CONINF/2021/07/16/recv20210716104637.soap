@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP:Envelope xmlns:SOAP="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xlink="http://www.w3.org/1999/xlink" xsi:schemaLocation="http://schemas.xmlsoap.org/soap/envelope   http://www.oasis-open.org/committees/ebxml-msg/schema/msg-header-2_0.xsd" xmlns:eb="http://www.oasis-open.org/committees/ebxml-msg/schema/smg-heder-2_0.xsd">
+      <SOAP:Header>
+            <eb:MessageHeader>
+                  <eb:From>
+<!-- 송신자 ID -->
+                        <eb:PartyId>A111111111900</eb:PartyId>
+                  </eb:From>
+                  <eb:To>
+<!-- 수신자 ID -->
+                        <eb:PartyId>A111111111900</eb:PartyId>
+                  </eb:To>
+                  <eb:ConversationId>13.20060227151000.12345.0043338' '2</eb:ConversationId>
+                  <eb:Action>53:CONINF</eb:Action>
+                  <eb:MessageData>
+                        <eb:MessageId>13.20060227151000.12345.0043338' '2</eb:MessageId>
+                        <eb:Timestamp>2021-07-16T10:46:36Z</eb:Timestamp>
+                  </eb:MessageData>
+                  <eb:Description>계약정보통보서</eb:Description>
+            </eb:MessageHeader>
+      <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.w3.org/2000/09/xmldsig# http://www.w3.org/TR/xmldsig-core/xmldsig-core-schema.xsd">
+	<ds:SignedInfo>
+		<ds:CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"></ds:CanonicalizationMethod>
+		<ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"></ds:SignatureMethod>
+		<ds:Reference URI="">
+			<ds:Transforms>
+				<ds:Transform Algorithm="http://www.w3.org/TR/1999/REC-xpath-19991116">
+					<ds:XPath>not(ancestor-or-self::Signature)</ds:XPath>
+				</ds:Transform>
+				<ds:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+			</ds:Transforms>
+			<ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+			<ds:DigestValue>1yjkkCORnxwSegtl1e8XwzjeHVg=</ds:DigestValue>
+		</ds:Reference>
+		<ds:Reference URI="cid:ebxmlpayload00@sgic.co.kr">
+			<ds:Transforms>
+				<ds:Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+			</ds:Transforms>
+			<ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+			<ds:DigestValue>I9D8OZ2duiIDl8JrszArvtL9WSw=</ds:DigestValue>
+		</ds:Reference>
+	</ds:SignedInfo>
+	<ds:SignatureValue>aXA4SZaW+0dPo5AI/35fasTt8Nc+0Gtx51M0bc0dHOcp9LXqZ2YHHXyz3Fk322sf
+1UKXcyObqZVKc4p4oP85QU6mNef7DuUYWUq5pAx5Uj8btu00nFXGATdlgTW7FnTy
+uJX0Dx2XlL9Ii0guVxB5QWBLrs0mQCwOPxZJOrLDYFAjtZ4SXCX9IFYB3kzfRt8Q
+Hhjuk0OdrUTcruczpIIZ+87B0pLHHHyNGCBi9o9BkB4Stfa+wTOUevO08Nglw96R
+BgkE4XskAAtBO8f8s5VjlWcaSU+qgGvkBCPGlReWG46fB9v2KopcVZCdRVYbTqxX
+7xFXiI4csQjZ54MnJoUx6Q==</ds:SignatureValue>
+    <ds:KeyInfo>
+        <ds:KeyValue>
+            <ds:RSAKeyValue>
+                <ds:Modulus>AIdjKkBjbuWnR2olI7RjCJBC7xOiqU/bhLj2m5HOEIPCCDZ01yZ0EYAMghb8YANR
+s1lYZeX0CBienpcpr7mmwFrtdbBgBeacOyi+vT4z+IvPm/dQtwemgbpE4TSHGUt5
+mEOmY6HIhB735JCEV+Ap7Fpug3Fdl/gSbSBCvQ3Uo5pg4pNB0UE516tJ1YvC7FVa
+oAFUnU9AtnzP2hKJYhNeiYPPW31O5nwFcKuPbz+VzO+sODyIx6LHNF7O0UAL5IF0
+IIo8SheGLZ48zMFkT5y7Wen1mHt24/HGrt4x6BDQMunWUqOCqhS9x7FJqxoA0EMq
+nJF7vVYC10PvZx1/9gibunk=</ds:Modulus>
+                <ds:Exponent>AQAB</ds:Exponent>
+            </ds:RSAKeyValue>
+        </ds:KeyValue>
+        <ds:X509Data>
+            <ds:X509SubjectName>cn=[주]농협정보시스템()001105520080215111001045,ou=nonghyupit,ou=NACF,ou=corporation4EC,o=yessign,c=kr</ds:X509SubjectName>
+            <ds:X509IssuerSerial>
+                <ds:X509IssuerName>cn=yessignCA Class 2,ou=AccreditedCA,o=yessign,c=kr</ds:X509IssuerName>
+                <ds:X509SerialNumber>675077536</ds:X509SerialNumber>
+            </ds:X509IssuerSerial>
+            <ds:X509Certificate>MIIF1zCCBL+gAwIBAgIEKDzdoDANBgkqhkiG9w0BAQsFADBSMQswCQYDVQQGEwJr
+cjEQMA4GA1UECgwHeWVzc2lnbjEVMBMGA1UECwwMQWNjcmVkaXRlZENBMRowGAYD
+VQQDDBF5ZXNzaWduQ0EgQ2xhc3MgMjAeFw0yMDA3MDkxNTAwMDBaFw0yMTA3MTIx
+NDU5NTlaMIGbMQswCQYDVQQGEwJrcjEQMA4GA1UECgwHeWVzc2lnbjEXMBUGA1UE
+CwwOY29ycG9yYXRpb240RUMxDTALBgNVBAsMBE5BQ0YxEzARBgNVBAsMCm5vbmdo
+eXVwaXQxPTA7BgNVBAMMNFvso7xd64aN7ZiR7KCV67O07Iuc7Iqk7YWcKCkwMDEx
+MDU1MjAwODAyMTUxMTEwMDEwNDUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+AoIBAQCHYypAY27lp0dqJSO0YwiQQu8ToqlP24S49puRzhCDwgg2dNcmdBGADIIW
+/GADUbNZWGXl9AgYnp6XKa+5psBa7XWwYAXmnDsovr0+M/iLz5v3ULcHpoG6ROE0
+hxlLeZhDpmOhyIQe9+SQhFfgKexaboNxXZf4Em0gQr0N1KOaYOKTQdFBOderSdWL
+wuxVWqABVJ1PQLZ8z9oSiWITXomDz1t9TuZ8BXCrj28/lczvrDg8iMeixzReztFA
+C+SBdCCKPEoXhi2ePMzBZE+cu1np9Zh7duPxxq7eMegQ0DLp1lKjgqoUvcexSasa
+ANBDKpyRe71WAtdD72cdf/YIm7p5AgMBAAGjggJpMIICZTCBjwYDVR0jBIGHMIGE
+gBTv3ETSxo3ADqM4wHyTxsNBv0qP8KFopGYwZDELMAkGA1UEBhMCS1IxDTALBgNV
+BAoMBEtJU0ExLjAsBgNVBAsMJUtvcmVhIENlcnRpZmljYXRpb24gQXV0aG9yaXR5
+IENlbnRyYWwxFjAUBgNVBAMMDUtJU0EgUm9vdENBIDSCAhAcMB0GA1UdDgQWBBT0
+wb/qXR9bwo5cj4tSw15trL76zDAOBgNVHQ8BAf8EBAMCBsAweQYDVR0gAQH/BG8w
+bTBrBgkqgxqMmkUBAQUwXjAuBggrBgEFBQcCAjAiHiDHdAAgx3jJncEcspQAIKz1
+x3jHeMmdwRwAIMeFssiy5DAsBggrBgEFBQcCARYgaHR0cDovL3d3dy55ZXNzaWdu
+Lm9yLmtyL2Nwcy5odG0weQYDVR0RBHIwcKBuBgkqgxqMmkQKAQGgYTBfDBpb7KO8
+XeuGje2YkeygleuztOyLnOyKpO2FnDBBMD8GCiqDGoyaRAoBAQEwMTALBglghkgB
+ZQMEAgGgIgQg4J7S8ba1leFRbr1yi+w7GX7h7KYwvMLfiWqI2EUzlP0wcgYDVR0f
+BGswaTBnoGWgY4ZhbGRhcDovL2RzLnllc3NpZ24ub3Iua3I6Mzg5L291PWRwNXA2
+NDAyNCxvdT1BY2NyZWRpdGVkQ0Esbz15ZXNzaWduLGM9a3I/Y2VydGlmaWNhdGVS
+ZXZvY2F0aW9uTGlzdDA4BggrBgEFBQcBAQQsMCowKAYIKwYBBQUHMAGGHGh0dHA6
+Ly9vY3NwLnllc3NpZ24ub3JnOjQ2MTIwDQYJKoZIhvcNAQELBQADggEBAC8Jv2af
+0SyfQmCqb1R5rBEmE+0HNObXd6aujOIhnl7g3/bS3KdqdhfqfZVkBXQJcjcnG6RX
+27o2trlFvG4QvS+hitd3a5082TxwBEdOwS1+vP1HAT4ggDgMUqeLp+sST25OTdu9
+rpVenkv8Ll4Rn4wxPRPracCrrjYJaoFBE8a0hDT9QTJSlgFAZCb1auvsneWyN8/S
+hyZEmCDg3HeECv0FSFu3kSokYzxecnpopGMFEOr4J2yilaspxjijMYvYPoW05+fa
+5AkdktYjhAri0T4VGvd83Ft1wGCZNgIV359amy4ya4IRw83nA0QBLHBxcHW5pgJK
+gXwLbiaonBwqDQk=
+</ds:X509Certificate>
+        </ds:X509Data>
+    </ds:KeyInfo>
+</ds:Signature></SOAP:Header>
+</SOAP:Envelope>

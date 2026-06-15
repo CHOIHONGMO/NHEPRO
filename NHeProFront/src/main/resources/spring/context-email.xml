@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- gmail -->
+    <bean class="org.springframework.mail.javamail.JavaMailSenderImpl" id="mailSender">
+        <property name="host" value="192.168.250.110" />
+        <property name="port" value="25" />
+        <property name="username" value=""></property>
+        <property name="password" value=""></property>
+        <property name="defaultEncoding" value="utf-8" />
+        <property name="javaMailProperties">
+            <props>
+                <prop key="mail.smtp.auth">false</prop>
+
+                <!-- google 계정 TLS 사용 시 설정(SSL3.0 부터 TLS 라고 부름)
+                <prop key="mail.smtp.starttls.enable">true</prop>
+                <prop key="mail.smtp.auth">true</prop>
+                -->
+            </props>
+        </property>
+    </bean>
+
+    <!-- Velocity 설정 -->
+    <bean class="org.springframework.ui.velocity.VelocityEngineFactoryBean" id="velocityEngine">
+        <property name="velocityProperties">
+            <props>
+                <prop key="resource.loader">class</prop>
+                <prop key="class.resource.loader.class">org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader</prop>
+            </props>
+        </property>
+    </bean>
+</beans>

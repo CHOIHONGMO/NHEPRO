@@ -1,0 +1,39 @@
+package com.st_ones.eversrm.manager.auth;
+
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : MAUA0030_Mapper.java
+ * @date 2013. 07. 22.
+ * @version 1.0
+ */
+
+public interface MAUA0030_Mapper {
+
+	/**
+	 * 화면명 : 권한프로프알관리
+	 * 처리내용 : 화면 접근권한을 등록/수정/삭제/조회할 수 있는 화면
+	 * 경로 : 시스템관리 > 권한 > 권한프로파일관리
+	 */
+	List<Map<String, Object>> doSearchAuthProfileManagement(Map<String, String> param);
+
+	int checkAuthProfileManagement(Map<String, Object> param);
+
+	void doInsertAuthProfileManagement(Map<String, Object> gridData);
+
+	void doUpdateAuthProfileManagement(Map<String, Object> gridData);
+
+	void doDeleteAuthProfileManagement(Map<String, Object> gridData);
+
+}

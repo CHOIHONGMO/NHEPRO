@@ -1,0 +1,2393 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.SCTR.SCTR0010_Mapper">
+	
+	<!-- 2021.02.09 작성중인 계약서도 협력사에서 조회 가능하도록 함 -->
+	<!-- 협력사 > 구매관리 > 전자계약 > 계약진행현황 (SCTR0010) -->
+	<select id="sctr0010_doSearchContractProgressStatus" parameterType="hashMap" resultType="hashMap">
+
+		SELECT A.CONT_NUM
+             , A.CONT_CNT
+             , A.BUYER_CD
+             , A.BUYER_NM
+             , A.PR_BUYER_CD
+             , A.PR_BUYER_NM
+             , A.PR_DEPT_CD
+             , A.PR_DEPT_NM
+             ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(A.GATE_CD, A.PR_BUYER_CD, A.PR_DEPT_CD, #{ses.langCd}) AS PR_BUYER_DEPT_NM
+             , A.CONT_USER_ID
+             , A.CONTRACT_NM
+             , A.CONT_DESC
+             , A.PROGRESS_CD
+             , A.VENDOR_CD
+             , A.CONT_TYPE
+             , A.CONT_REQ_CD
+             , A.AUTO_RENEW_FLAG
+             , A.BUNDLE_NUM
+             , A.SIGN_STATUS
+             ,<include refid="common.sql.toChar"/>(A.CONT_DATE, 'YYYYMMDD') AS CONT_DATE
+             ,<include refid="common.sql.toChar"/>(A.ORIGIN_CONT_START_DATE, 'YYYYMMDD') AS ORIGIN_CONT_START_DATE
+             ,<include refid="common.sql.toChar"/>(A.CONT_START_DATE, 'YYYYMMDD') AS CONT_START_DATE
+             ,<include refid="common.sql.toChar"/>(A.CONT_END_DATE, 'YYYYMMDD') AS CONT_END_DATE
+             , A.CUR
+             , A.CONT_AMT
+             , A.VAT_TYPE
+             ,<include refid="common.sql.toChar"/>(A.SEND_DATE, 'YYYY-MM-DD HH24:MI') AS SEND_DATE
+             ,<include refid="common.sql.toChar"/>(A.CONT_CLOSE_DATE, 'YYYYMMDD') AS CONT_CLOSE_DATE
+             , A.CONT_CLOSE_RMK
+             , (SELECT COUNT(*) FROM STOCATCH
+                 WHERE GATE_CD  = A.GATE_CD
+                   AND UUID     = A.ATT_FILE_NUM
+                   AND DEL_FLAG = '0') AS ATT_FILE_CNT
+             , A.ATT_FILE_NUM
+             , (SELECT COUNT(*) FROM STOCATCH
+                 WHERE GATE_CD  = A.GATE_CD
+                   AND UUID     = A.VENDOR_ATT_FILE_NUM
+                   AND DEL_FLAG = '0') AS VENDOR_ATT_FILE_CNT
+             , A.VENDOR_ATT_FILE_NUM
+             , (SELECT COUNT(*) FROM STOCATCH
+                 WHERE GATE_CD  = A.GATE_CD
+                   AND UUID     = A.STAMP_ATT_FILE_NUM
+                   AND DEL_FLAG = '0') AS STAMP_ATT_FILE_CNT
+             , A.STAMP_ATT_FILE_NUM
+             , A.S_SIGN_DATE
+             , A.S_SIGN_ID
+             , A.S_SING_NM
+             , A.B_SIGN_DATE
+             , A.B_SIGN_ID
+             , A.B_SING_NM
+             , A.GUAR_CNT
+             , A.DI_GUAR_CNT
+             , A.ADV_GUAR_CNT
+             , A.WARR_GUAR_CNT
+		     , A.PDF_ATT_FILE_NUM
+		     , A.S_SIGN_DATE AS SIGN_DATE
+             , A.FINISH_FLAG
+          FROM (SELECT CT.GATE_CD
+                     , CT.BUYER_CD
+                     , <include refid="common.sql.dbo"/>GETCUSTNAME(CT.GATE_CD, CT.BUYER_CD) AS BUYER_NM
+                     , CT.CONT_NUM
+                     , CT.CONT_CNT
+                     , CT.CONT_USER_ID
+                     , <include refid="common.sql.dbo"/>GETUSERNAME(CT.GATE_CD, CT.CONT_USER_ID, #{ses.langCd}) AS CONTRACT_NM
+                     , CT.CONT_DESC
+                     , CT.PROGRESS_CD -- M135
+                     , CT.CONT_REQ_CD -- M134
+                     , CASE WHEN CT.AUTO_RENEW_FLAG IS NULL THEN '0' ELSE CT.AUTO_RENEW_FLAG END AS AUTO_RENEW_FLAG -- M044
+                     , CT.BUNDLE_NUM
+                     , CT.SIGN_STATUS -- M020
+                     , CT.CONT_DATE
+                     , CT.ORIGIN_CONT_START_DATE
+                     , CT.CONT_START_DATE
+                     , CT.CONT_END_DATE
+                     , CT.CUR -- M023
+                     , CT.VAT_TYPE -- M100
+                     , CT.SEND_DATE
+                     , CT.CONT_CLOSE_DATE
+                     , <include refid="common.sql.toChar"/>(<include refid="common.sql.nvl"/>(CT.CONT_CLOSE_DATE, CT.CONT_END_DATE), 'YYYYMMDD') -
+                       <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS CONT_EXPIRE_DAY
+                     , CT.CONT_CLOSE_RMK
+                     , CT.ATT_FILE_NUM
+                     , CT.VENDOR_ATT_FILE_NUM
+                     , CT.STAMP_ATT_FILE_NUM
+                     , CT.SIGN_DATE
+                     , SS.PR_BUYER_CD
+                     , <include refid="common.sql.dbo"/>GETCUSTNAME(SS.GATE_CD, SS.PR_BUYER_CD) AS PR_BUYER_NM
+                     , SS.PR_DEPT_CD
+                     , <include refid="common.sql.dbo"/>GETDEPTNAME(SS.GATE_CD, SS.PR_BUYER_CD, SS.PR_DEPT_CD, #{ses.langCd}) AS PR_DEPT_NM
+                     , SS.VENDOR_CD
+                     , SS.CONT_AMT
+                     , ECCF.CONT_TYPE
+                     , <include refid="common.sql.toChar"/>(SS.B_SIGN_DATE, 'YYYY-MM-DD HH24:MI') AS B_SIGN_DATE
+                     , SS.B_SIGN_ID
+                     , <include refid="common.sql.dbo"/>GETUSERNAME(SS.GATE_CD, SS.B_SIGN_ID, #{ses.langCd}) AS B_SING_NM
+                     , <include refid="common.sql.toChar"/>(SS.S_SIGN_DATE, 'YYYY-MM-DD HH24:MI') AS S_SIGN_DATE
+                     , SS.S_SIGN_ID
+                     , <include refid="common.sql.dbo"/>GETUSERNAME(SS.GATE_CD, SS.S_SIGN_ID, #{ses.langCd}) AS S_SING_NM
+                     , CASE WHEN SS.GUAR_CNT = 0      THEN (CASE WHEN DENO_GUAR_CNT = 0      THEN NULL ELSE 0 END) ELSE SS.GUAR_CNT      END AS GUAR_CNT
+                     , CASE WHEN SS.DI_GUAR_CNT = 0   THEN (CASE WHEN DENO_DI_GUAR_CNT = 0   THEN NULL ELSE 0 END) ELSE SS.DI_GUAR_CNT   END AS DI_GUAR_CNT
+                     , CASE WHEN SS.ADV_GUAR_CNT = 0  THEN (CASE WHEN DENO_ADV_GUAR_CNT = 0  THEN NULL ELSE 0 END) ELSE SS.ADV_GUAR_CNT  END AS ADV_GUAR_CNT
+                     , CASE WHEN SS.WARR_GUAR_CNT = 0 THEN (CASE WHEN DENO_WARR_GUAR_CNT = 0 THEN NULL ELSE 0 END) ELSE SS.WARR_GUAR_CNT END AS WARR_GUAR_CNT
+          			 , SS.PDF_ATT_FILE_NUM
+             		 , CASE WHEN SYSDATE > CT.CONT_END_DATE THEN '1' ELSE '0' END AS FINISH_FLAG
+                  FROM STOCECCT CT
+		          JOIN (SELECT ECCT.GATE_CD
+					         , ECCT.BUYER_CD
+					         , ECCT.CONT_NUM
+					         , ECCT.CONT_CNT
+				  			 , ECPC_M.PY_BUYER_CD AS PR_BUYER_CD
+				  			 , ECPC_M.PY_DEPT_CD  AS PR_DEPT_CD
+				  			 , ECPC_M.VENDOR_CD   AS VENDOR_CD
+				  			 , ECPC_M.PAY_AMT     AS CONT_AMT
+					         , SUM(CASE WHEN ECPC.GUAR_TYPE = 'CONT' AND ECPC.GUAR_PERCENT > 0 AND ECPC.GUAR_TYPE2 IS NOT NULL THEN 1 ELSE 0 END) AS GUAR_CNT
+					         , SUM(CASE WHEN ECPC.GUAR_TYPE = 'DIF'  AND ECPC.GUAR_AMT > 0     AND ECPC.ATT_FILE_NUM IS NOT NULL THEN 1 ELSE 0 END) AS DI_GUAR_CNT
+					         , SUM(CASE WHEN ECPC.GUAR_TYPE = 'ADV'  AND ECPC.GUAR_PERCENT > 0 AND ECPC.GUAR_TYPE2 IS NOT NULL THEN 1 ELSE 0 END) +
+					           SUM(CASE WHEN IVAP.GUAR_TYPE = 'ADV'  AND IVAP.GUAR_PERCENT > 0 AND IVAP.GUAR_TYPE2 IS NOT NULL THEN 1 ELSE 0 END) AS ADV_GUAR_CNT
+					         , SUM(CASE WHEN ECPC.GUAR_TYPE = 'WARR' AND ECPC.GUAR_PERCENT > 0 AND ECPC.GUAR_TYPE2 IS NOT NULL THEN 1 ELSE 0 END) +
+					           SUM(CASE WHEN IVAP.GUAR_TYPE = 'WARR' AND IVAP.GUAR_PERCENT > 0 AND IVAP.GUAR_TYPE2 IS NOT NULL THEN 1 ELSE 0 END) AS WARR_GUAR_CNT
+					         , SUM(CASE WHEN ECPC.GUAR_TYPE = 'CONT' AND ECPC.GUAR_PERCENT > 0 THEN 1 ELSE 0 END) AS DENO_GUAR_CNT
+					         , SUM(CASE WHEN ECPC.GUAR_TYPE = 'DIF'  AND ECPC.GUAR_AMT > 0     THEN 1 ELSE 0 END) AS DENO_DI_GUAR_CNT
+					         , SUM(CASE WHEN ECPC.GUAR_TYPE = 'ADV'  AND ECPC.GUAR_PERCENT > 0 THEN 1 ELSE 0 END) AS DENO_ADV_GUAR_CNT
+					         , SUM(CASE WHEN ECPC.GUAR_TYPE = 'WARR' AND ECPC.GUAR_PERCENT > 0 THEN 1 ELSE 0 END) AS DENO_WARR_GUAR_CNT
+					         , ECSVB.SIGN_DATE AS B_SIGN_DATE
+					         , ECSVB.SIGN_ID   AS B_SIGN_ID
+					         , ECSVS.SIGN_DATE AS S_SIGN_DATE
+					         , ECSVS.SIGN_ID   AS S_SIGN_ID
+				  			  ,ECPC_M.PDF_ATT_FILE_NUM
+				          FROM STOCECCT ECCT
+				  		  JOIN STOCECPC ECPC_M
+					  		    ON (ECPC_M.GATE_CD  = ECCT.GATE_CD
+					  		   AND  ECPC_M.BUYER_CD = ECCT.BUYER_CD
+					  		   AND  ECPC_M.CONT_NUM = ECCT.CONT_NUM
+					  		   AND  ECPC_M.CONT_CNT = ECCT.CONT_CNT
+					  		   AND  ECPC_M.PAY_CNT  = '0'
+					  		   AND  ECPC_M.DEL_FLAG = '0')
+                          LEFT OUTER JOIN STOCECPC ECPC
+	                           ON (ECPC.GATE_CD     = ECPC_M.GATE_CD
+	                           AND ECPC.BUYER_CD    = ECPC_M.BUYER_CD
+	                           AND ECPC.CONT_NUM    = ECPC_M.CONT_NUM
+	                           AND ECPC.CONT_CNT    = ECPC_M.CONT_CNT
+	                           AND ECPC.PR_BUYER_CD = ECPC_M.PR_BUYER_CD
+	                           AND ECPC.PR_DEPT_CD  = ECPC_M.PR_DEPT_CD
+					  		   AND ECPC.VENDOR_CD   = ECPC_M.VENDOR_CD
+	                           AND ECPC.DEL_FLAG = '0')
+                          LEFT OUTER JOIN STOCIVAP IVAP
+	                           ON (IVAP.GATE_CD     = ECPC.GATE_CD
+	                           AND IVAP.BUYER_CD    = ECPC.BUYER_CD
+	                           AND IVAP.CONT_NUM    = ECPC.CONT_NUM
+	                           AND IVAP.CONT_CNT    = ECPC.CONT_CNT
+	                           AND IVAP.PR_BUYER_CD = ECPC.PR_BUYER_CD
+	                           AND IVAP.PR_DEPT_CD  = ECPC.PR_DEPT_CD
+	                           AND IVAP.VENDOR_CD   = ECPC.VENDOR_CD
+	                           AND IVAP.PAY_CNT     = ECPC.PAY_CNT
+	                           AND IVAP.PY_BUYER_CD = ECPC.PY_BUYER_CD
+	                           AND IVAP.PY_DEPT_CD  = ECPC.PY_DEPT_CD
+	                           AND IVAP.DEL_FLAG = '0')
+						  LEFT OUTER JOIN STOCECSV ECSVB
+							   ON (ECSVB.GATE_CD   = ECPC_M.GATE_CD
+							   AND ECSVB.BUYER_CD  = ECPC_M.BUYER_CD
+							   AND ECSVB.CONT_NUM  = ECPC_M.CONT_NUM
+							   AND ECSVB.CONT_CNT  = ECPC_M.CONT_CNT
+							   AND ECSVB.VENDOR_CD = ECPC_M.VENDOR_CD
+							   AND ECSVB.SIGN_ID   = (CASE WHEN ECCT.BUNDLE_NUM IS NULL THEN ECPC_M.SIGN_ID ELSE ECSVB.SIGN_ID END)
+							   AND ECSVB.USER_TYPE = 'B')
+						  LEFT OUTER JOIN STOCECSV ECSVS
+							   ON (ECSVS.GATE_CD   = ECPC_M.GATE_CD
+							   AND ECSVS.BUYER_CD  = ECPC_M.BUYER_CD
+							   AND ECSVS.CONT_NUM  = ECPC_M.CONT_NUM
+							   AND ECSVS.CONT_CNT  = ECPC_M.CONT_CNT
+							   AND ECSVS.VENDOR_CD = ECPC_M.VENDOR_CD
+							   AND ECSVS.USER_TYPE = 'S')
+		                 WHERE ECCT.GATE_CD   = #{ses.gateCd}
+		                   AND ECCT.VENDOR_CD = #{ses.companyCd}
+		                   AND (ECCT.PROGRESS_CD <![CDATA[>=]]> '4210'	-- 협력회사 서명대기
+		                     OR ECCT.VENDOR_SEND_FLAG = '1')			-- 협력사전송여부=Y(작성중인 계약서 협력사 전송여부)
+		                   AND (ECCT.MANUAL_CONT_FLAG IS NULL OR ECCT.MANUAL_CONT_FLAG != '1') -- 수기계약제외(수기계약은 내부관리용)
+		                   AND ECCT.DEL_FLAG  = '0'
+		                   
+						<if test="REG_DATE_FROM !='' and REG_DATE_FROM != null and REG_DATE_TO !='' and REG_DATE_TO != null">
+						   AND ECCT.CONT_DATE BETWEEN TO_DATE(#{REG_DATE_FROM} <include refid="common.sql.stringMerge"/> '000000', 'YYYYMMDDHH24MISS') AND TO_DATE(#{REG_DATE_TO} <include refid="common.sql.stringMerge"/> '235959', 'YYYYMMDDHH24MISS')
+						</if>
+				        <if test="CONT_DESC != null and CONT_DESC != ''">
+			        	   AND (UPPER(ECCT.CONT_NUM)  LIKE UPPER('%' <include refid="common.sql.stringMerge"/> #{CONT_DESC} <include refid="common.sql.stringMerge"/> '%')
+					         OR UPPER(ECCT.CONT_DESC) LIKE UPPER('%' <include refid="common.sql.stringMerge"/> #{CONT_DESC} <include refid="common.sql.stringMerge"/> '%')
+					           )
+				        </if>
+			    	    <if test="CONT_REQ_CD != null and CONT_REQ_CD != ''">
+			        	   AND ECCT.CONT_REQ_CD = #{CONT_REQ_CD}
+			        	</if>
+				        <if test="PROGRESS_CD != null and PROGRESS_CD != ''">
+						   AND ECCT.PROGRESS_CD IN
+							<foreach collection="PROGRESS_CD_LIST" item="item" index="index" separator="," open="(" close=")">
+								#{item}
+							</foreach>
+						</if>
+				        
+                         GROUP BY ECCT.GATE_CD, ECCT.BUYER_CD, ECCT.CONT_NUM, ECCT.CONT_CNT
+				  		 		 ,ECPC_M.PY_BUYER_CD, ECPC_M.PY_DEPT_CD, ECPC_M.VENDOR_CD, ECPC_M.PAY_AMT
+                                 ,ECSVS.SIGN_DATE, ECSVS.SIGN_ID, ECSVB.SIGN_DATE, ECSVB.SIGN_ID
+				  		 		 ,ECPC_M.PDF_ATT_FILE_NUM
+				  	   ) SS
+				       ON (SS.GATE_CD  = CT.GATE_CD
+			           AND SS.BUYER_CD = CT.BUYER_CD
+			           AND SS.CONT_NUM = CT.CONT_NUM
+			           AND SS.CONT_CNT = CT.CONT_CNT)
+		          JOIN STOCECRL ECRL
+	                   ON (ECRL.GATE_CD  = CT.GATE_CD
+	                   AND ECRL.BUYER_CD = CT.BUYER_CD
+	                   AND ECRL.CONT_NUM = CT.CONT_NUM
+	                   AND ECRL.CONT_CNT = CT.CONT_CNT
+	                   AND ECRL.FORM_SQ  = '0'
+	                   AND ECRL.DEL_FLAG = '0')
+                  JOIN STOCECCF ECCF
+	                   ON (ECCF.GATE_CD  = ECRL.GATE_CD
+	                   AND ECCF.FORM_NUM = ECRL.FORM_NUM)
+	             WHERE 1 = 1
+		  ) A
+		 WHERE 1 = 1
+		 
+		<if test="PR_BUYER_DEPT_NM != null and PR_BUYER_DEPT_NM != ''">
+		   AND (UPPER(A.PR_BUYER_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+		     OR UPPER(A.PR_DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+		</if>
+		<if test="USER_NM != null and USER_NM != ''">
+		   AND UPPER(A.CONTRACT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+    	</if>
+      	<if test="AUTO_RENEW_FLAG != null and AUTO_RENEW_FLAG != ''">
+           AND A.AUTO_RENEW_FLAG = #{AUTO_RENEW_FLAG}
+      	</if>
+		<if test="CONT_END_FLAG != null and CONT_END_FLAG != ''">
+		   AND A.FINISH_FLAG = #{CONT_END_FLAG}
+		</if>
+		
+         ORDER BY A.CONT_NUM DESC
+         		, A.CONT_CNT DESC
+    </select>
+
+	<update id="sctr0010_doGurSave">
+		UPDATE STOCECCT
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , VENDOR_ATT_FILE_NUM = #{VENDOR_ATT_FILE_NUM}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+    	   AND CONT_NUM = #{CONT_NUM}
+    	   AND CONT_CNT = #{CONT_CNT}
+ 	</update>
+
+
+	<!-- 계약서 전자인증 : 주서식 -->
+	<select id="getContractMainContents" parameterType="hashmap" resultType="hashmap">
+		SELECT CONTRACT_TEXT_NUM
+		  FROM STOCECRL
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND FORM_SQ = 0
+		   AND DEL_FLAG = '0'
+		 ORDER BY FORM_SQ
+	</select>
+
+	<!-- 계약서 전자인증 : 주서식, 부서식 -->
+	<select id="getContractAllContents" parameterType="hashmap" resultType="hashmap">
+		SELECT CONTRACT_TEXT_NUM
+		  FROM STOCECRL
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND DEL_FLAG = '0'
+		 ORDER BY FORM_SQ
+	</select>
+
+	<update id="sctr0011_doUpdateVendorFile">
+		UPDATE STOCECCT
+		   SET MOD_DATE    = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , VENDOR_ATT_FILE_NUM = #{VENDOR_ATT_FILE_NUM}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND DEL_FLAG = '0'
+	</update>
+
+	<update id="doUpdateContractStatusECCT">
+		UPDATE STOCECCT
+		   SET MOD_DATE    = SYSDATE
+		     , MOD_USER_ID = #{ses.userId}
+		     , PROGRESS_CD = #{PROGRESS_CD}
+	     WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND DEL_FLAG = '0'
+	</update>
+	
+	<!-- 2021.02.09 : 협력사에서 전자서명 여부 가져오기 -->
+	<select id="getVendorSignData" parameterType="hashmap" resultType="String">
+		SELECT COUNT(*)
+		  FROM STOCECSV
+		 WHERE GATE_CD   = #{ses.gateCd}
+		   AND BUYER_CD  = #{BUYER_CD}
+		   AND CONT_NUM  = #{CONT_NUM}
+		   AND CONT_CNT  = #{CONT_CNT}
+		   AND VENDOR_CD = #{VENDOR_CD}
+		   AND USER_TYPE = 'S' -- 협력사
+	</select>
+	
+	<!-- 2021.02.09 : 협력사의 기존 전자서명값 삭제하기 -->
+	<delete id="doDeleteVendorSignData">
+		DELETE FROM STOCECSV
+	     WHERE GATE_CD   = #{ses.gateCd}
+		   AND BUYER_CD  = #{BUYER_CD}
+		   AND CONT_NUM  = #{CONT_NUM}
+		   AND CONT_CNT  = #{CONT_CNT}
+		   AND VENDOR_CD = #{VENDOR_CD}
+		   AND USER_TYPE = 'S' -- 협력사
+	</delete>
+	
+	<insert id="doInsertSignedData" parameterType="hashmap">
+		INSERT INTO STOCECSV (
+			  GATE_CD
+			, BUYER_CD
+			, CONT_NUM
+			, CONT_CNT
+			, SIGN_ID
+			, REG_DATE
+			, REG_USER_ID
+			, SIGN_DATE
+			, SIGN_VALUE
+			, VENDOR_CD
+			, USER_TYPE
+			, VID_RANDOM
+		) VALUES (
+			  #{ses.gateCd}
+			, #{BUYER_CD}
+			, #{CONT_NUM}
+			, #{CONT_CNT}
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{SIGN_VALUE}
+			, #{VENDOR_CD}
+			, #{ses.userType}
+			, #{VID_RANDOM}
+		)
+	</insert>
+
+	<update id="doMergeRejectHistoryECRJ" parameterType="hashmap">
+		INSERT INTO STOCECRJ (
+			 GATE_CD
+			,BUYER_CD
+			,CONT_NUM
+			,CONT_CNT
+			,REJECT_SQ
+			,REG_DATE
+			,REG_USER_ID
+			,REJECT_RMK
+		) VALUES (
+			 #{ses.gateCd}
+			,#{BUYER_CD}
+			,#{CONT_NUM}
+			,#{CONT_CNT}
+			,(SELECT <include refid="common.sql.nvl"/>(MAX(REJECT_SQ)+1, '1')
+			    FROM STOCECRJ
+			   WHERE GATE_CD = #{ses.gateCd}
+			     AND BUYER_CD = #{BUYER_CD}
+			     AND CONT_NUM = #{CONT_NUM}
+			     AND CONT_CNT = #{CONT_CNT})
+			,SYSDATE
+			,#{ses.userId}
+			,#{REJECT_RMK}
+		)
+	</update>
+
+	<update id="sctr0011_doSaveECPC_HD">
+		UPDATE STOCECPC
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+		     , GUAR_TYPE2 = #{GUAR_TYPE2}
+			 , GUARANTEER = #{GUARANTEER}
+			 , GUAR_NUM = #{GUAR_NUM}
+			 , ATT_FILE_NUM = #{ATT_FILE_NUM}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND PR_BUYER_CD = #{PR_BUYER_CD}
+		   AND PR_DEPT_CD = #{PR_DEPT_CD}
+		   AND VENDOR_CD = #{ses.companyCd}
+		   AND PAY_CNT = #{PAY_CNT}
+		   AND PY_BUYER_CD =  #{PY_BUYER_CD}
+		   AND PY_DEPT_CD = #{PY_DEPT_CD}
+	</update>
+
+	<update id="sctr0011_doSaveECPC_HD_GUAR">
+		UPDATE STOCECPC
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , ATT_FILE_NUM = #{ATT_FILE_NUM}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND PR_BUYER_CD = #{PR_BUYER_CD}
+		   AND PR_DEPT_CD = #{PR_DEPT_CD}
+		   AND VENDOR_CD = #{ses.companyCd}
+		   AND PAY_CNT = #{PAY_CNT}
+		   AND PY_BUYER_CD =  #{PY_BUYER_CD}
+		   AND PY_DEPT_CD = #{PY_DEPT_CD}
+	</update>
+
+	<update id="doUpdateECPC_HD">
+		UPDATE STOCECPC
+		   SET GUAR_TYPE2 = #{GUAR_TYPE2}
+			 , GUARANTEER = #{GUARANTEER}
+			 , ATT_FILE_NUM = #{ATT_FILE_NUM}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND PR_BUYER_CD = #{PR_BUYER_CD}
+		   AND PR_DEPT_CD = #{PR_DEPT_CD}
+		   AND VENDOR_CD = #{VENDOR_CD}
+		   AND PAY_CNT = #{PAY_CNT}
+		   AND PY_BUYER_CD = #{PY_BUYER_CD}
+		   AND PY_DEPT_CD = #{PY_DEPT_CD}
+ 	</update>
+
+	<update id="doUpdateECPC_HD_DI">
+		UPDATE STOCECPC
+		   SET ATT_FILE_NUM = #{DI_ATT_FILE_NUM}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+    	   AND CONT_NUM = #{CONT_NUM}
+    	   AND CONT_CNT = #{CONT_CNT}
+    	   AND PR_BUYER_CD = #{PR_BUYER_CD}
+    	   AND PR_DEPT_CD = #{PR_DEPT_CD}
+    	   AND VENDOR_CD = #{VENDOR_CD}
+    	   AND PAY_CNT = #{PAY_CNT}
+    	   AND PY_BUYER_CD = #{PY_BUYER_CD}
+    	   AND PY_DEPT_CD = #{PY_DEPT_CD}
+	</update>
+
+	<select id="sctr0012_doSearchPrint" resultType="java.util.Map">
+		<!-- 계약서 프린트를 위한 참조정보 조회 -->
+		SELECT ECCT.CONT_NUM
+			 , ECCT.CONT_CNT
+			 , ECCT.CONT_DESC
+			 , ECCT.BUYER_CD
+			 , ECCT.PROGRESS_CD
+			 ,<include refid="common.sql.dbo"/>GETCOMCODE(ECCT.GATE_CD,'M135',ECCT.PROGRESS_CD,'0',#{ses.langCd}) AS PROGRESS_NM
+			 ,<include refid="common.sql.nvl"/>((SELECT <include refid="common.sql.toChar"/>(MAX(SIGN_DATE), 'YYYY-MM-DD HH24:MI')
+													FROM STOCECSV
+												   WHERE GATE_CD   = ECCT.GATE_CD
+												     AND BUYER_CD  = ECCT.BUYER_CD
+													 AND CONT_NUM  = ECCT.CONT_NUM
+													 AND CONT_CNT  = ECCT.CONT_CNT
+													 AND FORM_NUM  = ECCF.FORM_NUM
+													 AND USER_TYPE = 'B'),'서명안됨') AS BUYER_SIGN_DATE
+			 ,<include refid="common.sql.nvl"/>((SELECT <include refid="common.sql.toChar"/>(SIGN_DATE, 'YYYY-MM-DD HH24:MI:SS')
+													FROM STOCECSV
+												   WHERE GATE_CD   = ECCT.GATE_CD
+												     AND BUYER_CD  = ECCT.BUYER_CD
+													 AND CONT_NUM  = ECCT.CONT_NUM
+													 AND CONT_CNT  = ECCT.CONT_CNT
+													 AND FORM_NUM  = ECCF.FORM_NUM
+													 AND VENDOR_CD = ECCT.VENDOR_CD
+													 AND USER_TYPE = 'S'),'서명안됨') AS VENDOR_SIGN_DATE
+			 , VNGL.VENDOR_NM
+			 , VNGL.CEO_USER_NM AS VENDOR_CEO_NM
+			 , VNGL.HQ_ADDR_1 <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> VNGL.HQ_ADDR_2 AS VENDOR_ADDR
+			 , OGCM.BUYER_NM
+			 , OGCM.CEO_USER_NM AS BUYER_CEO_NM
+			 , OGCM.ADDR AS BUYER_ADDR
+			 , ECRL.CONTRACT_TEXT_NUM
+			 , ECRL.CONTRACT_TEXT
+			 ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYY"년"MM"월"DD"일"') AS SIGN_DATE,    -- 자동갱신전자서명일자
+			 , ECAR.SIGN_USER_ID -- 자동갱신전자서명자
+			 , ECAR.SIGN_TEXT_NUM -- 서명내용번호
+		FROM STOCECCT ECCT
+		JOIN STOCECRL ECRL
+			 ON (ECCT.GATE_CD  = ECRL.GATE_CD
+			 AND ECCT.BUYER_CD = ECRL.BUYER_CD
+			 AND ECCT.CONT_NUM = ECRL.CONT_NUM
+			 AND ECCT.CONT_CNT = ECRL.CONT_CNT
+			 AND ECRL.FORM_SQ  = 0 -- 주서식
+			 AND ECRL.DEL_FLAG = '0')
+		JOIN STOCECCF ECCF
+			 ON (ECRL.GATE_CD  = ECCF.GATE_CD
+			 AND ECRL.FORM_NUM = ECCF.FORM_NUM)
+		LEFT OUTER JOIN STOCVNGL VNGL
+			 ON (ECCT.GATE_CD   = VNGL.GATE_CD
+			 AND ECCT.VENDOR_CD = VNGL.VENDOR_CD)
+		LEFT OUTER JOIN STOCOGCM OGCM
+			 ON (ECCT.GATE_CD  = OGCM.GATE_CD
+			 AND ECCT.BUYER_CD = OGCM.BUYER_CD
+			 AND ECCT.BUYER_CD = OGCM.BUYER_CD)
+		LEFT OUTER JOIN STOCECAR ECAR -- 자동갱신거절
+			 ON (ECCT.GATE_CD  = ECAR.GATE_CD
+			 AND ECCT.CONT_NUM = ECAR.CONT_NUM
+			 AND ECCT.CONT_CNT = ECAR.CONT_CNT)
+	   WHERE ECCT.GATE_CD   = #{ses.gateCd}
+		 AND ECCT.CONT_NUM  = #{CONT_NUM}
+		 
+		<choose>
+			<when test="CONT_CNT != '' and CONT_CNT != null">
+				AND ECCT.CONT_CNT  = #{CONT_CNT}
+			</when>
+			<otherwise>
+				AND ECCT.CONT_CNT = (SELECT MAX(CONT_CNT)
+									   FROM STOCECCT
+									  WHERE GATE_CD  = ECCT.GATE_CD
+										AND CONT_NUM = ECCT.CONT_NUM
+										AND PROGRESS_CD = '4300')
+			</otherwise>
+		</choose>
+		
+		 AND ECCT.DEL_FLAG  = '0'
+ 	</select>
+
+	<select id="sctr0012_doSearchOtherPrint" resultType="java.util.Map">
+		<!-- 계약서 프린트를 위한 참조정보 조회 -->
+		SELECT ECCT.CONT_NUM
+			 , ECCT.CONT_CNT
+			 , ECCT.PROGRESS_CD
+			 ,<include refid="common.sql.dbo"/>GETCOMCODE(ECCT.GATE_CD,'M135',ECCT.PROGRESS_CD,'0',#{ses.langCd}) AS PROGRESS_NM
+			 ,<include refid="common.sql.nvl"/>((SELECT <include refid="common.sql.toChar"/>(SIGN_DATE, 'YYYY-MM-DD HH24:MI:SS')
+			 										FROM STOCECSV
+			 									   WHERE GATE_CD  = ECCT.GATE_CD
+			 									     AND BUYER_CD = ECCT.BUYER_CD
+			 										 AND CONT_NUM = ECCT.CONT_NUM
+			 										 AND CONT_CNT = ECCT.CONT_CNT
+			 										 AND FORM_NUM = ECCF.FORM_NUM
+			 										 AND SIGN_ID  = ECCT.CONT_USER_ID),'서명안됨') AS BUYER_SIGN_DATE
+			 ,<include refid="common.sql.nvl"/>((SELECT <include refid="common.sql.toChar"/>(SIGN_DATE, 'YYYY-MM-DD HH24:MI:SS')
+			 										FROM STOCECSV
+			 									   WHERE GATE_CD  = ECCT.GATE_CD
+			 									     AND BUYER_CD = ECCT.BUYER_CD
+			 										 AND CONT_NUM = ECCT.CONT_NUM
+			 										 AND CONT_CNT = ECCT.CONT_CNT
+			 										 AND FORM_NUM = ECCF.FORM_NUM
+			 										 AND ECCT.VENDOR_CD = (SELECT COMPANY_CD
+			 										 						 FROM STOCUSER
+			 										 						WHERE GATE_CD = #{ses.gateCd}
+			 										 						  AND USER_ID = SIGN_ID)),'서명안됨') AS VENDOR_SIGN_DATE
+			 ,<include refid="common.sql.dbo"/>GETVENDORNAME(ECCT.GATE_CD, ECCT.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+			 , (SELECT BUYER_NM
+			 	  FROM STOCOGCM
+			 	 WHERE GATE_CD = ECCT.GATE_CD
+			 	   AND BUYER_CD = ECCT.BUYER_CD) AS BUYER_NM
+			 , ECRL.CONTRACT_TEXT_NUM
+			 , ECRL.CONTRACT_TEXT
+		  FROM STOCECCT ECCT
+		  JOIN STOCECRL ECRL
+			   ON (ECCT.GATE_CD  = ECRL.GATE_CD
+			   AND ECCT.BUYER_CD = ECRL.BUYER_CD
+			   AND ECCT.CONT_NUM = ECRL.CONT_NUM
+			   AND ECCT.CONT_CNT = ECRL.CONT_CNT
+			   AND ECRL.FORM_SQ  <![CDATA[>]]> 0 -- 부서식
+			   AND ECRL.DEL_FLAG = '0')
+		  JOIN STOCECCF ECCF
+			   ON (ECRL.GATE_CD  = ECCF.GATE_CD
+			   AND ECRL.FORM_NUM = ECCF.FORM_NUM)
+		 WHERE ECCT.GATE_CD  = #{ses.gateCd}
+		   AND ECCT.CONT_NUM = #{CONT_NUM}
+		<choose>
+			<when test="CONT_CNT != '' and CONT_CNT != null">
+				AND ECCT.CONT_CNT  = #{CONT_CNT}
+			</when>
+			<otherwise>
+				AND ECCT.CONT_CNT = (SELECT MAX(CONT_CNT)
+									   FROM STOCECCT
+									  WHERE GATE_CD  = ECCT.GATE_CD
+										AND CONT_NUM = ECCT.CONT_NUM
+										AND PROGRESS_CD = '4300')
+			</otherwise>
+		</choose>
+		   AND ECCT.DEL_FLAG  = '0'
+		 ORDER BY ECRL.FORM_SQ
+ 	</select>
+
+	<!-- 계약정보 -->
+	<select id="sctr0011_getContractInformation" resultType="java.util.Map">
+		SELECT
+			   ECCT.BUYER_CD
+		     , ECCT.CONT_NUM
+			 , ECCT.CONT_CNT
+			 , ECCT.CONT_NUM <include refid="common.sql.stringMerge"/> ' / ' <include refid="common.sql.stringMerge"/> ECCT.CONT_CNT AS CONT_NUM_AND_CNT
+			 ,<include refid="common.sql.toChar"/>(ECCT.CONT_DATE, 'YYYYMMDD') AS CONT_DATE
+			 ,<include refid="common.sql.toChar"/>(ECCT.CONT_START_DATE, 'YYYYMMDD') AS CONT_START_DATE
+			 ,<include refid="common.sql.toChar"/>(ECCT.CONT_END_DATE, 'YYYYMMDD') AS CONT_END_DATE
+		     , ECCT.CONT_DESC
+		     , ECCT.CONT_REQ_CD
+		     , ECCT.CUR
+		     , ECCT.CONT_AMT
+		     , TO_CHAR(ECCT.CONT_AMT, '999,999,999,999,999') AS CONT_AMT_COMMA
+		     , ECCT.VAT_TYPE
+		     ,(SELECT CODE_DESC FROM STOCCODD
+		     	WHERE GATE_CD   = ECCT.GATE_CD
+		     	  AND CODE      = ECCT.VAT_TYPE
+		     	  AND CODE_TYPE = 'M100'
+		     	  AND DEL_FLAG  = '0'
+		     	  AND USE_FLAG  = '1') AS VAT_TYPE_NM
+		     , ECCT.CONT_USER_ID
+		     ,<include refid="common.sql.dbo"/>GETUSERNAME(ECCT.GATE_CD, ECCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+		     , ECCT.VENDOR_CD
+		     ,<include refid="common.sql.dbo"/>GETVENDORNAME(ECCT.GATE_CD, ECCT.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+		     , ECCT.CERT_TYPE
+		     , ECCT.AMT_TYPE
+		     ,<include refid="common.sql.strDecStart"/>ECCT.VENDOR_PIC_USER_NM<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_NM
+		     ,<include refid="common.sql.strDecStart"/>ECCT.VENDOR_PIC_USER_EMAIL<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_EMAIL
+		     ,<include refid="common.sql.strDecStart"/>ECCT.VENDOR_PIC_USER_CELL_NUM<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_CELL_NUM
+			 , ECCT.DELAY_RMK
+		     , ECCT.DELAY_NUME_RATE
+		     , ECCT.DELAY_DENO_RATE
+		     , ECCT.STAMP_DUTY_FLAG
+		     , ECCT.STAMP_DUTY_AMT
+		     , TO_CHAR(ECCT.STAMP_DUTY_AMT, '999,999,999,999,999') AS STAMP_DUTY_AMT_COMMA
+		     , ECCT.AUTO_RENEW_FLAG
+		     , ECCT.CONT_RMK
+			 , ECCT.ATT_FILE_NUM
+		     , ECCT.VENDOR_ATT_FILE_NUM
+		     , ECCT.PROGRESS_CD
+			 , ECCT.APP_DOC_NUM
+		     , ECCT.SIGN_STATUS
+			 , ECCT.APP_DOC_CNT
+		     ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYY-MM-DD') AS SYS_DATE
+		     ,(CASE WHEN ECCT.PROGRESS_CD <![CDATA[<]]> 4210 OR ECCT.PROGRESS_CD = '4220' THEN 'true' ELSE 'false' END) AS ATT_FILE_EDITABLE
+			 ,(SELECT MIN(ECRJ.REJECT_RMK) KEEP(DENSE_RANK FIRST ORDER BY ECRJ.REJECT_SQ DESC)
+				 FROM STOCECRJ ECRJ
+				WHERE ECRJ.GATE_CD  = ECCT.GATE_CD
+				  AND ECRJ.BUYER_CD = ECCT.BUYER_CD
+				  AND ECRJ.CONT_NUM = ECCT.CONT_NUM
+				  AND ECRJ.CONT_CNT = ECCT.CONT_CNT) AS VENDOR_REJECT_RMK
+			 ,(SELECT A.REJECT_RMK
+			 	 FROM STOCECRJ A
+				WHERE A.GATE_CD  = ECCT.GATE_CD
+				  AND A.CONT_NUM = ECCT.CONT_NUM
+				  AND A.CONT_CNT = ECCT.CONT_CNT
+				  AND A.REJECT_SQ = (SELECT MAX(B.REJECT_SQ) FROM STOCECRJ B
+				   					  WHERE B.GATE_CD  = A.GATE_CD
+										AND B.CONT_NUM = A.CONT_NUM
+										AND B.CONT_CNT = A.CONT_CNT)) AS CONT_REJECT_RMK -- 협력사 전자서명 반려사유
+			 ,(SELECT IRS_NO FROM STOCVNGL
+			    WHERE GATE_CD   = ECCT.GATE_CD
+			      AND VENDOR_CD = #{ses.companyCd}
+			      AND DEL_FLAG  = '0') AS IRS_NO
+			 ,(SELECT FORM_NUM FROM STOCECRL ECRL
+        		WHERE ECRL.GATE_CD  = ECCT.GATE_CD
+         		  AND ECRL.BUYER_CD = ECCT.BUYER_CD
+         		  AND ECRL.CONT_NUM = ECCT.CONT_NUM
+         		  AND ECRL.CONT_CNT = ECCT.CONT_CNT
+         		  AND ECRL.FORM_SQ  = '0'
+         		  AND ECRL.DEL_FLAG = '0') AS FORM_NUM
+		     ,(SELECT ECCF.FORM_FILE_NM FROM STOCECRL ECRL
+				 JOIN STOCECCF ECCF
+					  ON (ECRL.GATE_CD  = ECCF.GATE_CD
+					  AND ECRL.FORM_NUM = ECCF.FORM_NUM
+					  AND ECCF.DEL_FLAG = '0')
+				WHERE ECRL.GATE_CD = #{ses.gateCd}
+				  AND ECRL.BUYER_CD = ECCT.BUYER_CD
+				  AND ECRL.CONT_NUM = ECCT.CONT_NUM
+				  AND ECRL.CONT_CNT = ECCT.CONT_CNT
+				  AND ECRL.FORM_SQ = 0) AS FORM_FILE_NM
+			 ,(SELECT LISTAGG('' || ECCF.FORM_FILE_NM, ',') WITHIN GROUP(ORDER BY <include refid="common.sql.nvl"/>(ECCR.REL_FORM_SQ, ECRL.FORM_SQ), ECCF.FORM_FILE_NM) AS SUB_FORM_FILE_NM
+				 FROM STOCECRL ECRL
+				 JOIN STOCECCF ECCF
+					  ON (ECRL.GATE_CD  = ECCF.GATE_CD
+					  AND ECRL.FORM_NUM = ECCF.FORM_NUM
+					  AND ECCF.DEL_FLAG = '0')
+				 LEFT JOIN STOCECCR ECCR
+				  	  ON (ECCF.GATE_CD  = ECCR.GATE_CD
+				  	  AND ECCF.FORM_NUM = ECCR.FORM_NUM
+				  	  AND ECRL.FORM_NUM = ECCR.REL_FORM_NUM
+				  	  AND ECCR.DEL_FLAG = '0') -- 2021.01.15 : 계약서폼 중복으로 인한 삭제
+				WHERE ECRL.GATE_CD  = ECCT.GATE_CD
+				  AND ECRL.BUYER_CD = ECCT.BUYER_CD
+				  AND ECRL.CONT_NUM = ECCT.CONT_NUM
+				  AND ECRL.CONT_CNT = ECCT.CONT_CNT
+				  AND ECRL.FORM_SQ > 0) AS SUB_FORM_FILE_NM
+			 -- 2021.06.30 : 선정품의 완료 후  SMS 수수료 부과
+             ,(SELECT IRS_NUM FROM STOCCUST
+                WHERE GATE_CD = ECCT.GATE_CD
+                  AND CUST_CD = ECCT.BUYER_CD)		AS CORP_NO
+             ,(SELECT DEPT_CD FROM STOCCVUR
+                WHERE GATE_CD = ECCT.GATE_CD
+                  AND USER_ID = ECCT.CONT_USER_ID)	AS BRC
+             ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+             , ECCT.CONT_USER_ID 	AS USER_ID
+             , ECCT.GATE_CD  	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ECCT.BUYER_CD 	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ECCT.CONT_NUM	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	           ECCT.CONT_CNT	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>               
+               ECCT.VENDOR_CD		AS CONT_TBL_PK
+             , NULL 				AS FILE_SIZE
+		  FROM STOCECCT ECCT
+		 WHERE ECCT.GATE_CD   = #{ses.gateCd}
+		   AND ECCT.BUYER_CD  = #{BUYER_CD}
+		   AND ECCT.CONT_NUM  = #{CONT_NUM}
+		   AND ECCT.CONT_CNT  = #{CONT_CNT}
+		   AND ECCT.VENDOR_CD = #{ses.companyCd}
+	</select>
+	
+	<!-- SCTR0011 : 2020.12.28 : 계약서 PDF파일 번호 추가 -->
+	<select id="sctr0011_doSearchECPC_HD" resultType="hashmap">
+		SELECT ECCT.BUYER_CD
+			 , ECCT.CONT_NUM
+			 , ECCT.CONT_CNT
+			 , ECPC.PR_BUYER_CD
+			 , ECPC.PR_DEPT_CD
+			 , ECPC.VENDOR_CD
+			 , ECPC.PY_BUYER_CD
+			 , ECPC.PY_DEPT_CD
+			 , ECPC.PAY_CNT
+			 ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(ECPC.GATE_CD, ECPC.PR_BUYER_CD, ECPC.PR_DEPT_CD, 'KO') AS PR_BUYER_DEPT_NM -- 고객사
+			 ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(ECPC.GATE_CD, ECPC.PY_BUYER_CD, ECPC.PY_DEPT_CD, 'KO') AS PY_BUYER_DEPT_NM -- 지불고객사
+			 , ECPC.PAY_AMT
+			 , ECPC.GUAR_TYPE
+			 , ECPC.GUAR_PERCENT
+			 , ECPC.GUAR_AMT
+			 , ECPC.GUAR_TYPE2
+			 , ECPC.GUARANTEER
+			 , CASE WHEN ECPC.GUAR_REQ_NUM IS NOT NULL AND ECPC.GUARANTEER = '20' THEN ECPC.GUAR_REQ_NUM <include refid="common.sql.stringMerge"/> ECCT.CONT_CNT 
+		 			WHEN ECPC.GUAR_REQ_NUM IS NOT NULL AND ECPC.GUARANTEER = '10' THEN ECPC.GUAR_REQ_NUM
+		 	   END GUAR_REQ_NUM_CNT 
+			 , ECPC.GUAR_REQ_NUM
+			 , ECPC.GUAR_NUM AS REAL_GUAR_NUM
+			 , CASE WHEN ECPC.GUAR_REQ_NUM IS NOT NULL AND ECPC.GUARANTEER = '20' THEN <include refid="common.sql.nvl"/>(SUBSTR(ECPC.GUAR_NUM, 7, 14), '')
+	 				WHEN ECPC.GUAR_REQ_NUM IS NOT NULL AND ECPC.GUARANTEER = '10' THEN <include refid="common.sql.nvl"/>(SUBSTR(ECPC.GUAR_NUM, 7, 18), '')
+	 	   	   END GUAR_NUM 
+			 , ECPC.ATT_FILE_NUM
+			 ,(SELECT COUNT(*) FROM STOCATCH
+				WHERE GATE_CD  = ECPC.GATE_CD
+				  AND UUID     = ECPC.ATT_FILE_NUM
+				  AND DEL_FLAG = '0') AS ATT_FILE_CNT
+			 , DI_ECPC.GUAR_TYPE AS DI_GUAR_TYPE
+			 , DI_ECPC.GUAR_AMT AS DI_GUAR_AMT
+			 , DI_ECPC.ATT_FILE_NUM AS DI_ATT_FILE_NUM
+			 ,(SELECT COUNT(*) FROM STOCATCH
+				WHERE GATE_CD  = DI_ECPC.GATE_CD
+				  AND UUID     = DI_ECPC.ATT_FILE_NUM
+				  AND DEL_FLAG = '0') AS DI_ATT_FILE_CNT
+			 ,(CASE WHEN ECCT.BUNDLE_NUM IS NULL THEN ECPC.PDF_ATT_FILE_NUM 
+			 		ELSE ECCM.PDF_ATT_FILE_NUM END) AS PDF_ATT_FILE_NUM
+			 , ECPC.RMK
+			 , ECPC.INSU_STATUS
+			 , ECPC.GUAR_CANCEL_RMK
+			 , ECPC.GUAR_REJECT_RMK
+		  FROM STOCECCT ECCT
+  		  JOIN STOCECCM ECCM
+	  		   ON (ECCM.GATE_CD  = ECCT.GATE_CD
+	  		   AND ECCM.BUYER_CD = ECCT.BUYER_CD
+	  		   AND ECCM.CONT_NUM = ECCT.CONT_NUM
+	  		   AND ECCM.CONT_CNT = ECCT.CONT_CNT
+	  		   AND ECCM.DEL_FLAG = '0')
+		  JOIN STOCECPC ECPC
+		   	   ON (ECPC.GATE_CD  = ECCM.GATE_CD
+	  		   AND ECPC.BUYER_CD = ECCM.BUYER_CD
+	  		   AND ECPC.CONT_NUM = ECCM.CONT_NUM
+	  		   AND ECPC.CONT_CNT = ECCM.CONT_CNT
+	  		   AND ECPC.PR_BUYER_CD = ECCM.PR_BUYER_CD
+	  		   AND ECPC.PR_DEPT_CD  = ECCM.PR_DEPT_CD
+	  		   AND ECPC.VENDOR_CD   = ECCM.VENDOR_CD
+	  		   AND ECPC.PAY_CNT  = '0'
+	  		   AND ECPC.DEL_FLAG = '0')
+		  JOIN STOCECPC DI_ECPC
+			   ON (ECPC.GATE_CD  = DI_ECPC.GATE_CD
+			   AND ECPC.BUYER_CD = DI_ECPC.BUYER_CD
+			   AND ECPC.CONT_NUM = DI_ECPC.CONT_NUM
+			   AND ECPC.CONT_CNT = DI_ECPC.CONT_CNT
+			   AND ECPC.PR_BUYER_CD = DI_ECPC.PR_BUYER_CD
+			   AND ECPC.PR_DEPT_CD  = DI_ECPC.PR_DEPT_CD
+			   AND ECPC.VENDOR_CD   = DI_ECPC.VENDOR_CD
+			   AND ECPC.PY_BUYER_CD = DI_ECPC.PY_BUYER_CD
+			   AND ECPC.PY_DEPT_CD  = DI_ECPC.PY_DEPT_CD
+			   AND DI_ECPC.PAY_CNT  = '-1'
+			   AND DI_ECPC.DEL_FLAG = '0')
+		 WHERE ECCT.GATE_CD   = #{ses.gateCd}
+		   AND ECCT.BUYER_CD  = #{BUYER_CD}
+		   AND ECCT.CONT_NUM  = #{CONT_NUM}
+		   AND ECCT.CONT_CNT  = #{CONT_CNT}
+		   AND ECPC.VENDOR_CD = #{VENDOR_CD}
+		   AND ECCT.DEL_FLAG  = '0'
+
+	</select>
+
+	<select id="sctr0011_doSearchECPC" resultType="hashmap">
+
+		SELECT ECCT.BUYER_CD
+			 , ECCT.CONT_NUM
+			 , ECCT.CONT_CNT
+			 , ECPC.PR_BUYER_CD
+			 , ECPC.PR_DEPT_CD
+			 , ECPC.VENDOR_CD
+			 , ECPC.PY_BUYER_CD
+			 , ECPC.PY_DEPT_CD
+		     , ECPC.PAY_CNT
+			 ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(ECPC.GATE_CD, ECPC.PR_BUYER_CD, ECPC.PR_DEPT_CD, 'KO') AS PR_BUYER_DEPT_NM -- 고객사
+			 ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(ECPC.GATE_CD, ECPC.PY_BUYER_CD, ECPC.PY_DEPT_CD, 'KO') AS PY_BUYER_DEPT_NM -- 지불고객사
+			 , ECPY.PAY_CNT_NM
+			 , ECPC.PAY_AMT
+			 , ECPC.GUAR_TYPE
+			 , ECPC.GUAR_PERCENT
+		     , ECPC.GUAR_QT
+			 , ECPC.GUAR_AMT
+			 , ECPC.GUAR_TYPE2
+			 , ECPC.GUARANTEER
+			 , CASE WHEN ECPC.GUAR_REQ_NUM IS NOT NULL AND ECPC.GUARANTEER = '20' THEN ECPC.GUAR_REQ_NUM <include refid="common.sql.stringMerge"/> ECCT.CONT_CNT 
+		 			WHEN ECPC.GUAR_REQ_NUM IS NOT NULL AND ECPC.GUARANTEER = '10' THEN ECPC.GUAR_REQ_NUM
+		 	   END GUAR_REQ_NUM_CNT 
+			 , ECPC.GUAR_REQ_NUM
+			 , ECPC.GUAR_NUM AS REAL_GUAR_NUM
+			 , CASE WHEN ECPC.GUAR_REQ_NUM IS NOT NULL AND ECPC.GUARANTEER = '20' THEN <include refid="common.sql.nvl"/>(SUBSTR(ECPC.GUAR_NUM, 7, 14), '')
+	 				WHEN ECPC.GUAR_REQ_NUM IS NOT NULL AND ECPC.GUARANTEER = '10' THEN <include refid="common.sql.nvl"/>(SUBSTR(ECPC.GUAR_NUM, 7, 18), '')
+	 	   	   END GUAR_NUM
+	 	   	 , CASE WHEN ECPC.GUAR_TYPE IS NOT NULL AND ECPC.ATT_FILE_NUM IS NOT NULL THEN 'Y'
+	 				WHEN ECPC.GUAR_TYPE IS NOT NULL AND ECPC.ATT_FILE_NUM IS NOT NULL THEN 'Y'
+	 		   ELSE 'N' END ECPC_GUAR_ATT_FILE
+			 , ECPC.ATT_FILE_NUM
+			 ,(SELECT COUNT(*) FROM STOCATCH
+				WHERE GATE_CD  = ECPC.GATE_CD
+				  AND UUID     = ECPC.ATT_FILE_NUM
+				  AND DEL_FLAG = '0') AS ATT_FILE_CNT
+			 , ECPC.RMK
+			 , ECPC.INSU_STATUS
+			 , ECPC.GUAR_CANCEL_RMK
+			 , ECPC.GUAR_REJECT_RMK
+		  FROM STOCECCT ECCT
+		  JOIN STOCECPC ECPC
+		   	   ON (ECPC.GATE_CD  = ECCT.GATE_CD
+	  		   AND ECPC.BUYER_CD = ECCT.BUYER_CD
+	  		   AND ECPC.CONT_NUM = ECCT.CONT_NUM
+	  		   AND ECPC.CONT_CNT = ECCT.CONT_CNT
+	  		   AND ECPC.PAY_CNT  > '0'
+	  		   AND ECPC.DEL_FLAG = '0')
+		  JOIN STOCECPY ECPY
+			   ON (ECPC.GATE_CD  = ECPY.GATE_CD
+			   AND ECPC.BUYER_CD = ECPY.BUYER_CD
+			   AND ECPC.CONT_NUM = ECPY.CONT_NUM
+			   AND ECPC.CONT_CNT = ECPY.CONT_CNT
+			   AND ECPC.PR_BUYER_CD = ECPY.PR_BUYER_CD
+			   AND ECPC.PR_DEPT_CD  = ECPY.PR_DEPT_CD
+			   AND ECPC.VENDOR_CD   = ECPY.VENDOR_CD
+			   AND ECPC.PAY_CNT  = ECPY.PAY_CNT
+			   AND ECPY.DEL_FLAG = '0')
+		 WHERE ECCT.GATE_CD   = #{ses.gateCd}
+		   AND ECCT.BUYER_CD  = #{BUYER_CD}
+		   AND ECCT.CONT_NUM  = #{CONT_NUM}
+		   AND ECCT.CONT_CNT  = #{CONT_CNT}
+		   AND ECPC.VENDOR_CD = #{VENDOR_CD}
+		   AND ECCT.DEL_FLAG  = '0'
+	</select>
+
+	<select id="sctr0011_doSearchECMT" resultType="hashmap">
+		SELECT BUYER_CD
+			 , CONT_NUM
+			 , CONT_CNT
+			 , PR_BUYER_CD
+			 , PR_DEPT_CD
+			 , VENDOR_CD
+			 , ITEM_SQ
+			 ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(GATE_CD, PR_BUYER_CD, PR_DEPT_CD, 'KO') AS PR_BUYER_DEPT_NM -- 고객사
+			 , PURCHASE_TYPE
+			 , ITEM_CD
+			 , ITEM_DESC
+			 , ITEM_SPEC
+			 , ITEM_QT
+			 , UNIT_CD
+			 , ITEM_PRC
+			 , ITEM_AMT
+			 ,<include refid="common.sql.toChar"/>(DUE_DATE, 'YYYY-MM') AS DUE_DATE
+			 ,<include refid="common.sql.dbo"/>GETCUSTNAME(GATE_CD, IV_BUYER_CD) AS IV_BUYER_NM
+			 ,<include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, IV_USER_ID, 'KO') AS IV_USER_NM
+		  FROM STOCECMT
+		 WHERE GATE_CD   = #{ses.gateCd}
+		   AND BUYER_CD  = #{BUYER_CD}
+		   AND CONT_NUM  = #{CONT_NUM}
+		   AND CONT_CNT  = #{CONT_CNT}
+		   AND VENDOR_CD = #{VENDOR_CD}
+		   AND DEL_FLAG  = '0'
+	</select>
+
+	<select id="sctr0011_doSearchGuarInfo" resultType="java.lang.Integer">
+		SELECT CASE WHEN SUM(GUAR_AMT) > 0 THEN 1 ELSE 0 END AS GUAR_FLAG
+		  FROM STOCECPC
+		 WHERE GATE_CD   = #{ses.gateCd}
+		   AND BUYER_CD  = #{BUYER_CD}
+		   AND CONT_NUM  = #{CONT_NUM}
+		   AND CONT_CNT  = #{CONT_CNT}
+		   AND VENDOR_CD = #{ses.companyCd}
+		   AND PAY_CNT   = '-1'
+ 	</select>
+
+	<select id="getGuarDataBdhd" parameterType="hashMap" resultType="hashMap">
+			SELECT
+				 '004'||'001'||'XXXXXXXXXX'||' 00' head_docu_numb /*	[필수]	 문서번호	*/
+				, #{HEAD_MESG_SEND}||'.'||TO_CHAR(SYSDATE,'YYYYMMDD')||TO_CHAR(SYSDATE,'HH24MISS')||'.12345.004'||'001'||'XXXXXXXXXX'||' 00' head_mang_numb /*	[필수]	 문서관리번호	*/
+				,'004'||'001'||'XXXXXXXXXX'||' 00' head_refr_numb /*	[필수]	 참조번호	*/
+
+				,NVL((
+					SELECT TO_CHAR(ADD_MONTHS(BID_END_DATE,1), 'YYYYMMDD') FROM STOCBDPG K
+					WHERE K.GATE_CD = A.GATE_CD
+					AND K.BUYER_CD = A.BUYER_CD
+					AND K.BID_NUM = A.BID_NUM
+					AND K.BID_CNT = A.BID_CNT
+					AND K.VOTE_CNT = (
+						SELECT MAX(VOTE_CNT) FROM STOCBDPG M
+						WHERE M.GATE_CD = K.GATE_CD
+						AND M.BUYER_CD = K.BUYER_CD
+						AND M.BID_NUM = K.BID_NUM
+						AND M.BID_CNT = K.BID_CNT
+					) 
+				 ), TO_CHAR(ADD_MONTHS(B.APP_END_DATE,1), 'YYYYMMDD')) bond_fnsh_date /*	[필수]	" 보험종료일자 - YYYYMMDD"	*/
+				,NVL(#{BID_GUAR_AMT}, A.BID_GUAR_AMT) bond_penl_amnt /*		" 보험가입금액 예) 1500000	*/
+				
+				,'XXXXXXXXXX' bidd_noti_numb   				/*	[필수]	 공고번호 - 피보험자 측 입찰번호 (차수를 포함한 정확한 입찰번호만 기재) ex) T2008100100	*/
+				,'000' bidd_proc_type  /*필수 계약구분코드 - 별첨 sheet의 코드 참조 (농협정보시스템은 계약구분코드를 세분화 할수 없기때문에 '000' 자릿수만 채워서 보낸 후 서울보증에서 농협으로 증권번호 수신 시 계약명등 내용에 맞는 계약구분코드 선택하여 수신 )                                                                                                         */
+				,B.ANN_ITEM bidd_name_text  /*필수 입찰건명                       */
+				,5 AS bidd_pric_rate  /*     보증금율                              */
+				,(
+					SELECT OPEN_DATE FROM STOCBDPG K
+					WHERE K.GATE_CD = A.GATE_CD
+					AND K.BUYER_CD = A.BUYER_CD
+					AND K.BID_NUM = A.BID_NUM
+					AND K.BID_CNT = A.BID_CNT
+					AND K.VOTE_CNT = (
+						SELECT MAX(VOTE_CNT) FROM STOCBDPG M
+						WHERE M.GATE_CD = K.GATE_CD
+						AND M.BUYER_CD = K.BUYER_CD
+						AND M.BID_NUM = K.BID_NUM
+						AND M.BID_CNT = K.BID_CNT
+				 )) bidd_frop_date /*필수 1차 입찰일 - YYYYMMDD      */
+				-- ,B.APP_BEGIN_DATE bidd_frop_date  /*필수 1차 입찰일 - YYYYMMDD      */
+				,null bidd_sdop_date  /*     2차 입찰일 - YYYYMMDD    */
+				,NVL((
+					SELECT BID_END_DATE || BID_BEGIN_TIME FROM STOCBDPG K
+					WHERE K.GATE_CD = A.GATE_CD
+					AND K.BUYER_CD = A.BUYER_CD
+					AND K.BID_NUM = A.BID_NUM
+					AND K.BID_CNT = A.BID_CNT
+					AND K.VOTE_CNT = (
+						SELECT MAX(VOTE_CNT) FROM STOCBDPG M
+						WHERE M.GATE_CD = K.GATE_CD
+						AND M.BUYER_CD = K.BUYER_CD
+						AND M.BID_NUM = K.BID_NUM
+						AND M.BID_CNT = K.BID_CNT
+					)
+				 ), B.APP_END_DATE||B.APP_END_TIME ) bidd_fnsh_date  /* 입찰마감일자               */
+				,B.APP_PLACE bidd_open_spot  /*     입찰장소        */
+				,null hist_bond_numb  /*     변경(배서) 대상 증권번호 - 기존에 발행되었던 신규(원) 증권번호(18자리) 예)100000200801111111- 꼭 18자리 원증권번호이어야 함- 기존 증권구분번호가 004001100000200800123456 00 이었다면 밑줄 되어 있는 부분이 원증권번호 18자리 임        */
+
+				,'1' cred_exst_code  /*필수  채권자 존재형태 구분 - 1:단독, 2:공동                                    */
+				,C.CUST_NM cred_orga_name  /*필수  기관명 - 피보험자 상호                                                   */
+				,'O' cred_orps_divs  /*필수  개인/사업자 구분 코드 - O - 사업자, P - 개인                             */
+				,C.IRS_NUM cred_orps_iden  /*필수  "사업자/주민등록번호 - O인 경우 사업자번호, P인 경우 주민등록번호"       */
+				,'1111111111111' cred_ownr_numb  /*      대표자 주민등록번호                                                      */
+				,<include refid="common.sql.strDecStart"/>C.CEO_USER_NM<include refid="common.sql.strDecEnd"/> cred_ownr_name  /*      대표자 성명                                                              */
+				,C.CUST_NM cred_bond_hold  /*필수  채권자 명(상호)                                                          */
+				,null cred_addn_name  /*      채권기관 부가상호                                                        */
+				,<include refid="common.sql.strDecStart"/>C.ZIP_CD<include refid="common.sql.strDecEnd"/> cred_orga_post  /*필수  회사 우편번호                                                            */
+				,<include refid="common.sql.strDecStart"/>C.ADDR1<include refid="common.sql.strDecEnd"/>||<include refid="common.sql.strDecStart"/><include refid="common.sql.nvl"/>(C.ADDR2,' ')<include refid="common.sql.strDecEnd"/> cred_orga_addr  /*	[필수]	 회사 주소	*/
+				,<include refid="common.sql.strDecStart"/>D.USER_NM<include refid="common.sql.strDecEnd"/> cred_chrg_name  /*필수  담당자 이름                                                              */
+				,D.DEPT_NM cred_dept_name  /*필수  담당자 소속 부서                                                         */
+				,<include refid="common.sql.strDecStart"/>D.TEL_NUM<include refid="common.sql.strDecEnd"/> cred_phon_numb  /*필수  담당자 전화 번호                                                         */
+				,<include refid="common.sql.strDecStart"/>D.CELL_NUM<include refid="common.sql.strDecEnd"/> cred_cell_phon  /*필수  담당자 휴대전화 번호                                                     */
+				,<include refid="common.sql.strDecStart"/>D.EMAIL<include refid="common.sql.strDecEnd"/> cred_send_mail  /*필수  담당자 e-Mail 주소                                                       */
+				,'A120870175500' cred_user_iden  /*필수  수신처 아이디 - 헤더정보의 전문송신기관 아이디                           */
+				,'NHI' cred_user_type  /*필수  수신처TYPE - 헤더정보의 연계기관코드                                     */
+				,'1' appl_exst_code  /*필수 계약자 존재 형태 구분 - 1:단독, 2:공동                                        */
+				,E.VENDOR_NM appl_orga_name  /*     기관명                                                                    */
+				,'O' appl_orps_divs  /*     구분코드 - O:사업자 P:개인                                                */
+				,null appl_orga_numb  /*     법인등록번호                                                              */
+				,E.IRS_NO appl_orps_iden  /*     "사업자/주민등록번호 - O인 경우 사업자번호, P인 경우 주민등록번호"        */
+				,'1111111111111' appl_ownr_numb  /*     "대표자 주민등록번호 - 개인사업자일 경우 필수 입력"                       */
+				,<include refid="common.sql.strDecStart"/>E.CEO_USER_NM<include refid="common.sql.strDecEnd"/> appl_ownr_name  /*     대표자 이름                                                               */
+				,null appl_addn_name  /*     계약업체 부가 상호                                                        */
+				,<include refid="common.sql.strDecStart"/>E.HQ_ZIP_CD<include refid="common.sql.strDecEnd"/> appl_orga_post  /*     계약 회사 우편번호                                                        */
+				,<include refid="common.sql.strDecStart"/>E.HQ_ADDR_1<include refid="common.sql.strDecEnd"/>||<include refid="common.sql.strDecStart"/><include refid="common.sql.nvl"/>(E.HQ_ADDR_2,' ')<include refid="common.sql.strDecEnd"/> appl_orga_addr  /*     계약 회사 주소                                                            */
+				,<include refid="common.sql.strDecStart"/>F.USER_NM<include refid="common.sql.strDecEnd"/> appl_chrg_name  /*     담당자 이름                                                               */
+				,'입찰부서' appl_dept_name  /*     담당자 소속 부서                                                          */
+				,<include refid="common.sql.strDecStart"/>F.CELL_NUM<include refid="common.sql.strDecEnd"/> appl_offc_phon  /*     담당자 전화 번호                                                          */
+				,<include refid="common.sql.strDecStart"/>F.CELL_NUM<include refid="common.sql.strDecEnd"/> appl_cell_phon  /*     담당자 휴대전화 번호                                                      */
+				,<include refid="common.sql.strDecStart"/>F.EMAIL<include refid="common.sql.strDecEnd"/> appl_send_mail  /*     담당자 e-Mail 주소                                                        */
+				,null appl_home_post  /*     자택 우편번호                                                             */
+				,null appl_home_addr  /*     자택 주소                                                                 */
+				,null appl_home_phon  /*     자택 전화 번호                                                            */
+				,'A120870175500' appl_user_iden  /*필수 수신처 아이디 - 헤더정보의 전문송신기관                                   */
+				,'NHI' appl_user_type  /*필수 수신처 Type - 헤더정보의 연계기관코드                                     */
+				,A.GUAR_REQ_NUM
+				,A.INSU_STATUS
+				,A.GUAR_NUM
+			FROM STOCBDHD B LEFT JOIN STOCBDAP A ON B.GATE_CD	= A.GATE_CD
+											AND B.BUYER_CD  = A.BUYER_CD
+											AND B.BID_NUM   = A.BID_NUM
+											AND B.BID_CNT   = A.BID_CNT
+											AND A.VENDOR_CD = #{VENDOR_CD}
+							LEFT JOIN STOCCUST C ON C.GATE_CD = B.GATE_CD
+										AND C.CUST_CD = B.BUYER_CD
+							LEFT JOIN STOCCVUR D ON D.GATE_CD = B.GATE_CD	 -- 구매사담당자
+											AND D.USER_ID = B.BID_USER_ID
+							LEFT JOIN STOCVNGL E ON E.GATE_CD = B.GATE_CD
+											AND E.VENDOR_CD = #{VENDOR_CD}
+							LEFT JOIN STOCCVUR F ON F.GATE_CD = #{ses.gateCd}	 -- 업체사담당자
+										AND F.USER_ID = #{ses.userId}		
+			WHERE B.GATE_CD = #{ses.gateCd}
+			AND B.BUYER_CD  = #{BUYER_CD}
+			AND B.BID_NUM   = #{BID_NUM}
+			AND B.BID_CNT   = #{BID_CNT}
+	</select>
+	
+	<select id="getGuarCancelDataBdhd" parameterType="hashMap" resultType="hashMap">
+			SELECT
+				 '004'||'001'||'XXXXXXXXXX'||' 00' head_docu_numb /*	[필수]	 문서번호	*/
+				, #{HEAD_MESG_SEND}||'.'||TO_CHAR(SYSDATE,'YYYYMMDD')||TO_CHAR(SYSDATE,'HH24MISS')||'.12345.004'||'001'||'XXXXXXXXXX'||' 00' head_mang_numb /*	[필수]	 문서관리번호	*/
+				,'004'||'001'||'XXXXXXXXXX'||' 00' head_refr_numb /*	[필수]	 참조번호	*/
+				
+				/* 문서정보 ===================================================================== */
+				,'XXXXXXXXXX'||' 00' docu_numb_text
+				,'001' docu_kind_code  									/*	[필수]	" 보험종목구분(001:입찰,002:계약,003:하자,004:선금,006:지급)"	*/
+				,null docu_issu_date  									/*	[선택]	 작성일자	*/
+				,null docu_user_type 									/*	[필수]	 발신처TYPE	*/
+				
+				/* 주요계약정보===================================================================== */
+				,'XXXXXXXXXX' cont_numb_text   	/*	[필수]	 계약번호	*/
+				,B.ANN_ITEM cont_main_name  	/*	[필수]	 계약/입찰건명	*/
+				,'WON' cont_curc_code  			/*	[선택]	 계약금액(원화)/통화코드(WON)	*/
+				,'0' cont_main_amnt  			/*	[선택]	 계약금액(원화)/계약금액	*/
+				
+				/* 채권자 정보(구매사)===================================================================== */
+				,C.CUST_NM cred_bond_hold  			/*	[필수]	 채권자명	*/
+				
+				/* 계약자 정보(협력업체)===================================================================== */
+				,E.VENDOR_NM appl_orga_name  		/*	[필수]	 기관명	*/
+				,'O' appl_orps_divs    				/*	[필수]	 구분(O:사업자번호 P:주민등록번호)	*/
+				,E.IRS_NO appl_orps_iden  			/*	[필수]	 사업자/주민번호	*/
+				,<include refid="common.sql.strDecStart"/>E.CEO_USER_NM<include refid="common.sql.strDecEnd"/> appl_ownr_name  	/*	[필수]	 성명(대표자명)	*/
+				,A.GUAR_REQ_NUM
+				,A.INSU_STATUS
+				,<include refid="common.sql.nvl"/>(SUBSTR(A.GUAR_NUM, 7, 18), '') AS GUAR_NUM
+			FROM STOCBDHD B LEFT JOIN STOCBDAP A ON B.GATE_CD	= A.GATE_CD
+											AND B.BUYER_CD  = A.BUYER_CD
+											AND B.BID_NUM   = A.BID_NUM
+											AND B.BID_CNT   = A.BID_CNT
+											AND A.VENDOR_CD = #{VENDOR_CD}
+							LEFT JOIN STOCCUST C ON C.GATE_CD = B.GATE_CD
+										AND C.CUST_CD = B.BUYER_CD
+							LEFT JOIN STOCCVUR D ON D.GATE_CD = B.GATE_CD	 -- 구매사담당자
+											AND D.USER_ID = B.BID_USER_ID
+							LEFT JOIN STOCVNGL E ON E.GATE_CD = B.GATE_CD
+											AND E.VENDOR_CD = #{VENDOR_CD}
+							LEFT JOIN STOCCVUR F ON F.GATE_CD = #{ses.gateCd}	 -- 업체사담당자
+										AND F.USER_ID = #{ses.userId}		
+			WHERE B.GATE_CD = #{ses.gateCd}
+			AND B.BUYER_CD  = #{BUYER_CD}
+			AND B.BID_NUM   = #{BID_NUM}
+			AND B.BID_CNT   = #{BID_CNT}
+	</select>
+	
+	<!-- SCTR0010 : 서울보증증권 전송할 전문 가져오기 -->
+	<select id="getGuarDataEcct" parameterType="hashMap" resultType="hashMap">
+		SELECT
+			 '004'||
+			  CASE WHEN A.GUAR_TYPE = 'ADV'  THEN '004'
+				   WHEN A.GUAR_TYPE = 'CONT' THEN '002'
+				   WHEN A.GUAR_TYPE = 'WARR' THEN '003'
+	 		  END||'XXXXXXXXXX'||' 00' head_docu_numb
+	
+			,#{HEAD_MESG_SEND}||'.'||TO_CHAR(SYSDATE,'YYYYMMDD')||TO_CHAR(SYSDATE,'HH24MISS')||'.12345.004'||
+			  CASE WHEN A.GUAR_TYPE = 'ADV'  THEN '004'
+				   WHEN A.GUAR_TYPE = 'CONT' THEN '002'
+				   WHEN A.GUAR_TYPE = 'WARR' THEN '003'
+	 		  END||'XXXXXXXXXX'||' 00' head_mang_numb
+	
+			,'004'||
+			  CASE WHEN A.GUAR_TYPE = 'ADV'  THEN '004'
+				   WHEN A.GUAR_TYPE = 'CONT' THEN '002'
+				   WHEN A.GUAR_TYPE = 'WARR' THEN '003'
+	 		  END||'XXXXXXXXXX'||' 00' head_refr_numb
+	
+			/* 보험계약정보 ===================================================================== */
+			,CASE WHEN A.GUAR_TYPE = 'ADV' THEN '004'
+				  WHEN A.GUAR_TYPE = 'CONT' THEN '002'
+				  WHEN A.GUAR_TYPE = 'WARR' THEN '003'
+			 END bond_kind_code  						/*	[필수]	" 보험종목구분(002:계약,003:하자,004:선금,006:지급)"	*/
+	
+			,CASE WHEN A.GUAR_TYPE = 'ADV' THEN TO_CHAR(B.CONT_DATE,'YYYYMMDD')
+				  WHEN A.GUAR_TYPE = 'CONT' THEN TO_CHAR(B.CONT_START_DATE,'YYYYMMDD')
+				  WHEN A.GUAR_TYPE = 'WARR' THEN TO_CHAR(B.CONT_END_DATE+1,'YYYYMMDD')
+			 END bond_begn_date							/*	[필수]	 보험개시일자	*/
+	
+			,CASE WHEN A.GUAR_TYPE = 'ADV' THEN TO_CHAR(B.CONT_END_DATE,'YYYYMMDD')
+				  WHEN A.GUAR_TYPE = 'CONT' THEN TO_CHAR(B.CONT_END_DATE,'YYYYMMDD')
+				  WHEN A.GUAR_TYPE = 'WARR' THEN TO_CHAR(ADD_MONTHS(B.CONT_END_DATE, A.GUAR_QT),'YYYYMMDD')
+			 END bond_fnsh_date							/*	[필수]	 보험종료일자	*/
+	
+			,'WON' bond_curc_code  						/*	[필수]	" 보험가입금액/통화코드(WON, USD …)"	*/
+			
+			,CASE WHEN A.GUAR_TYPE = 'ADV' THEN A.GUAR_AMT
+				  WHEN A.GUAR_TYPE = 'CONT' THEN A.PAY_AMT
+				  WHEN A.GUAR_TYPE = 'WARR' THEN A.GUAR_AMT
+			 END bond_penl_amnt							/*	[필수]	 보험가입금액/보험가입금액	*/
+			 
+			-- ,A.GUAR_AMT bond_penl_amnt 					/*	[필수]	 보험가입금액/보험가입금액	*/
+			,'SELECT' bond_oper_code  					/*	[선택]	" 조회등록 업무구분(SELECT,INSERT)"	*/
+	
+		<![CDATA[
+			,CASE WHEN B.CONT_CNT = '1' THEN '10'       /*	[필수]	" 신규배서 업무구분(10:신규,20:연장,60:증액,62:연장증액,70:감액,90:기타)"	*/
+			      WHEN B.CONT_AMT > G.CONT_AMT THEN '70'
+			      WHEN B.CONT_AMT < G.CONT_AMT THEN '60'
+			      ELSE '20' END bond_appl_code
+		]]>
+			/* 주요계약정보===================================================================== */
+			,'XXXXXXXXXX' cont_numb_text   				/*	[필수]	 계약번호	*/
+	
+			,B.CONT_DESC cont_name_text  				/*	[필수]	 계약건명	*/
+			,'000' cont_proc_type        				/*	[필수]	 계약구분	*/
+			,'2' cont_type_iden    						/*	[필수]	" 계약방식(1:공동, 2:단독, 3:분담)"	*/
+			,null cont_asgn_rate   						/*	[선택]	 지분율	*/
+			,CASE WHEN B.CONT_REQ_CD = '10' THEN '1'
+			      ELSE '2' END cont_news_divs    		/*	[필수]	" 신규/갱신 계약구분(1:신규계약, 2:갱신계약)"	*/
+			,null cont_plan_date  						/*	[선택]	 준공예정일	*/
+			,TO_CHAR(B.CONT_DATE,'YYYYMMDD') cont_main_date  -- ="20060101";		/*	[선택]	 계약체결일자	*/
+			,'WON' cont_curc_code  						/*	[필수]	 계약금액(원화)/통화코드(WON)	*/
+			,CASE WHEN A.GUAR_TYPE = 'CONT' THEN A.PAY_AMT
+				  WHEN A.GUAR_TYPE = 'ADV' THEN A.PAY_AMT
+				  WHEN A.GUAR_TYPE = 'WARR' THEN B.CONT_AMT
+			 END cont_main_amnt 								/*	[필수]	 계약금액(원화)/계약금액	*/
+			--,B.CONT_AMT cont_main_amnt  				/*	[필수]	 계약금액(원화)/계약금액	*/
+			,null forn_curc_code  						/*	[선택]	 계약금액(외화)/통화코드(USD …)	*/
+			,null forn_main_amnt  						/*	[선택]	 계약금액(외화)/계약금액	*/
+			,null hist_bond_numb  						/*	[선택]	 배서대상 증권번호	*/
+	
+			/* 계약정보===================================================================== */
+			,TO_CHAR(B.CONT_START_DATE,'YYYYMMDD') cont_begn_date  	/*	[필수]	 계약시작일자	*/
+			,TO_CHAR(B.CONT_END_DATE,'YYYYMMDD') cont_fnsh_date    	/*	[필수]	 계약종료일자	*/
+			,null cont_term_text   									/*	[선택]	 계약기간	*/
+			,CASE WHEN B.AMT_TYPE = 'TA' THEN A.GUAR_PERCENT
+				  ELSE 0 END cont_pric_rate  						/*	[필수]	" 보증금율(단가계약일 경우 ""0""으로 입력)"	*/
+			,CASE WHEN B.AMT_TYPE = 'UP' THEN '1'
+				  ELSE '2' END cont_unit_divs  						/*	[필수]	" 단가계약 여부(1:단가계약,2:일반계약)"	*/
+	
+			/* 선금정보(이행 선금 통보 정보) =================================================== */
+			,'1' prep_paym_type -- 필수 지급구분 - 1:직불(수요자), 2;대지급(채권자)
+			,TO_CHAR(B.CONT_START_DATE,'YYYYMMDD') prep_begn_date 	--필수 계약 시작일자 - YYYYMMDD
+			,TO_CHAR(B.CONT_END_DATE,'YYYYMMDD')   prep_fnsh_date 	--필수 계약 종료일자 - YYYYMMDD
+			,B.CONT_END_DATE - B.CONT_START_DATE   prep_term_text 	--계약기간(일수) = 계약종료일자-계약시작일자(계약기간 총 일수)
+			-- ,TO_CHAR(A.BOND_BEGN_DATE,'YYYYMMDD')  prep_paym_date 	--필수 선금지급(예정)일자 - YYYYMMDD
+			,TO_CHAR(SYSDATE,'YYYYMMDD')  prep_paym_date 	--필수 선금지급(예정)일자 - YYYYMMDD
+			,'WON' prep_curc_code     -- 필수 선금지급(예정)금액(원화) 통화코드 - WON(원화)
+			,A.PAY_AMT prep_paym_amnt -- 필수 선금지급(예정)금액(원화) - 예)1500000
+			,null fpre_curc_code      -- 선금지급(예정)금액(외화) 통화코드 - USD(미달러), EUR(유로화) 등
+			,null fpre_paym_amnt      -- 선금지급(예정)금액(외화) - 예)260.55
+			,null prep_pric_rate      -- 선금율
+	
+			/* 하자정보(이행 하자 통보 정보) =================================================== */
+			,TO_CHAR(B.CONT_END_DATE+1,'YYYYMMDD')  morg_begn_date -- 필수 하자보수 책임시작일 - YYYYMMDD
+			,TO_CHAR(ADD_MONTHS(B.CONT_END_DATE, A.GUAR_QT),'YYYYMMDD')  morg_fnsh_date -- 필수 하자보수 책임종료일 - YYYYMMDD
+	
+			,ADD_MONTHS(B.CONT_END_DATE, A.GUAR_QT) - (B.CONT_END_DATE+1)   morg_term_text -- 필수 하자보수 책임기간 = 하자보수책임 종료일자-하자보수책임 시작일자(하자보수책임 총 일수)
+			,A.GUAR_PERCENT  morg_pric_rate -- 필수 하자보증금율
+			,null  morg_cnfm_code --     무사고 확인 - Y:하자없음, N:하자있음 (하자보수 책임시작일로 부터 30일이상 경과시 필수항목)
+			,null  morg_cnfm_date --     무사고 확인일 - YYYYMMDD
+	
+			/* 채권자 정보(구매사)===================================================================== */
+			,C.CUST_NM cred_orga_name  			/*	[필수]	 기관명	*/
+			,'O' cred_orps_divs  				/*	[필수]	 구분(O:사업자번호 P:주민등록번호)	*/
+			,C.IRS_NUM cred_orps_iden  			/*	[필수]	 사업자/주민번호	*/
+			,'1111111111111' cred_ownr_numb  	/*	[필수]	 대표자 주민등록번호	*/
+			,<include refid="common.sql.strDecStart"/>C.CEO_USER_NM<include refid="common.sql.strDecEnd"/> cred_ownr_name  	/*	[필수]	 성명(대표자명)	*/
+			,C.CUST_NM cred_bond_hold  			/*	[필수]	 채권자명	*/
+			,null cred_addn_name  				/*	[선택]	 채권기관 부가상호	*/
+			,<include refid="common.sql.strDecStart"/>C.ZIP_CD<include refid="common.sql.strDecEnd"/> cred_orga_post  		/*	[필수]	 회사 우편번호	*/
+			,<include refid="common.sql.strDecStart"/>C.ADDR1<include refid="common.sql.strDecEnd"/>||<include refid="common.sql.strDecStart"/><include refid="common.sql.nvl"/>(C.ADDR2,' ')<include refid="common.sql.strDecEnd"/> cred_orga_addr  /*	[필수]	 회사 주소	*/
+			,<include refid="common.sql.strDecStart"/>D.USER_NM<include refid="common.sql.strDecEnd"/> cred_chrg_name  		/*	[필수]	 담당자명	*/
+			,D.DEPT_NM cred_dept_name  			/*	[필수]	 소속부서	*/
+			,<include refid="common.sql.strDecStart"/>D.TEL_NUM<include refid="common.sql.strDecEnd"/> cred_phon_numb  		/*	[필수]	 전화번호	*/
+			,<include refid="common.sql.strDecStart"/>D.CELL_NUM<include refid="common.sql.strDecEnd"/> cred_cell_phon  	/*	[필수]	 핸드폰번호	*/
+			,<include refid="common.sql.strDecStart"/>D.EMAIL<include refid="common.sql.strDecEnd"/> cred_send_mail  		/*	[필수]	 담당자 EMAIL	*/
+			,null cred_user_iden  				/*	[필수]	 수신처ID	*/
+			,null cred_user_type  				/*	[필수]	 수신처TYPE	*/
+	
+			/* 계약자 정보(협력업체)===================================================================== */
+			,E.VENDOR_NM appl_orga_name  		/*	[필수]	 기관명	*/
+			,'O' appl_orps_divs    				/*	[필수]	 구분(O:사업자번호 P:주민등록번호)	*/
+			--,E.COMPANY_REG_NO appl_orga_numb  	/*	[선택]	 법인등록번호	*/
+			,null appl_orga_numb  				/*	[선택]	 법인등록번호	*/
+			,E.IRS_NO appl_orps_iden  			/*	[필수]	 사업자/주민번호	*/
+			,'1111111111111' appl_ownr_numb  	/*	[필수]	 대표자 주민등록번호	*/
+			,<include refid="common.sql.strDecStart"/>E.CEO_USER_NM<include refid="common.sql.strDecEnd"/> appl_ownr_name  	/*	[필수]	 성명(대표자명)	*/
+			,null appl_addn_name  				/*	[선택]	 계약업체 부가상호	*/
+			,null appl_orga_post  				/*	[선택]	 회사 우편번호	*/
+			,null appl_orga_addr  				/*	[선택]	 회사 주소	*/
+	
+			,<include refid="common.sql.strDecStart"/>B.VENDOR_PIC_USER_NM<include refid="common.sql.strDecEnd"/> appl_chrg_name  			/*	[필수]	 담당자명	*/
+			,'계약부서' appl_dept_name  			/*	[필수]	 소속부서	*/
+			,<include refid="common.sql.strDecStart"/>B.VENDOR_PIC_USER_CELL_NUM<include refid="common.sql.strDecEnd"/> appl_offc_phon   	/*	[필수]	 전화번호	*/
+			,<include refid="common.sql.strDecStart"/>B.VENDOR_PIC_USER_CELL_NUM<include refid="common.sql.strDecEnd"/> appl_cell_phon  	/*	[필수]	 핸드폰번호	*/
+			,<include refid="common.sql.strDecStart"/>B.VENDOR_PIC_USER_EMAIL<include refid="common.sql.strDecEnd"/> appl_send_mail     	/*	[필수]	 담당자 EMAIL	*/
+			,null appl_home_post  				/*	[선택]	 자택 우편번호	*/
+			,null appl_home_addr  				/*	[선택]	 자택 주소	*/
+			,null appl_home_phon  				/*	[선택]	 자택 전화번호	*/
+			,null appl_user_iden  				/*	[필수]	 수신처ID	*/
+			,null appl_user_type  				/*	[필수]	 수신처TYPE	*/
+			,A.GUAR_REQ_NUM
+			,A.INSU_STATUS
+		    ,A.GUAR_NUM
+		FROM (
+				SELECT
+					    GUAR_TYPE
+					   ,GUAR_QT
+					   ,GUAR_AMT
+					   ,BOND_BEGN_DATE
+					   ,PAY_AMT
+					   ,GUAR_PERCENT
+					   ,GATE_CD
+					   ,BUYER_CD
+					   ,CONT_NUM
+					   ,CONT_CNT
+					   ,PY_BUYER_CD
+					   ,PY_DEPT_CD
+					   ,(
+							SELECT MAX(GUAR_REQ_NUM) FROM STOCECPC
+						    WHERE GATE_CD = A.GATE_CD
+						    AND BUYER_CD = A.BUYER_CD
+						    AND CONT_NUM = A.CONT_NUM
+						    AND CONT_CNT = A.CONT_CNT
+						    AND PY_BUYER_CD = A.PY_BUYER_CD
+						    AND PY_DEPT_CD = A.PY_DEPT_CD
+						    AND PAY_CNT = A.PAY_CNT
+					   ) GUAR_REQ_NUM
+					   ,INSU_STATUS
+				       ,GUAR_NUM
+				FROM STOCECPC A
+				WHERE GATE_CD = #{ses.gateCd}
+				AND BUYER_CD     = #{BUYER_CD}
+				AND CONT_NUM     = #{CONT_NUM}
+				AND CONT_CNT     = #{CONT_CNT}
+				AND PR_BUYER_CD  = #{PR_BUYER_CD}
+				AND PR_DEPT_CD   = #{PR_DEPT_CD}
+				AND VENDOR_CD    = #{VENDOR_CD}
+				AND PAY_CNT      = #{PAY_CNT}
+				AND PY_BUYER_CD  = #{PY_BUYER_CD}
+				AND PY_DEPT_CD   = #{PY_DEPT_CD}
+				UNION ALL--===================================================================================
+				SELECT
+					   GUAR_TYPE
+					  ,GUAR_QT
+					  ,GUAR_AMT
+					  ,BOND_BEGN_DATE
+					  ,AP_REQ_AMT AS PAY_AMT
+					  ,GUAR_PERCENT
+					  ,GATE_CD
+					  ,BUYER_CD
+					  ,CONT_NUM
+					  ,CONT_CNT
+					  ,PY_BUYER_CD
+					  ,PY_DEPT_CD
+					  ,(
+						SELECT MAX(GUAR_REQ_NUM) FROM STOCIVAP
+						 WHERE GATE_CD = A.GATE_CD
+						   AND BUYER_CD = A.BUYER_CD
+						   AND CONT_NUM = A.CONT_NUM
+						 --AND CONT_CNT = A.CONT_CNT
+						 --AND PY_BUYER_CD = A.PY_BUYER_CD
+						 --AND PY_DEPT_CD = A.PY_DEPT_CD
+					   ) GUAR_REQ_NUM
+					  ,INSU_STATUS 
+				  	  ,GUAR_NUM
+				FROM STOCIVAP A
+				WHERE GATE_CD = #{ses.gateCd}
+				AND AP_NUM = #{AP_NUM}
+			 ) A
+						JOIN STOCECCT B ON A.GATE_CD   = B.GATE_CD
+										AND A.BUYER_CD = B.BUYER_CD
+										AND A.CONT_NUM = B.CONT_NUM
+										AND A.CONT_CNT = B.CONT_CNT
+						JOIN STOCCUST C ON A.GATE_CD = C.GATE_CD
+										AND A.PY_BUYER_CD = C.CUST_CD
+						JOIN STOCCVUR D ON B.GATE_CD = D.GATE_CD     -- 구매사담당자
+										AND B.CONT_USER_ID = D.USER_ID
+						JOIN STOCVNGL E ON B.GATE_CD = E.GATE_CD
+										AND B.VENDOR_CD = E.VENDOR_CD
+						LEFT OUTER JOIN ( -- 이전 계약
+							SELECT * FROM STOCECCT
+							WHERE GATE_CD = #{ses.gateCd}
+							AND BUYER_CD     = #{BUYER_CD}
+							AND CONT_NUM     = #{CONT_NUM}
+							AND CONT_CNT     = #{CONT_CNT} - 1
+							UNION ALL
+							SELECT * FROM STOCECCT
+							WHERE (GATE_CD,BUYER_CD,CONT_NUM,CONT_CNT) IN ( SELECT
+																		  GATE_CD,BUYER_CD,CONT_NUM,CONT_CNT - 1
+																	FROM STOCIVAP
+																	WHERE GATE_CD = #{ses.gateCd}
+																	AND AP_NUM = #{AP_NUM}
+							)
+						) G
+						    ON  1 = 1
+		WHERE ROWNUM = 1
+	</select>
+
+	<select id="getGuarSWDataEcct" parameterType="hashMap" resultType="hashMap">
+		/*
+			* 문서코드(문서명) -  BIDINF(입찰정보통보서), CONINF(계약정보통보서), FLRINF(하자정보통보서),
+			                            PREINF(선금정보통보서), PAYINF(지급정보통보서), LIVINF(생활안정통보서), SALINF(상품판매통보서)
+			* 상품(보험종류)구분코드- 001:입찰, 002:계약, 003:하자, 004:선금, 005:상판(상품판매), 006:지급, 007:생활안정, 008:공사이행, 009:납세
+		*/
+
+		SELECT
+		 'XXXXXXXXXX'||B.CONT_CNT head_docu_numb																			/* 문서번호 */ 
+		,'21'||'.'||TO_CHAR(SYSDATE,'YYYYMMDD')||TO_CHAR(SYSDATE,'HH24MISS')||'.'||'XXXXXXXXXX'||B.CONT_CNT head_mang_numb	/* 문서관리번호 */
+		,'XXXXXXXXXX'||B.CONT_CNT head_refr_numb																			/* 참조번호 */
+		,TO_CHAR(SYSDATE,'YYYYMMDD') head_docu_issu									 /* 문서작성일자 */
+		
+		/* 주요계약정보============================================================================= */
+		,'XXXXXXXXXX'||B.CONT_CNT cont_unin_numb  	   							     /* 통합계약번호 */
+		,'XXXXXXXXXX'||B.CONT_CNT cont_rfrn_numb 								 	 /* 계약참조번호 */
+		,'XXXXXXXXXX'||B.CONT_CNT cont_numb_idnr								 	 /* 확정계약번호 */
+		,'00' cont_seqn_numb												 	     /* 수정차수 */
+		,'N' cont_ibid_indr													 	     /* 국제입찰여부 */
+		,B.CONT_DESC cont_name_text 										 	     /* 계약건명 */
+		,NVL(
+			(
+			SELECT (CASE WHEN B.CONT_TYPE1 = 'GC' THEN '1' WHEN B.CONT_TYPE1 = 'LC' THEN '2'
+					WHEN B.CONT_TYPE1 = 'NC' THEN '3' ELSE '4' END) CONT_TYPE1
+			FROM STOCBDDT K JOIN STOCBDHD B ON K.GATE_CD = B.GATE_CD
+							AND K.BUYER_CD = B.BUYER_CD
+							AND K.BID_NUM  = B.BID_NUM
+							AND K.BID_CNT  = B.BID_CNT
+			WHERE (K.PB_BUYER_CD,K.PR_NUM,K.PR_SQ) IN (
+					SELECT DISTINCT
+					 B.PB_BUYER_CD
+					,B.PR_NUM
+					,B.PR_SQ
+					FROM STOCECCT A JOIN STOCECMT B ON A.GATE_CD   = B.GATE_CD
+					                                AND A.BUYER_CD  = B.BUYER_CD
+					                                AND A.CONT_NUM = B.CONT_NUM
+													AND A.CONT_CNT = B.CONT_CNT
+													AND B.DEL_FLAG = '0'
+					WHERE A.GATE_CD = #{ses.gateCd}
+					AND A.BUYER_CD  = #{BUYER_CD}
+					AND A.CONT_NUM  = #{CONT_NUM}
+					AND A.CONT_CNT  = #{CONT_CNT}
+				)
+				AND ROWNUM = 1
+			)
+			, '1' ) cont_mean_code                                                   /* 계약방식(1:일반경쟁, 2:제한경쟁, 3:지명경쟁, 4:수의계약) */
+		,'2' cont_paym_code												     	     /* 지급구분 */
+		,'1' cont_clas_code                                                  	     /* 계약구분(1:물품, 2:외자, 3:시설, 4:비축(기타)) */
+		,'F00' cont_dcls_code												 	     /* 계약상세구분 */
+		,'' cont_acls_code												 	     	 /* 부가계약구분 */
+		,CASE WHEN B.CONT_REQ_CD = '10' THEN '1' ELSE '2' END cont_ctyp_indr 	     /* 장기계속구분 (1:신규, 2:장기, 3:계속비(신규), 4 :계속비(장기)) */
+		,'' cont_rnum_idnr												 	     	 /* 연관계약번호 */
+		,'N' cont_cprn_indr												 	 	     /* 공통계약여부(Y:공동, N:단독) */
+		,TO_CHAR(B.CONT_DATE,'YYYYMMDD') cont_date_time						         /* 계약체결일자 */
+		,TO_CHAR(B.CONT_START_DATE,'YYYYMMDD') cont_strt_date				         /* 계약시작일자 */
+		,TO_CHAR(B.CONT_END_DATE,'YYYYMMDD') cont_ends_date					         /* 계약종료일자 */
+		,B.CONT_END_DATE - B.CONT_START_DATE cont_perd_text     		     	     /* 계약기간 */
+		,'' cont_cmpt_date												 	     	 /* 이행완료일자 */
+		,'01' cont_blaw_code												 	     /* 근거법률 */
+		,'' cont_lcls_code												 	     	 /* 법률구분코드 */
+		,'' cont_bcla_text												 	     	 /* 근거조항 */
+		,'' cont_bdtl_text												 	     	 /* 근거내역 */
+		,'' cont_acls_code												 	     	 /* 수의계약특례코드 */
+		,'' cont_gnot_text												 	     	 /* 기타사항 */
+		--,A.PAY_AMT cont_amnt_cont												     /* 계약금액정보 */
+		,CASE WHEN A.GUAR_TYPE = 'CONT' THEN A.PAY_AMT
+				  WHEN A.GUAR_TYPE = 'ADV' THEN A.PAY_AMT
+				  WHEN A.GUAR_TYPE = 'WARR' THEN B.CONT_AMT
+			 END cont_amnt_cont 													 /* 계약금액정보 */
+		,'' cont_this_amnt												   	     	 /* 금차계약금액 */
+		,CASE WHEN B.AMT_TYPE = 'TA' THEN A.GUAR_PERCENT ELSE 0 END cont_amnt_rate   /* 보증금율 */
+		,A.GUAR_PERCENT cont_pric_rate										 	     /* 하자보증금율 */
+		,ADD_MONTHS(B.CONT_END_DATE, A.GUAR_QT) - (B.CONT_END_DATE+1) cont_mrtg_perd /* 하자보수책임기간 */
+		,'' cont_ntfy_info 											 	 	     	 /* 공통계약여부(Y:공동, N:단독) */
+		,'' cont_reqt_idnr 											 	 	   	 	 /* 요청번호 */
+		,'' cont_curl_link 											 	 	     	 /* 링크URL */
+
+		/* 채권자 정보(농협정보)========================================================================= */
+		,'1' coor_line_numb													   	     /* 계약기관일련번호 */
+		,'2' coor_orgn_cccd														     /* 계약기관구분 */
+   		,C.IRS_NUM coor_orgn_idnr  												     /* 기관코드 */
+		,C.IRS_NUM coor_orgn_addi  												   	 /* 기관부가코드 */
+		,'' coor_orgn_addd  												   	     /* 기관부가코드설명 */
+		,C.CUST_NM coor_orgn_name   											     /* 기관명 */
+		,'' coor_orgn_gccd   											   		     /* 기관분류 */
+		,C.CUST_NM coor_empl_cred	  											     /* 채권자명 */
+		,D.DEPT_NM coor_empl_dept  												     /* 담당부서명 */
+		,'' coor_empl_idnr   											   		     /* 사용자코드 */
+		,'' coor_empl_idnn   											   		     /* 사용자코드설명 */
+		,<include refid="common.sql.strDecStart"/>D.USER_NM<include refid="common.sql.strDecEnd"/> coor_empl_name /* 담당자명 */
+		,<include refid="common.sql.strDecStart"/>D.TEL_NUM<include refid="common.sql.strDecEnd"/> coor_tele_numb /* 담당자전화번호 */
+		,<include refid="common.sql.strDecStart"/>D.FAX_NUM<include refid="common.sql.strDecEnd"/> coor_faxs_numb /* 담당자FAx번호	*/
+
+		/* 계약자 정보(협력업체)===================================================================== */
+		,'1' suor_line_numb													   	     /* 계약업체일련번호 */
+		,'00' suor_orgn_cccd													     /* 계약업체구분 */
+		,'' suor_orgn_ctcd  												   	     /* 국적코드 */
+   		,E.IRS_NO suor_orgn_idnr  												     /* 업체코드 */
+		,E.IRS_NO suor_orgn_addi  												   	 /* 업체부가코드 */
+		,'' suor_orgn_addd  												   	     /* 업체부가코드설명 */
+		,E.VENDOR_NM suor_orgn_name   											     /* 업체명 */
+		,C.CUST_NM suor_orgn_cred   											     /* 채권자명 */
+		,'계약부서' suor_empl_dept													     /* 담당부서명 */
+		,'' suor_empl_idnr   											   		     /* 사용자코드 */
+		,'' suor_empl_idnn   											   		     /* 사용자코드설명 */
+		,<include refid="common.sql.strDecStart"/>B.VENDOR_PIC_USER_NM<include refid="common.sql.strDecEnd"/> suor_empl_name 	   /* 담당자명 */
+		,<include refid="common.sql.strDecStart"/>B.VENDOR_PIC_USER_CELL_NUM<include refid="common.sql.strDecEnd"/> suor_tele_numb /* 담당자전화번호 */
+		,'' suor_faxs_numb 													     	 /* 담당자FAx번호 */
+		,'' suor_ctyp_code													     	 /* 사용자코드설명 */
+		,'' suor_cons_rate													     	 /* 사용자코드설명 */
+		,A.GUAR_REQ_NUM
+		,A.INSU_STATUS
+		,A.GUAR_NUM
+		FROM (
+				SELECT
+					    GUAR_TYPE
+					   ,GUAR_QT
+					   ,GUAR_AMT
+					   ,BOND_BEGN_DATE
+					   ,PAY_AMT
+					   ,GUAR_PERCENT
+					   ,GATE_CD
+					   ,BUYER_CD
+					   ,CONT_NUM
+					   ,CONT_CNT
+					   ,PY_BUYER_CD
+					   ,PY_DEPT_CD
+					   ,(
+							SELECT MAX(GUAR_REQ_NUM) FROM STOCECPC
+						    WHERE GATE_CD = A.GATE_CD
+						    AND BUYER_CD = A.BUYER_CD
+						    AND CONT_NUM = A.CONT_NUM
+						    AND CONT_CNT = A.CONT_CNT
+						    AND PY_BUYER_CD = A.PY_BUYER_CD
+						    AND PY_DEPT_CD = A.PY_DEPT_CD
+						    AND PAY_CNT = A.PAY_CNT
+					   ) GUAR_REQ_NUM
+					   ,INSU_STATUS
+					   ,GUAR_NUM
+				FROM STOCECPC A
+				WHERE GATE_CD = #{ses.gateCd}
+				AND BUYER_CD     = #{BUYER_CD}
+				AND CONT_NUM     = #{CONT_NUM}
+				AND CONT_CNT     = #{CONT_CNT}
+				AND PR_BUYER_CD  = #{PR_BUYER_CD}
+				AND PR_DEPT_CD   = #{PR_DEPT_CD}
+				AND VENDOR_CD    = #{VENDOR_CD}
+				AND PAY_CNT      = #{PAY_CNT}
+				AND PY_BUYER_CD  = #{PY_BUYER_CD}
+				AND PY_DEPT_CD   = #{PY_DEPT_CD}
+				UNION ALL--===================================================================================
+				SELECT
+					   GUAR_TYPE
+					  ,GUAR_QT
+					  ,GUAR_AMT
+					  ,BOND_BEGN_DATE
+					  ,AP_REQ_AMT AS PAY_AMT
+					  ,GUAR_PERCENT
+					  ,GATE_CD
+					  ,BUYER_CD
+					  ,CONT_NUM
+					  ,CONT_CNT
+					  ,PY_BUYER_CD
+					  ,PY_DEPT_CD
+					  ,(
+							SELECT MAX(GUAR_REQ_NUM) FROM STOCIVAP
+						    WHERE GATE_CD = A.GATE_CD
+						    AND BUYER_CD = A.BUYER_CD
+						    AND CONT_NUM = A.CONT_NUM
+						    AND CONT_CNT = A.CONT_CNT
+						    AND PY_BUYER_CD = A.PY_BUYER_CD
+						    AND PY_DEPT_CD = A.PY_DEPT_CD
+					   ) GUAR_REQ_NUM
+					  ,INSU_STATUS 
+					  ,GUAR_NUM
+				FROM STOCIVAP A
+				WHERE GATE_CD = #{ses.gateCd}
+				AND AP_NUM = #{AP_NUM}
+			 ) A
+						JOIN STOCECCT B ON A.GATE_CD   = B.GATE_CD
+										AND A.BUYER_CD = B.BUYER_CD
+										AND A.CONT_NUM = B.CONT_NUM
+										AND A.CONT_CNT = B.CONT_CNT
+						JOIN STOCCUST C ON A.GATE_CD = C.GATE_CD
+										AND A.PY_BUYER_CD = C.CUST_CD
+						JOIN STOCCVUR D ON B.GATE_CD = D.GATE_CD     -- 구매사담당자
+										AND B.CONT_USER_ID = D.USER_ID
+						JOIN STOCVNGL E ON B.GATE_CD = E.GATE_CD
+										AND B.VENDOR_CD = E.VENDOR_CD
+						LEFT OUTER JOIN ( -- 이전 계약
+							SELECT * FROM STOCECCT
+							WHERE GATE_CD = #{ses.gateCd}
+							AND BUYER_CD     = #{BUYER_CD}
+							AND CONT_NUM     = #{CONT_NUM}
+							AND CONT_CNT     = #{CONT_CNT} - 1
+							UNION ALL
+							SELECT * FROM STOCECCT
+							WHERE (GATE_CD,BUYER_CD,CONT_NUM,CONT_CNT) IN ( SELECT
+																		  GATE_CD,BUYER_CD,CONT_NUM,CONT_CNT - 1
+																	FROM STOCIVAP
+																	WHERE GATE_CD = #{ses.gateCd}
+																	AND AP_NUM = #{AP_NUM}
+							)
+						) G
+						    ON  1 = 1
+		WHERE ROWNUM = 1
+	</select>
+	
+	<select id="getGuarSWDataStatus" parameterType="hashMap" resultType="hashMap">
+		SELECT INSU_STATUS
+		     , GUAR_NUM
+		  FROM STOCECPC 
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND GUAR_NUM = #{GUAR_NUM} 
+		   AND GUAR_TYPE =  #{GUAR_TYPE}
+	</select>
+	
+	<select id="sctr0011_doSearchECCM" resultType="java.util.Map">
+		SELECT BUYER_CD
+			 , CONT_NUM
+			 , CONT_CNT
+			 , PR_BUYER_CD
+			 , PR_DEPT_CD
+			 , VENDOR_CD
+			 , PDF_ATT_FILE_NUM
+		  FROM STOCECCM
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND VENDOR_CD = #{VENDOR_CD}
+	</select>
+
+	<select id="sctr0010_doPdfValid" resultType="java.util.Map">
+		SELECT UUID
+			 , UUID_SQ
+			 , FILE_NM
+			 , FILE_PATH
+			 , FILE_SIZE
+			 , FILE_EXTENSION
+			 , REAL_FILE_NM
+			 , BIZ_TYPE
+			 , REG_DATE
+			 , REG_USER_ID
+			 , MOD_DATE
+			 , MOD_USER_ID
+			 , FILE_SQ
+			 , DEL_FLAG
+			 , ENC_FLAG
+			 , COMPANY_CD
+			 , PR_BUYER_CD
+			 , UP_DATE
+			 , COMPANY_DEPT
+			 , PR_DEPT_CD
+		  FROM STOCATCH
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND UUID = #{PDF_ATT_FILE_NUM}
+	</select>
+
+	<!-- 서울보증증권 : 협력사 입찰신청서 제출 후 보증증권번호 변경 
+	<update id="setGuarSendCompleteBdhd" parameterType="hashmap">
+		UPDATE STOCBDAP
+		   SET INSU_STATUS   = 'TA'
+		     , BID_GUAR_AMT  = #{BID_GUAR_AMT} 
+		     , GUAR_REQ_NUM  = #{GUAR_REQ_NUM}
+		     , BID_GUAR_TYPE = #{BID_GUAR_TYPE}
+		     , GUARANTEER    = #{GUARANTEER}
+		WHERE GATE_CD = #{ses.gateCd}
+		AND BUYER_CD  = #{BUYER_CD}
+		AND BID_NUM   = #{BID_NUM}
+		AND BID_CNT   = #{BID_CNT}
+		AND VENDOR_CD = #{VENDOR_CD}
+	</update>
+	-->
+	
+	<insert id="setGuarSendCompleteBdhd" parameterType="hashmap">
+
+        MERGE <include refid="common.sql.mergeInto"/> STOCBDAP BDAP
+        USING (SELECT
+                     #{ses.gateCd} AS GATE_CD
+                    ,#{BUYER_CD}   AS BUYER_CD
+                    ,#{BID_NUM}    AS BID_NUM
+                    ,#{BID_CNT}    AS BID_CNT
+                    ,#{VENDOR_CD}  AS VENDOR_CD
+                <include refid="common.sql.dual"/>) B
+	         ON (BDAP.GATE_CD   = B.GATE_CD
+	         AND BDAP.BUYER_CD  = B.BUYER_CD
+	         AND BDAP.BID_NUM   = B.BID_NUM
+	         AND BDAP.BID_CNT   = B.BID_CNT
+	         AND BDAP.VENDOR_CD = B.VENDOR_CD)
+        WHEN MATCHED THEN
+        UPDATE SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,BID_GUAR_AMT = #{BID_GUAR_AMT}
+            ,BID_GUAR_TYPE = #{BID_GUAR_TYPE}
+            ,GUARANTEER = #{GUARANTEER}
+            ,GUAR_REQ_NUM = #{GUAR_REQ_NUM}
+            ,GUAR_NUM = #{GUAR_NUM}
+            ,INSU_STATUS = 'TA'
+        WHEN NOT MATCHED THEN
+        INSERT (
+             GATE_CD
+            ,BUYER_CD
+            ,BID_NUM
+            ,BID_CNT
+            ,VENDOR_CD
+            ,REG_DATE
+            ,REG_USER_ID
+            ,MOD_DATE
+            ,MOD_USER_ID
+            ,DEL_FLAG
+            ,BID_GUAR_AMT
+            ,BID_GUAR_TYPE
+            ,GUARANTEER
+            ,GUAR_REQ_NUM
+            ,GUAR_NUM
+            ,GUAR_ATT_FILE_NUM
+            ,INSU_STATUS
+        ) VALUES (
+             #{ses.gateCd}
+            ,#{BUYER_CD}
+            ,#{BID_NUM}
+            ,#{BID_CNT}
+            ,#{VENDOR_CD}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,'0'
+            ,#{BID_GUAR_AMT}
+            ,#{BID_GUAR_TYPE}
+            ,#{GUARANTEER}
+            ,#{GUAR_REQ_NUM}
+            ,#{GUAR_NUM}
+            ,#{GUAR_ATT_FILE_NUM}
+            ,'TA'
+        )
+        <include refid="common.sql.comma"/>
+    </insert>
+    
+	<update id="upsGuarCancelRecevieBdhd" parameterType="hashmap">
+		UPDATE STOCBDAP 
+		   SET GUAR_REQ_NUM       = NULL
+		     , GUAR_NUM 		  = NULL
+	    	 , GUAR_RESULT    	  = NULL
+	    	 , INSU_STATUS	      = NULL
+			 , GUARANTEER     	  = NULL
+			 , BID_GUAR_TYPE      = NULL
+			 , BID_GUAR_AMT       = NULL
+		WHERE GUAR_REQ_NUM  = #{GUAR_REQ_NUM}
+		  AND BID_NUM       = #{BID_NUM}
+		  AND BID_CNT       = #{BID_CNT}
+		  AND VENDOR_CD     = #{VENDOR_CD}
+		  AND BID_GUAR_TYPE = #{BID_GUAR_TYPE}
+	</update>
+	
+	<!-- 서울보증증권/소프트웨어공제조합 : 협력사 계약서 보증 신청 후 업데이트 -->
+	<insert id="setGuarSendComplete" parameterType="hashmap">
+		UPDATE STOCECPC
+		   SET INSU_STATUS    	  = 'TA'
+		     , GUAR_REQ_NUM   	  = #{GUAR_REQ_NUM}
+			 , GUAR_TYPE2     	  = #{GUAR_TYPE2}
+			 , GUARANTEER     	  = #{GUARANTEER}
+			 , BOND_BEGN_DATE 	  = #{BOND_BEGN_DATE}
+			 , BOND_FNSH_DATE 	  = #{BOND_FNSH_DATE}
+		WHERE GATE_CD    = #{ses.gateCd}
+		AND BUYER_CD     = #{BUYER_CD}
+		AND CONT_NUM     = #{CONT_NUM}
+		AND CONT_CNT     = #{CONT_CNT}
+		AND PR_BUYER_CD  = #{PR_BUYER_CD}
+		AND PR_DEPT_CD   = #{PR_DEPT_CD}
+		AND VENDOR_CD    = #{VENDOR_CD}
+		AND PAY_CNT      = #{PAY_CNT}
+		AND PY_BUYER_CD  = #{PY_BUYER_CD}
+		AND PY_DEPT_CD   = #{PY_DEPT_CD}
+	</insert>
+	
+	<insert id="setGuarCancelSendComplete" parameterType="hashmap">
+		UPDATE STOCECPC
+		   SET INSU_STATUS    = 'DD'
+		WHERE GATE_CD    = #{ses.gateCd}
+		AND BUYER_CD     = #{BUYER_CD}
+		AND CONT_NUM     = #{CONT_NUM}
+		AND CONT_CNT     = #{CONT_CNT}
+		AND PR_BUYER_CD  = #{PR_BUYER_CD}
+		AND PR_DEPT_CD   = #{PR_DEPT_CD}
+		AND VENDOR_CD    = #{VENDOR_CD}
+		AND PAY_CNT      = #{PAY_CNT}
+		AND PY_BUYER_CD  = #{PY_BUYER_CD}
+		AND PY_DEPT_CD   = #{PY_DEPT_CD}
+	</insert>
+	
+	<insert id="setGuarReSendComplete" parameterType="hashmap">
+		UPDATE STOCECPC
+		   SET INSU_STATUS    = 'TA'
+		WHERE GATE_CD    = #{ses.gateCd}
+		AND BUYER_CD     = #{BUYER_CD}
+		AND CONT_NUM     = #{CONT_NUM}
+		AND CONT_CNT     = #{CONT_CNT}
+		AND PR_BUYER_CD  = #{PR_BUYER_CD}
+		AND PR_DEPT_CD   = #{PR_DEPT_CD}
+		AND VENDOR_CD    = #{VENDOR_CD}
+		AND PAY_CNT      = #{PAY_CNT}
+		AND PY_BUYER_CD  = #{PY_BUYER_CD}
+		AND PY_DEPT_CD   = #{PY_DEPT_CD}
+	</insert>
+	
+	<update id="setGuarDelete" parameterType="hashmap">
+		UPDATE STOCECPC
+		   SET INSU_STATUS        = 'DE'
+		     , GUAR_CANCEL_RMK    = #{GUAR_CANCEL_RMK}
+		     , GUAR_CANCEL_STATUS = 'J'
+		     , GUAR_CANCEL_REQ_DATE = SYSDATE
+		     , GUAR_REJECT_RMK = NULL
+		     , GUAR_CANCEL_REJECT_DATE = NULL
+		     , GUAR_CANCEL_CONFIRM_DATE = NULL
+		     , PRE_GUAR_TYPE2 = #{GUAR_TYPE2}
+		     , PRE_GUARANTEER = #{GUARANTEER}
+		     , PRE_GUAR_REQ_NUM = #{GUAR_REQ_NUM}
+		     , PRE_GUAR_NUM = #{REAL_GUAR_NUM}
+		WHERE GATE_CD    = #{ses.gateCd}
+		AND BUYER_CD     = #{BUYER_CD}
+		AND CONT_NUM     = #{CONT_NUM}
+		AND CONT_CNT     = #{CONT_CNT}
+		AND PR_BUYER_CD  = #{PR_BUYER_CD}
+		AND PR_DEPT_CD   = #{PR_DEPT_CD}
+		AND VENDOR_CD    = #{VENDOR_CD}
+		AND PAY_CNT      = #{PAY_CNT}
+		AND PY_BUYER_CD  = #{PY_BUYER_CD}
+		AND PY_DEPT_CD   = #{PY_DEPT_CD}
+	</update>
+	
+	<!-- 2021.03.11 협력업체 보증 취소요청 승인/반려 처리 후 메일발송 -->
+	<!-- 협력사 전송시 Mail 발송 List 가져오기 : 협력사별 관리자 포함 최대 2명까지만 발송 -->
+	<select id="sctr0010_getguarInformation" parameterType="hashMap" resultType="hashmap">
+        SELECT
+        	  <include refid="common.sql.dbo"/>GETCOMCODE(ECPC.GATE_CD, 'M404', ECPC.GUAR_TYPE, 0, #{ses.langCd}) AS GUAR_TYPE
+        	, <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(ECPC.GATE_CD, ECPC.PR_BUYER_CD, ECPC.PR_DEPT_CD, #{ses.langCd}) AS PR_BUYER_DEPT_NM
+        	, ECPC.GUAR_NUM
+            , (SELECT CONT_DESC 
+                    FROM STOCECCT 
+                  WHERE GATE_CD = ECPC.GATE_CD
+                    AND BUYER_CD = ECPC.BUYER_CD
+                    AND CONT_NUM = ECPC.CONT_NUM
+                    AND CONT_CNT = ECPC.CONT_CNT
+                    AND VENDOR_CD = ECPC.VENDOR_CD
+                    AND DEL_FLAG = '0') AS CONT_DESC
+            , (SELECT CONT_NUM 
+                 FROM STOCECCT 
+                WHERE GATE_CD = ECPC.GATE_CD
+                  AND BUYER_CD = ECPC.BUYER_CD
+                  AND CONT_NUM = ECPC.CONT_NUM
+                  AND CONT_CNT = ECPC.CONT_CNT
+                  AND VENDOR_CD = ECPC.VENDOR_CD
+                  AND DEL_FLAG = '0') AS CONT_NUM        
+            , (SELECT CONT_USER_ID 
+                 FROM STOCECCT 
+                WHERE GATE_CD = ECPC.GATE_CD
+                  AND BUYER_CD = ECPC.BUYER_CD
+                  AND CONT_NUM = ECPC.CONT_NUM
+                  AND CONT_CNT = ECPC.CONT_CNT
+                  AND DEL_FLAG = '0') AS CONT_USER_ID     
+            , (SELECT <include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, CONT_USER_ID, #{ses.langCd}) 
+				 FROM STOCECCT 
+				WHERE GATE_CD = ECPC.GATE_CD
+				 AND BUYER_CD = ECPC.BUYER_CD
+				 AND CONT_NUM = ECPC.CONT_NUM
+				 AND CONT_CNT = ECPC.CONT_CNT
+				 AND DEL_FLAG = '0') AS CONT_USER_NM	          
+        	, ECPC.VENDOR_CD
+            , <include refid="common.sql.dbo"/>GETVENDORNAME(ECPC.GATE_CD, ECPC.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+            , <include refid="common.sql.toChar"/>(SYSDATE, 'YYYY-MM-DD') AS SYS_DATE
+        FROM STOCECPC ECPC
+        WHERE ECPC.GATE_CD    = #{ses.gateCd}
+          AND ECPC.BUYER_CD = <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+	      AND ECPC.CONT_NUM = #{CONT_NUM}
+	      AND ECPC.CONT_CNT = #{CONT_CNT}
+	      AND ECPC.PY_BUYER_CD = #{PR_BUYER_CD}
+	      AND ECPC.PY_DEPT_CD  = #{PR_DEPT_CD}
+	      AND ECPC.VENDOR_CD = #{VENDOR_CD}
+	   <if test="PAY_CNT != null and PAY_CNT != ''">
+	      AND ECPC.PAY_CNT = #{PAY_CNT}
+	   </if>
+	      AND ECPC.GUAR_TYPE = #{GUAR_TYPE}
+	      AND ECPC.GUAR_PERCENT <![CDATA[>]]> 0
+	      AND ECPC.GUAR_TYPE2 IS NOT NULL
+	      AND ECPC.DEL_FLAG = '0'
+    </select>
+
+	<!-- 대금지급 : 사용안함 -->
+	<insert id="setGuarSendCompleteIvap" parameterType="hashmap">
+		UPDATE STOCIVAP
+		   SET INSU_STATUS  = 'TA'
+		     , GUAR_REQ_NUM = #{GUAR_REQ_NUM}
+		WHERE GATE_CD = #{ses.gateCd}
+		  AND AP_NUM  = #{AP_NUM}
+	</insert>
+	
+	<select id="getGuarInfoCheck" parameterType="hashMap" resultType="hashmap">
+		SELECT A.GUAR_REQ_NUM
+		  FROM (  
+				SELECT GUAR_REQ_NUM 
+				  FROM STOCECPC   
+				 WHERE GUAR_REQ_NUM = #{GUAR_REQ_NUM}
+				   AND GUAR_TYPE    = #{GUAR_TYPE}
+				UNION ALL
+				SELECT GUAR_REQ_NUM 
+				  FROM STOCBDAP   
+				 WHERE GUAR_REQ_NUM  = #{GUAR_REQ_NUM}
+				   AND BID_GUAR_TYPE = #{GUAR_TYPE} 
+			   )A    
+	</select>
+	
+	<select id="getGuarNumInfoCheck" parameterType="hashMap" resultType="hashmap">
+		SELECT A.GUAR_NUM
+		  FROM ( 
+				SELECT GUAR_NUM 
+				  FROM STOCECPC   
+				 WHERE GUAR_REQ_NUM = #{GUAR_REQ_NUM}
+				   AND GUAR_TYPE    = #{GUAR_TYPE}
+				UNION ALL
+				SELECT GUAR_NUM 
+				  FROM STOCBDAP   
+				 WHERE GUAR_REQ_NUM  = #{GUAR_REQ_NUM}
+				   AND BID_GUAR_TYPE = #{GUAR_TYPE}  
+			   )A       
+	</select>
+	
+	<update id="upsGuarRecevieEcpc" parameterType="hashmap">
+		UPDATE STOCECPC 
+		   SET GUAR_NUM 		  = #{GUAR_NUM}
+	    	 , GUAR_RESULT    	  = #{GUAR_RESULT}
+	    	 , INSU_STATUS	      = #{INSU_STATUS}
+	    	 , BOND_BEGN_DATE 	  = #{BOND_BEGN_DATE}
+			 , BOND_FNSH_DATE     = #{BOND_FNSH_DATE}
+		WHERE GUAR_REQ_NUM = #{GUAR_REQ_NUM}
+		  AND GUAR_TYPE      = #{GUAR_TYPE}
+	</update>
+	
+	<update id="upsGuarRecevieBdhd" parameterType="hashmap">
+		UPDATE STOCBDAP SET GUAR_NUM = #{GUAR_NUM}
+	    ,GUAR_RESULT = #{GUAR_RESULT}
+	    ,INSU_STATUS = #{INSU_STATUS}
+		WHERE GUAR_REQ_NUM = #{GUAR_REQ_NUM}
+		  AND BID_GUAR_TYPE = #{GUAR_TYPE} 
+	</update>
+	
+	<update id="upsGuarCancelRecevieEcpc" parameterType="hashmap">
+		UPDATE STOCECPC 
+		   SET GUAR_REQ_NUM       = NULL
+		     , GUAR_NUM 		  = NULL
+	    	 , GUAR_RESULT    	  = NULL
+	    	 , INSU_STATUS	      = NULL
+	    	 -- , GUAR_TYPE2     	  = NULL
+			 , GUARANTEER     	  = NULL
+			 , BOND_BEGN_DATE 	  = NULL
+			 , BOND_FNSH_DATE     = NULL
+		WHERE GUAR_REQ_NUM = #{GUAR_REQ_NUM}
+		AND GUAR_TYPE      = #{GUAR_TYPE}
+	</update>
+	
+	<update id="upsGuarCancelConfirmRecevieEcpc" parameterType="hashMap">
+        UPDATE STOCECPC 
+		   SET GUAR_REQ_NUM       = NULL
+		     , GUAR_NUM 		  = NULL
+	    	 , GUAR_RESULT    	  = NULL
+	    	 , INSU_STATUS	      = NULL
+	    	 , GUAR_TYPE2     	  = NULL
+			 , GUARANTEER     	  = NULL
+			 , BOND_BEGN_DATE 	  = NULL
+			 , BOND_FNSH_DATE     = NULL
+			 , GUAR_CANCEL_STATUS = 'E'
+			 , GUAR_CANCEL_CONFIRM_DATE = SYSDATE
+		WHERE GUAR_REQ_NUM = #{GUAR_REQ_NUM}
+		AND GUAR_TYPE      = #{GUAR_TYPE}
+    </update>
+	
+	<update id="upsGuarRecevieIvap" parameterType="hashmap">
+		UPDATE STOCIVAP SET GUAR_NUM = #{GUAR_NUM}
+	    ,GUAR_RESULT = #{GUAR_RESULT}
+	    ,INSU_STATUS = #{INSU_STATUS}
+		WHERE GUAR_REQ_NUM = #{GUAR_REQ_NUM}
+		AND GUAR_TYPE = #{GUAR_TYPE}
+	</update>
+
+	<insert id="insGuarRecevieGrtswgua" parameterType="hashmap">
+		MERGE <include refid="common.sql.mergeInto"/> GRTSWGUA  A
+        USING (SELECT #{BOND_NUMB_TEXT} AS GUARANTEE_SEQ
+                <include refid="common.sql.dual"/> ) B
+            ON (A.GUARANTEE_SEQ = B.GUARANTEE_SEQ)
+        WHEN MATCHED THEN
+        UPDATE SET
+              HEAD_MESG_SEND = #{HEAD_MESG_SEND}
+			, HEAD_MESG_RECV = #{HEAD_MESG_RECV}
+			, HEAD_FUNC_CODE = #{HEAD_FUNC_CODE}
+			, HEAD_MESG_TYPE = #{HEAD_MESG_TYPE}
+			, HEAD_MESG_NAME = #{HEAD_MESG_NAME}
+			, HEAD_MESG_VERS = #{HEAD_MESG_VERS}
+			, HEAD_DOCU_NUMB = #{HEAD_DOCU_NUMB}
+			, HEAD_MANG_NUMB = #{HEAD_MANG_NUMB}
+			, HEAD_REFR_NUMB = #{HEAD_REFR_NUMB}
+			, HEAD_TITL_NAME = #{HEAD_TITL_NAME}
+			, HEAD_ORGA_CODE = #{HEAD_ORGA_CODE}
+			, BOND_ORGA_NAME = #{BOND_ORGA_NAME}
+			, BOND_ORGA_IDEN = #{BOND_ORGA_IDEN}
+			, BOND_ORGA_ADDN = #{BOND_ORGA_ADDN}
+			, BOND_ORGA_CEO  = #{BOND_ORGA_CEO}
+			, GOVN_ORGA_NAME = #{GOVN_ORGA_NAME}
+			, GOVN_ORGA_IDEN = #{GOVN_ORGA_IDEN}
+			, GOVN_ORGA_ADDN = #{GOVN_ORGA_ADDN} 
+			, GOVN_OWNR_NAME = #{GOVN_OWNR_NAME}
+			, DOCU_ISSU_DATE = #{DOCU_ISSU_DATE}
+			, BUSI_CLAS_CODE = #{BUSI_CLAS_CODE}
+			, BOND_NUMB_TEXT = #{BOND_NUMB_TEXT}
+			, BOND_PENL_TEXT = #{BOND_PENL_TEXT}
+			, BOND_PENL_AMNT = #{BOND_PENL_AMNT}
+			, PENL_CURC_CODE = #{PENL_CURC_CODE}
+			, BOND_BEGN_DATE = #{BOND_BEGN_DATE}
+			, BOND_FNSH_DATE = #{BOND_FNSH_DATE}
+			, BOND_PREM_AMNT = #{BOND_PREM_AMNT}
+			, PREM_CURC_CODE = #{PREM_CURC_CODE}
+			, BOND_PRIC_RATE = #{BOND_PRIC_RATE}
+			, APPL_ORGA_NAME = #{APPL_ORGA_NAME}
+			, APPL_ORPS_DIVS = #{APPL_ORPS_DIVS}
+			, APPL_ORPS_IDEN = #{APPL_ORPS_IDEN}
+			, APPL_OWNR_NAME = <include refid="common.sql.strEncStart"/>#{APPL_OWNR_NAME}<include refid="common.sql.strEncEnd"/>
+			, CRED_ORGA_NAME = #{CRED_ORGA_NAME}
+			, CRED_ORPS_DIVS = #{CRED_ORPS_DIVS}
+			, CRED_ORPS_IDEN = #{CRED_ORPS_IDEN}
+			, BOND_HOLD_NAME = #{BOND_HOLD_NAME}
+			, CONT_NAME_TEXT = #{CONT_NAME_TEXT}
+			, CONT_MAIN_AMNT = #{CONT_MAIN_AMNT}
+			, CONT_CURC_CODE = #{CONT_CURC_CODE}
+			, CONT_NUMB_TEXT = #{CONT_NUMB_TEXT}
+			, CONT_MAIN_DATE = #{CONT_MAIN_DATE}
+			, CONT_BEGN_DATE = #{CONT_BEGN_DATE}
+			, CONT_FNSH_DATE = #{CONT_FNSH_DATE}
+			, MORG_BEGN_DATE = #{MORG_BEGN_DATE}
+			, MORG_FNSH_DATE = #{MORG_FNSH_DATE}
+			, CONT_PERF_DATE = #{CONT_PERF_DATE}
+			, PREP_PAY_AMNT  = #{PREP_PAY_AMNT}
+			, PREP_PAY_DATE  = #{PREP_PAY_DATE}
+			, PREP_PREF_DATE = #{PREP_PREF_DATE}
+			, SPCL_COND_TEXT = #{SPCL_COND_TEXT}
+			, SPCL_PROV_TEXT = #{SPCL_PROV_TEXT}
+			, BOND_STAT_TEXT = #{BOND_STAT_TEXT}
+			, ISSU_ADDR_TXT1 = #{ISSU_ADDR_TXT1}
+			, ISSU_ADDR_TXT2 = #{ISSU_ADDR_TXT2}
+			, ISSU_ORGA_NAME = #{ISSU_ORGA_NAME}
+			, ISSU_OWNR_NAME = <include refid="common.sql.strEncStart"/>#{ISSU_OWNR_NAME}<include refid="common.sql.strEncEnd"/>
+			, ISSU_DEPT_NAME = #{ISSU_DEPT_NAME}
+			, ISSU_DEPT_OWNR = <include refid="common.sql.strEncStart"/>#{ISSU_DEPT_OWNR}<include refid="common.sql.strEncEnd"/>
+			, CHRG_NAME_TEXT = <include refid="common.sql.strEncStart"/>#{CHRG_NAME_TEXT}<include refid="common.sql.strEncEnd"/>
+			, CHRG_PHON_TEXT = <include refid="common.sql.strEncStart"/>#{CHRG_PHON_TEXT}<include refid="common.sql.strEncEnd"/>
+			, CHRG_FAXS_TEXT = <include refid="common.sql.strEncStart"/>#{CHRG_FAXS_TEXT}<include refid="common.sql.strEncEnd"/>
+			, GENE_NOTE_TEXT = #{GENE_NOTE_TEXT}
+			, RESP_TYPE_CODE = #{RESP_TYPE_CODE}
+			, RESP_TYPE_NAME = #{RESP_TYPE_NAME}
+			, RESP_MESG_TEXT = #{RESP_MESG_TEXT}
+			, ACK_RESP_XML   = #{ACK_RESP_XML}
+			, XML_DATA       = #{XML_DATA}
+			, UPDATE_DATE    = SYSDATE  
+        WHEN NOT MATCHED THEN
+        INSERT (
+              GUARANTEE_SEQ
+			, HEAD_MESG_SEND
+			, HEAD_MESG_RECV
+			, HEAD_FUNC_CODE
+			, HEAD_MESG_TYPE
+			, HEAD_MESG_NAME
+			, HEAD_MESG_VERS
+			, HEAD_DOCU_NUMB
+			, HEAD_MANG_NUMB
+			, HEAD_REFR_NUMB
+			, HEAD_TITL_NAME
+			, HEAD_ORGA_CODE
+			, BOND_ORGA_NAME
+			, BOND_ORGA_IDEN
+			, BOND_ORGA_ADDN
+			, BOND_ORGA_CEO
+			, GOVN_ORGA_NAME
+			, GOVN_ORGA_IDEN
+			, GOVN_ORGA_ADDN
+			, GOVN_OWNR_NAME
+			, DOCU_ISSU_DATE
+			, BUSI_CLAS_CODE
+			, BOND_NUMB_TEXT
+			, BOND_PENL_TEXT
+			, BOND_PENL_AMNT
+			, PENL_CURC_CODE
+			, BOND_BEGN_DATE
+			, BOND_FNSH_DATE
+			, BOND_PREM_AMNT
+			, PREM_CURC_CODE
+			, BOND_PRIC_RATE
+			, APPL_ORGA_NAME
+			, APPL_ORPS_DIVS
+			, APPL_ORPS_IDEN
+			, APPL_OWNR_NAME
+			, CRED_ORGA_NAME
+			, CRED_ORPS_DIVS
+			, CRED_ORPS_IDEN
+			, BOND_HOLD_NAME
+			, CONT_NAME_TEXT
+			, CONT_MAIN_AMNT
+			, CONT_CURC_CODE
+			, CONT_NUMB_TEXT
+			, CONT_MAIN_DATE
+			, CONT_BEGN_DATE
+			, CONT_FNSH_DATE
+			, MORG_BEGN_DATE
+			, MORG_FNSH_DATE
+			, CONT_PERF_DATE
+			, PREP_PAY_AMNT
+			, PREP_PAY_DATE
+			, PREP_PREF_DATE
+			, SPCL_COND_TEXT
+			, SPCL_PROV_TEXT
+			, BOND_STAT_TEXT
+			, ISSU_ADDR_TXT1
+			, ISSU_ADDR_TXT2
+			, ISSU_ORGA_NAME
+			, ISSU_OWNR_NAME
+			, ISSU_DEPT_NAME
+			, ISSU_DEPT_OWNR
+			, CHRG_NAME_TEXT
+			, CHRG_PHON_TEXT
+			, CHRG_FAXS_TEXT
+			, GENE_NOTE_TEXT
+			, RESP_TYPE_CODE
+			, RESP_TYPE_NAME
+			, RESP_MESG_TEXT
+			, ACK_RESP_XML
+			, XML_DATA
+			, INSERT_DATE
+			, UPDATE_DATE
+        ) VALUES (
+              #{BOND_NUMB_TEXT}
+			, #{HEAD_MESG_SEND}
+			, #{HEAD_MESG_RECV}
+			, #{HEAD_FUNC_CODE}
+			, #{HEAD_MESG_TYPE}
+			, #{HEAD_MESG_NAME}
+			, #{HEAD_MESG_VERS}
+			, #{HEAD_DOCU_NUMB}
+			, #{HEAD_MANG_NUMB}
+			, #{HEAD_REFR_NUMB}
+			, #{HEAD_TITL_NAME}
+			, #{HEAD_ORGA_CODE}
+			, #{BOND_ORGA_NAME}
+			, #{BOND_ORGA_IDEN}
+			, #{BOND_ORGA_ADDN}
+			, #{BOND_ORGA_CEO}
+			, #{GOVN_ORGA_NAME}
+			, #{GOVN_ORGA_IDEN}
+			, #{GOVN_ORGA_ADDN}
+			, #{GOVN_OWNR_NAME}
+			, #{DOCU_ISSU_DATE}
+			, #{BUSI_CLAS_CODE}
+			, #{BOND_NUMB_TEXT}
+			, #{BOND_PENL_TEXT}
+			, #{BOND_PENL_AMNT}
+			, #{PENL_CURC_CODE}
+			, #{BOND_BEGN_DATE}
+			, #{BOND_FNSH_DATE}
+			, #{BOND_PREM_AMNT}
+			, #{PREM_CURC_CODE}
+			, #{BOND_PRIC_RATE}
+			, #{APPL_ORGA_NAME}
+			, #{APPL_ORPS_DIVS}
+			, #{APPL_ORPS_IDEN}
+			,<include refid="common.sql.strEncStart"/>#{APPL_OWNR_NAME}<include refid="common.sql.strEncEnd"/>
+			, #{CRED_ORGA_NAME}
+			, #{CRED_ORPS_DIVS}
+			, #{CRED_ORPS_IDEN}
+			, #{BOND_HOLD_NAME}
+			, #{CONT_NAME_TEXT}
+			, #{CONT_MAIN_AMNT}
+			, #{CONT_CURC_CODE}
+			, #{CONT_NUMB_TEXT}
+			, #{CONT_MAIN_DATE}
+			, #{CONT_BEGN_DATE}
+			, #{CONT_FNSH_DATE}
+			, #{MORG_BEGN_DATE}
+			, #{MORG_FNSH_DATE}
+			, #{CONT_PERF_DATE}
+			, #{PREP_PAY_AMNT}
+			, #{PREP_PAY_DATE}
+			, #{PREP_PREF_DATE}
+			, #{SPCL_COND_TEXT}
+			, #{SPCL_PROV_TEXT}
+			, #{BOND_STAT_TEXT}
+			, #{ISSU_ADDR_TXT1}
+			, #{ISSU_ADDR_TXT2}
+			, #{ISSU_ORGA_NAME}
+			,<include refid="common.sql.strEncStart"/>#{ISSU_OWNR_NAME}<include refid="common.sql.strEncEnd"/>
+			, #{ISSU_DEPT_NAME}
+			,<include refid="common.sql.strEncStart"/>#{ISSU_DEPT_OWNR}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{CHRG_NAME_TEXT}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{CHRG_PHON_TEXT}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{CHRG_FAXS_TEXT}<include refid="common.sql.strEncEnd"/>
+			, #{GENE_NOTE_TEXT}
+			, #{RESP_TYPE_CODE}
+			, #{RESP_TYPE_NAME}
+			, #{RESP_MESG_TEXT}
+			, #{ACK_RESP_XML}
+			, #{XML_DATA}
+			, SYSDATE
+			, SYSDATE	
+        )<include refid="common.sql.comma"/>
+	</insert>
+	
+	<insert id="doSaveBatchLog" parameterType="hashmap">
+		INSERT INTO STOCBLOG (
+			JOB_DATE
+		<if test='_databaseId == "oracle"'>
+			,JOB_SQ
+		</if>
+			,JOB_TYPE
+			,JOB_ID
+			,JOB_KEY
+			,JOB_RLT
+			,JOB_RLT_CD
+			,JOB_RLT_MSG
+			,JOB_END_DATE
+			,JOB_NUM 
+		) VALUES (
+			 TO_DATE(#{JOB_DATE},'YYYY-MM-DD-HH24:MI:SS')
+		<if test='_databaseId == "oracle"'>
+			,SEQ_STOCBLOG.nextval
+		</if>
+			,#{JOB_TYPE}
+			,#{JOB_ID}
+			,#{JOB_KEY}
+			,#{JOB_RLT}
+			,#{JOB_RLT_CD}
+			,SUBSTR(#{JOB_RLT_MSG},1,2000)
+			,SYSDATE
+			,#{JOB_NUM}
+		)
+	</insert>
+	
+	<select id="getGuarCancelDataEcct" parameterType="hashMap" resultType="hashMap">
+		SELECT
+			 '004'||
+			  CASE WHEN A.GUAR_TYPE = 'ADV'  THEN '004'
+				   WHEN A.GUAR_TYPE = 'CONT' THEN '002'
+				   WHEN A.GUAR_TYPE = 'WARR' THEN '003'
+	 		  END||'XXXXXXXXXX'||' 00' head_docu_numb
+	
+			,#{HEAD_MESG_SEND}||'.'||TO_CHAR(SYSDATE,'YYYYMMDD')||TO_CHAR(SYSDATE,'HH24MISS')||'.12345.004'||
+			  CASE WHEN A.GUAR_TYPE = 'ADV'  THEN '004'
+				   WHEN A.GUAR_TYPE = 'CONT' THEN '002'
+				   WHEN A.GUAR_TYPE = 'WARR' THEN '003'
+	 		  END||'XXXXXXXXXX'||' 00' head_mang_numb
+	
+			,'004'||
+			  CASE WHEN A.GUAR_TYPE = 'ADV'  THEN '004'
+				   WHEN A.GUAR_TYPE = 'CONT' THEN '002'
+				   WHEN A.GUAR_TYPE = 'WARR' THEN '003'
+	 		  END||'XXXXXXXXXX'||' 00' head_refr_numb
+	
+			/* 문서정보 ===================================================================== */
+			,'XXXXXXXXXX'||' 00' docu_numb_text
+			,CASE WHEN A.GUAR_TYPE = 'ADV' THEN '004'
+				  WHEN A.GUAR_TYPE = 'CONT' THEN '002'
+				  WHEN A.GUAR_TYPE = 'WARR' THEN '003'
+			 END docu_kind_code  									/*	[필수]	" 보험종목구분(002:계약,003:하자,004:선금,006:지급)"	*/
+			, null docu_issu_date  	/*	[선택]	 작성일자	*/
+			, null docu_user_type 									/*	[필수]	 발신처TYPE	*/
+			
+			/* 주요계약정보===================================================================== */
+			,'XXXXXXXXXX' cont_numb_text   	/*	[필수]	 계약번호	*/
+			,B.CONT_DESC cont_main_name  				/*	[필수]	 계약건명	*/
+			,'WON' cont_curc_code  						/*	[선택]	 계약금액(원화)/통화코드(WON)	*/
+			,B.CONT_AMT cont_main_amnt  				/*	[선택]	 계약금액(원화)/계약금액	*/
+			
+			/* 채권자 정보(구매사)===================================================================== */
+			,C.CUST_NM cred_bond_hold  			/*	[필수]	 채권자명	*/
+	
+			/* 계약자 정보(협력업체)===================================================================== */
+			,E.VENDOR_NM appl_orga_name  		/*	[필수]	 기관명	*/
+			,'O' appl_orps_divs    				/*	[필수]	 구분(O:사업자번호 P:주민등록번호)	*/
+			,E.IRS_NO appl_orps_iden  			/*	[필수]	 사업자/주민번호	*/
+			,<include refid="common.sql.strDecStart"/>E.CEO_USER_NM<include refid="common.sql.strDecEnd"/> appl_ownr_name  	/*	[필수]	 성명(대표자명)	*/
+			,A.GUAR_REQ_NUM
+			,A.INSU_STATUS
+			,<include refid="common.sql.nvl"/>(SUBSTR(A.GUAR_NUM, 7, 18), '') AS GUAR_NUM
+		FROM (
+				SELECT
+					    GUAR_TYPE
+					   ,GUAR_QT
+					   ,GUAR_AMT
+					   ,BOND_BEGN_DATE
+					   ,PAY_AMT
+					   ,GUAR_PERCENT
+					   ,GATE_CD
+					   ,BUYER_CD
+					   ,CONT_NUM
+					   ,CONT_CNT
+					   ,PY_BUYER_CD
+					   ,PY_DEPT_CD
+					   ,(
+							SELECT MAX(GUAR_REQ_NUM) FROM STOCECPC
+						    WHERE GATE_CD = A.GATE_CD
+						    AND BUYER_CD = A.BUYER_CD
+						    AND CONT_NUM = A.CONT_NUM
+						    AND CONT_CNT = A.CONT_CNT
+						    AND PY_BUYER_CD = A.PY_BUYER_CD
+						    AND PY_DEPT_CD = A.PY_DEPT_CD
+						    AND PAY_CNT = A.PAY_CNT
+					   ) GUAR_REQ_NUM
+					   ,INSU_STATUS
+				       ,GUAR_NUM
+				FROM STOCECPC A
+				WHERE GATE_CD = #{ses.gateCd}
+				AND BUYER_CD     = #{BUYER_CD}
+				AND CONT_NUM     = #{CONT_NUM}
+				AND CONT_CNT     = #{CONT_CNT}
+				AND PR_BUYER_CD  = #{PR_BUYER_CD}
+				AND PR_DEPT_CD   = #{PR_DEPT_CD}
+				AND VENDOR_CD    = #{VENDOR_CD}
+				AND PAY_CNT      = #{PAY_CNT}
+				AND PY_BUYER_CD  = #{PY_BUYER_CD}
+				AND PY_DEPT_CD   = #{PY_DEPT_CD}
+				UNION ALL--===================================================================================
+				SELECT
+					   GUAR_TYPE
+					  ,GUAR_QT
+					  ,GUAR_AMT
+					  ,BOND_BEGN_DATE
+					  ,AP_REQ_AMT AS PAY_AMT
+					  ,GUAR_PERCENT
+					  ,GATE_CD
+					  ,BUYER_CD
+					  ,CONT_NUM
+					  ,CONT_CNT
+					  ,PY_BUYER_CD
+					  ,PY_DEPT_CD
+					  ,(
+						SELECT MAX(GUAR_REQ_NUM) FROM STOCIVAP
+						 WHERE GATE_CD = A.GATE_CD
+						   AND BUYER_CD = A.BUYER_CD
+						   AND CONT_NUM = A.CONT_NUM
+						 --AND CONT_CNT = A.CONT_CNT
+						 --AND PY_BUYER_CD = A.PY_BUYER_CD
+						 --AND PY_DEPT_CD = A.PY_DEPT_CD
+					   ) GUAR_REQ_NUM
+					  ,INSU_STATUS 
+				  	  ,GUAR_NUM
+				FROM STOCIVAP A
+				WHERE GATE_CD = #{ses.gateCd}
+				AND AP_NUM = #{AP_NUM}
+			 ) A
+						JOIN STOCECCT B ON A.GATE_CD   = B.GATE_CD
+										AND A.BUYER_CD = B.BUYER_CD
+										AND A.CONT_NUM = B.CONT_NUM
+										AND A.CONT_CNT = B.CONT_CNT
+						JOIN STOCCUST C ON A.GATE_CD = C.GATE_CD
+										AND A.PY_BUYER_CD = C.CUST_CD
+						JOIN STOCCVUR D ON B.GATE_CD = D.GATE_CD     -- 구매사담당자
+										AND B.CONT_USER_ID = D.USER_ID
+						JOIN STOCVNGL E ON B.GATE_CD = E.GATE_CD
+										AND B.VENDOR_CD = E.VENDOR_CD
+						LEFT OUTER JOIN ( -- 이전 계약
+							SELECT * FROM STOCECCT
+							WHERE GATE_CD = #{ses.gateCd}
+							AND BUYER_CD     = #{BUYER_CD}
+							AND CONT_NUM     = #{CONT_NUM}
+							AND CONT_CNT     = #{CONT_CNT} - 1
+							UNION ALL
+							SELECT * FROM STOCECCT
+							WHERE (GATE_CD,BUYER_CD,CONT_NUM,CONT_CNT) IN ( SELECT
+																		  GATE_CD,BUYER_CD,CONT_NUM,CONT_CNT - 1
+																	FROM STOCIVAP
+																	WHERE GATE_CD = #{ses.gateCd}
+																	AND AP_NUM = #{AP_NUM}
+							)
+						) G
+						    ON  1 = 1
+		WHERE ROWNUM = 1
+	</select>
+	
+	<select id="sctr0010_getSgGuarInformation" parameterType="hashMap" resultType="hashmap">
+		SELECT A.*
+		  FROM (
+	        SELECT
+	        	  <include refid="common.sql.dbo"/>GETCOMCODE(ECPC.GATE_CD, 'M404', ECPC.GUAR_TYPE, 0, #{ses.langCd}) AS GUAR_TYPE
+	            , (SELECT CONT_DESC 
+                     FROM STOCECCT 
+                   WHERE GATE_CD = ECPC.GATE_CD
+                     AND BUYER_CD = ECPC.BUYER_CD
+                     AND CONT_NUM = ECPC.CONT_NUM
+                     AND CONT_CNT = ECPC.CONT_CNT
+                     AND VENDOR_CD = ECPC.VENDOR_CD
+                     AND DEL_FLAG = '0') AS CONT_DESC
+	        	, ECPC.VENDOR_CD
+	            , <include refid="common.sql.dbo"/>GETVENDORNAME(ECPC.GATE_CD, ECPC.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+	            , CVUR.USER_ID
+	            , <include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+	            , <include refid="common.sql.toChar"/>(SYSDATE, 'YYYY-MM-DD') AS SYS_DATE
+	        FROM STOCECPC ECPC
+	        JOIN STOCCVUR CVUR
+	             ON (CVUR.GATE_CD    = ECPC.GATE_CD
+	             AND CVUR.COMPANY_CD = ECPC.VENDOR_CD
+		         AND CVUR.BLOCK_FLAG = '0'
+		         AND CVUR.MAIL_FLAG  = '1'
+		         AND CVUR.EMAIL IS NOT NULL
+	             AND CVUR.DEL_FLAG   = '0')
+	        WHERE ECPC.GATE_CD   = #{ses.gateCd}
+	          AND ECPC.BUYER_CD  = <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+		      AND ECPC.CONT_NUM  = #{CONT_NUM}
+		      AND ECPC.CONT_CNT  = #{CONT_CNT}
+		      AND ECPC.PR_BUYER_CD = #{PR_BUYER_CD}
+		      AND ECPC.PR_DEPT_CD  = #{PR_DEPT_CD}
+		      AND ECPC.VENDOR_CD = #{VENDOR_CD}
+		   <if test="PAY_CNT != null and PAY_CNT != ''">
+		      AND ECPC.PAY_CNT   = #{PAY_CNT}
+		   </if>
+		      AND ECPC.GUAR_TYPE = #{GUAR_TYPE}
+		      AND ECPC.GUAR_PERCENT <![CDATA[>]]> 0
+		      AND ECPC.DEL_FLAG  = '0'
+	        ORDER BY CVUR.MNG_YN DESC
+		  ) A
+		 WHERE ROWNUM <![CDATA[<=]]> 2
+    </select>
+    
+    <insert id="sctr0010_doGuarSave" parameterType="hashmap">
+		UPDATE STOCECPC
+		   SET GUAR_TYPE2     	  = #{GUAR_TYPE2}
+			 , GUARANTEER     	  = #{GUARANTEER}
+			 , ATT_FILE_NUM       = #{ATT_FILE_NUM}
+		WHERE GATE_CD    = #{ses.gateCd}
+		AND BUYER_CD     = #{BUYER_CD}
+		AND CONT_NUM     = #{CONT_NUM}
+		AND CONT_CNT     = #{CONT_CNT}
+		AND PR_BUYER_CD  = #{PR_BUYER_CD}
+		AND PR_DEPT_CD   = #{PR_DEPT_CD}
+		AND VENDOR_CD    = #{VENDOR_CD}
+		AND PAY_CNT      = #{PAY_CNT}
+		AND PY_BUYER_CD  = #{PY_BUYER_CD}
+		AND PY_DEPT_CD   = #{PY_DEPT_CD}
+	</insert>
+	
+	<insert id="doInsertDFSignedData" parameterType="hashmap">	
+		INSERT INTO STOCDFSV (
+			  GATE_CD
+			, VENDOR_CD
+			, UUID
+			, UUID_SQ
+			, SEQ
+			, SIGN_ID
+			, REG_DATE
+			, REG_USER_ID
+			, SIGN_DATE
+			, SIGN_VALUE
+			, VID_RANDOM
+		) VALUES (
+			  #{ses.gateCd}
+			, #{VENDOR_CD}
+			, #{UUID}
+			, #{UUID_SQ}
+			,(SELECT <include refid="common.sql.nvl"/>(MAX(SEQ)+1, '1')
+			    FROM STOCDFSV
+			   WHERE GATE_CD = #{ses.gateCd}
+			     AND VENDOR_CD = #{VENDOR_CD}
+			     AND UUID = #{UUID}
+			     AND UUID_SQ = #{UUID_SQ})			
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{SIGN_VALUE}
+			, #{VID_RANDOM}
+		)
+	</insert>	
+</mapper>

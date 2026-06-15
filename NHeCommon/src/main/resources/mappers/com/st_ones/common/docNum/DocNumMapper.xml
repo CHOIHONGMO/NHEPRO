@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+    <mapper namespace="com.st_ones.common.docNum.DocNumMapper">
+
+    <select id="getDocNum" parameterType="hashmap" resultType="hashmap">
+
+       SELECT START_NUM, END_NUM2, <include refid="common.sql.nvl"/>(CURRENT_NUM, '0') AS CURRENT_NUM, PREFIX_STRING,
+        <if test="_databaseId == 'oracle'">
+              CURRENT_VAL,
+        </if>
+        <if test="_databaseId == 'mssql'">
+              CONVERT(VARCHAR, CURRENT_VAL) AS CURRENT_VAL,
+        </if>
+              YEAR_FLAG, YEAR_TYPE, MONTH_FLAG, DAY_FLAG
+         FROM STOCDNCT
+        WHERE GATE_CD = <choose>
+                            <when test="gateCd == null or gateCd == ''">'100'</when>
+                            <otherwise>#{gateCd}</otherwise>
+                        </choose>
+          AND COMPANY_CD = #{companyCd}
+          AND DOC_TYPE = #{docType}
+          AND DEL_FLAG = '0'
+       <if test="_databaseId == 'oracle'">FOR UPDATE OF DOC_TYPE</if>
+
+    </select>
+
+    <update id="setDocNum" parameterType="hashmap">
+
+        UPDATE STOCDNCT SET
+            CURRENT_NUM = #{currentNo},
+            CURRENT_VAL = #{currentVal},
+            MOD_DATE = SYSDATE,
+            MOD_USER_ID = <choose>
+                             <when test="ses.userId == null or ses.userId == ''">'SYSTEM'</when>
+                             <otherwise> #{ses.userId} </otherwise>
+                          </choose>
+        WHERE GATE_CD = <choose>
+                            <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                            <otherwise>#{ses.gateCd}</otherwise>
+                        </choose>
+          AND COMPANY_CD = #{companyCd}
+          AND DOC_TYPE = #{docType}
+
+    </update>
+
+</mapper>

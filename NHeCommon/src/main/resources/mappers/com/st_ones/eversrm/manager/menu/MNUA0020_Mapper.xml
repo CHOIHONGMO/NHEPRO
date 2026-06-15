@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:38 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.st_ones.eversrm.manager.menu.MNUA0020_Mapper">
+
+    <select id="searchMenu" parameterType="hashmap" resultType="hashMap">
+
+        SELECT MUGR.GATE_CD
+             , MUGR.MODULE_TYPE
+             , MUGR.MENU_GROUP_CD
+             , <include refid="common.sql.dbo"/>GETMULTINAME(MUGR.GATE_CD, 'MG', #{ses.langCd}, MUGR.MENU_GROUP_CD, '') AS MENU_GROUP_NM
+             , <include refid="common.sql.dbo"/>GETMULTINAME(MUGR.GATE_CD, 'TG', #{ses.langCd}, MUTG.TMPL_MENU_GROUP_CD, '') AS TMPL_MENU_GROUP_NM
+             , <include refid="common.sql.toChar"/>(MUGR.REG_DATE, 'yyyyMMdd')  AS REG_DATE
+             , MUGR.TMPL_MENU_GROUP_CD
+             , MUGR.USE_FLAG
+             , CASE WHEN UR.USER_NM IS NULL THEN MUGR.REG_USER_ID ELSE <include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> END AS REG_USER_ID
+             , ('') AS SCREEN_NM_IMG
+             , 'U' AS INSERT_FLAG
+		  FROM STOCMUGR MUGR JOIN STOCMUTG MUTG
+		   ON (MUGR.GATE_CD = MUTG.GATE_CD
+		   AND MUGR.TMPL_MENU_GROUP_CD = MUTG.TMPL_MENU_GROUP_CD)
+		  LEFT OUTER JOIN STOCUSER UR
+		   ON (MUGR.GATE_CD = UR.GATE_CD
+		   AND MUGR.REG_USER_ID = UR.USER_ID
+		   AND UR.DEL_FLAG = '0')
+		 WHERE MUGR.GATE_CD = #{ses.gateCd}
+		   AND MUGR.DEL_FLAG = '0'
+        <if test="MODULE_TYPE != '' and MODULE_TYPE != null">
+            AND MUGR.MODULE_TYPE = #{MODULE_TYPE}
+        </if>
+        <if test="MENU_GROUP_NM != '' and MENU_GROUP_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETMULTINAME(MUGR.GATE_CD, 'MG', #{ses.langCd}, MUGR.MENU_GROUP_CD, '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{MENU_GROUP_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="TMPL_MENU_GROUP_NM != '' and TMPL_MENU_GROUP_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETMULTINAME(MUGR.GATE_CD, 'TG', #{ses.langCd}, MUTG.TMPL_MENU_GROUP_CD, '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{TMPL_MENU_GROUP_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        ORDER BY MUGR.MENU_GROUP_CD
+
+    </select>
+
+    <insert id="createMenu" parameterType="hashMap">
+
+        INSERT INTO STOCMUGR (
+               GATE_CD
+             , TMPL_MENU_GROUP_CD
+             , MENU_GROUP_CD
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , USE_FLAG
+             , MODULE_TYPE
+        ) VALUES(
+               #{ses.gateCd}
+             , #{TMPL_MENU_GROUP_CD}
+             , #{MENU_GROUP_CD}
+             , SYSDATE
+             , #{ses.userId}
+             , SYSDATE
+             , #{ses.userId}
+             , '0'
+             , #{USE_FLAG}
+             , #{MODULE_TYPE}
+        )
+
+    </insert>
+
+	<insert id="copyMenuMums" parameterType="hashMap">
+
+		INSERT INTO STOCMUMS (
+		      GATE_CD
+		    , MENU_CD
+		    , REG_DATE
+		    , REG_USER_ID
+		    , MOD_DATE
+		    , MOD_USER_ID
+		    , DEL_FLAG
+		    , USE_FLAG
+		    , MODULE_TYPE
+		    , MENU_GROUP_CD
+		    , TMPL_MENU_CD
+		)
+		SELECT
+		      A.GATE_CD
+        <if test="_databaseId == 'oracle'">
+		    , A.MENU_CD <include refid="common.sql.stringMerge"/> 'C' <include refid="common.sql.stringMerge"/> TO_CHAR((SELECT COUNT(*)
+		    							   FROM STOCMUMS B
+            							   WHERE B.GATE_CD = #{ses.gateCd}
+            								 AND B.MENU_CD LIKE A.MENU_CD <include refid="common.sql.stringMerge"/> 'C%') + 1)
+        </if>
+        <if test="_databaseId == 'mssql'">
+		    , A.MENU_CD <include refid="common.sql.stringMerge"/> 'C' <include refid="common.sql.stringMerge"/> CONVERT(VARCHAR, (SELECT COUNT(*)
+		    							   FROM STOCMUMS B
+            							   WHERE B.GATE_CD = #{ses.gateCd}
+            								 AND B.MENU_CD LIKE A.MENU_CD + 'C%') + 1)
+        </if>
+		    , A.REG_DATE
+		    , A.REG_USER_ID
+		    , A.MOD_DATE
+		    , A.MOD_USER_ID
+		    , A.DEL_FLAG
+		    , A.USE_FLAG
+		    , #{MODULE_TYPE}
+		    , #{MENU_GROUP_CD}
+		    , A.TMPL_MENU_CD
+		FROM STOCMUMS A
+		WHERE GATE_CD = #{ses.gateCd}
+		  AND MENU_GROUP_CD = #{OLD_MENU_GROUP_CD}
+		  AND A.DEL_FLAG = '0'
+
+    </insert>
+
+    <insert id="updateMenu" parameterType="hashMap">
+
+        UPDATE STOCMUGR SET
+               MOD_USER_ID = #{ses.userId}
+		     , MOD_DATE = SYSDATE
+		     , USE_FLAG = #{USE_FLAG}
+		     , MODULE_TYPE = #{MODULE_TYPE}
+		     , TMPL_MENU_GROUP_CD = #{TMPL_MENU_GROUP_CD}
+		     , DEL_FLAG = '0'
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND MENU_GROUP_CD = #{MENU_GROUP_CD}
+
+    </insert>
+
+    <delete id="deleteMenu" parameterType="hashMap">
+
+        DELETE FROM STOCMUGR
+         WHERE GATE_CD = #{ses.gateCd}
+           AND TMPL_MENU_GROUP_CD = #{TMPL_MENU_GROUP_CD}
+           AND MENU_GROUP_CD = #{MENU_GROUP_CD}
+
+    </delete>
+
+    <delete id="deleteMenuMums" parameterType="hashMap">
+
+        DELETE FROM STOCMUMS
+         WHERE GATE_CD = #{ses.gateCd}
+           AND MENU_GROUP_CD = #{MENU_GROUP_CD}
+
+    </delete>
+
+</mapper>

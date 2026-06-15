@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.OVNR.OVNR0020_Mapper">
+
+    <select id="ovnr0020_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT VNGL.GATE_CD
+            , CVUR.USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD,  CVUR.USER_ID , #{ses.langCd}) AS USER_NM
+            , CVUR.DEPT_CD
+            , CVUR.DEPT_NM
+            , <include refid="common.sql.strDecStart"/>CVUR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+            , CVUR.POSITION_NM
+            , CVUR.SMS_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.SMS_FLAG, '0', #{ses.langCd}) AS SMS_FLAG_NM
+            , CVUR.MAIL_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.MAIL_FLAG, '0', #{ses.langCd}) AS MAIL_FLAG_NM
+            , CVUR.MNG_YN
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.MNG_YN, '0', #{ses.langCd}) AS MNG_YN_NM
+            , CVUR.BLOCK_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.BLOCK_FLAG, '0', #{ses.langCd}) AS BLOCK_FLAG_NM
+            , <include refid="common.sql.toChar"/>(CVUR.REG_DATE, 'YYYY-MM-DD') AS REG_DATE
+        FROM STOCVNGL VNGL
+        LEFT JOIN STOCCVUR CVUR
+            ON (CVUR.GATE_CD = VNGL.GATE_CD
+            AND CVUR.COMPANY_CD = VNGL.VENDOR_CD
+            AND CVUR.DEL_FLAG = '0')
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+        AND VNGL.DEL_FLAG = '0'
+        <if test="VENDOR_CD != '' and VENDOR_CD != null">
+            AND UPPER(VNGL.VENDOR_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VENDOR_NM != '' and VENDOR_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="USER_ID != '' and USER_ID != null">
+            AND UPPER(CVUR.USER_ID) like '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="USER_NM != '' and USER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD,  CVUR.USER_ID , #{ses.langCd})) like '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REG_FROM_DATE != '' and REG_FROM_DATE != null">
+            AND CVUR.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_FROM_DATE})
+        </if>
+        <if test="REG_TO_DATE != '' and REG_TO_DATE != null">
+            AND CVUR.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_TO_DATE})
+        </if>
+        <if test="DEPT_NM != '' and DEPT_NM != null">
+            AND UPPER(CVUR.DEPT_NM) like '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="BLOCK_FLAG != '' and BLOCK_FLAG != null">
+            AND CVUR.BLOCK_FLAG = #{BLOCK_FLAG}
+        </if>
+    </select>
+
+    <update id="ovnr0020_doDelete" parameterType="hashMap">
+        UPDATE STOCCVUR SET
+            DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND USER_ID = #{USER_ID}
+    </update>
+
+    <select id="ovnr0021_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT VNGL.GATE_CD
+            , CVUR.COMPANY_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(CVUR.GATE_CD, CVUR.COMPANY_CD, #{ses.langCd}) AS COMPANY_NM
+            , CVUR.USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD,  CVUR.USER_ID , #{ses.langCd}) AS USER_NM
+            , CVUR.DEPT_CD
+            , CVUR.DEPT_NM
+            , CVUR.MNG_YN
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.MNG_YN, '0', #{ses.langCd}) AS MNG_YN_NM
+            , CVUR.POSITION_NM
+            , CVUR.DUTY_NM
+            , <include refid="common.sql.strDecStart"/>CVUR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.FAX_NUM<include refid="common.sql.strDecEnd"/> AS FAX_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+            , <include refid="common.sql.strDecStart"/>CVUR.ADDR_1<include refid="common.sql.strDecEnd"/> AS ADDR_1
+            , <include refid="common.sql.strDecStart"/>CVUR.ADDR_2<include refid="common.sql.strDecEnd"/> AS ADDR_2
+            , <include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+            , CVUR.SMS_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.SMS_FLAG, '0', #{ses.langCd}) AS SMS_FLAG_NM
+            , CVUR.MAIL_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.MAIL_FLAG, '0', #{ses.langCd}) AS MAIL_FLAG_NM
+            , CVUR.VNGL_ROLE
+            , CVUR.BLOCK_FLAG
+            , CVUR.BLOCK_REASON
+        FROM STOCVNGL VNGL
+        LEFT JOIN STOCCVUR CVUR
+            ON (CVUR.GATE_CD = VNGL.GATE_CD
+            AND CVUR.COMPANY_CD = VNGL.VENDOR_CD
+            AND CVUR.DEL_FLAG = '0')
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+        AND VNGL.DEL_FLAG = '0'
+        AND CVUR.USER_ID = #{USER_ID}
+    </select>
+
+    <update id="ovnr0021_doSave" parameterType="hashMap">
+        UPDATE STOCCVUR SET
+            VNGL_ROLE = #{VNGL_ROLE}
+            , BLOCK_FLAG = #{BLOCK_FLAG}
+            , BLOCK_REASON = #{BLOCK_REASON}
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND USER_ID = #{USER_ID}
+    </update>
+
+    <update id="ovnr0021_doDelete" parameterType="hashMap">
+        UPDATE STOCCVUR SET
+            DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND USER_ID = #{USER_ID}
+    </update>
+    
+    <update id="ovnr0021_doDeleteUserComm" parameterType="hashMap">
+        UPDATE TB_CO_USER SET
+            EMP_STSC = '4'
+            , LSCHGDTM = SYSDATE
+            , LSCHGID = #{ses.userId}
+        WHERE USER_ID = #{USER_ID}
+    </update>
+
+    <update id="ovnr0021_doPasswordInit" parameterType="hashMap">
+        UPDATE STOCCVUR SET
+            PASSWORD = #{PASSWORD}
+            , PW_WRONG_CNT = 0
+            , PW_RESET_FLAG = '1'
+            , PW_RESET_DATE = SYSDATE
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND USER_ID = #{USER_ID}
+    </update>
+
+</mapper>

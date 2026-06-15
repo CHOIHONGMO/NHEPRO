@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.basic.MBSA0040_Mapper">
+
+    <select id="mbsa0040_doSearchHD" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+             TH.BUYER_CD
+            ,<include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>GETBUYERNAME(TH.GATE_CD, TH.BUYER_CD, #{ses.langCd}), <include refid="common.sql.dbo"/>getCustName(TH.GATE_CD, TH.BUYER_CD)) AS BUYER_NM
+            ,TH.DOC_TYPE
+            ,TH.TMPL_NUM
+            ,TH.TMPL_NM
+            ,TH.USE_FLAG
+          FROM STOCATTH TH
+         WHERE TH.GATE_CD = #{ses.gateCd}
+           AND DEL_FLAG = '0'
+        <if test="BUYER_CD != '' and BUYER_CD != null">
+            AND TH.BUYER_CD = #{BUYER_CD}
+        </if>
+        <if test="BUYER_NM != '' and BUYER_NM != null">
+            AND UPPER(<include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>GETBUYERNAME(TH.GATE_CD, TH.BUYER_CD, #{ses.langCd}), <include refid="common.sql.dbo"/>getCustName(TH.GATE_CD, TH.BUYER_CD))) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="DOC_TYPE != '' and DOC_TYPE != null">
+            AND TH.DOC_TYPE = #{DOC_TYPE}
+        </if>
+        <if test="TMPL_NM != '' and TMPL_NM != null">
+            AND UPPER(TH.TMPL_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{TMPL_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REG_START_DATE !='' and REG_START_DATE != null and REG_END_DATE !='' and REG_END_DATE != null">
+            AND TH.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_START_DATE})
+            AND TH.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_END_DATE})
+        </if>
+        <if test="USE_FLAG != '' and USE_FLAG != null">
+            AND TH.BUYER_CD = #{USE_FLAG}
+        </if>
+
+         ORDER BY TH.BUYER_CD, TH.TMPL_NUM ASC
+
+	</select>
+
+    <select id="mbsa0040_doSearchDT" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+             TD.SORT_SQ
+            ,TD.TMPL_FILE_NM
+            ,TD.VALID_PERIOD
+            ,TD.REQUIRED_FLAG
+            ,(SELECT MAX(CH.UUID) FROM STOCATCH CH
+               WHERE CH.GATE_CD = TD.GATE_CD
+                 AND CH.UUID = TD.TMPL_FILE_NUM
+                 AND CH.DEL_FLAG = '0') AS TMPL_FILE_NUM
+            ,TD.REMARK
+            ,TD.USE_FLAG
+            ,TD.BUYER_CD
+            ,TD.DOC_TYPE
+            ,TD.TMPL_NUM
+            ,TD.TMPL_SQ
+          FROM STOCATTD TD
+         WHERE TD.TMPL_NUM = #{HIDDE_TMPL_NUM}
+           AND TD.BUYER_CD = #{BUYER_CD}
+           AND TD.GATE_CD = #{ses.gateCd}
+           AND TD.DEL_FLAG = '0'
+         ORDER BY TD.SORT_SQ
+
+    </select>
+
+    <select id="getNewKey" parameterType="hashMap" resultType="string">
+
+        SELECT
+        <if test='_databaseId=="mssql"'>
+            'NH' <include refid="common.sql.stringMerge"/> <include refid="common.sql.nvl"/>((<include refid="common.sql.dbo"/>SF_LPAD((MAX(CONVERT(INTEGER, <include refid="common.sql.dbo"/>SF_SUBSTR(TMPL_NUM, 2 ,<include refid="common.sql.dbo"/>SF_LENGTH(TMPL_NUM)))) + 1), 5, '0') ), '00001')
+        </if>
+        <if test='_databaseId == "oracle"'>
+			'NH' <include refid="common.sql.stringMerge"/>(<include refid="common.sql.dbo"/>SF_LPAD(<include refid="common.sql.nvl"/>(MAX(REGEXP_REPLACE(TMPL_NUM, '[^0-9]', '')), '000000') + 1, 6, '0'))
+        </if>
+          FROM STOCATTH
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND TMPL_NUM LIKE 'NH%'
+
+    </select>
+
+    <insert id="mbsa0040_doInsertHD" parameterType="hashMap">
+
+		INSERT INTO STOCATTH (
+			  GATE_CD
+			, BUYER_CD
+			, DOC_TYPE
+			, TMPL_NUM
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, USE_FLAG
+			, TMPL_NM
+		) VALUES (
+			  #{ses.gateCd}
+            , #{BUYER_CD}
+			, #{DOC_TYPE}
+			, #{TMPL_NUM}
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, #{USE_FLAG}
+			, #{TMPL_NM}
+		)
+
+	</insert>
+
+	<update id="mbsa0040_doUpdateHD" parameterType="hashMap">
+
+		UPDATE STOCATTH SET
+			  MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, TMPL_NM = #{TMPL_NM}
+			, USE_FLAG = #{USE_FLAG}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND DOC_TYPE = #{DOC_TYPE}
+		   AND TMPL_NUM = #{TMPL_NUM}
+
+	</update>
+
+	<update id="mbsa0040_doDeleteHD" parameterType="hashMap">
+
+		UPDATE STOCATTH SET
+			  DEL_FLAG = '1'
+			, MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND DOC_TYPE = #{DOC_TYPE}
+		   AND TMPL_NUM = #{TMPL_NUM}
+
+	</update>
+
+	<update id="mbsa0040_doDeleteDT" parameterType="hashMap">
+
+		UPDATE STOCATTD SET
+			  DEL_FLAG = '1'
+			, MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND DOC_TYPE = #{DOC_TYPE}
+		   AND TMPL_NUM = #{TMPL_NUM}
+
+	</update>
+
+	<insert id="mbsa0040_doMergeDT" parameterType="hashmap">
+
+		MERGE <include refid="common.sql.mergeInto"/> STOCATTD ATTD
+		USING (SELECT #{ses.gateCd} AS GATE_CD
+					 ,#{BUYER_CD} AS BUYER_CD
+					 ,#{DOC_TYPE} AS DOC_TYPE
+					 ,#{TMPL_NUM} AS TMPL_NUM
+					 ,#{TMPL_SQ} AS TMPL_SQ
+				 <include refid="common.sql.dual"/>) B
+		 ON (ATTD.GATE_CD = B.GATE_CD
+		 AND ATTD.BUYER_CD = B.BUYER_CD
+		 AND ATTD.DOC_TYPE = B.DOC_TYPE
+		 AND ATTD.TMPL_NUM = B.TMPL_NUM
+		 AND ATTD.TMPL_SQ = B.TMPL_SQ)
+		WHEN MATCHED THEN
+		UPDATE SET
+			  MOD_USER_ID = #{ses.userId}
+			, MOD_DATE = SYSDATE
+			, TMPL_FILE_NM = #{TMPL_FILE_NM}
+			, VALID_PERIOD = #{VALID_PERIOD}
+			, REQUIRED_FLAG = #{REQUIRED_FLAG}
+			, TMPL_FILE_NUM = #{TMPL_FILE_NUM}
+			, REMARK = #{REMARK}
+			, USE_FLAG = #{USE_FLAG}
+			, SORT_SQ = #{SORT_SQ}
+		WHEN NOT MATCHED THEN
+		INSERT (
+			  GATE_CD
+			, BUYER_CD
+			, DOC_TYPE
+			, TMPL_NUM
+			, TMPL_SQ
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, TMPL_FILE_NM
+			, VALID_PERIOD
+			, REQUIRED_FLAG
+			, TMPL_FILE_NUM
+			, REMARK
+			, USE_FLAG
+			, SORT_SQ
+		) VALUES (
+			  #{ses.gateCd}
+			, #{BUYER_CD}
+			, #{DOC_TYPE}
+			, #{TMPL_NUM}
+			, (SELECT NVL(MAX(TMPL_SQ) + 1, 1) FROM STOCATTD WHERE GATE_CD = #{ses.gateCd} AND BUYER_CD = #{BUYER_CD} AND DOC_TYPE = #{DOC_TYPE} AND TMPL_NUM = #{TMPL_NUM})
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, #{TMPL_FILE_NM}
+			, #{VALID_PERIOD}
+			, #{REQUIRED_FLAG}
+			, #{TMPL_FILE_NUM}
+			, #{REMARK}
+			, #{USE_FLAG}
+			, #{SORT_SQ}
+		)
+		<include refid="common.sql.comma"/>
+
+	</insert>
+
+	<update id="mbsa0040_doDeleteTempSq" parameterType="hashMap">
+
+		UPDATE STOCATTD SET
+			  DEL_FLAG = '1'
+			, MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND DOC_TYPE = #{DOC_TYPE}
+		   AND TMPL_NUM = #{TMPL_NUM}
+		   AND TMPL_SQ = #{TMPL_SQ}
+
+	</update>
+
+</mapper>

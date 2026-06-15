@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.eApproval.eApprovalEnd.ETST.EApprovalEndEtst_Mapper">
+	
+    <select id="getContNum" parameterType="hashMap" resultType="hashMap">
+
+        SELECT BUYER_CD, REQ_NUM, REQ_SEQ
+          FROM STOCETDT
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND ENTRST_COMP_CD = #{BUYER_CD}
+           AND APP_DOC_NUM    = #{APP_DOC_NUM}
+           AND APP_DOC_CNT    = #{APP_DOC_CNT}
+           AND DEL_FLAG = '0'
+    </select>
+	
+    <update id="setContSignStatus" parameterType="hashmap">
+
+        UPDATE STOCETDT SET
+              MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , APP_STATUS  = #{SIGN_STATUS}
+        <if test='SIGN_STATUS == "E" or SIGN_STATUS == "R"'>
+            , APP_DATE    = SYSDATE
+        </if>
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND REQ_NUM  = #{REQ_NUM}
+           AND REQ_SEQ  = #{REQ_SEQ}
+    </update>
+
+</mapper>

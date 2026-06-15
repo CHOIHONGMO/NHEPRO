@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.batch.MBTB0020_Mapper">
+
+	<select id="getBatchManagerSms" resultType="hashMap">
+
+        SELECT
+        	  DD.CODE      as RECV_TEL_NUM
+        	 ,DD.CODE_DESC as RECV_USER_NM
+		  FROM STOCCODD DD
+		 WHERE DD.GATE_CD   = #{ses.gateCd}
+		   AND DD.CODE_TYPE = 'M170'
+		   AND LANG_CD      = #{ses.langCd}
+		   AND USE_FLAG     = '1'
+		   AND DEL_FLAG     = '0'
+
+	</select>
+
+	<insert id="doSaveBatchLog" parameterType="hashMap">
+
+		INSERT INTO STOCBLOG (
+		<if test="_databaseId == 'oracle'">
+			JOB_SQ,
+		</if>
+			JOB_DATE,
+			JOB_TYPE,
+			JOB_ID,
+			JOB_KEY,
+			JOB_RLT,
+			JOB_RLT_CD,
+			JOB_RLT_MSG,
+			JOB_END_DATE
+		)
+		VALUES (
+		<if test="_databaseId == 'oracle'">
+			SEQ_STOCBLOG.NEXTVAL,
+		</if>
+			<include refid="common.sql.toChar"/>(SYSDATE, 'yyyy-MM-dd hh24:mi'),
+			#{JOB_TYPE},
+			#{JOB_ID},
+			#{JOB_KEY},
+			#{JOB_RLT},
+			#{JOB_RLT_CD},
+			#{JOB_RLT_MSG},
+			<include refid="common.sql.toChar"/>(SYSDATE, 'yyyy-MM-dd hh24:mi')
+		)
+
+	</insert>
+
+	<select id="doSearchBatchLogList" resultType="hashMap">
+
+        SELECT
+        	  T.JOB_NM
+        	 ,T.JOB_DATE
+        	 ,T.JOB_END_DATE
+        	 ,T.JOB_RLT
+        	 ,T.JOB_RLT_MSG
+		  FROM (SELECT
+					  (CASE BL.JOB_ID WHEN 'HDxxxxJob' THEN ''
+					   				  ELSE '' END) AS JOB_NM
+					 ,<include refid="common.sql.toChar"/>(BL.JOB_DATE, 'YYYY-MM-DD HH24:MI') AS JOB_DATE
+					 ,<include refid="common.sql.toChar"/>(BL.JOB_END_DATE, 'YYYY-MM-DD HH24:MI') AS JOB_END_DATE
+					 ,BL.JOB_RLT
+			 		 ,(CASE BL.JOB_RLT WHEN 'E' THEN BL.JOB_RLT_MSG ELSE '' END) as JOB_RLT_MSG
+		  		  FROM STOCBLOG BL
+				 WHERE BL.JOB_TYPE = 'Batch'
+				<if test="JOB_DATE_FROM != '' and JOB_DATE_FROM != null">
+					<if test="JOB_DATE_TO !='' and JOB_DATE_TO != null">
+						AND BL.JOB_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{JOB_DATE_FROM})
+						AND BL.JOB_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{JOB_DATE_TO})
+					</if>
+				</if>
+				<if test="JOB_NM != '' and JOB_NM != null">
+					AND BL.JOB_ID = #{JOB_NM}
+				</if>
+				<if test="JOB_RLT != '' and JOB_RLT != null">
+				   AND BL.JOB_RLT = #{JOB_RLT}
+				</if>
+		 	   ) T
+		  WHERE 1 = 1
+         ORDER BY T.JOB_DATE DESC
+
+	</select>
+	
+	<!-- LargeText의 Detail 정보 가져오기 -->
+	<select id="doSearchClobGroup" resultType="hashMap">
+		
+		SELECT A.GATE_CD, A.TEXT_NUM
+		  FROM STOCTXTH A
+		 WHERE A.GATE_CD  = <choose>
+                            	<when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                            	<otherwise>#{ses.gateCd}</otherwise>
+                         	</choose>
+           AND A.TEXT_CONTENTS IS NULL
+           AND EXISTS (SELECT 1 FROM STOCTXTD
+						WHERE GATE_CD  = A.GATE_CD
+						  AND TEXT_NUM = A.TEXT_NUM
+						  AND TEXT_CONTENTS IS NOT NULL)
+	</select>
+	
+	<!-- LargeText의 Detail 내용 가져오기 -->
+	<select id="doSearchClobSub" resultType="hashMap">
+		
+		SELECT TEXT_SQ, TEXT_CONTENTS
+		  FROM STOCTXTD
+		 WHERE GATE_CD  = #{GATE_CD}
+           AND TEXT_NUM = #{TEXT_NUM}
+         ORDER BY TEXT_SQ
+	</select>
+	
+	<!-- TXTD의 값을 연결하여 TXTH에 UPDATE하기 -->
+	<update id="doChangeClob" parameterType="hashmap">
+		
+        UPDATE STOCTXTH
+           SET TEXT_CONTENTS = #{CHANGE_CONTENTS}
+         WHERE GATE_CD  = #{GATE_CD}
+           AND TEXT_NUM = #{TEXT_NUM}
+    </update>
+    
+</mapper>

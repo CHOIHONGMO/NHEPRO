@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.eApproval.eApprovalEnd.CCTR.EApprovalEndCCTR_Mapper">
+
+	<update id="setCctrSignStatus_FORMNO">
+		UPDATE STOCECCF
+		   SET MOD_DATE    = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , SIGN_STATUS = #{SIGN_STATUS}
+			 , SIGN_DATE   = SYSDATE
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND APP_DOC_NUM = #{APP_DOC_NUM}
+		   AND APP_DOC_CNT = #{APP_DOC_CNT}
+ 	</update>
+
+	<update id="setCctrSignStatus_EC">
+		UPDATE STOCECCT
+		   SET MOD_DATE    = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , SIGN_STATUS = #{SIGN_STATUS}
+			 , SIGN_DATE   = SYSDATE
+			 , PROGRESS_CD = (CASE WHEN #{SIGN_STATUS} = 'E' THEN '4210'
+			                       WHEN #{SIGN_STATUS} = 'R' OR #{SIGN_STATUS} = 'C' THEN '4200'
+			                       ELSE PROGRESS_CD END)
+			 , SEND_DATE   = (CASE WHEN #{SIGN_STATUS} = 'E' THEN SYSDATE ELSE SEND_DATE END) -- 협력사전송일시 추가
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND APP_DOC_NUM = #{APP_DOC_NUM}
+		   AND APP_DOC_CNT = #{APP_DOC_CNT}
+ 	</update>
+
+    <select id="getCtEccmInfo" parameterType="hashmap" resultType="hashMap">
+		SELECT Distinct
+			   ECCM.BUYER_CD
+			  ,ECCM.CONT_NUM
+			  ,ECCM.CONT_CNT
+			  ,ECCM.PR_BUYER_CD
+			  ,ECCM.PR_DEPT_CD
+			  ,ECCM.VENDOR_CD
+			  ,ECMT.IV_BUYER_CD
+			  ,ECMT.IV_DEPT_CD
+			  ,ECMT.IV_USER_ID
+			  ,ECMT.IV_BUYER_CD <include refid="common.sql.stringMerge"/> ECMT.IV_DEPT_CD <include refid="common.sql.stringMerge"/> ECMT.IV_USER_ID AS IV_USER
+		  FROM STOCECCT ECCT
+		  JOIN STOCECCM ECCM
+			   ON (ECCM.GATE_CD     = ECCT.GATE_CD
+			   AND ECCM.BUYER_CD    = ECCT.BUYER_CD
+			   AND ECCM.CONT_NUM    = ECCT.CONT_NUM
+			   AND ECCM.CONT_CNT    = ECCT.CONT_CNT
+			   AND ECCM.PO_CREATE_FLAG = '1'
+			   AND ECCM.DEL_FLAG    = '0')
+		  JOIN STOCECMT ECMT
+			   ON (ECMT.GATE_CD     = ECCM.GATE_CD
+			   AND ECMT.BUYER_CD    = ECCM.BUYER_CD
+			   AND ECMT.CONT_NUM    = ECCM.CONT_NUM
+			   AND ECMT.CONT_CNT    = ECCM.CONT_CNT
+			   AND ECMT.PR_BUYER_CD = ECCM.PR_BUYER_CD
+			   AND ECMT.PR_DEPT_CD  = ECCM.PR_DEPT_CD
+			   AND ECMT.VENDOR_CD   = ECCM.VENDOR_CD
+			   AND ECMT.DEL_FLAG    = '0')
+		 WHERE ECCT.GATE_CD     = #{ses.gateCd}
+		   AND ECCT.BUYER_CD    = #{BUYER_CD}
+		   AND ECCT.APP_DOC_NUM = #{APP_DOC_NUM}
+		   AND ECCT.APP_DOC_CNT = #{APP_DOC_CNT}
+		   AND ECCT.DEL_FLAG    = '0'
+    </select>
+
+	<select id="getSendVendorInfo" resultType="java.util.Map">
+		SELECT <include refid="common.sql.strDecStart"/>VENDOR_PIC_USER_NM<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_NM
+			 , <include refid="common.sql.dbo"/>GETVENDORNAME(GATE_CD, VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+			 , CONT_DESC
+			 , <include refid="common.sql.dbo"/>GETBUYERNAMES(GATE_CD, BUYER_CD, 'ECCM', CONT_NUM, CONT_CNT, null, #{ses.langCd}) AS PR_BUYER_DEPT_NMS
+			 , <include refid="common.sql.toChar"/>(CONT_DATE, 'YYYY-MM-DD') AS CONT_DATE
+			 , VENDOR_PIC_USER_EMAIL
+			 , CONT_NUM
+		  FROM STOCECCT
+		 WHERE GATE_CD     = #{ses.gateCd}
+		   AND BUYER_CD    = #{BUYER_CD}
+		   AND APP_DOC_NUM = #{APP_DOC_NUM}
+		   AND APP_DOC_CNT = #{APP_DOC_CNT}
+ 	</select>
+
+    <insert id="insertPohd" parameterType="hashmap">
+			INSERT INTO STOCPOHD (
+				 GATE_CD
+				,BUYER_CD
+				,PO_NUM
+				,REG_DATE
+				,REG_USER_ID
+				,MOD_DATE
+				,MOD_USER_ID
+				,DEL_FLAG
+				,DEPT_CD
+				,PROGRESS_CD
+				,PO_CREATE_TYPE
+				,SUBJECT
+				,VENDOR_CD
+				,PO_CREATE_DATE
+				,CUR
+				,PO_AMT
+				,VAT_TYPE
+				,DELIVERY_TYPE
+				,PAY_TYPE
+				,PAY_TERMS
+				,CTRL_CD
+				,CTRL_USER_ID
+				,INSPECT_USER_ID
+				,RMK_TEXT_NUM
+				,ATT_FILE_NUM
+				,APPROVAL_FLAG
+				,APP_DOC_NUM
+				,APP_DOC_CNT
+				,SIGN_STATUS
+				,SIGN_DATE
+				,ST_NEED_FLAG
+				,SIGN_CNT
+				,FORCE_CLOSE_DATE
+				,FORCE_CLOSE_RMK
+				,VENDOR_RECEIPT_DATE
+				,VENDOR_RECEIPT_USER_ID
+				,VENDOR_RECEIPT_STATUS
+				,VENDOR_REJECT_RMK
+				,FORCE_CLOSE_FLAG
+			) SELECT
+				 ECCT.GATE_CD      --GATE_CD
+				,ECCT.BUYER_CD     --BUYER_CD
+				,#{PO_NUM}         --PO_NUM
+				,SYSDATE           --REG_DATE
+				,ECCT.REG_USER_ID  --REG_USER_ID
+				,SYSDATE           --MOD_DATE
+				,ECCT.MOD_USER_ID  --MOD_USER_ID
+				,'0'               --DEL_FLAG
+				,ECCT.DEPT_CD      --DEPT_CD
+				,'5100'            --PROGRESS_CD
+				,'DRAFT'           --PO_CREATE_TYPE
+				,ECCT.CONT_DESC    --SUBJECT
+				,ECCM.VENDOR_CD    --VENDOR_CD
+				,SYSDATE           --PO_CREATE_DATE
+				,ECCT.CUR          --CUR
+				,ECCM.CONT_AMT     --PO_AMT
+				,ECCT.VAT_TYPE     --VAT_TYPE
+				,ECCM.IV_TYPE      --DELIVERY_TYPE
+				,ECCM.METHOD_TYPE  --PAY_TYPE
+				,ECCM.PAY_TERMS    --PAY_TERMS
+				,null              --CTRL_CD
+				,ECCT.CONT_USER_ID --CTRL_USER_ID
+				,<include refid="common.sql.nvl"/>(#{IV_USER_ID}, ECCT.CONT_USER_ID) --INSPECT_USER_ID
+				,null              --RMK_TEXT_NUM
+				,null              --ATT_FILE_NUM
+				,'0'               --APPROVAL_FLAG
+				,null              --APP_DOC_NUM
+				,null              --APP_DOC_CNT
+				,'E'               --SIGN_STATUS
+				,SYSDATE           --SIGN_DATE
+				,null              --ST_NEED_FLAG
+				,null              --SIGN_CNT
+				,null              --FORCE_CLOSE_DATE
+				,null              --FORCE_CLOSE_RMK
+				,null              --VENDOR_RECEIPT_DATE
+				,null              --VENDOR_RECEIPT_USER_ID
+				,'0'               --VENDOR_RECEIPT_STATUS
+				,null              --VENDOR_REJECT_RMK
+				,'0'               --FORCE_CLOSE_FLAG
+		  FROM STOCECCT ECCT
+		  JOIN STOCECCM ECCM
+		    ON (ECCM.GATE_CD        = ECCT.GATE_CD
+		   AND  ECCM.BUYER_CD       = ECCT.BUYER_CD
+		   AND  ECCM.CONT_NUM       = ECCT.CONT_NUM
+		   AND  ECCM.CONT_CNT       = ECCT.CONT_CNT
+		   AND  ECCM.PR_BUYER_CD    = #{PR_BUYER_CD}
+		   AND  ECCM.PR_DEPT_CD     = #{PR_DEPT_CD}
+		   AND  ECCM.VENDOR_CD      = #{VENDOR_CD}
+		   AND  ECCM.PO_CREATE_FLAG = '1'
+		   AND  ECCM.DEL_FLAG       = '0')
+		 WHERE ECCT.GATE_CD  = #{ses.gateCd}
+		   AND ECCT.BUYER_CD = #{BUYER_CD}
+		   AND ECCT.CONT_NUM = #{CONT_NUM}
+		   AND ECCT.CONT_CNT = #{CONT_CNT}
+		   AND ECCT.DEL_FLAG = '0'
+    </insert>
+
+    <insert id="insertPodt" parameterType="hashmap">
+			INSERT INTO STOCPODT (
+				 GATE_CD
+				,BUYER_CD
+				,PO_NUM
+				,PO_SQ
+				,REG_DATE
+				,REG_USER_ID
+				,MOD_DATE
+				,MOD_USER_ID
+				,DEL_FLAG
+				,PROGRESS_CD
+				,PR_BUYER_CD
+				,PR_DEPT_CD
+				,PURCHASE_TYPE
+				,ITEM_CD
+				,ITEM_DESC
+				,ITEM_SPEC
+				,MAKER_CD
+				,MAKER_PART_NO
+				,ORIGIN_CD
+				,PO_QT
+				,UNIT_CD
+				,UNIT_PRC
+				,ITEM_AMT
+				,DUE_DATE
+				,RMK
+				,PR_NUM
+				,PR_SQ
+				,EXEC_NUM
+				,EXEC_SQ
+				,PO_WT_NUM
+				,INV_QT
+				,GR_QT
+				,FORCE_CLOSE_DATE
+				,FORCE_CLOSE_RMK
+				,PB_BUYER_CD
+				,CONT_NUM
+				,CONT_CNT
+				,ITEM_SQ
+		) SELECT
+				 ECMT.GATE_CD       --GATE_CD
+				,ECMT.BUYER_CD      --BUYER_CD
+				,#{PO_NUM}          --PO_NUM
+				,ROWNUM             --PO_SQ
+				,SYSDATE            --REG_DATE
+				,ECCT.REG_USER_ID   --REG_USER_ID
+				,SYSDATE            --MOD_DATE
+				,ECCT.REG_USER_ID   --MOD_USER_ID
+				,'0'                --DEL_FLAG
+				,'5100'             --PROGRESS_CD
+				,ECMT.PR_BUYER_CD   --PR_BUYER_CD
+				,ECMT.PR_DEPT_CD    --PR_DEPT_CD
+				,ECMT.PURCHASE_TYPE --PURCHASE_TYPE
+				,ECMT.ITEM_CD       --ITEM_CD
+				,ECMT.ITEM_DESC     --ITEM_DESC
+				,ECMT.ITEM_SPEC     --ITEM_SPEC
+				,ECMT.MAKER_CD      --MAKER_CD
+				,ECMT.MAKER_PART_NO --MAKER_PART_NO
+				,ECMT.ORIGIN_CD     --ORIGIN_CD
+				,ECMT.ITEM_QT       --PO_QT
+				,ECMT.UNIT_CD       --UNIT_CD
+				,ECMT.ITEM_PRC      --UNIT_PRC
+				,ECMT.ITEM_AMT      --ITEM_AMT
+				,ECMT.DUE_DATE      --DUE_DATE
+				,null               --RMK
+				,ECMT.PR_NUM        --PR_NUM
+				,ECMT.PR_SQ         --PR_SQ
+				,ECMT.EXEC_NUM      --EXEC_NUM
+				,ECMT.EXEC_SQ       --EXEC_SQ
+				,null               --PO_WT_NUM
+				,null               --INV_QT
+				,null               --GR_QT
+				,null               --FORCE_CLOSE_DATE
+				,null               --FORCE_CLOSE_RMK
+				,ECMT.PB_BUYER_CD
+				,ECCT.CONT_NUM
+				,ECCT.CONT_CNT
+				,ECMT.ITEM_SQ
+		  FROM STOCECCT ECCT
+		  JOIN STOCECCM ECCM
+			    ON (ECCM.GATE_CD        = ECCT.GATE_CD
+			   AND  ECCM.BUYER_CD       = ECCT.BUYER_CD
+			   AND  ECCM.CONT_NUM       = ECCT.CONT_NUM
+			   AND  ECCM.CONT_CNT       = ECCT.CONT_CNT
+			   AND  ECCM.PO_CREATE_FLAG = '1'
+			   AND  ECCM.DEL_FLAG       = '0')
+		  JOIN STOCECMT ECMT
+			    ON (ECMT.GATE_CD        = ECCM.GATE_CD
+			   AND  ECMT.BUYER_CD       = ECCM.BUYER_CD
+			   AND  ECMT.CONT_NUM       = ECCM.CONT_NUM
+			   AND  ECMT.CONT_CNT       = ECCM.CONT_CNT
+			   AND  ECMT.PR_BUYER_CD	= ECCM.PR_BUYER_CD
+		   	   AND  ECMT.PR_DEPT_CD	    = ECCM.PR_DEPT_CD
+			   AND  ECMT.PR_BUYER_CD    = #{PR_BUYER_CD}
+			   AND  ECMT.PR_DEPT_CD     = #{PR_DEPT_CD}
+			   AND  ECMT.VENDOR_CD      = #{VENDOR_CD}
+		<choose>
+			<when test="IV_USER != null and IV_USER != ''">
+				AND ECMT.IV_BUYER_CD <include refid="common.sql.stringMerge"/> ECMT.IV_DEPT_CD <include refid="common.sql.stringMerge"/> ECMT.IV_USER_ID = #{IV_USER}
+			</when>
+			<otherwise>
+				AND ECMT.IV_BUYER_CD <include refid="common.sql.stringMerge"/> ECMT.IV_DEPT_CD <include refid="common.sql.stringMerge"/> ECMT.IV_USER_ID IS NULL
+			</otherwise>
+		</choose>
+		   AND  ECMT.DEL_FLAG       = '0')
+		 WHERE ECCT.GATE_CD  = #{ses.gateCd}
+		   AND ECCT.BUYER_CD = #{BUYER_CD}
+		   AND ECCT.CONT_NUM = #{CONT_NUM}
+		   AND ECCT.CONT_CNT = #{CONT_CNT}
+		   AND ECCT.DEL_FLAG = '0'
+    </insert>
+
+    <insert id="insertPopy" parameterType="hashmap">
+			INSERT INTO STOCPOPY (
+				 GATE_CD
+				,BUYER_CD
+				,PO_NUM
+				,DEPT_CD
+				,VENDOR_CD
+				,PAY_CNT
+				,REG_DATE
+				,REG_USER_ID
+				,MOD_DATE
+				,MOD_USER_ID
+				,DEL_FLAG
+				,PAY_CNT_TYPE
+				,PAY_CNT_NM
+				,PAY_PERCENT
+				,PAY_AMT
+				,PAY_METHOD_TYPE
+				,PAY_METHOD_NM
+				,PAY_DUE_DATE
+		) SELECT
+				 ECPY.GATE_CD         --GATE_CD
+				,ECPY.BUYER_CD        --BUYER_CD
+				,#{PO_NUM}            --PO_NUM
+				,ECCT.DEPT_CD         --DEPT_CD
+				,ECPY.VENDOR_CD       --VENDOR_CD
+				,ECPY.PAY_CNT         --PAY_CNT
+				,SYSDATE              --REG_DATE
+				,ECCT.REG_USER_ID     --REG_USER_ID
+				,SYSDATE              --MOD_DATE
+				,ECCT.REG_USER_ID     --MOD_USER_ID
+				,'0'                  --DEL_FLAG
+				,ECPY.PAY_CNT_TYPE    --PAY_CNT_TYPE
+				,ECPY.PAY_CNT_NM      --PAY_CNT_NM
+				,ECPY.PAY_PERCENT     --PAY_PERCENT
+				,ECPY.PAY_AMT         --PAY_AMT
+				,ECPY.PAY_METHOD_TYPE --PAY_METHOD_TYPE
+				,ECPY.PAY_METHOD_NM   --PAY_METHOD_NM
+				,ECPY.PAY_DUE_DATE    --PAY_DUE_DATE
+		  FROM STOCECCT ECCT
+		  JOIN STOCECCM ECCM
+			    ON (ECCM.GATE_CD        = ECCT.GATE_CD
+			   AND  ECCM.BUYER_CD       = ECCT.BUYER_CD
+			   AND  ECCM.CONT_NUM       = ECCT.CONT_NUM
+			   AND  ECCM.CONT_CNT       = ECCT.CONT_CNT
+			   AND  ECCM.PR_BUYER_CD    = #{PR_BUYER_CD}
+			   AND  ECCM.PR_DEPT_CD     = #{PR_DEPT_CD}
+			   AND  ECCM.VENDOR_CD      = #{VENDOR_CD}
+			   AND  ECCM.PO_CREATE_FLAG = '1'
+			   AND  ECCM.DEL_FLAG       = '0')
+		  JOIN STOCECPY ECPY
+			    ON (ECPY.GATE_CD        = ECCM.GATE_CD
+			   AND  ECPY.BUYER_CD       = ECCM.BUYER_CD
+			   AND  ECPY.CONT_NUM       = ECCM.CONT_NUM
+			   AND  ECPY.CONT_CNT       = ECCM.CONT_CNT
+			   AND  ECPY.PR_BUYER_CD    = ECCM.PR_BUYER_CD
+			   AND  ECPY.PR_DEPT_CD     = ECCM.PR_DEPT_CD
+			   AND  ECPY.VENDOR_CD      = ECCM.VENDOR_CD
+			   AND  ECPY.PAY_CNT <![CDATA[>]]> 0
+			   AND  ECPY.DEL_FLAG       = '0')
+		 WHERE ECCT.GATE_CD  = #{ses.gateCd}
+		   AND ECCT.BUYER_CD = #{BUYER_CD}
+		   AND ECCT.CONT_NUM = #{CONT_NUM}
+		   AND ECCT.CONT_CNT = #{CONT_CNT}
+		   AND ECCT.DEL_FLAG = '0'
+    </insert>
+
+    <insert id="insertPopc" parameterType="hashmap">
+			INSERT INTO STOCPOPC (
+				 GATE_CD
+				,BUYER_CD
+				,PO_NUM
+				,DEPT_CD
+				,VENDOR_CD
+				,PAY_CNT
+				,PY_BUYER_CD
+				,PY_DEPT_CD
+				,REG_DATE
+				,REG_USER_ID
+				,MOD_DATE
+				,MOD_USER_ID
+				,DEL_FLAG
+				,GUAR_TYPE
+				,GUAR_PERCENT
+				,GUAR_QT
+				,VAT_FLAG
+				,GUAR_AMT
+				,ATT_FILE_NUM
+				,GUAR_NUM
+				,INSU_STATUS
+				,RMK
+				,GUAR_TYPE2
+				,GUARANTEER
+				,PY_USER_ID
+				,PR_BUYER_CD
+				,PR_DEPT_CD
+				,CONT_NUM
+				,CONT_CNT
+				,PAY_AMT
+		) SELECT
+				 ECPC.GATE_CD          --GATE_CD
+				,ECPC.BUYER_CD         --BUYER_CD
+				,#{PO_NUM}             --PO_NUM
+				,ECCT.DEPT_CD          --DEPT_CD
+				,ECPC.VENDOR_CD        --VENDOR_CD
+				,ECPC.PAY_CNT          --PAY_CNT
+				,ECPC.PY_BUYER_CD      --PY_BUYER_CD
+				,ECPC.PY_DEPT_CD       --PY_DEPT_CD
+				,SYSDATE               --REG_DATE
+				,ECCT.REG_USER_ID      --REG_USER_ID
+				,SYSDATE               --MOD_DATE
+				,ECCT.REG_USER_ID      --MOD_USER_ID
+				,'0'                   --DEL_FLAG
+				,ECPC.GUAR_TYPE        --GUAR_TYPE
+				,ECPC.GUAR_PERCENT     --GUAR_PERCENT
+				,ECPC.GUAR_QT          --GUAR_QT
+				,ECPC.VAT_FLAG         --VAT_FLAG
+				,ECPC.GUAR_AMT         --GUAR_AMT
+				,ECPC.ATT_FILE_NUM     --ATT_FILE_NUM
+				,ECPC.GUAR_NUM         --GUAR_NUM
+				,ECPC.INSU_STATUS      --INSU_STATUS
+				,ECPC.RMK              --RMK
+				,ECPC.GUAR_TYPE2       --GUAR_TYPE2
+				,ECPC.GUARANTEER       --GUARANTEER
+				,ECPC.PY_USER_ID       --PY_USER_ID
+				,ECPC.PR_BUYER_CD
+				,ECPC.PR_DEPT_CD
+				,ECCT.CONT_NUM
+				,ECCT.CONT_CNT
+				,ECPC.PAY_AMT
+		  FROM STOCECCT ECCT
+		  JOIN STOCECCM ECCM
+			    ON (ECCM.GATE_CD        = ECCT.GATE_CD
+			   AND  ECCM.BUYER_CD       = ECCT.BUYER_CD
+			   AND  ECCM.CONT_NUM       = ECCT.CONT_NUM
+			   AND  ECCM.CONT_CNT       = ECCT.CONT_CNT
+			   AND  ECCM.PR_BUYER_CD    = #{PR_BUYER_CD}
+			   AND  ECCM.PR_DEPT_CD     = #{PR_DEPT_CD}
+			   AND  ECCM.VENDOR_CD      = #{VENDOR_CD}
+			   AND  ECCM.PO_CREATE_FLAG = '1'
+			   AND  ECCM.DEL_FLAG       = '0')
+		  JOIN STOCECPY ECPY
+			    ON (ECPY.GATE_CD        = ECCM.GATE_CD
+			   AND  ECPY.BUYER_CD       = ECCM.BUYER_CD
+			   AND  ECPY.CONT_NUM       = ECCM.CONT_NUM
+			   AND  ECPY.CONT_CNT       = ECCM.CONT_CNT
+			   AND  ECPY.PR_BUYER_CD    = ECCM.PR_BUYER_CD
+			   AND  ECPY.PR_DEPT_CD     = ECCM.PR_DEPT_CD
+			   AND  ECPY.VENDOR_CD      = ECCM.VENDOR_CD
+			   AND  ECPY.PAY_CNT <![CDATA[>]]> 0
+			   AND  ECPY.DEL_FLAG       = '0')
+		  JOIN STOCECPC ECPC
+			    ON (ECPC.GATE_CD        = ECPY.GATE_CD
+			   AND  ECPC.BUYER_CD       = ECPY.BUYER_CD
+			   AND  ECPC.CONT_NUM       = ECPY.CONT_NUM
+			   AND  ECPC.CONT_CNT       = ECPY.CONT_CNT
+			   AND  ECPC.PR_BUYER_CD    = ECPY.PR_BUYER_CD
+			   AND  ECPC.PR_DEPT_CD     = ECPY.PR_DEPT_CD
+			   AND  ECPC.VENDOR_CD      = ECPY.VENDOR_CD
+			   AND  ECPC.PAY_CNT        = ECPY.PAY_CNT
+			   AND  ECPC.DEL_FLAG       = '0')
+		 WHERE ECCT.GATE_CD  = #{ses.gateCd}
+		   AND ECCT.BUYER_CD = #{BUYER_CD}
+		   AND ECCT.CONT_NUM = #{CONT_NUM}
+		   AND ECCT.CONT_CNT = #{CONT_CNT}
+		   AND ECCT.DEL_FLAG = '0'
+    </insert>
+	
+    <!-- 2021.01.25 계약서 협력사 전송 후 PRDT의 구매진행상태=4200(전자계약중) -->
+    <update id="setPrProgressCd" parameterType="hashmap">
+
+		UPDATE STOCPRDT A SET
+              MOD_DATE    = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+		    , PROGRESS_CD = '4200'
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND (BUYER_CD, PR_NUM, PR_SQ) IN (
+           		SELECT ECMT.PB_BUYER_CD AS BUYER_CD
+           			 , ECMT.PR_NUM
+           			 , ECMT.PR_SQ
+                  FROM STOCECCT ECCT
+                  JOIN STOCECMT ECMT
+                  	   ON (ECCT.GATE_CD  = ECMT.GATE_CD
+                  	   AND ECCT.BUYER_CD = ECMT.BUYER_CD
+                  	   AND ECCT.CONT_NUM = ECMT.CONT_NUM
+                  	   AND ECCT.CONT_CNT = ECMT.CONT_CNT
+                  	   AND ECMT.DEL_FLAG = '0')
+	             WHERE ECCT.GATE_CD     = #{ses.gateCd}
+	               AND ECCT.BUYER_CD    = #{BUYER_CD}
+			   	   AND ECCT.APP_DOC_NUM = #{APP_DOC_NUM}
+			   	   AND ECCT.APP_DOC_CNT = #{APP_DOC_CNT}
+	               AND ECCT.DEL_FLAG    = '0'
+	             GROUP BY ECMT.PB_BUYER_CD, ECMT.PR_NUM, ECMT.PR_SQ
+           )
+           AND A.DEL_FLAG = '0'
+    </update>
+    
+</mapper>

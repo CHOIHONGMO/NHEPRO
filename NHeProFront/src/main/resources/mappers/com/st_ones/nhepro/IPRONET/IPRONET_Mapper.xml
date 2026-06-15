@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.IPRONET.IPRONET_Mapper">
+
+	<!-- 결재 대기건수  -->
+    <select id="getApprovalCount" parameterType="hashmap" resultType="string" >
+   		SELECT COUNT(*) AS cnt
+          FROM STOCSCTM SCTM
+          JOIN STOCSCTP SCTP
+	           ON (SCTM.GATE_CD      = SCTP.GATE_CD
+	           AND SCTM.BUYER_CD     = SCTP.BUYER_CD
+	           AND SCTM.APP_DOC_NUM  = SCTP.APP_DOC_NUM
+	           AND SCTM.APP_DOC_CNT  = SCTP.APP_DOC_CNT
+               AND SCTP.SIGN_STATUS  = 'P'
+               AND SCTP.SIGN_USER_ID = #{userId}
+	           AND SCTP.DEL_FLAG     = '0')
+         WHERE SCTM.GATE_CD     = '100'
+           AND SCTM.BUYER_CD = 'C00007'
+           AND SCTM.NEXT_SIGN_USER_ID = #{userId}
+           AND SCTM.DEL_FLAG    = '0'
+           AND SCTP.SIGN_STATUS = 'P'
+		   AND SCTM.SIGN_STATUS = 'P'
+		   AND SCTM.REG_DATE  <![CDATA[>=]]>  ADD_MONTHS(SYSDATE, -1)
+	   	   AND SCTM.REG_DATE  <![CDATA[<=]]>  SYSDATE
+    </select>
+
+
+	<!-- 신규 협력업체 대기건수  -->
+    <select id="getCustCount" parameterType="hashmap" resultType="string" >
+   		SELECT COUNT(*) AS cnt
+          FROM STOCVNGL VNGL
+          JOIN STOCVNCM VNCM
+               ON (VNCM.GATE_CD   = VNGL.GATE_CD
+               AND VNCM.VENDOR_CD = VNGL.VENDOR_CD
+               AND VNCM.BUYER_CD  = 'C00007'
+               AND VNCM.DEL_FLAG  = '0')
+         WHERE VNGL.GATE_CD  = '100'
+           AND VNGL.DEL_FLAG = '0'
+           AND VNCM.CONFIRM_FLAG = 'J'
+           AND VNCM.REG_DATE  <![CDATA[>=]]>  ADD_MONTHS(SYSDATE, -2)
+	   	   AND VNCM.REG_DATE  <![CDATA[<=]]>  SYSDATE
+    </select>
+
+	<!-- 협력업체 권한 소유여부  -->
+    <select id="getAcceptCust" parameterType="hashmap" resultType="hashmap" >
+   		SELECT
+          CTRL_NM, CO.CTRL_CD
+	    FROM STOCBACO CO 
+	    LEFT JOIN STOCBACP CP
+	    	ON 
+	    	(
+	    		CO.GATE_CD = CP.GATE_CD
+	        	AND CO.CTRL_CD = CP.CTRL_CD
+	    	)
+	    LEFT JOIN STOCMBTA TA
+	     	ON 
+	     	(
+	     		CO.GATE_CD =TA.GATE_CD 
+	     		AND CO.CTRL_CD = TA.DATA_CD
+	 		)
+	   WHERE CO.GATE_CD = 100
+	         AND CP.CTRL_USER_ID = #{userId}
+	         AND CO.DEL_FLAG = '0'
+	         AND CP.DEL_FLAG = '0'
+	         AND CP.USE_FLAG = '1'
+	         AND TA.SCREEN_ID = 'CVNR0010'
+	         AND TA.ACTION_CD = 'doSearch'
+	         AND TA.DATA_TYPE = 'J'
+	         AND TA.DEL_FLAG ='0'
+    </select>
+
+</mapper>

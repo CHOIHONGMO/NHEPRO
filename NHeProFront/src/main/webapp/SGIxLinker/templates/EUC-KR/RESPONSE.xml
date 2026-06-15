@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="euc-kr"?>
+<Response>
+	<Contract.Number.Text/>
+	<Document.Number.Text/>
+	<Response.Info.Details>
+		<Response.Type.Code/>
+		<Response.Type.Name/>
+		<Response.Result.Text/>
+	</Response.Info.Details>
+</Response>

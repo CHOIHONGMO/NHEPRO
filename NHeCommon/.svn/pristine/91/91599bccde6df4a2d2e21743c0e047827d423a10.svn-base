@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:38 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.basic.MBSA0030_Mapper">
+
+	<select id="mbsa0030_doSearch" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+              HLDM.HOLYDAY AS HOLYDAY
+            , HLDM.ATTEND_CD AS HOLYDAY_TYPE
+            , HLDM.HOLYDAY_NM AS HOLYDAY_NM
+            , <include refid="common.sql.dbo"/>GETUSERNAME(HLDM.GATE_CD, HLDM.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+            , <include refid="common.sql.dbo"/>GETUSERNAME(HLDM.GATE_CD, HLDM.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+            , <include refid="common.sql.toChar"/>(HLDM.REG_DATE, 'YYYY-MM-DD HH24:MI') AS REG_DATE
+            , <include refid="common.sql.toChar"/>(HLDM.MOD_DATE, 'YYYY-MM-DD HH24:MI') AS MOD_DATE
+          FROM STOCHLDM HLDM
+         WHERE HLDM.GATE_CD = #{ses.gateCd}
+           AND HLDM.DEL_FLAG = '0'
+        <foreach item="search_form" index="index" collection="SEARCH_FORM_LIST" >
+            <if test="YEAR !='' and YEAR != null">
+                AND <include refid="common.sql.dbo"/>SF_SUBSTR(HLDM.HOLYDAY,1,4) IN
+                <foreach item="itemYear" index="index" collection="search_form.sYEAR" open="(" separator="," close=")">
+                    #{itemYear}
+                </foreach>
+            </if>
+            <if test="MONTH !='' and MONTH != null">
+                AND <include refid="common.sql.dbo"/>SF_SUBSTR(HLDM.HOLYDAY,5,2) IN
+                <foreach item="itemMonth" index="index" collection="search_form.sMONTH" open="(" separator="," close=")">
+                    #{itemMonth}
+                </foreach>
+            </if>
+            <if test="HOLYDAY_TYPE !='' and HOLYDAY_TYPE != null">
+                AND HLDM.ATTEND_CD IN
+                <foreach item="itemType" index="index" collection="search_form.sHOLYDAY_TYPE" open="(" separator="," close=")">
+                    #{itemType}
+                </foreach>
+            </if>
+        </foreach>
+      ORDER BY HLDM.HOLYDAY
+
+	</select>
+
+	<select id="mbsa0030_doCheck" parameterType="hashMap" resultType="java.lang.Integer">
+
+		SELECT COUNT(*)
+		  FROM STOCHLDM HLDM
+		 WHERE HLDM.GATE_CD = #{ses.gateCd}
+		   AND HLDM.DEL_FLAG = '0'
+		   AND HLDM.HOLYDAY = #{HOLYDAY}
+		   AND HLDM.ATTEND_CD = #{HOLYDAY_TYPE}
+		   AND HLDM.HOLYDAY_NM = #{HOLYDAY_NM}
+
+	</select>
+
+   <insert id="mbsa0030_doSave" parameterType="hashMap">
+
+        MERGE <include refid="common.sql.mergeInto"/> STOCHLDM HLDM
+        USING (SELECT #{ses.gateCd} AS GATE_CD
+                    , #{HOLYDAY} AS HOLYDAY
+				<include refid="common.sql.dual"/>
+              )  B
+        ON (HLDM.GATE_CD = B.GATE_CD
+        AND HLDM.HOLYDAY = B.HOLYDAY)
+        WHEN MATCHED THEN
+        UPDATE SET
+              MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , DEL_FLAG = '0'
+            , ATTEND_CD = #{HOLYDAY_TYPE}
+            , HOLYDAY_NM = #{HOLYDAY_NM}
+        WHEN NOT MATCHED THEN
+        INSERT (
+              GATE_CD
+            , HOLYDAY
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , HOLYDAY_NM
+            , ATTEND_CD
+        ) VALUES (
+              #{ses.gateCd}
+            , #{HOLYDAY}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{HOLYDAY_NM}
+            , #{HOLYDAY_TYPE}
+        )<include refid="common.sql.comma"/>
+
+    </insert>
+
+	<update id="mbsa0030_doDelete" parameterType="hashMap">
+
+		DELETE STOCHLDM
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND HOLYDAY = #{HOLYDAY}
+
+	</update>
+
+</mapper>

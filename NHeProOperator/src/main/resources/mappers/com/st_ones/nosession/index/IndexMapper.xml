@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.st_ones.nosession.index.IndexMapper">
+
+    <sql id="sqlGetRowStart">
+		<![CDATA[
+        SELECT * FROM
+                      (SELECT A.* FROM
+                                       (
+        ]]>
+	</sql>
+
+    <sql id="sqlGetRowEnd">
+		)
+        A WHERE A.RN <![CDATA[<=]]> #{endNo}) B
+        WHERE B.RN <![CDATA[>=]]> #{startNo}
+	</sql>
+
+    <sql id="orderByQuery">
+        ORDER BY <include refid="common.sql.nvl"/>(B.FIXED_TOP_FLAG, '0') DESC
+        , B.REG_DATE DESC
+        , B.NOTICE_NUM DESC
+    </sql>
+
+    <select id="getNoticeList" parameterType="hashMap" resultType="hashMap">
+        SELECT
+            A.SUBJECT,
+            A.REG_DATE,
+            A.NOTICE_NUM,
+            A.GATE_CD,
+            A.NOTICE_TEXT_NUM,
+            A.SUBJECT,
+            A.ATT_FILE_NUM
+        FROM (
+            SELECT
+                NOTC.SUBJECT,
+                <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'yyyy/MM/dd') AS REG_DATE,
+                NOTC.NOTICE_NUM,
+                NOTC.GATE_CD,
+                NOTC.NOTICE_TEXT_NUM,
+                NOTC.SUBJECT,
+                NOTC.ATT_FILE_NUM,
+                ROW_NUMBER()
+                OVER (
+                    ORDER BY <include refid="common.sql.nvl"/>(NOTC.FIXED_TOP_FLAG, '0') DESC, NOTC.REG_DATE DESC) AS ROW_NUM
+         FROM STOCNOTC NOTC
+        WHERE NOTC.GATE_CD = #{ses.gateCd}
+          AND NOTC.DEL_FLAG = '0'
+          AND NOTC.NOTICE_TYPE IN ('PCN', 'PCP')
+          AND NOTC.VIEW_TYPE IN ('USNA', 'USNE', 'USXX')
+          AND NOTC.START_DATE <![CDATA[>=]]> SYSDATE - 30
+
+
+        ) A
+        <![CDATA[ WHERE A.ROW_NUM <= 2 ]]>
+    </select>
+
+	<!-- WEB-INF/views/index.jsp -->
+	<!-- 로그인 페이지에서 공지사항 자동 팝업 -->
+    <select id="getNoticeListPopup" parameterType="hashMap" resultType="hashMap">
+        SELECT A.* FROM (
+        	SELECT
+		        <if test='_databaseId == "mssql"'>
+		            TOP 99999999
+		        </if>
+		          NOTC.NOTICE_NUM
+		        , NOTC.NOTICE_TEXT_NUM
+		        , NOTC.GATE_CD
+		     FROM STOCNOTC NOTC
+		    WHERE NOTC.GATE_CD = '100'
+		      AND NOTC.NOTICE_TYPE = 'PCN'   -- 게시판구분 : 공지사항
+		      AND NOTC.VIEW_TYPE IN ('USNA') -- 공지구분 : 전체
+		      AND NOTC.POPUP_FLAG = '1'        -- 공지여부 : Yes
+		      AND NOTC.DEL_FLAG = '0'
+        <if test='_databaseId=="oracle"'>
+            AND SYSDATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(<include refid="common.sql.toChar"/>(NOTC.START_DATE, 'YYYYMMDD'))
+            AND SYSDATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(<include refid="common.sql.toChar"/>(NOTC.END_DATE, 'YYYYMMDD'))
+
+        </if>
+        <if test='_databaseId=="mssql"'>
+            AND CONVERT(CHAR(8), NOTC.START_DATE , 112) <![CDATA[>=]]> CONVERT(CHAR(8), SYSDATE , 112)
+            AND CONVERT(CHAR(8), NOTC.END_DATE , 112) <![CDATA[<=]]>CONVERT(CHAR(8), SYSDATE , 112)
+        </if>
+        	ORDER BY <include refid="common.sql.nvl"/>(NOTC.FIXED_TOP_FLAG, '0') DESC
+        	       , REG_DATE DESC
+        	       , NOTICE_NUM DESC
+        ) A
+
+    </select>
+
+    <select id="getNoticeListMain" parameterType="hashMap" resultType="hashMap">
+        SELECT A.* FROM (
+            SELECT
+            <if test='_databaseId == "mssql"'>
+                TOP 4
+            </if>
+                NOTC.NOTICE_NUM
+                , NOTC.SUBJECT
+                ,<include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'YYYY-MM-DD') AS REG_DATE
+        FROM STOCNOTC NOTC
+            WHERE NOTC.GATE_CD = '100'
+              AND NOTC.NOTICE_TYPE = 'PCN'   -- 게시판구분 : 공지사항
+              AND NOTC.VIEW_TYPE IN ('USNA') -- 공지구분 : 전체
+              AND NOTC.DEL_FLAG = '0'
+        <if test='_databaseId=="oracle"'>
+            AND TO_CHAR(NOTC.START_DATE, 'yyyyMMdd') <![CDATA[<=]]> TO_CHAR(SYSDATE, 'yyyyMMdd')
+            AND TO_CHAR(NOTC.END_DATE, 'yyyyMMdd') <![CDATA[>=]]> TO_CHAR(SYSDATE, 'yyyyMMdd')
+        </if>
+
+        <if test='_databaseId=="mssql"'>
+            AND CONVERT(CHAR(8), NOTC.START_DATE , 112) <![CDATA[<=]]> CONVERT(CHAR(8), SYSDATE , 112)
+            AND CONVERT(CHAR(8), NOTC.END_DATE , 112) <![CDATA[>=]]> CONVERT(CHAR(8), SYSDATE , 112)
+        </if>
+            ORDER BY <include refid="common.sql.nvl"/>(NOTC.FIXED_TOP_FLAG, '0') DESC
+            , NOTC.REG_DATE DESC
+            , NOTC.NOTICE_NUM DESC
+        ) A
+    </select>
+
+    <!-- WEB-INF/views/index.jsp -->
+	<!-- 로그인 페이지에서 공지사항 자동 팝업 -->
+    <select id="getNoticePopupInfo" parameterType="hashMap" resultType="hashMap">
+		SELECT
+			  NOTC.SUBJECT
+			, NOTC.NOTICE_NUM
+			, NOTC.NOTICE_TEXT_NUM
+			, NOTC.VIEW_TYPE
+			, <include refid="common.sql.nvl"/>(NOTC.VIEW_CNT, 0) AS VIEW_CNT
+			, NOTC.REG_USER_ID
+			, UR.USER_NM AS REG_USER_NAME
+			, NOTC.ATT_FILE_NUM
+		 FROM STOCNOTC NOTC
+		 LEFT JOIN STOCUSER UR
+		      ON (NOTC.GATE_CD     = UR.GATE_CD
+		      AND NOTC.REG_USER_ID = UR.USER_ID)
+		WHERE NOTC.GATE_CD    = #{ses.gateCd}
+		  AND NOTC.NOTICE_NUM = #{NOTICE_NUM}
+        <if test='_databaseId=="oracle"'>
+            <![CDATA[
+		      AND TO_CHAR(NOTC.START_DATE, 'yyyyMMdd') <= ]]> TO_CHAR(SYSDATE, 'yyyyMMdd')
+		    <![CDATA[  AND TO_CHAR(NOTC.END_DATE, 'yyyyMMdd') >= ]]> TO_CHAR(SYSDATE, 'yyyyMMdd')
+
+        </if>
+        <if test='_databaseId=="mssql"'>
+          AND CONVERT(CHAR(8), NOTC.START_DATE , 112) <![CDATA[<=]]> CONVERT(CHAR(8), SYSDATE , 112)
+          AND CONVERT(CHAR(8), NOTC.END_DATE , 112) <![CDATA[>=]]> CONVERT(CHAR(8), SYSDATE , 112)
+        </if>
+	</select>
+
+    <select id="getFaqList" parameterType="hashMap" resultType="hashMap">
+        SELECT
+            A.SUBJECT,
+            A.REG_DATE,
+            A.NOTICE_NUM,
+            A.GATE_CD,
+            A.NOTICE_TEXT_NUM
+        FROM (
+            SELECT
+                NOTC.SUBJECT,
+                <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'yyyy/MM/dd') AS REG_DATE,
+                NOTC.NOTICE_NUM,
+                NOTC.GATE_CD,
+                NOTC.NOTICE_TEXT_NUM,
+                ROW_NUMBER()
+                OVER (
+                    ORDER BY <include refid="common.sql.nvl"/>(NOTC.FIXED_TOP_FLAG, '0') DESC, NOTC.REG_DATE DESC) AS ROW_NUM
+             FROM STOCNOTC NOTC
+            WHERE NOTC.GATE_CD = #{ses.gateCd}
+            AND NOTC.DEL_FLAG = '0'
+            AND NOTC.NOTICE_TYPE = UPPER(<include refid="common.sql.dbo"/>SF_TRIM('PCF'))
+            AND NOTC.VIEW_TYPE IN ('USNA', 'USNE', 'USXX')
+            AND NOTC.START_DATE <![CDATA[<=]]> SYSDATE
+            AND NOTC.END_DATE <![CDATA[>=]]> SYSDATE
+        ) A
+        <![CDATA[ WHERE A.ROW_NUM <= 7 ]]>
+    </select>
+
+    <select id="mainNoticeList" resultType="java.util.Map">
+        <include refid="sqlGetRowStart" />
+        <include refid="doSearch_mainNoticeList" />
+        <include refid="searchQuery" />
+        <include refid="sqlGetRowEnd" />
+        <include refid="orderByQuery" />
+    </select>
+
+    <sql id="doSearch_mainNoticeList">
+
+        SELECT  NOTC.NOTICE_NUM
+              , NOTC.SUBJECT
+			  , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'YYYY-MM-DD') AS REG_DATE
+              , NOTC.FIXED_TOP_FLAG
+              , ROW_NUMBER() OVER (ORDER BY NOTC.NOTICE_NUM DESC) AS RN
+          FROM STOCNOTC NOTC
+         WHERE NOTC.GATE_CD = '100'
+           AND NOTC.NOTICE_TYPE = 'PCN'   -- 게시판구분 : 공지사항
+           AND NOTC.VIEW_TYPE IN ('USNA') -- 공지구분 : 전체
+           AND NOTC.DEL_FLAG = '0'
+
+    </sql>
+
+    <sql id="searchQuery">
+        <if test="selectType eq 'title'.toString() and searchText != null and searchText != ''">
+            AND NOTC.SUBJECT LIKE '%' <include refid="common.sql.stringMerge"/> #{searchText} <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="selectType eq 'contents'.toString() and searchText != null and searchText != ''">
+            AND TXTD.TEXT_CONTENTS LIKE '%' <include refid="common.sql.stringMerge"/> #{searchText} <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="selectType eq 'all'.toString() and searchText != null and searchText != ''">
+            AND NOTC.SUBJECT LIKE '%' <include refid="common.sql.stringMerge"/> #{searchText} <include refid="common.sql.stringMerge"/> '%'
+            OR TXTD.TEXT_CONTENTS LIKE '%' <include refid="common.sql.stringMerge"/> #{searchText} <include refid="common.sql.stringMerge"/> '%'
+        </if>
+    </sql>
+
+    <select id="mainNoticeDetail" resultType="java.util.Map">
+
+    <if test="_databaseId == 'oracle'">
+        <![CDATA[
+        SELECT NOTC.NOTICE_NUM
+              , NOTC.SUBJECT
+              , TO_CHAR(NOTC.REG_DATE, 'YYYY-MM-DD') AS REG_DATE
+              , REPLACE(REPLACE(REPLACE((SELECT LISTAGG(TEXT_CONTENTS), '') WITHIN GROUP(ORDER BY 'AAAAAA')
+                                           FROM STOCTXTD
+                                          WHERE GATE_CD = TXTD.GATE_CD
+                                            AND TEXT_NUM = TXTD.TEXT_NUM), '&lt;', '<'), '&gt;', '>'), '&amp;nbsp;', '<br>') AS TEXT_CONTENTS
+          FROM STOCNOTC NOTC
+          JOIN STOCTXTD TXTD
+           ON (NOTC.GATE_CD = TXTD.GATE_CD
+           AND NOTC.NOTICE_TEXT_NUM = TXTD.TEXT_NUM)
+         WHERE NOTC.GATE_CD = '100'
+           AND NOTC.NOTICE_NUM = #{NOTICE_NUM}
+           AND NOTC.DEL_FLAG = '0'
+         GROUP BY NOTC.NOTICE_NUM, NOTC.SUBJECT, NOTC.REG_DATE, TXTD.TEXT_NUM, TXTD.GATE_CD
+        ]]>
+    </if>
+    <if test="_databaseId == 'mssql'">
+        <![CDATA[
+        SELECT NOTC.NOTICE_NUM
+              , NOTC.SUBJECT
+              , CONVERT(CHAR(10), NOTC.REG_DATE , 23) AS REG_DATE
+              ,  REPLACE(REPLACE(REPLACE(STUFF(( SELECT '' + TEXT_CONTENTS
+                                    FROM STOCTXTD
+                                    WHERE GATE_CD = TXTD.GATE_CD
+                                     AND TEXT_NUM = TXTD.TEXT_NUM
+                                    FOR XML PATH('') ),1,0,''), '&lt;', '<'), '&gt;', '>'), '&amp;nbsp;', '<br>') AS TEXT_CONTENTS
+        FROM STOCNOTC NOTC
+        JOIN STOCTXTD TXTD
+         ON (NOTC.GATE_CD = TXTD.GATE_CD
+         AND NOTC.NOTICE_TEXT_NUM = TXTD.TEXT_NUM)
+       WHERE NOTC.GATE_CD = '100'
+         AND NOTC.NOTICE_NUM = #{NOTICE_NUM}
+         AND NOTC.DEL_FLAG = '0'
+       GROUP BY NOTC.NOTICE_NUM, NOTC.SUBJECT, NOTC.REG_DATE, TXTD.TEXT_NUM, TXTD.GATE_CD
+        ]]>
+    </if>
+
+    </select>
+
+    <select id="mainNoticeTotalCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+          FROM STOCNOTC NOTC
+          JOIN STOCTXTD TXTD
+            ON(NOTC.GATE_CD = TXTD.GATE_CD
+           AND NOTC.NOTICE_TEXT_NUM = TXTD.TEXT_NUM)
+         WHERE NOTC.GATE_CD = '100'
+           AND NOTC.NOTICE_TYPE = 'PCN'   -- 게시판구분 : 공지사항
+           AND NOTC.VIEW_TYPE IN ('USNA') -- 공지구분 : 전체
+           AND NOTC.DEL_FLAG = '0'
+        <include refid="searchQuery" />
+    </select>
+
+</mapper>

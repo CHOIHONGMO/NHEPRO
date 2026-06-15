@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.board.sms.BBOS_Mapper">
+
+    <select id="selectUserSearchB" parameterType="hashmap" resultType="hashmap">
+
+        SELECT DISTINCT
+               OGCM.COMPANY_REG_NUM
+             , USER_TBL.COMPANY_CD AS COMPANY_CD
+             , ${dboStart}getUserCompanyName(USER_TBL.GATE_CD, USER_TBL.COMPANY_CD, USER_TBL.USER_TYPE, #{ses.langCd}) ${dboEnd} AS COMPANY_NM
+             , USER_TBL.USER_ID
+             , ${dboStart}getUserName(USER_TBL.GATE_CD, USER_TBL.USER_ID, #{ses.langCd}) ${dboEnd} AS USER_NM
+             , ${dboStart}GETDECTEL(USER_TBL.CELL_NUM)${dboEnd} as CELL_NUM
+             , ${dboStart}GETDECEMAIL(USER_TBL.EMAIL)${dboEnd} as EMAIL
+        FROM   STOCUSER USER_TBL JOIN STOCOGCM OGCM
+                ON USER_TBL.COMPANY_CD = OGCM.BUYER_CD AND USER_TBL.GATE_CD = OGCM.GATE_CD
+        WHERE  USER_TBL.GATE_CD = #{ses.gateCd}
+          AND  USER_TBL.DEL_FLAG = '0'
+          AND  OGCM.DEL_FLAG = '0'
+          AND  USER_TBL.USER_TYPE = 'B'
+       <!-- <if test="BUYER_CD != ''">
+          AND USER_TBL.COMPANY_CD = #{BUYER_CD}
+       </if> -->
+       <if test="st_COMPANY_NM != '' and COMPANY_NM != '' and COMPANY_NM != null">
+          AND ${COMPANY_NM_L} ${dboStart}getUserCompanyName(USER_TBL.GATE_CD, USER_TBL.COMPANY_CD, USER_TBL.USER_TYPE, #{ses.langCd}) ${dboEnd} ${COMPANY_NM_R}
+       </if>
+       <if test="st_USER_NM != '' and USER_NM != '' and USER_NM != null">
+          AND ${USER_NM_L} ${dboStart}getUserName(USER_TBL.GATE_CD, USER_TBL.USER_ID, #{ses.langCd}) ${dboEnd} ${USER_NM_R}
+       </if>
+    </select>
+
+    <select id="selectUserSearchS" parameterType="hashmap" resultType="hashmap">
+
+        SELECT DISTINCT
+               VNGL.IRS_NUM AS COMPANY_REG_NUM
+             , VNGL.VENDOR_CD AS COMPANY_CD
+             , ${dboStart}getUserCompanyName(USER_TBL.GATE_CD, USER_TBL.COMPANY_CD, USER_TBL.USER_TYPE, #{ses.langCd}) ${dboEnd} AS COMPANY_NM
+             , USER_TBL.USER_ID
+             , ${dboStart}getUserName(USER_TBL.GATE_CD, USER_TBL.USER_ID, #{ses.langCd}) ${dboEnd} as USER_NM
+             , ${dboStart}GETDECTEL(USER_TBL.CELL_NUM)${dboEnd} as CELL_NUM
+             ,${dboStart}GETDECEMAIL( USER_TBL.EMAIL)${dboEnd} as EMAIL
+        FROM   STOCUSER USER_TBL JOIN STOCVNGL VNGL
+                ON USER_TBL.COMPANY_CD = VNGL.VENDOR_CD AND USER_TBL.GATE_CD = VNGL.GATE_CD
+        WHERE  USER_TBL.GATE_CD = #{ses.gateCd}
+          AND  USER_TBL.DEL_FLAG = '0'
+          AND  VNGL.DEL_FLAG = '0'
+          AND  USER_TBL.USER_TYPE = 'S'
+       <!-- <if test="BUYER_CD != ''">
+          AND USER_TBL.COMPANY_CD = #{BUYER_CD}
+       </if> -->
+       <if test="st_COMPANY_NM != '' and COMPANY_NM != '' and COMPANY_NM != null">
+          AND  ${COMPANY_NM_L} ${dboStart}getUserCompanyName(USER_TBL.GATE_CD, USER_TBL.COMPANY_CD, USER_TBL.USER_TYPE, #{ses.langCd}) ${dboEnd} ${COMPANY_NM_R}
+       </if>
+       <if test="st_USER_NM != '' and USER_NM != '' and USER_NM != null">
+          AND  ${USER_NM_L} ${dboStart}getUserName(USER_TBL.GATE_CD, USER_TBL.USER_ID, #{ses.langCd}) ${dboEnd} ${USER_NM_R}
+       </if>
+
+        UNION
+            SELECT DISTINCT
+                  VNGL.IRS_NUM AS COMPANY_REG_NUM
+                , VNGL.VENDOR_CD AS COMPANY_CD
+                , ${dboStart}GETVENDORNAME(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd}) ${dboEnd} AS COMPANY_NM
+                , '' AS USER_ID
+                , VNCP.USER_NM
+                , ${dboStart}getDecTel(VNCP.CELL_NUM)${dboEnd} AS CELL_NUM
+                , ${dboStart}getDecEmail(VNCP.EMAIL)${dboEnd} as EMAIL
+            FROM STOCVNGL VNGL JOIN STOCVNCP VNCP ON
+                    VNGL.GATE_CD = VNCP.GATE_CD AND VNGL.VENDOR_CD = VNCP.VENDOR_CD
+            WHERE VNGL.GATE_CD = #{ses.gateCd}
+              AND VNGL.DEL_FLAG = '0'
+              AND VNCP.DEL_FLAG = '0'
+           <!-- <if test="BUYER_CD != ''"> -->
+              <!-- AND VNGL.VENDOR_CD = #{BUYER_CD} -->
+           <!-- </if> -->
+	       <if test="st_COMPANY_NM != '' and COMPANY_NM != '' and COMPANY_NM != null">
+	          AND  ${COMPANY_NM_L} ${dboStart}getVendorName(VNGL.GATE_CD, VNGL.VENDOR_CD, #{ses.langCd}) ${dboEnd} ${COMPANY_NM_R}
+	       </if>
+	       <if test="st_USER_NM != '' and USER_NM != '' and USER_NM != null">
+	          AND  ${USER_NM_L} VNCP.USER_NM ${USER_NM_R}
+	       </if>
+    </select>
+
+</mapper>

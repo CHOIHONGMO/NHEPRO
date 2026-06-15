@@ -1,0 +1,2170 @@
+package com.st_ones.common.file.web;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.st_ones.common.docNum.service.DocNumService;
+import com.st_ones.common.enums.system.Code;
+import com.st_ones.common.file.service.FileAttachService;
+import com.st_ones.common.login.domain.UserInfo;
+import com.st_ones.common.message.service.MessageService;
+import com.st_ones.common.serverpush.reverseajax.EverRestJson;
+import com.st_ones.common.util.DRMUtils;
+import com.st_ones.common.util.clazz.EverDate;
+import com.st_ones.common.util.clazz.EverFile;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.everf.serverside.exception.NoResultException;
+import com.st_ones.everf.serverside.info.UserInfoManager;
+import com.st_ones.everf.serverside.util.clazz.SessionIgnore;
+import com.st_ones.everf.serverside.web.BaseController;
+import com.st_ones.everf.serverside.web.wrapper.EverHttpRequest;
+import com.st_ones.everf.serverside.web.wrapper.EverHttpResponse;
+import com.st_ones.eversrm.eApproval.eApprovalModule.BAPM_Mapper;
+import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileItemFactory;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.json.simple.JSONObject;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import javax.servlet.ServletContext;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import java.io.*;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.util.*;
+
+import java.net.URISyntaxException;
+import com.epapyrus.common.lang.Callback;
+import com.epapyrus.pdf.pg.client.PdfGatewayAgent;
+import com.epapyrus.pdf.pg.entity.PdfGatewayResponse;
+import com.epapyrus.pdf.pg.lang.Task;
+import com.epapyrus.pdf.pg.entity.*;
+import com.epapyrus.pdf.pg.io.*;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.*;
+
+import java.net.URI;
+
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : FileAttachController.java
+ * @date 2013. 09. 11.
+ * @version 1.0
+ * @see
+ */
+@SessionIgnore
+@Controller
+@RequestMapping(value = "/common/file")
+public class FileAttachController extends BaseController {
+
+    Logger logger = LoggerFactory.getLogger(FileAttachController.class);
+
+	final static String DOWNLOAD_URL = "/common/file/fileAttach/download.so";
+
+    @Autowired private DocNumService docNumService;
+
+	@Autowired private FileAttachService fileAttachService;
+
+	@Autowired private MessageService messageService;
+	
+	@Autowired private BAPM_Mapper bapm_Mapper;	
+
+	String imageFlag = "N";
+
+	private boolean isValidExtension(String fileExtension) {
+		String[] extensions = getExtensionTypesProperty().split(";");
+		Boolean uploadPolicy = getUploadPolicyTypeProperty();
+        if (uploadPolicy) {
+            for (String extension : extensions) {
+                if ((extension.equalsIgnoreCase(fileExtension))) { return true; }
+            }
+
+            return false;
+        }
+        for (String extension : extensions) if (extension.equalsIgnoreCase(fileExtension)) return true;
+        return false;
+	}
+
+	private boolean isValidExtensionImage(String fileExtension) {
+        String[] extensions = "jpg;jpe;jpeg;tif;gif;png".split(";");
+        Boolean uploadPolicy = getUploadPolicyTypeProperty();
+        if (uploadPolicy) {
+            for (String extension : extensions) {
+                if ((extension.equalsIgnoreCase(fileExtension))) { return true; }
+            }
+
+            return false;
+        }
+        for (String extension : extensions) if (extension.equalsIgnoreCase(fileExtension)) return true;
+        return false;
+	}
+
+	@SuppressWarnings("unchecked")
+	@RequestMapping(value = "/fileAttach/upload")
+	public void fileAttachUpload(HttpServletRequest req, EverHttpResponse resp) throws Exception {
+
+		req.setCharacterEncoding("utf-8"); // 주의:한글 파일명의 경우 flex에서 utf-8로 올려보냄 , euc-kr 일경우 선언 필요
+
+        final String bizType = req.getParameter("bizType");
+        final String returnType = req.getParameter("returnType");
+        final String fileManagerId = req.getParameter("fileManagerId");
+        final String buyerCd = req.getParameter("buyerCd");
+        final String buyerDept = req.getParameter("buyerDept");
+        if (EverString.isEmpty(bizType)) throw new NoResultException("Biz type is required.");
+
+        // Session의 CompanyCd_DeptCd 를 받아서 폴더를 만든다.
+        UserInfo userInfo = (UserInfo)req.getSession().getAttribute("ses");
+        String deptCd = StringUtils.isEmpty(userInfo.getDeptCd().trim()) ? "0000" : userInfo.getDeptCd();
+        String lastPath = "";
+        if (EverString.isNotEmpty(userInfo.getCompanyCd())) {
+            lastPath = userInfo.getCompanyCd() + "_" + deptCd;
+        } else {
+            if ("S".equals(userInfo.getUserType())) {
+                lastPath = "supplier_" + deptCd;
+            } else if ("B".equals(userInfo.getUserType())) {
+                lastPath = "customer_" + deptCd;
+            }
+        }
+
+        final File tempDirectory = new File(getTempFilePath()); // 파일 임시 저장소
+
+        String targetDirectory = "";
+        if(bizType.equals("EC")) {
+            targetDirectory = getFileUploadPath(bizType) + bizType + "/" + lastPath; // 파일 저장소
+        } else {
+            targetDirectory = getFileUploadPath(bizType) + EverDate.getYear() + "/" + EverDate.getYear()+EverDate.getMonth() + "/" + bizType + "/" + lastPath; // 파일 저장소
+        }
+
+        checkDirectoryExist(targetDirectory, getTempFilePath());
+
+        FileItemFactory factory = new DiskFileItemFactory(4096, tempDirectory);
+        ServletFileUpload fileUpload = new ServletFileUpload(factory);
+        List items = fileUpload.parseRequest(req);
+
+        Iterator it = items.iterator();
+        while(it.hasNext()) {
+            FileItem item = (FileItem)it.next();
+            if(!item.isFormField()) {
+                File clientFile = new File(item.getName());
+                String fileName = clientFile.getName();
+                if(req.getHeader("User-Agent").indexOf("MSIE 8.0") > -1) {
+                	fileName = new String(fileName.getBytes("utf-8"), "utf-8");
+                } else {
+                    fileName = clientFile.getName();
+                }
+
+		        String fileExtension = fileName.substring(fileName.lastIndexOf('.') + 1);
+                String uuid = req.getParameter("uuid");
+
+                if(EverString.isEmpty(uuid)) {
+                    uuid = fileAttachService.getUUID();
+                }
+
+                if(!"IMG".equals(bizType)) {
+                    if(!isValidExtension(fileExtension)) {
+                        /*String message = String.format("업로드 할 수 없는 확장자 입니다.");
+                        String msg = URLEncoder.encode(message, "UTF-8");
+                        resp.setResponseMessage(msg);
+                        resp.setParameter("message",  msg);*/
+                        resp.setStatus(601);
+                        return;
+                    }
+                }
+
+                if("IMG".equals(bizType)) {
+                    if(!isValidExtensionImage(fileExtension)) {
+                        /*String message = String.format("%s를 제외한 파일은 업로드 할 수 없습니다.","jpe, jpg, jpeg, tif, gif, png");
+                        String msg = URLEncoder.encode(message, "UTF-8");
+                        resp.setResponseMessage(msg);
+                        resp.setParameter("message",  msg);*/
+                        resp.setStatus(601);
+                        return;
+                    }
+                }
+
+                String uuidSeq = null;
+                synchronized (this) {
+                    Thread.sleep(2);
+                    uuidSeq = String.valueOf(System.currentTimeMillis());
+                }
+
+                File tempFile;
+                boolean isEncryptFile = false;
+                boolean useFileDecryptionModule = PropertiesManager.getBoolean("everf.file.use.security.module");
+                logger.info("첨부파일 암호화 여부가 [{}]로 설정되어 있습니다. ", useFileDecryptionModule);
+
+                tempFile = new File(tempDirectory + "/" + uuid + "_" + uuidSeq + "." + fileExtension);
+                item.write(tempFile);
+
+                File targetFile = new File(targetDirectory + "/" + uuid + "_" + uuidSeq + "." + fileExtension);
+
+                if(useFileDecryptionModule) {
+
+                    String tempFilePath = tempFile.getPath();
+
+                    if(DRMUtils.isDRMSupportFile(tempFilePath)) {
+
+                        isEncryptFile = DRMUtils.isEncryptedFile(tempFilePath);
+                        if (isEncryptFile) {
+
+                            logger.info("{}는 암호화된 파일입니다.", tempFilePath);
+
+                            logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+                            FileUtils.moveFile(tempFile, targetFile);
+
+                            if (targetFile.exists()) {
+                                logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                            }
+
+                        } else {
+
+                            logger.info("[{}] 파일은 암호화되지 않아 암호화를 진행합니다.", tempFile.getPath());
+
+                            logger.info("-> SRC FILE PATH:" + tempFile.getPath());
+                            logger.info("-> TGT FILE PATH:" + targetFile.getPath());
+                            
+                            logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+                            FileUtils.moveFile(tempFile, targetFile);
+
+                            if (DRMUtils.encryptFile(tempFile.getPath(), targetFile.getPath(), fileName, userInfo)) {
+                                if (targetFile.exists()) {
+                                    logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                                }
+                            }
+                        }
+                    } else {
+
+                        logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+                        FileUtils.moveFile(tempFile, targetFile);
+
+                        if (targetFile.exists()) {
+                            logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                        }
+                    }
+
+                } else {
+                    logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+                    FileUtils.moveFile(tempFile, targetFile);
+
+                    if (targetFile.exists()) {
+                        logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                    }
+                }
+
+
+                String fileSize = String.valueOf(item.getSize());
+
+                try {
+                    String [] fileName1 = clientFile.getName().split("\\\\");
+                    int length = fileName1.length;
+                    String fileName2 = fileName1[length-1];
+                    fileName = fileName2;
+
+                } catch (Exception e) {
+                    logger.error(e.getMessage(), e);
+                }
+
+                HashMap<String, String> fileSaveInfo = getFileSaveInfo(bizType, targetDirectory, fileName, fileExtension, uuid, uuidSeq, fileSize, isEncryptFile);
+
+                fileSaveInfo.put("PR_BUYER_CD", (buyerCd==null || "".equals(buyerCd)) ? userInfo.getCompanyCd() : buyerCd   );
+                fileSaveInfo.put("PR_DEPT_CD", (buyerDept==null || "".equals(buyerDept)) ? userInfo.getDeptCd() : buyerDept   );
+                if(bizType.equals("EC")) { // 계약서 작성인 경우 파일 해시 값을 저장한다.
+                    fileSaveInfo.put("HASH_NUM", EverFile.fileToHash(targetFile));
+                }
+
+                fileAttachService.insertFileInfo(fileSaveInfo);
+
+                if(StringUtils.equals(returnType, "json")) {
+                    String userAgent = req.getHeader("User-Agent");
+                    if(userAgent != null && userAgent.indexOf("MSIE") > -1) {
+                        resp.setContentType("text/html");
+                    } else {
+                        resp.setContentType("application/json");
+                    }
+
+                    resp.setCharacterEncoding("utf-8");
+
+                    fileSaveInfo.put("downloadUrl", getDownloadUrl(uuid, uuidSeq));
+                    resp.getWriter().write(new ObjectMapper().writeValueAsString(fileSaveInfo));
+                } else {
+                    Map<String, Object> fileItemModel = getFileItemModel(uuid, uuidSeq, fileSize);
+                    resp.setParameter("UUID", uuid);
+                    resp.setParameter("UUID_SQ", uuidSeq);
+                    resp.setParameter("FILE_COUNT", String.valueOf(fileAttachService.getFileCount(uuid)));
+                    resp.setParameter("fileManagerId", fileManagerId);
+                    req.setAttribute("fileList", fileItemModel);
+                    resp.setResponseMessage("success");
+                }
+            }
+        }
+    }
+
+	private  String stringToHex(String str) {
+		StringBuffer sbuf = new StringBuffer();
+	    for(int i=0 ; i <str.length(); i++) {
+	        sbuf.append(" 0x"+Integer.toHexString(str.charAt(i)).toUpperCase() );
+
+	    }
+	    return sbuf.toString();
+    }
+
+	private Map<String, Object> getFileItemModel(String uuid, String uuidSeq, String fileSize) {
+		Map<String, Object> fileItemModel = new HashMap<String, Object>();
+		fileItemModel.put("fileId", uuid + uuidSeq);
+		fileItemModel.put("fileName", uuid + uuidSeq);
+		fileItemModel.put("fileSize", fileSize);
+		fileItemModel.put("fileValue", getDownloadUrl(uuid, uuidSeq));
+		return fileItemModel;
+	}
+
+	@Autowired
+    private ServletContext servletContext;
+
+	@SessionIgnore
+    @RequestMapping(value = "/fileAttach/getUploadedFileInfo")
+    public void getUploadedFileInfo(HttpServletRequest req, EverHttpResponse resp, @RequestParam("bizType") String bizType, @RequestParam("fileId") String uuid) throws Exception {
+        List<Map<String, Object>> fileInfo = fileAttachService.getFilesInfo(bizType, uuid);
+        if(bizType.equals("IMG")) {
+            for (Map<String, Object> file : fileInfo) {
+
+                try {
+                    File imageFile = new File(file.get("FILE_PATH") + "/" + file.get("FILE_NM") + "." + file.get("FILE_EXTENSION"));
+                    String encode = Base64.encode(FileUtils.readFileToByteArray(imageFile));
+                    file.put("BYTE_ARRAY", encode);
+                } catch(FileNotFoundException e) {
+                    File imageFile = new File(servletContext.getRealPath("/images/noimage.jpg"));
+                    String encode = Base64.encode(FileUtils.readFileToByteArray(imageFile));
+                    file.put("BYTE_ARRAY", encode);
+                }
+            }
+        }
+
+        ObjectMapper om = new ObjectMapper();
+        resp.setParameter("fileInfo", om.writeValueAsString(fileInfo));
+        resp.setResponseMessage("success");
+    }
+
+    /**
+     * 서버에 업로드된 파일정보를 리턴합니다.
+     * @param bizType
+     * @param uuid
+     * @return
+     */
+    public List<Map<String, Object>> getUploadedFileInfo(String bizType, String uuid) throws Exception {
+        return fileAttachService.getFilesInfo(bizType, uuid);
+    }
+
+	public HashMap<String, String> getFileSaveInfo(final String bizType, final String filePath, String fileName, String fileExtension, String uuid, String uuidSeq, String fileSize, boolean isEncryptFile) throws UnsupportedEncodingException {
+
+		HashMap<String, String> fileSaveInfo = new HashMap<String, String>();
+		fileSaveInfo.put("UUID", uuid);
+		fileSaveInfo.put("UUID_SQ", uuidSeq);
+		fileSaveInfo.put("fileSeq", String.valueOf(fileAttachService.getFileCount(uuid)));
+		fileSaveInfo.put("fileName", uuid + "_" + uuidSeq);
+		fileSaveInfo.put("FILE_PATH", filePath);
+		fileSaveInfo.put("FILE_SIZE", fileSize);
+		fileSaveInfo.put("EXTENSION", fileExtension);
+		fileSaveInfo.put("REAL_FILE_NM", fileName);
+		fileSaveInfo.put("BIZ_TYPE", bizType);
+		fileSaveInfo.put("ENC_FLAG", isEncryptFile == true ? "1" : "0");
+
+		return fileSaveInfo;
+	}
+
+	private String getDownloadUrl(String uuid, String uuidSeq) {
+		return String.format("%s?UUID=%s&UUID_SQ=%s", DOWNLOAD_URL, uuid, uuidSeq);
+	}
+
+	private void checkDirectoryExist(String filePathParam, String tempPathParam) {
+
+		File realPath = new File(filePathParam);
+		File tempPath = new File(tempPathParam);
+		if (!tempPath.isDirectory()) {
+			tempPath.mkdirs();
+		}
+		if (!realPath.isDirectory()) {
+			realPath.mkdirs();
+		}
+	}
+
+	@RequestMapping(value = "/fileAttach/deleteFile")
+	public void fileAttachDeleteFile(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+//		String fileURL = req.getParameter("fileURL");
+//		logger.error(fileURL);
+//		if (fileURL == null) {
+//			throw new NoResultException("fileURL is null!!!");
+//		}
+
+//		String paramString = fileURL.substring(fileURL.indexOf('?') + 1, fileURL.length());
+//		String[] params = paramString.split("&");
+		Map<String, String> paramMap = new HashMap<String, String>();
+        paramMap.put("UUID", req.getParameter("UUID"));
+        paramMap.put("UUID_SQ", req.getParameter("UUID_SQ"));
+		fileAttachService.deleteFile(paramMap);
+		File tempDirectory = new File(getTempFilePath());
+		if (tempDirectory.isDirectory()) {
+			File[] listFiles = tempDirectory.listFiles();
+			if(listFiles != null) {
+                for (File file : listFiles) {
+                    if (file.canWrite()) {
+                        file.delete();
+                    }
+                }
+            }
+		}
+		resp.setParameter("UUID", paramMap.get("UUID"));
+		resp.setParameter("UUID_SQ", paramMap.get("UUID_SQ"));
+		resp.setParameter("FILE_COUNT", String.valueOf(fileAttachService.getFileCount(paramMap.get("UUID"))));
+		resp.setResponseMessage("success");
+		resp.setResponseCode("true");
+	}
+
+	@RequestMapping(value = "/fileAttach/download")
+	public void fileAttachDownload(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+		
+        File finalFile = null;
+        boolean shouldDecryptFile = false;
+
+        DataInputStream in = null;
+        ServletOutputStream op = null;
+
+		try {
+
+            String userAgent = req.getHeader("User-Agent");
+            /*if(org.apache.commons.lang.StringUtils.containsIgnoreCase(userAgent, "android")
+                    || org.apache.commons.lang.StringUtils.containsIgnoreCase(userAgent, "iphone")) {
+
+                if(req.getSession().getAttribute("ses") == null) {
+
+                    resp.setContentType("text/html; charset=UTF-8");
+                    resp.setCharacterEncoding("utf-8");
+                    String domainUrl = PropertiesManager.getString("eversrm.system.domainUrl");
+                    resp.getWriter().write("<script type='text/javascript'>location.href='/welcome.so?returnUrl="+URLEncoder.encode(domainUrl+req.getRequestURI()+"?"+req.getQueryString(), "UTF-8")+"';</script>");
+                    resp.getWriter().flush();
+                    resp.getWriter().close();
+                    return;
+                }
+
+            }
+
+            if(req.getSession().getAttribute("ses") == null) {
+                resp.getWriter().write("<script type='text/javascript'>alert('로그인하셔야 합니다.');</script>");
+                resp.getWriter().flush();
+                resp.getWriter().close();
+                return;
+            }*/
+
+            String uuid = req.getParameter("UUID");
+            String uuid_seq = req.getParameter("UUID_SQ");
+
+            if(req.getSession().getAttribute("ses") == null) {
+                uuid = URLDecoder.decode(uuid);
+                if (uuid.indexOf("=") == -1) {
+                    throw new Exception();
+                }
+                // 암호화 되어 있으면 복호화한다.
+                uuid = fileAttachService.getDecUUID(uuid);
+            }
+            
+            //공급사 첨부파일 결재여부 확인 20230712 s
+            UserInfo userInfo = (UserInfo)req.getSession().getAttribute("ses");
+
+            if ("S".equals(userInfo.getUserType())) {
+            	
+            	//대상확인 함수 추가
+                Map<String, String> targetFileInfo = fileAttachService.getTagrgetFile(uuid, uuid_seq);
+                if(targetFileInfo != null && targetFileInfo.size() != 0) {
+                	System.out.println("targetFileInfo ::: "+targetFileInfo.toString());                	
+                	File atchFile = new File(targetFileInfo.get("FILE_PATH")+"/"+targetFileInfo.get("FILE_NM")+"."+targetFileInfo.get("FILE_EXTENSION"));
+                	if (atchFile.exists()) {           
+                		
+                        String fomr1 = "<form name='form1' method='POST' action='/nhepro/SCTR/supplyDocFee/view.so' ><input type='hidden' name='UUID' value='"+uuid+"'><input type='hidden' name='UUID_SQ' value='"+uuid_seq+"'></form>";
+            		    String url = "window.open('', 'DocFee', 'width=700,height=700,top=200,left=200,location=no,menubar=no,status=no,scrollbars=yes');";                	                        
+	                    resp.setContentType("text/html; charset=UTF-8");
+	                    resp.setCharacterEncoding("utf-8");
+	                    resp.getWriter().write(fomr1);	                    	                    
+	                    resp.getWriter().write("<script type='text/javascript'>");
+	                    resp.getWriter().write(url);	                    
+	                    resp.getWriter().write("form1.target = 'DocFee';");                                        	                    
+	                    resp.getWriter().write("form1.submit();");                                        	                    	                    
+	                    resp.getWriter().write("</script>");
+	                    resp.getWriter().flush();
+	                    resp.getWriter().close();
+	                    return;            		   
+                		
+                	}		            	
+                }            	
+            }
+          //공급사 첨부파일 결재여부 확인 20230712 e
+
+            Map<String, String> fileInfo = fileAttachService.getFileInfo(uuid, uuid_seq);
+            if(fileInfo == null || fileInfo.size() == 0) {
+                throw new FileNotFoundException();
+            }
+
+            String sourceFile = fileInfo.get("FILE_PATH") + "/" + fileInfo.get("FILE_NM") + "." + fileInfo.get("FILE_EXTENSION");
+            String originalFileName = fileInfo.get("REAL_FILE_NM");
+            int length = 0;
+            ServletContext context = req.getSession().getServletContext();
+            String mimeType = context.getMimeType(sourceFile);
+
+            finalFile = new File(sourceFile);
+            if (!finalFile.isFile()) {
+                logger.error("파일이 존재하지 않습니다: [{}]", sourceFile);
+                finalFile = new File(servletContext.getRealPath("/images/noimage.jpg"));
+                throw new FileNotFoundException("FILE NOT FOUND");
+            }
+
+            boolean useFileDecryptionModule = PropertiesManager.getBoolean("everf.file.use.security.module");
+            logger.info("첨부파일 암호화 여부가 [{}]로 설정되어 있습니다. ", useFileDecryptionModule);
+
+            if(useFileDecryptionModule) {
+                // 최초 업로드 시 암호화되지 않은 파일의 경우 대외에서 다운로드 시 복호화해서 내려준다.
+                if (DRMUtils.isDRMSupportFile(sourceFile)) {
+                    logger.info("[{}] 파일은 암호화 대상입니다.", sourceFile);
+
+                    shouldDecryptFile = true;
+                }
+
+                // 복호화해서 다운로드할 경우 임시디렉토리에 복호화 파일을 생성해서 다운로드시켜준 후 finally에서 삭제처리한다.
+                if (shouldDecryptFile) {
+
+                    logger.info("[{}] 파일은 최초 업로드 시 암호화되어있지 않은 파일이기 때문에 복호화한 후 다운로드 진행합니다.", fileInfo.get("REAL_FILE_NM"));
+
+                    String targetFile = this.getTempFilePath() + fileInfo.get("FILE_NM") + "." + fileInfo.get("FILE_EXTENSION");
+                    if (DRMUtils.decryptFile(sourceFile, targetFile)) {
+                        logger.info("복호화 결과 코드: {}", "success");
+                        finalFile = new File(targetFile);
+                    }
+                }
+            }
+
+            resp.setContentLength((int) finalFile.length());
+            resp.setContentType((mimeType != null) ? mimeType : "application/octet-stream;");
+
+            boolean ie = (userAgent.indexOf("MSIE") > -1) || (userAgent.indexOf("Trident") > -1);
+
+            logger.info("userAgent: {}", userAgent);
+
+            String fileName;
+            if (ie) {
+                fileName = URLEncoder.encode(originalFileName, "UTF-8").replaceAll("\\+", "%20");
+            } else {
+
+                StringBuffer sb = new StringBuffer();
+                for (int i = 0; i < originalFileName.length(); i++) {
+                    char c = originalFileName.charAt(i);
+                    if (c > '~') {
+                        sb.append(URLEncoder.encode("" + c, "UTF-8"));
+                    } else {
+                        sb.append(c);
+                    }
+                }
+                fileName = sb.toString();
+            }
+
+            resp.setHeader("Content-Disposition", "attachment; filename=\""+ fileName +"\"");
+
+//            if (userAgent != null && userAgent.indexOf("MSIE 5.5") > -1) { // MS IE 5.5 이하
+//                resp.setHeader("Content-Disposition", "filename=" + URLEncoder.encode(original_filename, "UTF-8").replaceAll("\\+", "%20") + ";");
+//            } else if (userAgent != null && userAgent.indexOf("MSIE") > -1) { // MS IE (보통은 6.x 이상 가정)
+//                resp.setHeader("Content-Disposition", "attachment; filename=" + java.net.URLEncoder.encode(original_filename, "UTF-8").replaceAll("\\+", "%20") + ";");
+//            } else { // 모질라나 오페라
+//                resp.setHeader("Content-Disposition", "attachment; filename=" + new String(original_filename.getBytes("UTF-8"), "latin1").replaceAll("\\+", "%20") + ";");
+//            }
+
+
+            try {
+                op = resp.getOutputStream();
+                byte[] bbuf = new byte[4096];
+
+                // 협력업체용 참부파일 (BID (입찰), BOARD(공지사항), CONT(계약) )
+//            in = new DataInputStream(new ByteArrayInputStream(binaryfile));
+//            if (PropertiesManager.getString("everf.file.binary.bizTypes").indexOf(fileInfo.get("BIZ_TYPE")) >= 0) {
+//
+//            } else {
+                in = new DataInputStream(new FileInputStream(finalFile));
+//            }
+                while ((length = in.read(bbuf)) != -1) {
+                    op.write(bbuf, 0, length);
+                }
+            } catch(Exception e) {
+                logger.error(e.getMessage());
+            } finally {
+                if(in != null) {
+                    in.close();
+                }
+                if(op != null) {
+                    op.close();
+                }
+            }
+
+        } catch(FileNotFoundException fne) {
+            logger.error(fne.getMessage(), fne);
+            resp.setContentType("text/html; charset=UTF-8");
+            resp.setCharacterEncoding("utf-8");
+            resp.getWriter().write("<script type='text/javascript'>alert('첨부파일이 존재하지 않습니다.');</script>");
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+		    resp.setContentType("text/html; charset=UTF-8");
+		    resp.setCharacterEncoding("utf-8");
+		    resp.getWriter().write("<script type='text/javascript'>alert('잘못된 접근을 시도했거나 서버에서 오류가 발생했습니다.\\n관리자에게 문의바랍니다.');</script>");
+        } finally {
+
+            if(shouldDecryptFile) {
+                /*boolean deleteStatus = finalFile.delete();
+                if(deleteStatus) {
+                    logger.info("[{}] 복호화된 파일을 삭제처리했습니다.", finalFile.getPath());
+                } else {
+                    logger.info("[{}] 복호화된 파일을 삭제하지 못했습니다.", finalFile.getPath());
+                }*/
+            }
+
+            if(op != null) {
+                op.flush();
+            }
+            if(in != null) {
+                in.close();
+            }
+            if(op != null) {
+                op.close();
+            }
+        }
+    }
+
+	private Boolean getUploadPolicyTypeProperty() {
+		return PropertiesManager.getBoolean("everf.fileUpload.policy.type");
+	}
+
+	private String getExtensionTypesProperty() {
+		return PropertiesManager.getString("everf.fileUpload.extension.type");
+	}
+
+	private String getFileUploadPath(String bizType) {
+		return EverString.nullToEmptyString(bizType).equals("IMG") ? PropertiesManager.getString("everf.imageUpload.path") : PropertiesManager.getString("everf.fileUpload.path");
+	}
+
+    /**
+     * 업무타입이 IMG일 때 파일다운로드 경로를 가져옵니다.
+     * 이 경로는 업로드할 때와 똑같기 때문에 그냥 업로드 프라퍼티를 그대로 사용합니다.
+     * @param bizType
+     * @return
+     */
+	private String getFileDownloadPath(String bizType) {
+		return EverString.nullToEmptyString(bizType).equals("IMG") ? PropertiesManager.getString("everf.imageUpload.path") : PropertiesManager.getString("everf.fileUpload.path");
+	}
+
+	private String getTempFilePath() {
+		return PropertiesManager.getString("everf.fileUpload.tempPath");
+	}
+
+	@RequestMapping(value = "/fileAttach/show")
+	public String fileAttachView(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+
+		String bizType      = req.getParameter("bizType");
+		String uuid         = req.getParameter("uuid");
+		String callback     = req.getParameter("callback");
+		String nRow         = req.getParameter("nRow");
+		String detailView   = req.getParameter("detailView");
+
+		if (EverString.isEmpty(bizType)) throw new NoResultException("biz Type must Set!.");
+
+		resp.setParameter("bizType", bizType);
+		resp.setParameter("uuid", uuid);
+		resp.setParameter("callback", callback);
+		resp.setParameter("nRow", nRow);
+		resp.setParameter("detailView", detailView);
+
+		return "/common/file/fileAttach";
+	}
+
+	@Test
+    public void uploadFile() throws Exception {
+
+        String uuidPrefix = EverDate.getDate2();
+        String uuidPostfix = RandomStringUtils.randomAlphanumeric(11);
+        logger.info(uuidPrefix+"_"+uuidPostfix);
+
+        String uuidSeq = RandomStringUtils.randomAlphanumeric(30);
+        logger.info(uuidSeq);
+
+        String path = getFileUploadPath("S2");
+        logger.info(path+"S2/"+uuidPrefix);
+
+        File f = new File(path+"S2/"+uuidPrefix);
+        if(!f.exists()) {
+            f.mkdirs();
+        }
+
+        File f2 = new File("C:/AA/BB/CC.txt");
+        logger.info(f2.getPath());
+        logger.info(f2.getAbsolutePath());
+        logger.info(f2.getCanonicalPath());
+
+    }
+
+    @RequestMapping(value = "/dirFiles")
+    public void dirFiles(EverHttpRequest req, EverHttpResponse resp) throws IOException {
+
+	    String fileList = "";
+	    String dir = req.getParameter("dir");
+	    if(StringUtils.isNotEmpty(dir)) {
+            Iterator<File> fileIterator = org.apache.commons.io.FileUtils.iterateFiles(new File(dir), null, false);
+            while(fileIterator.hasNext()) {
+                fileList += fileIterator.next().getName()+"<br/>";
+            }
+        }
+
+        resp.getWriter().write(fileList);
+	    resp.setContentType("text/html");
+    }
+
+    @Test
+    public void testDir() {
+
+        String fileList = "";
+        Iterator<File> fileIterator = org.apache.commons.io.FileUtils.iterateFiles(new File("C:/Temp"), null, false);
+        while(fileIterator.hasNext()) {
+            fileList += fileIterator.next().getName()+"\n";
+        }
+
+        logger.info(fileList);
+    }
+
+    @RequestMapping(value = "/eformPdfUpload")
+    public void eformPdfUpload(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+        req.setCharacterEncoding("utf-8"); // 주의:한글 파일명의 경우 flex에서 utf-8로 올려보냄 , euc-kr 일경우 선언 필요
+
+        Map<String, String> param = req.getParamDataMap();
+        System.out.println("eformPdfUploadparam" + param.toString());
+
+        String bizType = param.get("bizType");
+        String buyerCd = param.get("buyerCd");
+        String prBuyerCd = param.get("prBuyerCd");
+        String prDeptCd = param.get("prDeptCd");
+        String fileName = param.get("fileNm");
+        String fileExtension = param.get("fileExtension");
+        Integer fileCnt = Integer.parseInt(EverString.isEmpty(param.get("fileCnt"))?"0":param.get("fileCnt"));
+        Integer maxFileCnt = Integer.parseInt(EverString.isEmpty(param.get("maxFileCnt"))?"0":param.get("maxFileCnt"));
+        String fileType = param.get("fileType");
+
+        if (EverString.isEmpty(bizType)) throw new NoResultException("Biz type is required.");
+
+        // Session의 CompanyCd_DeptCd 를 받아서 폴더를 만든다.
+        UserInfo userInfo = (UserInfo)req.getSession().getAttribute("ses");
+        String deptCd = StringUtils.isEmpty(userInfo.getDeptCd().trim()) ? "0000" : userInfo.getDeptCd();
+        String lastPath = "";
+
+        if (EverString.isNotEmpty(prBuyerCd) && EverString.isNotEmpty(prDeptCd)) {
+            lastPath = prBuyerCd + "_" + prDeptCd;
+        } else {
+            lastPath = userInfo.getCompanyCd() + "_" + deptCd;
+        }
+
+        String uuid = req.getParameter("uuid");
+        String uuidSeq = null;
+
+        if(EverString.isEmpty(uuid)) {
+            uuid = fileAttachService.getUUID();
+
+            synchronized (this) {
+                Thread.sleep(2);
+                uuidSeq = String.valueOf(System.currentTimeMillis());
+            }
+        } else {
+            Map<String, String> fileInfo = fileAttachService.getFileInfo(uuid, null);
+            uuid = fileInfo.get("UUID");
+            uuidSeq = fileInfo.get("UUID_SQ");
+        }
+        
+        System.out.println("UUID=========>"+uuid);
+        System.out.println("param.CONT_NUM======>"+param.get("CONT_NUM"));
+        System.out.println("param.CONT_CNT======>"+param.get("CONT_CNT"));
+        
+        String tempDirectory = PropertiesManager.getString("oz.source.file.path"); // 파일 임시 저장소
+        String targetDirectory = "";
+        if(bizType.equals("EC")) {
+            targetDirectory = getFileUploadPath(bizType) + bizType + "/" + lastPath + "/"; // 파일 저장소
+        } else {
+            targetDirectory = getFileUploadPath(bizType) + EverDate.getYear() + "/" + EverDate.getYear()+EverDate.getMonth() + "/" + bizType + "/" + lastPath + "/"; // 파일 저장소
+        }
+
+        // 폴더 여부를 확인하여 생성한다.
+        EverFile.makeDir(targetDirectory);
+        String targetFileNm = uuid + "_" + uuidSeq + "." + fileExtension;
+        String tempDirectoryFilePath = tempDirectory + fileExtension + "/" + fileName + "." + fileExtension;
+        String targetFilePath = targetDirectory + targetFileNm;
+
+        boolean isEncryptFile = false;
+        boolean useFileDecryptionModule = PropertiesManager.getBoolean("everf.file.use.security.module");
+        logger.info("첨부파일 암호화 여부가 [{}]로 설정되어 있습니다. ", useFileDecryptionModule);
+
+        File tempFile = new File(tempDirectoryFilePath);
+        File targetFile = new File(targetFilePath);
+
+        if(useFileDecryptionModule) {
+
+            String tempFilePath = tempFile.getPath();
+
+            if(DRMUtils.isDRMSupportFile(tempFilePath)) {
+
+                isEncryptFile = DRMUtils.isEncryptedFile(tempFilePath);
+                if (isEncryptFile) {
+
+                    logger.info("{}는 암호화된 파일입니다.", tempFilePath);
+
+                    // 파일 존재여부 확인 후 존재하면 삭제
+                    if(targetFile.isFile()) {
+                        logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                        targetFile.delete();
+                    }
+
+                    logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+
+                    //FileUtils.copyFile(tempFile, targetFile);
+                    checkAndUpdateFile(tempFile, targetFile);
+                    if (targetFile.exists()) {
+                        logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                    }
+
+                } else {
+
+                    logger.info("[{}] 파일은 암호화되지 않아 암호화를 진행합니다.", tempFile.getPath());
+
+                    logger.info("-> SRC FILE PATH:" + tempFile.getPath());
+                    logger.info("-> TGT FILE PATH:" + targetFile.getPath());
+
+                    // 파일 존재여부 확인 후 존재하면 삭제
+                    if(targetFile.isFile()) {
+                        logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                        targetFile.delete();
+                    }
+
+                    logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+                    //FileUtils.copyFile(tempFile, targetFile);
+                    checkAndUpdateFile(tempFile, targetFile);
+                    
+                    if (DRMUtils.encryptFile(tempFile.getPath(), targetFile.getPath(), fileName, userInfo)) {
+                        if (targetFile.exists()) {
+                            logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                        }
+                    }
+                }
+            } else {
+
+                // 파일 존재여부 확인 후 존재하면 삭제
+                if(targetFile.isFile()) {
+                    logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                    targetFile.delete();
+                }
+
+                logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+                //FileUtils.copyFile(tempFile, targetFile);
+                checkAndUpdateFile(tempFile, targetFile);
+                if (targetFile.exists()) {
+                    logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                }
+            }
+
+        } else {
+
+            // 파일 존재여부 확인 후 존재하면 삭제
+            if(targetFile.isFile()) {
+                logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                targetFile.delete();
+            }
+
+            logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+            //FileUtils.copyFile(tempFile, targetFile);
+            checkAndUpdateFile(tempFile, targetFile);
+            if (targetFile.exists()) {
+                logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+            }
+        }
+
+        String fileSize = EverFile.getFileSize(targetDirectory, uuid + "_" + uuidSeq + "." + fileExtension);
+
+        HashMap<String, String> fileSaveInfo = getFileSaveInfo(bizType, targetDirectory, fileName, fileExtension, uuid, uuidSeq, fileSize, isEncryptFile);
+
+        fileSaveInfo.put("PR_BUYER_CD", (prBuyerCd==null || "".equals(prBuyerCd)) ? userInfo.getCompanyCd() : prBuyerCd   );
+        fileSaveInfo.put("PR_DEPT_CD", (prDeptCd==null || "".equals(prDeptCd)) ? userInfo.getDeptCd() : prDeptCd   );
+
+      
+        System.out.println("fileSaveInfo: "+ fileSaveInfo.toString());
+        if(bizType.equals("EC")) { // 계약서 작성인 경우 파일 해시 값을 저장한다.
+            fileSaveInfo.put("HASH_NUM", EverFile.fileToHash(targetFile));
+        } //2022.10.04 전자근로계약서 bizType: TC 추가
+        else if (bizType.equals("TC")) {
+        	fileSaveInfo.put("HASH_NUM", EverFile.fileToHash(targetFile));
+        }
+        
+        System.out.println("HASH_NUM=======>"+EverFile.fileToHash(targetFile));
+        if(EverString.isEmpty(req.getParameter("uuid"))) {
+            fileAttachService.insertFileInfo(fileSaveInfo);
+        } else {
+            fileAttachService.updateFileInfo(fileSaveInfo);
+        }
+
+        if(fileCnt == maxFileCnt) {
+            FileUtils.forceDelete(tempFile);
+        }
+        if (bizType.equals("EC")) {
+            fileSaveInfo.put("CONT_NUM", param.get("CONT_NUM"));
+            fileSaveInfo.put("CONT_CNT", param.get("CONT_CNT"));
+            fileSaveInfo.put("BUYER_CD", buyerCd);
+            fileSaveInfo.put("PR_BUYER_CD", prBuyerCd);
+            fileSaveInfo.put("PR_DEPT_CD", prDeptCd);
+        }
+        //2022.10.04 전자근로계약서 bizType: TC 추가 
+        else if (bizType.equals("TC")) {
+        	fileSaveInfo.put("CONT_NUM", param.get("CONT_NUM"));
+            fileSaveInfo.put("CONT_CNT", param.get("CONT_CNT"));
+            fileSaveInfo.put("BUYER_CD", buyerCd);
+            fileSaveInfo.put("PR_BUYER_CD", prBuyerCd);
+            fileSaveInfo.put("PR_DEPT_CD", prDeptCd);
+        }
+
+        resp.sendJSON(fileSaveInfo);
+    }
+
+    @RequestMapping(value = "/fileAttach/downloadPdf")
+    public void downloadPdf(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+
+        File finalFile = null;
+        boolean shouldDecryptFile = false;
+
+        DataInputStream in = null;
+        ServletOutputStream op = null;
+
+        try {
+
+            String userAgent = req.getHeader("User-Agent");
+            if(org.apache.commons.lang.StringUtils.containsIgnoreCase(userAgent, "android")
+                    || org.apache.commons.lang.StringUtils.containsIgnoreCase(userAgent, "iphone")) {
+
+                if(req.getSession().getAttribute("ses") == null) {
+
+                    resp.setContentType("text/html; charset=UTF-8");
+                    resp.setCharacterEncoding("utf-8");
+                    String domainUrl = PropertiesManager.getString("eversrm.system.domainUrl");
+                    resp.getWriter().write("<script type='text/javascript'>location.href='/welcome.so?returnUrl="+URLEncoder.encode(domainUrl+req.getRequestURI()+"?"+req.getQueryString(), "UTF-8")+"';</script>");
+                    resp.getWriter().flush();
+                    resp.getWriter().close();
+                    return;
+                }
+
+            }
+
+            if(req.getSession().getAttribute("ses") == null) {
+                resp.getWriter().write("<script type='text/javascript'>alert('로그인하셔야 합니다.');</script>");
+                resp.getWriter().flush();
+                resp.getWriter().close();
+                return;
+            }
+
+            String uuid = req.getParameter("UUID");
+            String uuid_seq = req.getParameter("UUID_SQ");
+
+            Map<String, String> fileInfo = fileAttachService.getFileInfo(uuid, uuid_seq);
+            if(fileInfo == null || fileInfo.size() == 0) {
+                throw new FileNotFoundException();
+            }
+
+            String sourceFile = fileInfo.get("FILE_PATH") + "/" + fileInfo.get("FILE_NM") + "." + fileInfo.get("FILE_EXTENSION");
+            String originalFileName = fileInfo.get("REAL_FILE_NM");
+            int length = 0;
+            ServletContext context = req.getSession().getServletContext();
+            String mimeType = context.getMimeType(sourceFile);
+
+            finalFile = new File(sourceFile);
+            if (!finalFile.isFile()) {
+                logger.error("파일이 존재하지 않습니다: [{}]", sourceFile);
+                finalFile = new File(servletContext.getRealPath("/images/noimage.jpg"));
+                throw new FileNotFoundException("FILE NOT FOUND");
+            }
+
+            boolean useFileDecryptionModule = PropertiesManager.getBoolean("everf.file.use.security.module");
+            logger.info("첨부파일 암호화 여부가 [{}]로 설정되어 있습니다. ", useFileDecryptionModule);
+
+            if(useFileDecryptionModule) {
+                // 최초 업로드 시 암호화되지 않은 파일의 경우 대외에서 다운로드 시 복호화해서 내려준다.
+                if (DRMUtils.isDRMSupportFile(sourceFile)) {
+                    logger.info("[{}] 파일은 암호화 대상입니다.", sourceFile);
+
+                    shouldDecryptFile = true;
+                }
+
+                // 복호화해서 다운로드할 경우 임시디렉토리에 복호화 파일을 생성해서 다운로드시켜준 후 finally에서 삭제처리한다.
+                if (shouldDecryptFile) {
+
+                    logger.info("[{}] 파일은 최초 업로드 시 암호화되어있지 않은 파일이기 때문에 복호화한 후 다운로드 진행합니다.", fileInfo.get("REAL_FILE_NM"));
+
+                    String targetFile = this.getTempFilePath() + fileInfo.get("FILE_NM") + "." + fileInfo.get("FILE_EXTENSION");
+                    if (DRMUtils.decryptFile(sourceFile, targetFile)) {
+                        logger.info("복호화 결과 코드: {}", "success");
+                        finalFile = new File(targetFile);
+                    }
+                }
+            }
+
+            resp.setContentLength((int) finalFile.length());
+            resp.setContentType("application/pdf");
+
+            boolean ie = (userAgent.indexOf("MSIE") > -1) || (userAgent.indexOf("Trident") > -1);
+
+            logger.info("userAgent: {}", userAgent);
+
+            String fileName;
+            if (ie) {
+                fileName = URLEncoder.encode(originalFileName, "UTF-8").replaceAll("\\+", "%20");
+            } else {
+
+                StringBuffer sb = new StringBuffer();
+                for (int i = 0; i < originalFileName.length(); i++) {
+                    char c = originalFileName.charAt(i);
+                    if (c > '~') {
+                        sb.append(URLEncoder.encode("" + c, "UTF-8"));
+                    } else {
+                        sb.append(c);
+                    }
+                }
+                fileName = sb.toString();
+            }
+
+            resp.setHeader("Content-Disposition", "attachment; filename=\""+ fileName + "." + fileInfo.get("FILE_EXTENSION") +"\"");
+
+//            if (userAgent != null && userAgent.indexOf("MSIE 5.5") > -1) { // MS IE 5.5 이하
+//                resp.setHeader("Content-Disposition", "filename=" + URLEncoder.encode(original_filename, "UTF-8").replaceAll("\\+", "%20") + ";");
+//            } else if (userAgent != null && userAgent.indexOf("MSIE") > -1) { // MS IE (보통은 6.x 이상 가정)
+//                resp.setHeader("Content-Disposition", "attachment; filename=" + java.net.URLEncoder.encode(original_filename, "UTF-8").replaceAll("\\+", "%20") + ";");
+//            } else { // 모질라나 오페라
+//                resp.setHeader("Content-Disposition", "attachment; filename=" + new String(original_filename.getBytes("UTF-8"), "latin1").replaceAll("\\+", "%20") + ";");
+//            }
+
+
+            try {
+                op = resp.getOutputStream();
+                byte[] bbuf = new byte[4096];
+
+                // 협력업체용 참부파일 (BID (입찰), BOARD(공지사항), CONT(계약) )
+//            in = new DataInputStream(new ByteArrayInputStream(binaryfile));
+//            if (PropertiesManager.getString("everf.file.binary.bizTypes").indexOf(fileInfo.get("BIZ_TYPE")) >= 0) {
+//
+//            } else {
+                in = new DataInputStream(new FileInputStream(finalFile));
+//            }
+                while ((length = in.read(bbuf)) != -1) {
+                    op.write(bbuf, 0, length);
+                    op.flush();
+                }
+            } catch(Exception e) {
+                logger.error(e.getMessage());
+            } finally {
+                if(in != null) {
+                    in.close();
+                }
+                if(op != null) {
+                    op.close();
+                }
+            }
+
+        } catch(FileNotFoundException fne) {
+            logger.error(fne.getMessage(), fne);
+            resp.setContentType("text/html; charset=UTF-8");
+            resp.setCharacterEncoding("utf-8");
+            resp.getWriter().write("<script type='text/javascript'>alert('첨부파일이 존재하지 않습니다.');</script>");
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            resp.setContentType("text/html; charset=UTF-8");
+            resp.setCharacterEncoding("utf-8");
+            resp.getWriter().write("<script type='text/javascript'>alert('잘못된 접근을 시도했거나 서버에서 오류가 발생했습니다.\\n관리자에게 문의바랍니다.');</script>");
+        } finally {
+
+			/*
+			 * if(shouldDecryptFile) { boolean deleteStatus = finalFile.delete();
+			 * if(deleteStatus) { logger.info("[{}] 복호화된 파일을 삭제처리했습니다.",
+			 * finalFile.getPath()); } else { logger.info("[{}] 복호화된 파일을 삭제하지 못했습니다.",
+			 * finalFile.getPath()); } }
+			 */
+
+            if(op != null) {
+                op.flush();
+            }
+            if(in != null) {
+                in.close();
+            }
+            if(op != null) {
+                op.close();
+            }
+        }
+    }
+
+    @RequestMapping(value = "/fileAttach/viewPdf")
+    public void viewPdf(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+
+        File finalFile = null;
+        boolean shouldDecryptFile = false;
+
+        DataInputStream in = null;
+        ServletOutputStream op = null;
+        try {
+
+            String userAgent = req.getHeader("User-Agent");
+            if(org.apache.commons.lang.StringUtils.containsIgnoreCase(userAgent, "android") || org.apache.commons.lang.StringUtils.containsIgnoreCase(userAgent, "iphone"))
+            {
+                if(req.getSession().getAttribute("ses") == null) {
+                    resp.setContentType("text/html; charset=UTF-8");
+                    resp.setCharacterEncoding("utf-8");
+                    String domainUrl = PropertiesManager.getString("eversrm.system.domainUrl");
+                    resp.getWriter().write("<script type='text/javascript'>location.href='/welcome.so?returnUrl="+URLEncoder.encode(domainUrl+req.getRequestURI()+"?"+req.getQueryString(), "UTF-8")+"';</script>");
+                    resp.getWriter().flush();
+                    resp.getWriter().close();
+                    return;
+                }
+            }
+
+            if(req.getSession().getAttribute("ses") == null) {
+                resp.getWriter().write("<script type='text/javascript'>alert('로그인하셔야 합니다.');</script>");
+                resp.getWriter().flush();
+                resp.getWriter().close();
+                return;
+            }
+
+            String uuid = req.getParameter("UUID");
+            String uuid_seq = req.getParameter("UUID_SQ");
+
+            Map<String, String> fileInfo = fileAttachService.getFileInfo(uuid, uuid_seq);
+            if(fileInfo == null || fileInfo.size() == 0) {
+                throw new FileNotFoundException();
+            }
+
+            String sourceFile = fileInfo.get("FILE_PATH") + "/" + fileInfo.get("FILE_NM") + "." + fileInfo.get("FILE_EXTENSION");
+            String originalFileName = fileInfo.get("REAL_FILE_NM");
+            int length = 0;
+            ServletContext context = req.getSession().getServletContext();
+            String mimeType = context.getMimeType(sourceFile);
+
+            finalFile = new File(sourceFile);
+            if (!finalFile.isFile()) {
+                logger.error("파일이 존재하지 않습니다: [{}]", sourceFile);
+                finalFile = new File(servletContext.getRealPath("/images/noimage.jpg"));
+                throw new FileNotFoundException("FILE NOT FOUND");
+            }
+
+            boolean useFileDecryptionModule = PropertiesManager.getBoolean("everf.file.use.security.module");
+            logger.info("첨부파일 암호화 여부가 [{}]로 설정되어 있습니다. ", useFileDecryptionModule);
+
+            if(useFileDecryptionModule) {
+                // 최초 업로드 시 암호화되지 않은 파일의 경우 대외에서 다운로드 시 복호화해서 내려준다.
+                if (DRMUtils.isDRMSupportFile(sourceFile)) {
+                    logger.info("[{}] 파일은 암호화 대상입니다.", sourceFile);
+                    shouldDecryptFile = true;
+                }
+
+                // 복호화해서 다운로드할 경우 임시디렉토리에 복호화 파일을 생성해서 다운로드시켜준 후 finally에서 삭제처리한다.
+                if (shouldDecryptFile) {
+                    logger.info("[{}] 파일은 최초 업로드 시 암호화되어있지 않은 파일이기 때문에 복호화한 후 다운로드 진행합니다.", fileInfo.get("REAL_FILE_NM"));
+                    String targetFile = this.getTempFilePath() + fileInfo.get("FILE_NM") + "." + fileInfo.get("FILE_EXTENSION");
+                    if (DRMUtils.decryptFile(sourceFile, targetFile)) {
+                        logger.info("복호화 결과 코드: {}", "success");
+                        finalFile = new File(targetFile);
+                    }
+                }
+            }
+
+            resp.setContentLength((int) finalFile.length());
+            resp.setContentType("application/pdf");
+            boolean ie = (userAgent.indexOf("MSIE") > -1) || (userAgent.indexOf("Trident") > -1);
+            logger.info("userAgent: {}", userAgent);
+
+            String fileName;
+            if (ie) {
+                fileName = URLEncoder.encode(originalFileName, "UTF-8").replaceAll("\\+", "%20");
+            } else {
+
+                StringBuffer sb = new StringBuffer();
+                for (int i = 0; i < originalFileName.length(); i++) {
+                    char c = originalFileName.charAt(i);
+                    if (c > '~') {
+                        sb.append(URLEncoder.encode("" + c, "UTF-8"));
+                    } else {
+                        sb.append(c);
+                    }
+                }
+                fileName = sb.toString();
+            }
+
+            // pdf 파일을 직접 보여준다
+            resp.setHeader("Content-Disposition", "inline; filename=\""+ fileName + "." + fileInfo.get("FILE_EXTENSION") +"\"");
+            try {
+                op = resp.getOutputStream();
+                byte[] bbuf = new byte[4096];
+
+                in = new DataInputStream(new FileInputStream(finalFile));
+                while ((length = in.read(bbuf)) != -1) {
+                    op.write(bbuf, 0, length);
+                    op.flush();
+                }
+            }
+            catch(Exception e) {
+                logger.error(e.getMessage());
+            }
+            finally {
+                if(in != null) {
+                    in.close();
+                }
+                if(op != null) {
+                    op.close();
+                }
+            }
+        }
+        catch(FileNotFoundException fne) {
+            logger.error(fne.getMessage(), fne);
+            resp.setContentType("text/html; charset=UTF-8");
+            resp.setCharacterEncoding("utf-8");
+            resp.getWriter().write("<script type='text/javascript'>alert('첨부파일이 존재하지 않습니다.');</script>");
+        }
+        catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            resp.setContentType("text/html; charset=UTF-8");
+            resp.setCharacterEncoding("utf-8");
+            resp.getWriter().write("<script type='text/javascript'>alert('잘못된 접근을 시도했거나 서버에서 오류가 발생했습니다.\\n관리자에게 문의바랍니다.');</script>");
+        }
+        finally {
+			/*
+			 * if(shouldDecryptFile) { boolean deleteStatus = finalFile.delete();
+			 * if(deleteStatus) { logger.info("[{}] 복호화된 파일을 삭제처리했습니다.",
+			 * finalFile.getPath()); } else { logger.info("[{}] 복호화된 파일을 삭제하지 못했습니다.",
+			 * finalFile.getPath()); } }
+			 */
+            if(op != null) {
+                op.flush();
+            }
+            if(in != null) {
+                in.close();
+            }
+            if(op != null) {
+                op.close();
+            }
+        }
+    }
+    
+    //2022.03.28 단일 계약서 다운로드시 파일명을 "회사코드계약번호계약차수(계약체결시 만들어진 파일명) + _일자_계약명_업체명"으로 다운로드되도록 변경
+    @RequestMapping(value = "/fileAttach/contViewPdf")
+    public void contViewPdf(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+
+        File finalFile = null;
+        boolean shouldDecryptFile = false;
+
+        DataInputStream in = null;
+        ServletOutputStream op = null;
+        try {
+
+            String userAgent = req.getHeader("User-Agent");
+            if(org.apache.commons.lang.StringUtils.containsIgnoreCase(userAgent, "android") || org.apache.commons.lang.StringUtils.containsIgnoreCase(userAgent, "iphone"))
+            {
+                if(req.getSession().getAttribute("ses") == null) {
+                    resp.setContentType("text/html; charset=UTF-8");
+                    resp.setCharacterEncoding("utf-8");
+                    String domainUrl = PropertiesManager.getString("eversrm.system.domainUrl");
+                    resp.getWriter().write("<script type='text/javascript'>location.href='/welcome.so?returnUrl="+URLEncoder.encode(domainUrl+req.getRequestURI()+"?"+req.getQueryString(), "UTF-8")+"';</script>");
+                    resp.getWriter().flush();
+                    resp.getWriter().close();
+                    return;
+                }
+            }
+
+            if(req.getSession().getAttribute("ses") == null) {
+                resp.getWriter().write("<script type='text/javascript'>alert('로그인하셔야 합니다.');</script>");
+                resp.getWriter().flush();
+                resp.getWriter().close();
+                return;
+            }
+
+            String uuid = req.getParameter("UUID");
+            String uuid_seq = req.getParameter("UUID_SQ");
+            String originalFileName = "";
+            Map<String, String> fileInfo = fileAttachService.getFileInfo(uuid, uuid_seq);
+            if(fileInfo == null || fileInfo.size() == 0) {
+                throw new FileNotFoundException();
+            }
+            
+            String contNum = req.getParameter("CONT_NUM");
+            String contCnt = req.getParameter("CONT_CNT");
+            String apNum   = req.getParameter("AP_NUM");
+            
+            if(contNum==null || "".equals(contNum)) {
+            	System.out.println("====== 대금지금 PDF파일 다운로드 시작 ======");
+            	Map<String, String> contInfo = fileAttachService.getApInfo(apNum);
+	            if(contInfo == null || contInfo.size() == 0) {
+	                throw new FileNotFoundException();
+	            }
+	            
+	            originalFileName = fileInfo.get("REAL_FILE_NM") + "_" + contInfo.get("AP_REQ_DATE") + "_" + contInfo.get("AP_REQ_SUBJECT") + "_" + contInfo.get("VENDOR_NM");
+	            System.out.println("originalFileName ====> " + originalFileName);
+            	
+            } else {
+            	System.out.println("====== 계약서 PDF파일 다운로드 시작 ======");
+	            Map<String, String> contInfo = fileAttachService.getContInfo(contNum, contCnt);
+	            if(contInfo == null || contInfo.size() == 0) {
+	                throw new FileNotFoundException();
+	            }
+	            
+	            originalFileName = fileInfo.get("REAL_FILE_NM") + "_" + contInfo.get("CONT_DATE") + "_" + contInfo.get("CONT_DESC") + "_" + contInfo.get("VENDOR_NM");
+	            System.out.println("originalFileName ====> " + originalFileName);
+            }
+            String sourceFile = fileInfo.get("FILE_PATH") + "/" + fileInfo.get("FILE_NM") + "." + fileInfo.get("FILE_EXTENSION");
+            int length = 0;
+            ServletContext context = req.getSession().getServletContext();
+            String mimeType = context.getMimeType(sourceFile);
+
+            finalFile = new File(sourceFile);
+            if (!finalFile.isFile()) {
+                logger.error("파일이 존재하지 않습니다: [{}]", sourceFile);
+                finalFile = new File(servletContext.getRealPath("/images/noimage.jpg"));
+                throw new FileNotFoundException("FILE NOT FOUND");
+            }
+
+            boolean useFileDecryptionModule = PropertiesManager.getBoolean("everf.file.use.security.module");
+            logger.info("첨부파일 암호화 여부가 [{}]로 설정되어 있습니다. ", useFileDecryptionModule);
+
+            if(useFileDecryptionModule) {
+                // 최초 업로드 시 암호화되지 않은 파일의 경우 대외에서 다운로드 시 복호화해서 내려준다.
+                if (DRMUtils.isDRMSupportFile(sourceFile)) {
+                    logger.info("[{}] 파일은 암호화 대상입니다.", sourceFile);
+                    shouldDecryptFile = true;
+                }
+
+                // 복호화해서 다운로드할 경우 임시디렉토리에 복호화 파일을 생성해서 다운로드시켜준 후 finally에서 삭제처리한다.
+                if (shouldDecryptFile) {
+                    logger.info("[{}] 파일은 최초 업로드 시 암호화되어있지 않은 파일이기 때문에 복호화한 후 다운로드 진행합니다.", fileInfo.get("REAL_FILE_NM"));
+                    String targetFile = this.getTempFilePath() + fileInfo.get("FILE_NM") + "." + fileInfo.get("FILE_EXTENSION");
+                    if (DRMUtils.decryptFile(sourceFile, targetFile)) {
+                        logger.info("복호화 결과 코드: {}", "success");
+                        finalFile = new File(targetFile);
+                    }
+                }
+            }
+
+            resp.setContentLength((int) finalFile.length());
+            resp.setContentType("application/pdf");
+            boolean ie = (userAgent.indexOf("MSIE") > -1) || (userAgent.indexOf("Trident") > -1);
+            logger.info("userAgent: {}", userAgent);
+
+            String fileName;
+            if (ie) {
+                fileName = URLEncoder.encode(originalFileName, "UTF-8").replaceAll("\\+", "%20");
+            } else {
+
+                StringBuffer sb = new StringBuffer();
+                for (int i = 0; i < originalFileName.length(); i++) {
+                    char c = originalFileName.charAt(i);
+                    if (c > '~') {
+                        sb.append(URLEncoder.encode("" + c, "UTF-8"));
+                    } else {
+                        sb.append(c);
+                    }
+                }
+                fileName = sb.toString();
+            }
+
+            // pdf 파일을 직접 보여준다
+            resp.setHeader("Content-Disposition", "inline; filename=\""+ fileName + "." + fileInfo.get("FILE_EXTENSION") +"\"");
+            try {
+                op = resp.getOutputStream();
+                byte[] bbuf = new byte[4096];
+
+                in = new DataInputStream(new FileInputStream(finalFile));
+                while ((length = in.read(bbuf)) != -1) {
+                    op.write(bbuf, 0, length);
+                    op.flush();
+                }
+            }
+            catch(Exception e) {
+                logger.error(e.getMessage());
+            }
+            finally {
+                if(in != null) {
+                    in.close();
+                }
+                if(op != null) {
+                    op.close();
+                }
+            }
+        }
+        catch(FileNotFoundException fne) {
+            logger.error(fne.getMessage(), fne);
+            resp.setContentType("text/html; charset=UTF-8");
+            resp.setCharacterEncoding("utf-8");
+            resp.getWriter().write("<script type='text/javascript'>alert('첨부파일이 존재하지 않습니다.');</script>");
+        }
+        catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            resp.setContentType("text/html; charset=UTF-8");
+            resp.setCharacterEncoding("utf-8");
+            resp.getWriter().write("<script type='text/javascript'>alert('잘못된 접근을 시도했거나 서버에서 오류가 발생했습니다.\\n관리자에게 문의바랍니다.');</script>");
+        }
+        finally {
+			/*
+			 * if(shouldDecryptFile) { boolean deleteStatus = finalFile.delete();
+			 * if(deleteStatus) { logger.info("[{}] 복호화된 파일을 삭제처리했습니다.",
+			 * finalFile.getPath()); } else { logger.info("[{}] 복호화된 파일을 삭제하지 못했습니다.",
+			 * finalFile.getPath()); } }
+			 */
+            if(op != null) {
+                op.flush();
+            }
+            if(in != null) {
+                in.close();
+            }
+            if(op != null) {
+                op.close();
+            }
+        }
+    }
+    
+    /** 이유진 추가 - FileUtils.copyFile(tempFile, targetFile); 사용 시 출발지,목적지 파일 간 길이가 달라 Failed to copy full contents from 생김.
+     *  File Lock 기능 추가
+     *   */
+    private static final int s_eof = -1;
+    private static final int s_byteBuffer = 10240;
+
+    private static void checkAndUpdateFile(File src, File dest) throws IOException {
+      FileInputStream in = new FileInputStream(src);
+      FileChannel srcChannel = in.getChannel();
+      FileChannel destChannel = null;
+      FileLock destLock = null;
+
+      try {
+        if (!dest.exists()) {
+          final RandomAccessFile destFile = new RandomAccessFile(dest, "rw");
+          destChannel = destFile.getChannel();
+          destLock = destChannel.lock();
+          copyFileChannels(srcChannel, destChannel);
+          dest.setLastModified(src.lastModified());
+        } else {
+          final RandomAccessFile destFile = new RandomAccessFile(dest, "rw");
+          destChannel = destFile.getChannel();
+          destLock = destChannel.lock();
+          if (!compareFileChannels(srcChannel, destChannel)) {
+            copyFileChannels(srcChannel, destChannel);
+            dest.setLastModified(src.lastModified());
+          }
+        }
+      } finally {
+        if (destLock != null) {
+          destLock.release();
+        }
+        if (destChannel != null) {
+          destChannel.close();
+        }
+        srcChannel.close();
+        in.close();
+      }
+    }
+
+    protected static void copyFileChannels(FileChannel src, 
+                                           FileChannel dest) throws IOException {
+      final long size = src.size();
+      for (long pos = 0; pos < size; ) {
+        long count = 
+          ((size - pos) > s_byteBuffer) ? s_byteBuffer : (size - pos);
+        pos += dest.transferFrom(src, pos, count);
+      }
+    }
+
+    protected static boolean compareFileChannels(FileChannel a, 
+                                                 FileChannel b) throws IOException {
+      if (a.size() != b.size()) {
+        return false;
+      } else {
+        final ByteBuffer aBuffer = ByteBuffer.allocate(s_byteBuffer);
+        final ByteBuffer bBuffer = ByteBuffer.allocate(s_byteBuffer);
+        for (int aCh = a.read(aBuffer); s_eof != aCh; ) {
+          int bCh = b.read(bBuffer);
+          if (aCh != bCh || aBuffer.compareTo(bBuffer) != 0) {
+            return false;
+          }
+          aBuffer.clear();
+          aCh = a.read(aBuffer);
+          bBuffer.clear();
+        }
+        return s_eof == b.read(bBuffer);
+      }
+    }
+    
+    @RequestMapping(value = "/tempPdfUpdate")
+    public void tempPdfUpdate(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+        req.setCharacterEncoding("utf-8"); // 주의:한글 파일명의 경우 flex에서 utf-8로 올려보냄 , euc-kr 일경우 선언 필요
+
+        Map<String, String> param = req.getParamDataMap();
+        System.out.println("ajkajk eformPdfUploadparam" + param.toString());
+        
+        /*
+
+        String bizType = param.get("bizType");
+        String buyerCd = param.get("buyerCd");
+        String prBuyerCd = param.get("prBuyerCd");
+        String prDeptCd = param.get("prDeptCd");
+        String fileName = param.get("fileNm");
+        String fileExtension = param.get("fileExtension");
+        Integer fileCnt = Integer.parseInt(EverString.isEmpty(param.get("fileCnt"))?"0":param.get("fileCnt"));
+        Integer maxFileCnt = Integer.parseInt(EverString.isEmpty(param.get("maxFileCnt"))?"0":param.get("maxFileCnt"));
+        String fileType = param.get("fileType");
+
+        if (EverString.isEmpty(bizType)) throw new NoResultException("Biz type is required.");
+
+        // Session의 CompanyCd_DeptCd 를 받아서 폴더를 만든다.
+        UserInfo userInfo = (UserInfo)req.getSession().getAttribute("ses");
+        String deptCd = StringUtils.isEmpty(userInfo.getDeptCd().trim()) ? "0000" : userInfo.getDeptCd();
+        String lastPath = "";
+
+        if (EverString.isNotEmpty(prBuyerCd) && EverString.isNotEmpty(prDeptCd)) {
+            lastPath = prBuyerCd + "_" + prDeptCd;
+        } else {
+            lastPath = userInfo.getCompanyCd() + "_" + deptCd;
+        }
+
+        String uuid = req.getParameter("uuid");
+        String uuidSeq = null;
+
+        if(EverString.isEmpty(uuid)) {
+            uuid = fileAttachService.getUUID();
+
+            synchronized (this) {
+                Thread.sleep(2);
+                uuidSeq = String.valueOf(System.currentTimeMillis());
+            }
+        } else {
+            Map<String, String> fileInfo = fileAttachService.getFileInfo(uuid, null);
+            uuid = fileInfo.get("UUID");
+            uuidSeq = fileInfo.get("UUID_SQ");
+        }
+
+        String tempDirectory = PropertiesManager.getString("oz.source.file.path"); // 파일 임시 저장소
+        String targetDirectory = "";
+        if(bizType.equals("EC")) {
+            targetDirectory = getFileUploadPath(bizType) + bizType + "/" + lastPath + "/"; // 파일 저장소
+        } else {
+            targetDirectory = getFileUploadPath(bizType) + EverDate.getYear() + "/" + EverDate.getYear()+EverDate.getMonth() + "/" + bizType + "/" + lastPath + "/"; // 파일 저장소
+        }
+
+        // 폴더 여부를 확인하여 생성한다.
+        EverFile.makeDir(targetDirectory);
+        String targetFileNm = uuid + "_" + uuidSeq + "." + fileExtension;
+        String tempDirectoryFilePath = tempDirectory + fileExtension + "/" + fileName + "." + fileExtension;
+        String targetFilePath = targetDirectory + targetFileNm;
+
+        boolean isEncryptFile = false;
+        boolean useFileDecryptionModule = PropertiesManager.getBoolean("everf.file.use.security.module");
+        logger.info("첨부파일 암호화 여부가 [{}]로 설정되어 있습니다. ", useFileDecryptionModule);
+
+        File tempFile = new File(tempDirectoryFilePath);
+        File targetFile = new File(targetFilePath);
+
+        if(useFileDecryptionModule) {
+
+            String tempFilePath = tempFile.getPath();
+
+            if(DRMUtils.isDRMSupportFile(tempFilePath)) {
+
+                isEncryptFile = DRMUtils.isEncryptedFile(tempFilePath);
+                if (isEncryptFile) {
+
+                    logger.info("{}는 암호화된 파일입니다.", tempFilePath);
+
+                    // 파일 존재여부 확인 후 존재하면 삭제
+                    if(targetFile.isFile()) {
+                        logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                        targetFile.delete();
+                    }
+
+                    logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+
+                    //FileUtils.copyFile(tempFile, targetFile);
+                    checkAndUpdateFile(tempFile, targetFile);
+                    if (targetFile.exists()) {
+                        logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                    }
+
+                } else {
+
+                    logger.info("[{}] 파일은 암호화되지 않아 암호화를 진행합니다.", tempFile.getPath());
+
+                    logger.info("-> SRC FILE PATH:" + tempFile.getPath());
+                    logger.info("-> TGT FILE PATH:" + targetFile.getPath());
+
+                    // 파일 존재여부 확인 후 존재하면 삭제
+                    if(targetFile.isFile()) {
+                        logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                        targetFile.delete();
+                    }
+
+                    logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+                    //FileUtils.copyFile(tempFile, targetFile);
+                    checkAndUpdateFile(tempFile, targetFile);
+                    
+                    if (DRMUtils.encryptFile(tempFile.getPath(), targetFile.getPath(), fileName, userInfo)) {
+                        if (targetFile.exists()) {
+                            logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                        }
+                    }
+                }
+            } else {
+
+                // 파일 존재여부 확인 후 존재하면 삭제
+                if(targetFile.isFile()) {
+                    logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                    targetFile.delete();
+                }
+
+                logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+                //FileUtils.copyFile(tempFile, targetFile);
+                checkAndUpdateFile(tempFile, targetFile);
+                if (targetFile.exists()) {
+                    logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                }
+            }
+
+        } else {
+
+            // 파일 존재여부 확인 후 존재하면 삭제
+            if(targetFile.isFile()) {
+                logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                targetFile.delete();
+            }
+
+            logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+            //FileUtils.copyFile(tempFile, targetFile);
+            checkAndUpdateFile(tempFile, targetFile);
+            if (targetFile.exists()) {
+                logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+            }
+        }
+
+        String fileSize = EverFile.getFileSize(targetDirectory, uuid + "_" + uuidSeq + "." + fileExtension);
+
+        HashMap<String, String> fileSaveInfo = getFileSaveInfo(bizType, targetDirectory, fileName, fileExtension, uuid, uuidSeq, fileSize, isEncryptFile);
+
+        fileSaveInfo.put("PR_BUYER_CD", (prBuyerCd==null || "".equals(prBuyerCd)) ? userInfo.getCompanyCd() : prBuyerCd   );
+        fileSaveInfo.put("PR_DEPT_CD", (prDeptCd==null || "".equals(prDeptCd)) ? userInfo.getDeptCd() : prDeptCd   );
+
+      
+        System.out.println("fileSaveInfo: "+ fileSaveInfo.toString());
+        if(bizType.equals("EC")) { // 계약서 작성인 경우 파일 해시 값을 저장한다.
+            fileSaveInfo.put("HASH_NUM", EverFile.fileToHash(targetFile));
+        }
+
+        if(EverString.isEmpty(req.getParameter("uuid"))) {
+            fileAttachService.insertFileInfo(fileSaveInfo);
+        } else {
+            fileAttachService.updateFileInfo(fileSaveInfo);
+        }
+
+        if(fileCnt == maxFileCnt) {
+            FileUtils.forceDelete(tempFile);
+        }
+        if (bizType.equals("EC")) {
+            fileSaveInfo.put("CONT_NUM", param.get("CONT_NUM"));
+            fileSaveInfo.put("CONT_CNT", param.get("CONT_CNT"));
+            fileSaveInfo.put("BUYER_CD", buyerCd);
+            fileSaveInfo.put("PR_BUYER_CD", prBuyerCd);
+            fileSaveInfo.put("PR_DEPT_CD", prDeptCd);
+        }
+
+        resp.sendJSON(fileSaveInfo);
+        */
+    }    
+    
+    
+    @RequestMapping(value = "/fileAttach/dofileCount")
+	public void fileCount(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+		Map<String, String> paramMap = new HashMap<String, String>();
+        paramMap.put("UUID", req.getParameter("UUID"));
+        
+		resp.setParameter("FILE_COUNT", String.valueOf(fileAttachService.getFileCount(paramMap.get("UUID"))));
+		resp.setResponseMessage("success");
+		resp.setResponseCode("true");
+	}
+    
+    //url encode
+    public static String fileEnUrl(String inputFile) throws URISyntaxException  {
+    	String rtnFileEnurl = "";
+        try{
+        	URI uri = new URI("file", null, inputFile, null);
+        	rtnFileEnurl = uri.toASCIIString();
+    	}catch(URISyntaxException ex){
+    		System.out.println("URISyntaxException Exception===>"+ex.getMessage());
+    	}
+    	return rtnFileEnurl;
+    }
+     
+    
+    @RequestMapping(value = "/eformPdfMergeAttach")
+    public void eformPdfMergeAttach(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+        req.setCharacterEncoding("utf-8"); // 주의:한글 파일명의 경우 flex에서 utf-8로 올려보냄 , euc-kr 일경우 선언 필요
+                
+        String rtnValue = "99";
+        
+        Map<String, String> param = req.getParamDataMap();
+        System.out.println("eformPdfMergeAttach param" + param.toString());
+
+        String SERVERIP = PropertiesManager.getString("epapyrus.IpAddr1");
+        Integer SERVERPORT = Integer.parseInt(PropertiesManager.getString("epapyrus.Port1"));        		
+
+        //계약서파일정보
+        String tempDirectory = PropertiesManager.getString("oz.source.file.path"); // 파일 임시 저장소         
+        String fileName = param.get("fileNm");
+        String fileExtension = param.get("fileExtension");
+        String tempDirectoryFilePath = tempDirectory + fileExtension + "/" + fileName + "." + fileExtension;
+        
+        //첨부파일정보
+        String bizType = req.getParameter("bizType");        
+        String uuid = req.getParameter("uuid");
+        
+        List<String> inputFiles = new ArrayList<String>();
+        inputFiles.add(tempDirectoryFilePath);
+
+        if(EverString.isEmpty(uuid)) {
+        } else {
+            List<Map<String, Object>> fileInfo = fileAttachService.getFilesInfo(bizType, uuid);
+            for (Map<String, Object> file : fileInfo) {
+
+	    		//병합가능 확장자체크   epapyrus.merge.extension.type
+	    		String[] extensions = PropertiesManager.getString("epapyrus.merge.extension.type").split(";");
+	            for (String extension : extensions) {
+	            	if (extension.equalsIgnoreCase(String.valueOf(file.get("FILE_EXTENSION")))) {
+	            		inputFiles.add(file.get("FILE_PATH") + "/" + file.get("FILE_NM") + "." + file.get("FILE_EXTENSION"));
+	            		System.out.println("eformPdfMergeAttach merge file extension ok ==>" + file.get("FILE_PATH") + "/" + file.get("FILE_NM") + "." + file.get("FILE_EXTENSION"));	            		
+	            	}else {
+	            		//throw new Exception("계약서에 첨부할 수 있는 첨부파일 종류는 ("+PropertiesManager.getString("epapyrus.merge.extension.type")+") 입니다.");
+	            	}
+	            }		
+            }
+        }        
+        String outputFile = "//"+tempDirectory + fileExtension + "/" + fileName + "." + fileExtension;
+        
+        System.out.println("outputFile ====> " + outputFile);
+        System.out.println("inputFiles ====> " + inputFiles);
+        
+    	if (inputFiles == null || inputFiles.size() < 2){
+            rtnValue = "99";
+    		System.out.println("eformPdfMergeAttach inputFiles.size() : ======> " + inputFiles.size());
+    	}else{
+    	
+            UserInfo userInfo = (UserInfo)req.getSession().getAttribute("ses");
+	        List<PdfConversion> convList = new ArrayList<PdfConversion>();
+	        List<String> mergeList = new ArrayList<String>();
+	        List<String> encryptFileList = new ArrayList<String>();	        
+	        boolean isEncryptFile = false;
+	    	for (int i = 0; i < inputFiles.size(); i++) {
+	            if(DRMUtils.isDRMSupportFile(inputFiles.get(i))) {
+	
+	                isEncryptFile = DRMUtils.isEncryptedFile(inputFiles.get(i));
+	                if (isEncryptFile) {
+	                	System.out.println("eformPdfMergeAttach 암호화된 파일입니다. PDF병합을 위해 복호화 합니다. : ======> " + inputFiles.get(i));
+	                	if (DRMUtils.decryptFile(inputFiles.get(i), inputFiles.get(i))) {
+	                		encryptFileList.add(inputFiles.get(i));
+	                		System.out.println("eformPdfMergeAttach 복호화 OK : ======> " + inputFiles.get(i));
+	                    }
+	                }
+	            }		
+	    		convList.add(PdfConversion.create(fileEnUrl("//"+inputFiles.get(i))));
+	    		mergeList.add(new String("all"));
+	    	}
+	
+	    	String pid = EverDate.getTimeStampString();
+
+	    	PdfGatewayAgent.of(SERVERIP, SERVERPORT)
+	                .name("mergePDF")    
+	                .externalId(pid)
+	                .conversion(convList)
+	                .merge(mergeList)
+	                .distribute(fileEnUrl(outputFile))
+	                .start();
+	    	
+	        while(!PdfGatewayAgent.of(SERVERIP, SERVERPORT).taskStatus(PdfGateway.IdType.EXTERNAL, pid).name().equals("SUCCESS")){
+	        	try{
+	            	Thread.sleep(1000);
+	            	System.out.println("eformPdfMergeAttach PdfGatewayAgent waiting===>"+PdfGatewayAgent.of(SERVERIP, SERVERPORT).taskStatus(PdfGateway.IdType.EXTERNAL, pid).name());
+	            	if(PdfGatewayAgent.of(SERVERIP, SERVERPORT).taskStatus(PdfGateway.IdType.EXTERNAL, pid).name().equals("FAILURE") || PdfGatewayAgent.of(SERVERIP, SERVERPORT).taskStatus(PdfGateway.IdType.EXTERNAL, pid).name().equals("CANCELLED")) {
+		                rtnValue = rtnValue + ",88";
+		        		System.out.println("eformPdfMergeAttach PdfGatewayAgent RETURN FAILURE!");
+	            		break;
+	            	}
+	        	}catch(InterruptedException ex){
+	        		rtnValue = rtnValue + ",77";
+	                System.out.println("eformPdfMergeAttach PdfGatewayAgent PROCESS FAILURE!");	            		
+            		break;
+	        	}
+	        }    
+	        
+	    	for (int i = 0; i < encryptFileList.size(); i++) {
+	            if(DRMUtils.isDRMSupportFile(encryptFileList.get(i))) {
+	
+	                isEncryptFile = DRMUtils.isEncryptedFile(encryptFileList.get(i));
+	                if (!isEncryptFile) {
+	                	System.out.println("eformPdfMergeAttach PDF병합을 위해 복호화한 파일 암호화 처리 : ======> " + encryptFileList.get(i));
+	                    userInfo.setUserId("00000000");
+	                    userInfo.setUserNm("운영사");
+	                    userInfo.setDeptCd("000000");
+	                    userInfo.setDeptNm("전자구매시스템");	                    
+	                	if (DRMUtils.encryptFile(encryptFileList.get(i), encryptFileList.get(i), encryptFileList.get(i), userInfo)) {	
+	                		System.out.println("eformPdfMergeAttach 암호화 OK : ======> " + encryptFileList.get(i));
+	                    }
+	                }
+	            }		
+	    	}	        
+        
+    	}
+
+        HashMap<String, String> returnInfo = new HashMap<String, String>();
+        returnInfo.put("rtnValue", rtnValue);
+        resp.sendJSON(returnInfo);     
+        
+    }   
+    
+    //2024.03.20 대금청구시 업로드한 파일 pdf병합 신규 개발
+    @RequestMapping(value = "/apPdfMergeAttach")
+    public void apPdfMergeAttach(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+    	System.out.println("=========== pdf병합 시작 ===========");
+        req.setCharacterEncoding("utf-8"); // 주의:한글 파일명의 경우 flex에서 utf-8로 올려보냄 , euc-kr 일경우 선언 필요
+                
+        String rtnValue = "99";
+        
+        Map<String, String> param = req.getParamDataMap();
+        System.out.println("eformPdfMergeAttach param" + param.toString());
+
+        String SERVERIP = PropertiesManager.getString("epapyrus.IpAddr1");
+        Integer SERVERPORT = Integer.parseInt(PropertiesManager.getString("epapyrus.Port1"));        		
+
+        //계약서파일정보
+        String tempDirectory = PropertiesManager.getString("oz.source.file.path"); // 파일 임시 저장소         
+        String fileName = param.get("fileNm");
+        String fileExtension = param.get("fileExtension");
+        String tempDirectoryFilePath = tempDirectory + fileExtension + "/" + fileName + "." + fileExtension;
+        
+        //첨부파일정보
+        String bizType = req.getParameter("bizType");        
+        String uuid = req.getParameter("uuid");
+        String BUYER_CD = req.getParameter("BUYER_CD");
+        String AP_NUM = req.getParameter("AP_NUM");
+        
+        List<String> inputFiles = new ArrayList<String>();
+        inputFiles.add(tempDirectoryFilePath);
+
+        if(EverString.isEmpty(AP_NUM)) {
+        } else {
+        	List<Map<String, Object>> fileIVAPInfo = fileAttachService.getIVAPFilesInfo(BUYER_CD, AP_NUM);
+        	for (Map<String, Object> fileIVAP : fileIVAPInfo) {
+        		uuid = String.valueOf(fileIVAP.get("UUID"));
+        		System.out.println("uuid ======> " +  uuid);
+	            List<Map<String, Object>> fileInfo = fileAttachService.getFilesInfo(bizType, uuid);
+	            for (Map<String, Object> file : fileInfo) {
+	
+		    		//병합가능 확장자체크   epapyrus.merge.extension.type
+		    		String[] extensions = PropertiesManager.getString("epapyrus.merge.extension.type").split(";");
+		            for (String extension : extensions) {
+		            	if (extension.equalsIgnoreCase(String.valueOf(file.get("FILE_EXTENSION")))) {
+		            		inputFiles.add(file.get("FILE_PATH") + "/" + file.get("FILE_NM") + "." + file.get("FILE_EXTENSION"));
+		            		System.out.println("eformPdfMergeAttach merge file extension ok ==>" + file.get("FILE_PATH") + "/" + file.get("FILE_NM") + "." + file.get("FILE_EXTENSION"));	            		
+		            	}else {
+		            		//throw new Exception("계약서에 첨부할 수 있는 첨부파일 종류는 ("+PropertiesManager.getString("epapyrus.merge.extension.type")+") 입니다.");
+		            	}
+		            }		
+	            }
+        	}
+        }        
+        String outputFile = "//"+tempDirectory + fileExtension + "/" + fileName + "." + fileExtension;
+        System.out.println("outputFile ====> " + outputFile);
+        System.out.println("inputFiles ====> " + inputFiles);
+    	if (inputFiles == null || inputFiles.size() < 2){
+            rtnValue = "99";
+    		System.out.println("eformPdfMergeAttach inputFiles.size() : ======> " + inputFiles.size());
+    	}else{
+    	
+            UserInfo userInfo = (UserInfo)req.getSession().getAttribute("ses");
+	        List<PdfConversion> convList = new ArrayList<PdfConversion>();
+	        List<String> mergeList = new ArrayList<String>();
+	        List<String> encryptFileList = new ArrayList<String>();	        
+	        boolean isEncryptFile = false;
+	    	for (int i = 0; i < inputFiles.size(); i++) {
+	            if(DRMUtils.isDRMSupportFile(inputFiles.get(i))) {
+	
+	                isEncryptFile = DRMUtils.isEncryptedFile(inputFiles.get(i));
+	                if (isEncryptFile) {
+	                	System.out.println("eformPdfMergeAttach 암호화된 파일입니다. PDF병합을 위해 복호화 합니다. : ======> " + inputFiles.get(i));
+	                	if (DRMUtils.decryptFile(inputFiles.get(i), inputFiles.get(i))) {
+	                		encryptFileList.add(inputFiles.get(i));
+	                		System.out.println("eformPdfMergeAttach 복호화 OK : ======> " + inputFiles.get(i));
+	                    }
+	                }
+	            }		
+	    		convList.add(PdfConversion.create(fileEnUrl("//"+inputFiles.get(i))));
+	    		mergeList.add(new String("all"));
+	    	}
+	
+	    	String pid = EverDate.getTimeStampString();
+
+	    	PdfGatewayAgent.of(SERVERIP, SERVERPORT)
+	                .name("mergePDF")    
+	                .externalId(pid)
+	                .conversion(convList)
+	                .merge(mergeList)
+	                .distribute(fileEnUrl(outputFile))
+	                .start();
+	    	
+	        while(!PdfGatewayAgent.of(SERVERIP, SERVERPORT).taskStatus(PdfGateway.IdType.EXTERNAL, pid).name().equals("SUCCESS")){
+	        	try{
+	            	Thread.sleep(1000);
+	            	System.out.println("eformPdfMergeAttach PdfGatewayAgent waiting===>"+PdfGatewayAgent.of(SERVERIP, SERVERPORT).taskStatus(PdfGateway.IdType.EXTERNAL, pid).name());
+	            	if(PdfGatewayAgent.of(SERVERIP, SERVERPORT).taskStatus(PdfGateway.IdType.EXTERNAL, pid).name().equals("FAILURE") || PdfGatewayAgent.of(SERVERIP, SERVERPORT).taskStatus(PdfGateway.IdType.EXTERNAL, pid).name().equals("CANCELLED")) {
+		                rtnValue = rtnValue + ",88";
+		        		System.out.println("eformPdfMergeAttach PdfGatewayAgent RETURN FAILURE!");
+	            		break;
+	            	}
+	        	}catch(InterruptedException ex){
+	        		rtnValue = rtnValue + ",77";
+	                System.out.println("eformPdfMergeAttach PdfGatewayAgent PROCESS FAILURE!");	            		
+            		break;
+	        	}
+	        }    
+	        
+	    	for (int i = 0; i < encryptFileList.size(); i++) {
+	            if(DRMUtils.isDRMSupportFile(encryptFileList.get(i))) {
+	
+	                isEncryptFile = DRMUtils.isEncryptedFile(encryptFileList.get(i));
+	                if (!isEncryptFile) {
+	                	System.out.println("eformPdfMergeAttach PDF병합을 위해 복호화한 파일 암호화 처리 : ======> " + encryptFileList.get(i));
+	                    userInfo.setUserId("00000000");
+	                    userInfo.setUserNm("운영사");
+	                    userInfo.setDeptCd("000000");
+	                    userInfo.setDeptNm("전자구매시스템");	                    
+	                	if (DRMUtils.encryptFile(encryptFileList.get(i), encryptFileList.get(i), encryptFileList.get(i), userInfo)) {	
+	                		System.out.println("eformPdfMergeAttach 암호화 OK : ======> " + encryptFileList.get(i));
+	                    }
+	                }
+	            }		
+	    	}	        
+        
+    	}
+
+        HashMap<String, String> returnInfo = new HashMap<String, String>();
+        returnInfo.put("rtnValue", rtnValue);
+        resp.sendJSON(returnInfo);     
+        
+    }   
+    
+    @RequestMapping(value = "/apPdfUpload")
+    public void apPdfUpload(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+        req.setCharacterEncoding("utf-8"); // 주의:한글 파일명의 경우 flex에서 utf-8로 올려보냄 , euc-kr 일경우 선언 필요
+
+        Map<String, String> param = req.getParamDataMap();
+        System.out.println("apPdfUploadparam ====> " + param.toString());
+
+        String bizType = param.get("bizType");
+        String buyerCd = param.get("buyerCd");
+        String prBuyerCd = param.get("prBuyerCd");
+        String prDeptCd = param.get("prDeptCd");
+        String fileName = param.get("fileNm");
+        String fileExtension = param.get("fileExtension");
+        Integer fileCnt = Integer.parseInt(EverString.isEmpty(param.get("fileCnt"))?"0":param.get("fileCnt"));
+        Integer maxFileCnt = Integer.parseInt(EverString.isEmpty(param.get("maxFileCnt"))?"0":param.get("maxFileCnt"));
+        String fileType = param.get("fileType");
+
+        if (EverString.isEmpty(bizType)) throw new NoResultException("Biz type is required.");
+
+        // Session의 CompanyCd_DeptCd 를 받아서 폴더를 만든다.
+        UserInfo userInfo = (UserInfo)req.getSession().getAttribute("ses");
+        String deptCd = StringUtils.isEmpty(userInfo.getDeptCd().trim()) ? "0000" : userInfo.getDeptCd();
+        String lastPath = "";
+
+        if (EverString.isNotEmpty(prBuyerCd) && EverString.isNotEmpty(prDeptCd)) {
+            lastPath = prBuyerCd + "_" + prDeptCd;
+        } else {
+            lastPath = userInfo.getCompanyCd() + "_" + deptCd;
+        }
+
+        String uuid = req.getParameter("uuid");
+        String uuidSeq = null;
+
+        if(EverString.isEmpty(uuid)) {
+            uuid = fileAttachService.getUUID();
+
+            synchronized (this) {
+                Thread.sleep(2);
+                uuidSeq = String.valueOf(System.currentTimeMillis());
+            }
+        } else {
+            Map<String, String> fileInfo = fileAttachService.getFileInfo(uuid, null);
+            uuid = fileInfo.get("UUID");
+            uuidSeq = fileInfo.get("UUID_SQ");
+        }
+        
+        System.out.println("UUID=========>"+uuid);
+        System.out.println("param.AP_NUM======>"+param.get("AP_NUM"));
+        
+        String tempDirectory = PropertiesManager.getString("oz.source.file.path"); // 파일 임시 저장소
+        String targetDirectory = "";
+        if(bizType.equals("EC")) {
+            targetDirectory = getFileUploadPath(bizType) + bizType + "/" + lastPath + "/"; // 파일 저장소
+        } else {
+            targetDirectory = getFileUploadPath(bizType) + EverDate.getYear() + "/" + EverDate.getYear()+EverDate.getMonth() + "/" + bizType + "/" + lastPath + "/"; // 파일 저장소
+        }
+        System.out.println("targetDirectory ====> " + targetDirectory);
+        // 폴더 여부를 확인하여 생성한다.
+        EverFile.makeDir(targetDirectory);
+        String targetFileNm = uuid + "_" + uuidSeq + "." + fileExtension;
+        String tempDirectoryFilePath = tempDirectory + fileExtension + "/" + fileName + "." + fileExtension;
+        String targetFilePath = targetDirectory + targetFileNm;
+        
+        System.out.println("targetFileNm ===> " + targetFileNm);
+        System.out.println("tempDirectoryFilePath ===> " + tempDirectoryFilePath);
+        System.out.println("targetFilePath ===> " + targetFilePath);
+        
+        boolean isEncryptFile = false;
+        boolean useFileDecryptionModule = PropertiesManager.getBoolean("everf.file.use.security.module");
+        logger.info("첨부파일 암호화 여부가 [{}]로 설정되어 있습니다. ", useFileDecryptionModule);
+
+        File tempFile = new File(tempDirectoryFilePath);
+        File targetFile = new File(targetFilePath);
+
+        if(useFileDecryptionModule) {
+
+            String tempFilePath = tempFile.getPath();
+
+            if(DRMUtils.isDRMSupportFile(tempFilePath)) {
+
+                isEncryptFile = DRMUtils.isEncryptedFile(tempFilePath);
+                if (isEncryptFile) {
+
+                    logger.info("{}는 암호화된 파일입니다.", tempFilePath);
+
+                    // 파일 존재여부 확인 후 존재하면 삭제
+                    if(targetFile.isFile()) {
+                        logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                        targetFile.delete();
+                    }
+
+                    logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+
+                    //FileUtils.copyFile(tempFile, targetFile);
+                    checkAndUpdateFile(tempFile, targetFile);
+                    if (targetFile.exists()) {
+                        logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                    }
+
+                } else {
+
+                    logger.info("[{}] 파일은 암호화되지 않아 암호화를 진행합니다.", tempFile.getPath());
+
+                    logger.info("-> SRC FILE PATH:" + tempFile.getPath());
+                    logger.info("-> TGT FILE PATH:" + targetFile.getPath());
+
+                    // 파일 존재여부 확인 후 존재하면 삭제
+                    if(targetFile.isFile()) {
+                        logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                        targetFile.delete();
+                    }
+
+                    logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+                    //FileUtils.copyFile(tempFile, targetFile);
+                    checkAndUpdateFile(tempFile, targetFile);
+                    
+                    if (DRMUtils.encryptFile(tempFile.getPath(), targetFile.getPath(), fileName, userInfo)) {
+                        if (targetFile.exists()) {
+                            logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                        }
+                    }
+                }
+            } else {
+
+                // 파일 존재여부 확인 후 존재하면 삭제
+                if(targetFile.isFile()) {
+                    logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                    targetFile.delete();
+                }
+
+                logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+                //FileUtils.copyFile(tempFile, targetFile);
+                checkAndUpdateFile(tempFile, targetFile);
+                if (targetFile.exists()) {
+                    logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+                }
+            }
+
+        } else {
+
+            // 파일 존재여부 확인 후 존재하면 삭제
+            if(targetFile.isFile()) {
+                logger.info("[{}] 파일을 삭제합니다.", targetFile.getPath());
+                targetFile.delete();
+            }
+
+            logger.info("[{}] 파일을 [{}] 경로로 이동시킵니다.", tempFile.getName(), targetFile.getPath());
+            //FileUtils.copyFile(tempFile, targetFile);
+            checkAndUpdateFile(tempFile, targetFile);
+            if (targetFile.exists()) {
+                logger.info("[{}] 파일이 생성되었습니다.", targetFile.getParent());
+            }
+        }
+
+        String fileSize = EverFile.getFileSize(targetDirectory, uuid + "_" + uuidSeq + "." + fileExtension);
+
+        HashMap<String, String> fileSaveInfo = getFileSaveInfo(bizType, targetDirectory, fileName, fileExtension, uuid, uuidSeq, fileSize, isEncryptFile);
+
+        fileSaveInfo.put("PR_BUYER_CD", (prBuyerCd==null || "".equals(prBuyerCd)) ? userInfo.getCompanyCd() : prBuyerCd   );
+        fileSaveInfo.put("PR_DEPT_CD", (prDeptCd==null || "".equals(prDeptCd)) ? userInfo.getDeptCd() : prDeptCd   );
+
+      
+        System.out.println("fileSaveInfo: "+ fileSaveInfo.toString());
+        if (bizType.equals("OM")) {
+        	fileSaveInfo.put("HASH_NUM", EverFile.fileToHash(targetFile));
+        }
+        
+        System.out.println("HASH_NUM=======>"+EverFile.fileToHash(targetFile));
+        if(EverString.isEmpty(req.getParameter("uuid"))) {
+            fileAttachService.insertFileInfo(fileSaveInfo);
+        } else {
+            fileAttachService.updateFileInfo(fileSaveInfo);
+        }
+
+        if(fileCnt == maxFileCnt) {
+            FileUtils.forceDelete(tempFile);
+        }
+        //2024.03.20 대금지급요청서(첨부파일병합)bizType: OM 추가
+        if (bizType.equals("OM")) {
+        	fileSaveInfo.put("AP_NUM", param.get("AP_NUM"));
+            fileSaveInfo.put("BUYER_CD", buyerCd);
+            fileSaveInfo.put("PR_BUYER_CD", prBuyerCd);
+            fileSaveInfo.put("PR_DEPT_CD", prDeptCd);
+        }
+
+        resp.sendJSON(fileSaveInfo);
+    }
+
+}

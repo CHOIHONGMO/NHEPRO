@@ -1,0 +1,353 @@
+package com.st_ones.eversrm.master.user.service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.st_ones.common.message.service.MessageService;
+import com.st_ones.common.sms.service.EverSmsService;
+import com.st_ones.common.util.clazz.EverEncryption;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.everf.serverside.exception.NoResultException;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.everf.serverside.util.clazz.AuthorityIgnore;
+import com.st_ones.eversrm.master.user.MTUA0010_Mapper;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : MTUA0010_Service.java
+ * @date 2013. 07. 22.
+ * @version 1.0
+ */
+
+@Service(value = "mtua0010_Service")
+public class MTUA0010_Service extends BaseService {
+
+	@Autowired private MessageService msg;
+
+	@Autowired private MTUA0010_Mapper mtua0010_Mapper;
+    @Autowired private EverSmsService eversmsservice;
+
+	/**
+	 * 화면명 : 사용자정보
+	 * 처리내용 : 시스템에서 사용할 사용자정보를 조회/관리하는 화면.
+	 * 경로 : 시스템관리 > 사용자관리 > 사용자정보
+	 */
+	public List<Map<String, Object>> mtua0010_doSearchUser(Map<String, String> param) throws Exception {
+
+		List<Map<String, Object>> userList = mtua0010_Mapper.mtua0010_doSearchUser(param);
+//		for (Map<String, Object> user : userList) {
+//			UserInfo loggedUserInfo = everHttpSessionListener.getLoggedUserInfo((String) user.get("USER_ID"), (String) user.get("USER_TYPE"));
+//			if(loggedUserInfo != null) {
+//				user.put("LOGIN_STATUS", "Y");
+//			} else {
+//				user.put("LOGIN_STATUS", "N");
+//			}
+//		}
+		return userList;
+	}
+
+	public Map<String, Object> doGetUser(Map<String, String> formData) throws Exception {
+		return mtua0010_Mapper.doGetUser(formData);
+	}
+
+	@AuthorityIgnore
+	public List<Map<String, Object>> doGetAcProfile(Map<String, String> param) throws Exception {
+		return mtua0010_Mapper.doGetAcProfile(param);
+	}
+
+	@AuthorityIgnore
+	public List<Map<String, Object>> doGetAuProfile(Map<String, String> param) throws Exception {
+		return mtua0010_Mapper.doGetAuProfile(param);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doResetUserInfo(Map<String, String> generalForm) throws Exception {
+		mtua0010_Mapper.doResetUserInfo(generalForm);
+		return msg.getMessage("0001");
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doInitPassword(Map<String, String> generalForm) throws Exception {
+
+		// 비밀번호 난수발생 > 업데이트
+		String password = RandomStringUtils.randomAlphanumeric(10);
+		generalForm.put("PASSWORD", EverEncryption.getEncryptedUserPassword(EverString.nullToEmptyString(password)));
+
+		mtua0010_Mapper.doSaveIssue(generalForm);
+
+		// 변경된 비밀번호 문자발송
+		Map<String, String> map = new HashMap<String, String>();
+
+		String smsMessage = "[전자구매시스템]임시비밀번호 : "+password+"로 로그인 한 후 비밀번호를 변경하세요";
+
+		map.put("RECV_USER_ID", generalForm.get("USER_ID"));
+		map.put("RECV_USER_NM", generalForm.get("USER_NM"));
+		map.put("RECV_TEL_NUM", generalForm.get("CELL_NUM"));
+		map.put("CONTENTS",     smsMessage);
+		map.put("VENDOR_CD", ""); // 업체코드
+		map.put("REF_NUM", "");
+		map.put("REF_MODULE_CD", "BADU"); // 참조모듈
+		map.put("BUYER_CD",      "1000");
+
+		// everSmsService.sendSms(map);
+		eversmsservice.sendSmsNhe(map);
+
+		return msg.getMessage("0094");
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public void doInitPassword_CVUR(Map<String, String> generalForm) throws Exception {
+
+		// 비밀번호 난수발생 > 업데이트
+		String password = RandomStringUtils.randomAlphanumeric(10);
+		generalForm.put("PASSWORD", EverEncryption.getEncryptedUserPassword(EverString.nullToEmptyString(password)));
+		mtua0010_Mapper.doSaveIssue_CVUR(generalForm);
+
+		// 변경된 비밀번호 문자발송
+		Map<String, String> map = new HashMap<String, String>();
+		String smsMessage = "[전자구매시스템]임시비밀번호 : " + password + "로 로그인 한 후 비밀번호를 변경하세요";
+
+		map.put("RECV_USER_ID",  generalForm.get("USER_ID"));
+		map.put("RECV_USER_NM",  generalForm.get("USER_NM"));
+		map.put("RECV_TEL_NUM",  generalForm.get("CELL_NUM"));
+		map.put("SEND_USER_ID",  PropertiesManager.getString("eversrm.userId.default"));
+		map.put("SEND_USER_NM",  "SYSTEM");
+		map.put("SEND_TEL_NUM",  PropertiesManager.getString("eversrm.system.sms.default.telNo"));
+		map.put("CONTENTS",      smsMessage);
+		map.put("VENDOR_CD", generalForm.get("COMPANY_CD"));	//업체코드
+		map.put("REF_NUM", "");
+		map.put("REF_MODULE_CD", "BADU");	//참조모듈
+		map.put("BUYER_CD",      "1000");
+
+		//everSmsService.sendSms(map);
+		eversmsservice.sendSmsNhe(map);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doInsertUserInfo(Map<String, String> generalForm, List<Map<String, Object>> auGridDatas, List<Map<String, Object>> acGridDatas) throws Exception {
+
+		int transCnt = -1;
+
+		// USER_ID 중복체크
+		int checkCnt = mtua0010_Mapper.existsUserInformation(generalForm);
+
+		if (checkCnt > 0) {
+			// Exist, required user confirm for overwrite.
+			return "confirm";
+		}
+
+		generalForm.put("PASSWORD", EverEncryption.getEncryptedUserPassword(generalForm.get("PASSWORD")));
+
+		transCnt = mtua0010_Mapper.createUserInformation(generalForm);
+		if (transCnt < 1) {
+			throw new NoResultException(msg.getMessageForService(this, "exception_msg"));
+		}
+		String userId = generalForm.get("USER_ID");
+
+		mtua0010_Mapper.doDeleteUSAP(generalForm);
+		mtua0010_Mapper.doDeleteUSAC(generalForm);
+
+		// Insert User Auth Code
+		doSaveAuth(userId, auGridDatas);
+		// Insert User Action Code
+		doSaveActionProfile(userId, acGridDatas);
+		//Basic 직무 insert
+		mtua0010_Mapper.createBACP(generalForm);
+
+		return msg.getMessage("0001");
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public void doSaveAuth(String userId, List<Map<String, Object>> auGridDatas) throws Exception {
+
+		int checkCnt = 0;
+
+		for (Map<String, Object> auGridData : auGridDatas) {
+
+			if(auGridData.get("SELECTED").equals("0")) {
+				continue;
+			}
+			auGridData.put("USER_ID", userId);
+			// checkCnt == 0 ? insert : update
+			checkCnt = mtua0010_Mapper.existsUSAP(auGridData);
+			if (checkCnt == 0) {
+				mtua0010_Mapper.createUSAP(auGridData);
+			} else {
+				mtua0010_Mapper.updateUSAP(auGridData);
+			}
+		}
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public void doSaveActionProfile(String userId, List<Map<String, Object>> acGridDatas) throws Exception {
+
+		int checkCnt = 0;
+
+		for (Map<String, Object> acGridData : acGridDatas) {
+
+			if(acGridData.get("SELECTED").equals("0")) {
+				continue;
+			}
+			acGridData.put("USER_ID", userId);
+			// checkCnt == 0 ? insert : update
+			checkCnt = mtua0010_Mapper.existsUSAC(acGridData);
+			if (checkCnt == 0) {
+				mtua0010_Mapper.createUSAC(acGridData);
+			} else {
+				mtua0010_Mapper.updateUSAC(acGridData);
+			}
+		}
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doInsertUserInfo_VNGL(Map<String, String> generalForm, List<Map<String, Object>> auGridDatas) throws Exception {
+
+		int transCnt = -1;
+
+		// USER_ID 중복체크
+		int checkCnt = mtua0010_Mapper.existsUserInformation_VNGL(generalForm);
+
+		if (checkCnt > 0) {
+			// Exist, required user confirm for overwrite.
+			return "confirm";
+		}
+
+		// STOCUSER INSERT_VNGL
+		generalForm.put("PASSWORD", EverEncryption.getEncryptedUserPassword(generalForm.get("PASSWORD")));
+		transCnt = mtua0010_Mapper.createUserInformation_VNGL(generalForm);
+		if (transCnt < 1) {
+			throw new NoResultException(msg.getMessageForService(this, "exception_msg"));
+		}
+
+		String userId = generalForm.get("USER_ID");
+		mtua0010_Mapper.doDeleteUSAP(generalForm);
+		doSaveAuth(userId, auGridDatas);
+
+		return msg.getMessage("0001");
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doUpdateUserInfo(Map<String, String> generalForm, List<Map<String, Object>> auGridDatas, List<Map<String, Object>> acGridDatas) throws Exception {
+
+		String userId = generalForm.get("USER_ID");
+		if("Y".equals(generalForm.get("CHANGE_PW"))){
+			generalForm.put("PASSWORD", EverEncryption.getEncryptedUserPassword(generalForm.get("PASSWORD")));
+			// 비밀번호저장시 기존비밀번호와 동일하면 리턴
+			int checkPW = mtua0010_Mapper.CheckUserInfoPassWordSame(generalForm);
+			if (checkPW > 0) {
+				return msg.getMessage("0153");
+			}
+		}
+		mtua0010_Mapper.updateUserInformation(generalForm);
+
+		// delete USAP / USAC
+		mtua0010_Mapper.doDeleteUSAP(generalForm);
+		mtua0010_Mapper.doDeleteUSAC(generalForm);
+		// Update User Auth Code
+		doSaveAuth(userId, auGridDatas);
+		// Update User Action Code
+		doSaveActionProfile(userId, acGridDatas);
+
+		return msg.getMessage("0001");
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doUpdateUserInfo_VNGL(Map<String, String> generalForm, List<Map<String, Object>> auGridDatas) throws Exception {
+
+		if("Y".equals(generalForm.get("CHANGE_PW"))){
+			generalForm.put("PASSWORD", EverEncryption.getEncryptedUserPassword(generalForm.get("PASSWORD")));
+			// 비밀번호저장시 기존비밀번호와 동일하면 리턴
+			int checkPW = mtua0010_Mapper.CheckUserInfoPassWordSame_VNGL(generalForm);
+			if (checkPW > 0) {
+				return msg.getMessage("0153");
+			}
+		}
+
+		mtua0010_Mapper.updateUserInformation_VNGL(generalForm);
+
+		String userId = generalForm.get("USER_ID");
+
+		mtua0010_Mapper.doDeleteUSAP(generalForm);
+		doSaveAuth(userId, auGridDatas);
+
+		return msg.getMessage("0001");
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doDeleteUserInfo(Map<String, String> generalForm) throws Exception {
+		if(!"O".equals(generalForm.get("USER_TYPE"))) {
+			mtua0010_Mapper.doDeleteUserInfoBS(generalForm);
+		} else {
+			mtua0010_Mapper.doDeleteUserInfo(generalForm);
+		}
+		mtua0010_Mapper.doDeleteUSAP(generalForm);
+		mtua0010_Mapper.doDeleteUSAC(generalForm);
+		return msg.getMessage("0017");
+	}
+
+	public List<Map<String, Object>> selectUserSearch(Map<String, String> param) throws Exception {
+		return mtua0010_Mapper.selectUserSearch(param);
+	}
+
+	public List<Map<String, Object>> doSearchUserSup(Map<String, String> param) throws Exception {
+		return mtua0010_Mapper.doSearchUserSup(param);
+	}
+
+	public Map<String, Object> doGetUser_VNGL(Map<String, String> formData) throws Exception {
+		return mtua0010_Mapper.doGetUser_VNGL(formData);
+	}
+
+	public Map<String, Object> doGetEncPassword(Map<String, String> formData) throws Exception {
+		return mtua0010_Mapper.doGetEncPassword(formData);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doSaveIssue(Map<String, String> generalForm) throws Exception {
+
+		// 입력받은 비밀번호로 업데이트
+		generalForm.put("PASSWORD", EverEncryption.getEncryptedUserPassword(generalForm.get("PASSWORD")));
+
+		// 비밀번호저장시 기존비밀번호와 동일하면 리턴
+		int checkPW = mtua0010_Mapper.CheckUserInfoPassWordSame(generalForm);
+		if (checkPW > 0) {
+			return msg.getMessage("0153");
+		}
+		mtua0010_Mapper.doSaveIssue(generalForm);
+		return msg.getMessage("0001");
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doSaveIssue_CVUR(Map<String, String> generalForm) throws Exception {
+
+		// 입력받은 비밀번호로 업데이트
+		generalForm.put("PASSWORD", EverEncryption.getEncryptedUserPassword(generalForm.get("PASSWORD")));
+
+		// 비밀번호저장시 기존비밀번호와 동일하면 리턴
+		int checkPW = mtua0010_Mapper.CheckUserInfoPassWordSame_VNGL(generalForm);
+		if (checkPW > 0) {
+			return msg.getMessage("0153");
+		}
+		mtua0010_Mapper.doSaveIssue_CVUR(generalForm);
+		return msg.getMessage("0001");
+	}
+
+	public Map<String, String> getUserInfo(Map<String, String> formData) {
+		return mtua0010_Mapper.getUserInfo(formData);
+	}
+
+}

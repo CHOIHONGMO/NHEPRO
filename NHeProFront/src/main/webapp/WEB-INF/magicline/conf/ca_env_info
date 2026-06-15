@@ -1,0 +1,132 @@
+ca.count = 37
+
+# 암호체계 고도화 SHA256 with RSA2048 인증서 
+ca1.dn = cn=KISA RootCA 4,ou=Korea Certification Authority Central,o=KISA,c=KR
+ca1.ctl = cn=KISA-CTL,ou=ROOTCA,o=KISA,c=KR
+ca1.directory = ldap://dir.signkorea.com:389
+
+ca2.dn = cn=yessignCA Class 1,ou=AccreditedCA,o=yessign,c=kr
+ca2.directory = ldap://ds.yessign.or.kr:389
+
+ca3.dn = cn=SignKorea CA2,ou=AccreditedCA,o=SignKorea,c=KR
+ca3.directory = ldap://dir.signkorea.com:389
+
+ca4.dn = cn=CrossCertCA2,ou=AccreditedCA,o=CrossCert,c=KR
+ca4.directory = ldap://dir.crosscert.com:389
+
+ca5.dn = cn=signGATE CA4,ou=AccreditedCA,o=KICA,c=KR
+ca5.directory = ldap://ldap.signgate.com:389
+
+ca6.dn = cn=TradeSignCA2,ou=AccreditedCA,o=TradeSign,c=KR
+ca6.directory = ldap://ldap.tradesign.net:389
+
+#행정 인증기관
+# GPKI RootCA (최신)
+ca7.dn = CN=GPKIRootCA1,OU=GPKI,O=Government of Korea,C=KR
+ca7.ctl = CN=GPKIRootCA1,OU=GPKI,O=Government of Korea,C=KR
+ca7.directory = ldap://cen.dir.go.kr:389
+
+ca8.dn = cn=GPKIRootCA,ou=GPKI,o=government of korea,c=kr
+ca8.ctl = cn=GPKIRootCA,ou=GPKI,o=government of korea,c=kr
+ca8.directory = ldap://cen.dir.go.kr:389
+
+ca9.dn = CN=Root CA,OU=GPKI,O=Government of Korea,C=KR
+ca9.ctl = cn=Root CA,ou=GPKI,o=Government of Korea,c=KR
+ca9.directory = ldap://cen.dir.go.kr:389
+
+ca10.dn = CN=Class 3 CA,OU=GPKI,O=Government of Korea,C=KR
+ca10.directory = ldap://cen.dir.go.kr:389
+
+ca11.dn = cn=CA131000001,ou=GPKI,o=Government of Korea,c=KR
+ca11.directory = ldap://cen.dir.go.kr:389
+
+ca12.dn = cn=CA131000002,ou=GPKI,o=Government of Korea,c=KR
+ca12.directory = ldap://cen.dir.go.kr:389
+
+ca13.dn = cn=CA131100001,ou=GPKI,o=Government of Korea,c=KR
+ca13.directory = ldap://cen.dir.go.kr:389
+
+ca14.dn = cn=CA131100002,ou=GPKI,o=Government of Korea,c=KR
+ca14.directory = ldap://pub.dir.go.kr:389
+
+
+#공인 인증기관 (3280)
+ca15.dn = CN=KISA RootCA 1,OU=Korea Certification Authority Central,O=KISA,C=KR
+ca15.ctl = cn=KISA-CTL,ou=ROOTCA,o=KISA,c=KR
+ca15.directory = ldap://dir.signkorea.com:389
+
+ca16.dn = CN=CrossCert Certificate Authority,OU=AccreditedCA,O=CrossCert,C=KR
+ca16.directory = ldap://dir.crosscert.com:389
+
+ca17.dn = CN=signGATE CA2,OU=AccreditedCA,O=KICA,C=KR
+ca17.directory = ldap://ldap.signgate.com:389
+
+ca18.dn = CN=SignKorea CA,OU=AccreditedCA,O=SignKorea,C=KR
+ca18.directory = ldap://dir.signkorea.com:389
+
+ca19.dn = CN=yessignCA,OU=AccreditedCA,O=yessign,C=kr
+ca19.directory = ldap://ds.yessign.or.kr:389
+
+ca20.dn = CN=TradeSignCA,OU=AccreditedCA,O=TradeSign,C=KR
+ca20.directory = ldap://ldap.tradesign.net:389
+
+ca21.dn = cn=LGCare Online CA,o=LGCare
+ca21.directory = http://onsitecrl.crosscert.com:80
+
+# 행정기관 2
+# 국방부
+ca22.dn = cn=Root CA,ou=MPKI,o=Ministry of National Defense,c=KR
+ca22.directory = ldap://mpki.go.kr:389
+
+ca23.dn = cn=MND CA,ou=MPKI,o=Ministry of National Defense,c=KR
+ca23.directory = ldap://mpki.go.kr:389
+
+# 공공기관
+ca24.dn = CN=CA131000009,OU=GPKI,O=Government of Korea,C=KR
+ca24.directory = ldap://pub.dir.go.kr:389
+
+ca25.dn = cn=CA131000010,ou=GPKI,o=Government of Korea,c=KR
+ca25.directory = ldap://pub.dir.go.kr:389
+
+# 대법원
+ca26.dn = cn=CA974000001,ou=GPKI,o=Government of Korea,c=KR
+ca26.directory = ldap://ldap.scourt.go.kr
+
+ca27.dn = cn=CA974000002,ou=GPKI,o=Government of Korea,c=KR
+ca27.directory = ldap://ldap.scourt.go.kr
+
+ca28.dn = CN=CA974000031,OU=GPKI,O=Government of Korea,C=KR
+ca28.directory = ldap://ldap.scourt.go.kr:389
+
+# 대검찰청
+ca29.dn = cn=CA128000001,ou=GPKI,o=Government of Korea,c=KR
+ca29.directory = ldap://ldap.spo.go.kr:389
+
+ca30.dn = CN=CA128000002,OU=GPKI,O=Government of Korea,C=KR
+ca30.directory = ldap://ldap.spo.go.kr:389
+
+ca31.dn = cn=CA128000031,ou=GPKI,o=Government of Korea,c=KR
+ca31.directory = ldap://ldap.spo.go.kr:389
+
+ca32.dn = cn=CA128000032,ou=GPKI,o=Government of Korea,c=KR
+ca32.directory = ldap://ldap.spo.go.kr:389
+
+
+#교육과학기술부
+ca33.dn = CN=CA134040001,OU=GPKI,O=Government of Korea,C=KR
+ca33.directory = ldap://ldap.epki.go.kr:389
+
+ca34.dn = cn=CA134100031,ou=GPKI,o=Government of Korea,c=KR
+ca34.directory = ldap://ldap.epki.go.kr:389
+
+
+#병무청 
+ca35.dn = CN=CA130000002,OU=GPKI,O=Government of Korea,C=KR
+ca35.directory = ldap://cen.dir.go.kr:389
+
+ca36.dn = CN=CA130000003,OU=GPKI,O=Government of Korea,C=KR
+ca36.directory = ldap://cen.dir.go.kr:389
+
+ca37.dn = cn=CA130000031,ou=GPKI,o=Government of Korea,c=KR
+ca37.directory = ldap://cen.dir.go.kr:389
+

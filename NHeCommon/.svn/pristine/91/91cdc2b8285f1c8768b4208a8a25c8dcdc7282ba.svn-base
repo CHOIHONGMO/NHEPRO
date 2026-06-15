@@ -1,0 +1,420 @@
+package com.st_ones.eversrm.eApproval.eApprovalEnd.BID.service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.st_ones.common.mail.service.EverMailService;
+import com.st_ones.common.message.service.MessageService;
+import com.st_ones.common.sms.service.EverSmsService;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.BID.EApprovalEndBid_Mapper;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2014 ST-Ones CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : EApprovalEndBid_Service.java
+ * @date 2020. 4. 02.
+ * @version 1.0
+ */
+@Service(value = "eApprovalEndBid_Service")
+public class EApprovalEndBid_Service extends BaseService {
+
+    @Autowired private MessageService msg;
+	@Autowired private EverMailService evermailservice;
+	@Autowired private EverSmsService eversmsservice;
+	@Autowired private EApprovalEndBid_Mapper endBid_Mapper;
+	
+	Logger logger = LoggerFactory.getLogger(this.getClass());
+	
+	/**
+	 * 모듈명 : 입찰공고 [BID]
+	 * 처리내용 : SIGN_STATUS, SIGN_DATE, PROGRESS_CD 변경.
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String endApproval(String buyerCd, String appDocNum, String appDocCnt, String signStatus) throws Exception {
+
+		Map<String, String> param = new HashMap<String, String>();
+		param.put("BUYER_CD", buyerCd);
+		param.put("APP_DOC_NUM", appDocNum);
+		param.put("APP_DOC_CNT", appDocCnt);
+		param.put("SIGN_STATUS", signStatus);
+
+		// 결재번호에 해당하는 입찰번호 가져오기
+		Map<String, String> bidMap = endBid_Mapper.getBidNum(param);
+		param.put("BID_NUM", bidMap.get("BID_NUM"));
+		param.put("BID_CNT", String.valueOf(bidMap.get("BID_CNT")));
+
+		// STOCBDHD.SIGN_STATUS 변경
+		endBid_Mapper.setBidSignStatus(param);
+
+		// signStatus = 'E'인 경우...
+		if(signStatus.equals("E")) {
+			// STOCBDHD.BID_STATUS = '2310'(입찰공고확정)으로 변경
+			param.put("BID_STATUS", "2310");
+			endBid_Mapper.setBidStatus(param);
+			
+			// 2021.01.25 입찰서 결재완료 후 PRDT의 구매진행상태=2350(입찰/견적 진행중)
+			param.put("PROGRESS_CD", "2350");
+			endBid_Mapper.setPrProgressCd(param);
+			
+			// 입찰공고시 공고일자를 기준으로 사용수수료를 부과한다.
+			Map<String, String> costInfo = endBid_Mapper.costSmsInfo(param);
+			
+			/** 
+			 * 2020.11.30 입찰공고 사용수수료 제외
+			paymentMap.put("EPRO_PS_DSC", "1");			// epro_ps_dsc [구매공급구분코드] - 1 : 구매, 2 : 공급
+			paymentMap.put("EPRO_WRS_DS", "20");		// epro_wrs_ds [상품코드] - 10 : RFI, 20 : 입찰, 30 : 일반입찰계약, 40 : 일반수의계약, 50 : BtoC계약, 60 : 위임계약, 70 : 문서보관, 80 : SMS, 90 : LMS, 100 : 문서생성
+			paymentMap.put("EPRO_RATE_DSC", (String.valueOf(bidMap.get("BID_CNT")).equals("1") ? "01" : "02")); // epro_rate_dsc [단가코드] - 01 : 최초, 02 : 재입찰/재계약/재요청
+			paymentMap.put("CONT_TBL_ID", "STOCBDHD");	// 업무 Table명
+			// CONT_TBL_PK : 해당 Table에 Data 존재유무를 조회해볼 수 있는 Key 값. GATE_CD || '@@' || BUYER_CD || '@@' || ... 와 같이 설정.
+            paymentMap.put("tmp", ""); // myBatis 버그 해결을 위한 무의미한, 유니크한 값. 단, EPRO_WRS_DS = '30' 또는 '40'일 때 반드시 계약금액을 넣어야 함.
+
+			String resultMsg = bapm_Service.putBkCost(paymentMap);
+            if(!resultMsg.equals("OK")) {
+                throw new Exception(resultMsg);
+            }*/
+
+			// 협력업체 담당자에게 Mail/SMS 발송.
+			try {
+				String linkUrl = PropertiesManager.getString("eversrm.urls.maintain.real") ;
+				
+				List<Map<String, String>> mailTargetList = endBid_Mapper.getMailTargetList(param);
+				int sendIdx = 0;
+				for(Map<String, String> mailTargetData : mailTargetList) {
+					
+					if(mailTargetData.get("RECV_USER_ID") != null && !EverString.nullToEmptyString(mailTargetData.get("RECV_USER_ID")).equals("")) {
+						String subject = "[전자구매시스템] 고객사 [" + mailTargetData.get("PR_BUYER_NM") + "]에서 실시한 입찰 [" + mailTargetData.get("ANN_ITEM") + "]이 공고되었습니다";
+						
+						Map<String, String> mailMap = new HashMap<String, String>();
+						mailMap.put("SUBJECT", subject);
+						
+						StringBuffer content = new StringBuffer(255);
+						content.append("<BR> 안녕하세요.																							");
+						content.append("<BR> [" + mailTargetData.get("VENDOR_NM") + "] " + mailTargetData.get("RECV_USER_NM") + " 님.			");
+						content.append("<BR>																									");
+						content.append("<BR> 아래와 같이 고객사에서 실시한 입찰이 공고 되었습니다.																");
+						content.append("<BR> 고객사 : [" + mailTargetData.get("PR_BUYER_NM") + "]													");
+						content.append("<BR> 입찰명 : [" + mailTargetData.get("ANN_ITEM") + "]														");
+						content.append("<BR> 공고기간 : [" + mailTargetData.get("ANN_FROM_DATE") + " ~ " + mailTargetData.get("ANN_TO_DATE") + "]	");
+						content.append("<BR> 입찰일 : [" + mailTargetData.get("APP_END_DATE") + "]													");
+						content.append("<BR> 계약방법 : [" + mailTargetData.get("CONT_TYPE1_LOC") + "]												");
+						content.append("<BR> 낙찰자결정방법 : [" + mailTargetData.get("CONT_TYPE2_LOC") + "]											");
+						content.append("<BR>																									");
+						content.append("<BR> 전자구매시스템에 <a href=\"" + linkUrl + "\" target=\"newP\">로그인</a> 하시어, 세부내용을 확인 해주십시오.			");
+						content.append("<BR>																									");
+						content.append("<BR> 감사합니다.																							");
+						
+						mailMap.put("CONTENTS", content.toString());
+						mailMap.put("REF_MODULE_CD", "MBID01");
+						mailMap.put("REF_NUM", param.get("BID_NUM"));
+						mailMap.put("RECV_USER_ID", mailTargetData.get("RECV_USER_ID"));
+						evermailservice.SendMail(mailMap);
+	
+						Map<String, String> smsMap = new HashMap<String, String>();
+						smsMap.put("CONTENTS", subject);
+						smsMap.put("REF_MODULE_CD", "SBID01");
+						smsMap.put("RECV_USER_ID", mailTargetData.get("RECV_USER_ID"));
+						
+						// 2021.05.10
+						// 정정공고 협력사(RECV_USER_ID = VENDOR_CD) 수만큼 수수료 청구함
+						/*String payFlag = (!String.valueOf(bidMap.get("BID_CNT")).equals("1") && mailTargetList.size() > 0 ? "Y" : "N");
+						if (payFlag.equals("Y")) {
+							smsMap.put("CORP_NO", costInfo.get("CORP_NO"));		// 고객사 사업자번호
+							smsMap.put("BRC", costInfo.get("BRC"));				// 고객사 부서
+							smsMap.put("EPRO_PS_DSC", "1");						// 1  : 구매
+		                    smsMap.put("EPRO_RATE_DSC", "01");					// 01 : 최초
+							smsMap.put("APLY_DT", costInfo.get("APLY_DT"));		// 발생일 YYYYMMDD
+							smsMap.put("USER_ID", costInfo.get("USER_ID"));		// 고객사 보내는사람 ID
+							smsMap.put("CONT_TBL_ID", "STOCBDHD");				// 검증 테이블
+							smsMap.put("CONT_TBL_PK", costInfo.get("CONT_TBL_PK")+"@@"+mailTargetData.get("RECV_USER_ID")); // 검증 조건(협력사별 입찰번호)
+							smsMap.put("tmp", String.valueOf(sendIdx));			// myBatis 버그 해결을 위한 무의미한, 유니크한 값.
+							smsMap.put("payFlag", payFlag);
+							sendIdx++;
+						}*/
+						
+						// 2021.06.29 : 모든 입찰 공고건에 대해 수수료 청구 (지명입찰(STOCBDAP)인 경우 협력사 수만큼)
+						smsMap.put("CORP_NO", costInfo.get("CORP_NO"));			// 고객사 사업자번호
+						smsMap.put("BRC", costInfo.get("BRC"));					// 고객사 부서
+						smsMap.put("EPRO_PS_DSC", "1");							// 1  : 구매
+	                    smsMap.put("EPRO_RATE_DSC", "01");						// 01 : 최초
+						smsMap.put("APLY_DT", costInfo.get("APLY_DT"));			// 발생일 YYYYMMDD
+						smsMap.put("USER_ID", costInfo.get("USER_ID"));			// 고객사 보내는사람 ID
+						smsMap.put("CONT_TBL_ID", "STOCBDAP");					// 검증 테이블
+						smsMap.put("CONT_TBL_PK", costInfo.get("CONT_TBL_PK")+"@@"+mailTargetData.get("RECV_USER_ID")); // 검증 조건(협력사별 입찰번호)
+						smsMap.put("tmp", mailTargetData.get("RECV_USER_ID"));	// myBatis 버그 해결을 위한 무의미한, 유니크한 값.
+						smsMap.put("payFlag", "Y");
+						
+						eversmsservice.sendSmsNhe(smsMap);
+					}
+				}
+			}
+			catch (Exception ex) {
+			    logger.error("입찰공고 결재승인 후 메일&문자 발송 오류 : " + ex.getMessage());
+			}
+        }
+
+		String rtnMsg = (signStatus.equals("E") ? msg.getMessage("0057")
+						: (signStatus.equals("R") ? msg.getMessage("0058")
+						: (signStatus.equals("C") ? msg.getMessage("0061")
+						: msg.getMessage("0001"))));
+
+		return rtnMsg;
+	}
+
+	/**
+	 * 모듈명 : 취소공고 [CANCELBID]
+	 * 처리내용 : SIGN_STATUS, SIGN_DATE, PROGRESS_CD 변경.
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String endCancelApproval(String buyerCd, String appDocNum, String appDocCnt, String signStatus) throws Exception {
+
+		Map<String, String> param = new HashMap<String, String>();
+		param.put("BUYER_CD", buyerCd);
+		param.put("APP_DOC_NUM", appDocNum);
+		param.put("APP_DOC_CNT", appDocCnt);
+		param.put("SIGN_STATUS", signStatus);
+
+		// 결재번호에 해당하는 입찰번호 가져오기
+		Map<String, String> bidMap = endBid_Mapper.getBidNum(param);
+		param.put("BID_NUM", bidMap.get("BID_NUM"));
+		param.put("BID_CNT", String.valueOf(bidMap.get("BID_CNT")));
+
+		// STOCBDHD.SIGN_STATUS 변경
+		endBid_Mapper.setBidSignStatus(param);
+
+		// signStatus = 'E'인 경우, STOCBDHD.BID_STATUS = '2330'(취소공고확정)으로 변경
+		if(signStatus.equals("E")) {
+
+			param.put("BID_STATUS", "2330");
+			endBid_Mapper.setBidStatus(param);
+
+			// 이전 차수의 STOCBDHD.BID_STATUS를 '9999'로 Update.
+			param.put("BID_STATUS", "9999");
+			param.put("BID_CNT", String.valueOf(bidMap.get("PRE_BID_CNT")));
+			endBid_Mapper.setBidStatus(param);
+			
+			// 2021.07.05 : 취소공고 결재완료 후 PRDT의 구매진행상태=2200(접수완료)
+			param.put("PROGRESS_CD", "2200");
+			endBid_Mapper.setPrProgressCd(param);
+		}
+
+		String rtnMsg = (signStatus.equals("E") ? msg.getMessage("0057")
+						: (signStatus.equals("R") ? msg.getMessage("0058")
+						: (signStatus.equals("C") ? msg.getMessage("0061")
+						: msg.getMessage("0001"))));
+
+		return rtnMsg;
+	}
+
+	/**
+	 * 모듈명 : 입찰결과보고 [CANCELBID]
+	 * 처리내용 : SIGN_STATUS, SIGN_DATE, PROGRESS_CD 변경.
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String endBidRltApproval(String buyerCd, String appDocNum, String appDocCnt, String signStatus) throws Exception {
+
+		Map<String, String> param = new HashMap<String, String>();
+		param.put("BUYER_CD", buyerCd);
+		param.put("APP_DOC_NUM", appDocNum);
+		param.put("APP_DOC_CNT", appDocCnt);
+		param.put("SIGN_STATUS", signStatus);
+
+		// 결재번호에 해당하는 입찰번호 가져오기
+		Map<String, String> bidMap = endBid_Mapper.getRltBidNum(param);
+		param.put("BID_NUM", bidMap.get("BID_NUM"));
+		param.put("BID_CNT", String.valueOf(bidMap.get("BID_CNT")));
+
+		// STOCBDHD.RLT_SIGN_STATUS 변경
+		endBid_Mapper.setRltSignStatus(param);
+
+		String rtnMsg = (signStatus.equals("E") ? msg.getMessage("0057")
+				: (signStatus.equals("R") ? msg.getMessage("0058")
+				: (signStatus.equals("C") ? msg.getMessage("0061")
+				: msg.getMessage("0001"))));
+
+		return rtnMsg;
+	}
+
+	/**
+	 * 모듈명 : 우선협상자선정결과 [NEGO BID]
+	 * 처리내용 : SIGN_STATUS, SIGN_DATE, PROGRESS_CD 변경.
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String endNegoRltApproval(String buyerCd, String appDocNum, String appDocCnt, String signStatus) throws Exception {
+
+		Map<String, String> param = new HashMap<String, String>();
+		param.put("BUYER_CD", buyerCd);
+		param.put("APP_DOC_NUM", appDocNum);
+		param.put("APP_DOC_CNT", appDocCnt);
+		param.put("SIGN_STATUS", signStatus);
+
+		// 결재번호에 해당하는 입찰번호 가져오기
+		Map<String, String> bidMap = endBid_Mapper.getNegoBidNum(param);
+		param.put("BID_NUM", bidMap.get("BID_NUM"));
+		param.put("BID_CNT", String.valueOf(bidMap.get("BID_CNT")));
+
+		// STOCBDHD.RLT_SIGN_STATUS 변경
+		endBid_Mapper.setNegoSignStatus(param);
+		
+		// 2021.03.03 신규추가
+		// signStatus = 'E'인 경우...
+		if(signStatus.equals("E")) {
+			// 협력업체 담당자에게 Mail/SMS 발송.
+			try {
+				String linkUrl = PropertiesManager.getString("eversrm.urls.maintain.real") ;
+				
+				List<Map<String, String>> mailTargetList = endBid_Mapper.getMailNegoList(param);
+				for(Map<String, String> mailTargetData : mailTargetList) {
+					
+					String recvUserId = EverString.nullToEmptyString(mailTargetData.get("RECV_USER_ID"));
+					String bidRank    = EverString.nullToEmptyString(mailTargetData.get("BID_RANK"));	// 협상순위
+					String bidStatus  = EverString.nullToEmptyString(mailTargetData.get("BID_STATUS"));	// 적합여부
+					//System.out.println("==================> 우선협상메일발송 : (recvUserId) = " + recvUserId + ", (bidRank) = " + bidRank + ", (bidStatus) = " + bidStatus);
+					if( "".equals(recvUserId) || "".equals(bidRank) || "".equals(bidStatus) ) {
+						continue;
+					}
+					
+					String subject = "[전자구매시스템] 고객사 [" + mailTargetData.get("PR_BUYER_NM") + "]에서 실시한 입찰 [" + mailTargetData.get("ANN_ITEM") + "]의 우선협상대상 결과를 안내드립니다";
+					
+					Map<String, String> mailMap = new HashMap<String, String>();
+					mailMap.put("SUBJECT", subject);
+					
+					StringBuffer content = new StringBuffer();
+					content.setLength(0);
+					content.append("<BR> 안녕하세요.																								");
+					content.append("<BR> [" + mailTargetData.get("VENDOR_NM") + "] " + mailTargetData.get("RECV_USER_NM") + " 님.				");
+					content.append("<BR>																										");
+					content.append("<BR> 아래와 같이 고객사에서 실시한 입찰의 우선협상대상 결과를 안내드립니다.														");
+					content.append("<BR> 고객사 : [" + mailTargetData.get("PR_BUYER_NM") + "]														");
+					content.append("<BR> 입찰명 : [" + mailTargetData.get("ANN_ITEM") + "]															");
+					content.append("<BR> 공고기간 : [" + mailTargetData.get("ANN_FROM_DATE") + " ~ " + mailTargetData.get("ANN_TO_DATE") + "]		");
+					content.append("<BR> 계약방법 : [" + mailTargetData.get("CONT_TYPE1_LOC") + "]													");
+					content.append("<BR> 낙찰자결정방법 : [" + mailTargetData.get("CONT_TYPE2_LOC") + "]												");
+					
+					// 적합
+					if( !"600".equals(bidStatus) ) {
+						content.append("<BR> 적격여부 : [적격]																						");
+						content.append("<BR> 협상순위 : [" + mailTargetData.get("BID_RANK") + " 순위]												");
+						
+						if( "1".equals(bidRank) ) {
+							content.append("<BR> 우선협상대상자 협상기간 : [" + mailTargetData.get("NEGO_START_DATE") + " ~ " + mailTargetData.get("NEGO_END_DATE") + "]	");
+							content.append("<BR>																								");
+							content.append("<BR> 우선협상 대상업체는																					");
+							content.append("<BR> 기술협상담당자/가격협상담당자에 연락하시어, 세부일정을 확인 및 협상을 진행하여 주십시오.								");
+							content.append("<BR>																								");
+							content.append("<BR> 기술협상담당자 : [" + mailTargetData.get("PR_USER_TEXT") + "]										");
+							content.append("<BR> 가격협상담당자 : [" + mailTargetData.get("BID_USER_TEXT") + "]										");
+						}
+						else {
+							content.append("<BR>																								");
+							content.append("<BR> 우선협상대상자(1순위)와의 협상기간은 [" + mailTargetData.get("NEGO_START_DATE") + " ~ " + mailTargetData.get("NEGO_END_DATE") + "] 이니 참고바랍니다.	");
+							content.append("<BR> 선순위 협상대상자와 협상 결렬 시, 별도 통지 예정입니다.														");
+						}
+					}// 부적합
+					else {
+						content.append("<BR> 적격여부 : [부적격]																						");
+						content.append("<BR>																									");
+						content.append("<BR> 귀사는 종합평가 점수 미달로 협상 부적격임을 알려 드립니다.															");
+					}
+					
+					content.append("<BR>																										");
+					content.append("<BR> 감사합니다.																								");
+					
+					mailMap.put("CONTENTS", content.toString());
+					mailMap.put("REF_MODULE_CD", "MBID03");
+					mailMap.put("REF_NUM", param.get("BID_NUM"));
+					mailMap.put("RECV_USER_ID", mailTargetData.get("RECV_USER_ID"));
+					evermailservice.SendMail(mailMap);
+					
+					// SMS 발송(2021.05.03 추가)
+					StringBuffer smsContent = new StringBuffer();
+					smsContent.setLength(0);
+					smsContent.append("[전자구매시스템] 안녕하세요.");
+					smsContent.append("\r\n[" + mailTargetData.get("VENDOR_NM") + "] " + mailTargetData.get("RECV_USER_NM") + " 님.");
+					smsContent.append("\r\n");
+					smsContent.append("\r\n아래와 같이 고객사에서 실시한 입찰의 우선협상대상 결과를 안내드립니다.");
+					smsContent.append("\r\n고객사 : [" + mailTargetData.get("PR_BUYER_NM") + "]");
+					smsContent.append("\r\n입찰명 : [" + mailTargetData.get("ANN_ITEM") + "]");
+					smsContent.append("\r\n공고기간 : [" + mailTargetData.get("ANN_FROM_DATE") + " ~ " + mailTargetData.get("ANN_TO_DATE") + "]");
+					smsContent.append("\r\n계약방법 : [" + mailTargetData.get("CONT_TYPE1_LOC") + "]");
+					smsContent.append("\r\n낙찰자결정방법 : [" + mailTargetData.get("CONT_TYPE2_LOC") + "]");
+					
+					// 적합
+					if( !"600".equals(bidStatus) ) {
+						smsContent.append("\r\n적격여부 : [적격]");
+						smsContent.append("\r\n협상순위 : [" + mailTargetData.get("BID_RANK") + " 순위]");
+						
+						if( "1".equals(bidRank) ) {
+							smsContent.append("\r\n우선협상대상자 협상기간 : [" + mailTargetData.get("NEGO_START_DATE") + " ~ " + mailTargetData.get("NEGO_END_DATE") + "]	");
+							smsContent.append("\r\n");
+							smsContent.append("\r\n우선협상 대상업체는");
+							smsContent.append("\r\n기술협상담당자/가격협상담당자에 연락하시어, 세부일정을 확인 및 협상을 진행하여 주십시오.");
+							smsContent.append("\r\n");
+							smsContent.append("\r\n기술협상담당자 : [" + mailTargetData.get("PR_USER_TEXT") + "]");
+							smsContent.append("\r\n가격협상담당자 : [" + mailTargetData.get("BID_USER_TEXT") + "]");
+						}
+						else {
+							smsContent.append("\r\n");
+							smsContent.append("\r\n우선협상대상자(1순위)와의 협상기간은 [" + mailTargetData.get("NEGO_START_DATE") + " ~ " + mailTargetData.get("NEGO_END_DATE") + "] 이니 참고바랍니다.");
+							smsContent.append("\r\n선순위 협상대상자와 협상 결렬 시, 별도 통지 예정입니다.");
+						}
+					}// 부적합
+					else {
+						smsContent.append("\r\n적격여부 : [부적격]");
+						smsContent.append("\r\n");
+						smsContent.append("\r\n귀사는 종합평가 점수 미달로 협상 부적격임을 알려 드립니다.");
+					}
+					
+					smsContent.append("\r\n");
+					smsContent.append("\r\n감사합니다.");
+					
+					Map<String, String> smsMap = new HashMap<String, String>();
+					smsMap.put("CONTENTS", smsContent.toString());
+					smsMap.put("REF_MODULE_CD", "SBID03");
+					smsMap.put("RECV_USER_ID", mailTargetData.get("RECV_USER_ID"));
+					
+					// 2021.06.30 : 우선협상대상자 선정시 SMS 수수료 부과
+					smsMap.put("CORP_NO", mailTargetData.get("CORP_NO"));			// 고객사 사업자번호
+					smsMap.put("BRC", mailTargetData.get("BRC"));					// 고객사 부서
+					smsMap.put("EPRO_PS_DSC", "1");									// 1  : 구매
+                    smsMap.put("EPRO_RATE_DSC", "01");								// 01 : 최초
+					smsMap.put("APLY_DT", mailTargetData.get("APLY_DT"));			// 발생일 YYYYMMDD
+					smsMap.put("USER_ID", mailTargetData.get("USER_ID"));			// 고객사 보내는사람 ID
+					smsMap.put("CONT_TBL_ID", "STOCBDVO");							// 검증 테이블
+					smsMap.put("CONT_TBL_PK", mailTargetData.get("CONT_TBL_PK")); 	// 검증 조건(협력사별 입찰번호)
+					smsMap.put("tmp", mailTargetData.get("CONT_TBL_PK"));			// myBatis 버그 해결을 위한 무의미한, 유니크한 값.
+					smsMap.put("payFlag", "Y");
+					
+					eversmsservice.sendSmsNhe(smsMap);
+				}
+			}
+			catch (Exception ex) {
+			    logger.error("우선협상 결재승인 후 메일&문자 발송 오류 : " + ex.getMessage());
+			}
+		}
+		
+		String rtnMsg = (signStatus.equals("E") ? msg.getMessage("0057")
+				: (signStatus.equals("R") ? msg.getMessage("0058")
+				: (signStatus.equals("C") ? msg.getMessage("0061")
+				: msg.getMessage("0001"))));
+
+		return rtnMsg;
+	}
+
+}

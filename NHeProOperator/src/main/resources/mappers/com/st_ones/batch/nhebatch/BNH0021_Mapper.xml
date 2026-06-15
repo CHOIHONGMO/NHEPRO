@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.batch.nhebatch.BNH0021_Mapper">
+	
+    <select id="getTagrgetData" resultType="hashmap" parameterType="hashMap">
+
+		SELECT 
+		BRK.OCC_DT 
+		,BRK.OCC_NO
+		,BRK.CONT_TBL_PK
+		,SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) AS GUBUN
+		,NVL(CASE WHEN SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_EXEC_3200' THEN
+		               (
+		                SELECT 
+		                NVL(MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT),'NOT ECMT')
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCCNDT CNDT
+		                        LEFT JOIN STOCCNHD CNHD
+		                        ON( CNDT.EXEC_NUM = CNHD.EXEC_NUM)
+		                    ON( ECMT.PR_NUM = CNDT.PR_NUM
+		                    AND ECMT.PR_SQ = CNDT.PR_SQ)  
+		                WHERE CNHD.EXEC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@EX')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,1)
+		               )
+		       
+		          WHEN SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_BID' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_BID_SEL' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_BID_BATCH_SEND' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_BID_BATCH_CLOSE' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_NEGO' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_BID_BATCH_PRC' 
+		          THEN
+		               (
+		                SELECT 
+		                NVL(MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT),'NOT ECMT')
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCBDDT BDDT
+		                        LEFT JOIN STOCBDHD BDHD
+		                        ON( BDDT.BID_NUM = BDHD.BID_NUM
+		                        AND BDDT.BID_CNT = BDHD.BID_CNT)
+		                    ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                    AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                WHERE BDHD.BID_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@BID')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,1)
+		                AND BDHD.BID_CNT = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@BID')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,2)    
+		               )
+		               
+		          WHEN SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_CONT_4300' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_CONT_4220' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_CONT_4230' 
+		          THEN          
+		               NVL(REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@EC')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,1)
+		               ||'@@'||REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@EC')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,2),'')
+		  
+		          WHEN SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'INV' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_INV' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_INV_BATCH_PRC' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_AP_BATCH_PRC' 
+		          THEN
+		               (
+		                SELECT 
+		                NVL(MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT),'NOT ECMT')
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCPODT PODT
+		                        LEFT JOIN STOCIVGH IVGH
+		                        ON( PODT.PO_NUM = IVGH.PO_NUM)
+		                    ON( ECMT.CONT_NUM = PODT.CONT_NUM
+		                    AND ECMT.CONT_CNT = PODT.CONT_CNT)  
+		                WHERE IVGH.INV_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@INV')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,1)                
+		               )   
+		               
+		          WHEN SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_RFQ_BATCH_PRC' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_RFX_BATCH_REQ' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'QTA' 
+		          THEN
+		               (
+		                SELECT 
+		                NVL(MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT),'NOT ECMT')
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCRQDT RQDT
+		                        LEFT JOIN STOCRQHD RQHD
+		                        ON( RQDT.RFX_NUM = RQHD.RFX_NUM
+		                        AND RQDT.RFX_CNT = RQHD.RFX_CNT)
+		                    ON( ECMT.PR_NUM = RQDT.PR_NUM
+		                    AND ECMT.PR_SQ = RQDT.PR_SQ)  
+		                WHERE RQHD.RFX_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@RQ')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,1)                
+		               )                  
+		               
+		          WHEN SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_PO_5200'
+		          THEN
+		               NVL(REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@PO')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,1),' ')
+		               ||'@@'||'0'
+		               
+		          WHEN SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_SIGN' 
+		          THEN
+		               (
+		                SELECT NVL(MAX(SCTM.CONT_NUM_CNT),'NOT ECMT')
+		                FROM 
+		                (
+		                    --SCTM.ATT_FILE_NUM CNHD
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCCNDT CNDT
+		                            LEFT JOIN STOCCNHD CNHD
+		                                LEFT JOIN STOCSCTM SCTM
+		                                ON( CNHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)
+		                            ON( CNDT.EXEC_NUM = CNHD.EXEC_NUM)
+		                        ON( ECMT.PR_NUM = CNDT.PR_NUM
+		                        AND ECMT.PR_SQ = CNDT.PR_SQ)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)
+		                    UNION ALL
+		                    --SCTM.ATT_FILE_NUM ECCT
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCECCT ECCT
+		                            LEFT JOIN STOCSCTM SCTM
+		                            ON( ECCT.APP_DOC_NUM = SCTM.APP_DOC_NUM)                    
+		                        ON( ECMT.CONT_NUM = ECCT.CONT_NUM
+		                        AND ECMT.CONT_CNT = ECCT.CONT_CNT)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)
+		                    UNION ALL
+		                    --SCTM.ATT_FILE_NUM PRHD
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCPRDT PRDT
+		                            LEFT JOIN STOCPRHD PRHD
+		                                LEFT JOIN STOCSCTM SCTM
+		                                ON( PRHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                                            
+		                            ON( PRDT.PR_NUM = PRHD.PR_NUM)
+		                        ON( ECMT.PR_NUM = PRDT.PR_NUM
+		                        AND ECMT.PR_SQ = PRDT.PR_SQ)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)
+		                    UNION ALL
+		                    --SCTM.ATT_FILE_NUM RQHD       
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCRQDT RQDT
+		                            LEFT JOIN STOCRQHD RQHD
+		                                LEFT JOIN STOCSCTM SCTM
+		                                ON( RQHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                                                                    
+		                            ON( RQDT.RFX_NUM = RQHD.RFX_NUM
+		                            AND RQDT.RFX_CNT = RQHD.RFX_CNT)
+		                        ON( ECMT.PR_NUM = RQDT.PR_NUM
+		                        AND ECMT.PR_SQ = RQDT.PR_SQ)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)
+		                    UNION ALL                
+		                    --SCTM.ATT_FILE_NUM CNHD
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCCNDT CNDT
+		                            LEFT JOIN STOCCNHD CNHD
+		                                LEFT JOIN STOCSCTM SCTM
+		                                ON( CNHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)
+		                            ON( CNDT.EXEC_NUM = CNHD.EXEC_NUM)
+		                        ON( ECMT.PR_NUM = CNDT.PR_NUM
+		                        AND ECMT.PR_SQ = CNDT.PR_SQ)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)
+		                    UNION ALL
+		                    --SCTM.ATT_FILE_NUM BDHD
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCBDDT BDDT
+		                            LEFT JOIN STOCBDHD BDHD
+		                                LEFT JOIN STOCSCTM SCTM
+		                                ON( BDHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                        
+		                            ON( BDDT.BID_NUM = BDHD.BID_NUM
+		                            AND BDDT.BID_CNT = BDHD.BID_CNT)
+		                        ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                        AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)                    
+		                    UNION ALL
+		                    --SCTM.ATT_FILE_NUM BDHD
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCBDDT BDDT
+		                            LEFT JOIN STOCBDHD BDHD
+		                                LEFT JOIN STOCSCTM SCTM
+		                                ON( BDHD.RLT_APP_DOC_NUM = SCTM.APP_DOC_NUM)                        
+		                            ON( BDDT.BID_NUM = BDHD.BID_NUM
+		                            AND BDDT.BID_CNT = BDHD.BID_CNT)
+		                        ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                        AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)                                                                    
+		                    UNION ALL		                		                
+		                    --SCTM.ATT_FILE_NUM BDHD
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCBDDT BDDT
+		                            LEFT JOIN STOCBDHD BDHD
+		                                LEFT JOIN STOCSCTM SCTM
+		                                ON( BDHD.NEGO_APP_DOC_NUM = SCTM.APP_DOC_NUM)                        
+		                            ON( BDDT.BID_NUM = BDHD.BID_NUM
+		                            AND BDDT.BID_CNT = BDHD.BID_CNT)
+		                        ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                        AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)                                           
+		                    UNION ALL
+		                    --SCTM.ATT_FILE_NUM BDES
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCBDDT BDDT
+		                            LEFT JOIN STOCBDES BDES
+		                                LEFT JOIN STOCSCTM SCTM
+		                                ON( BDES.APP_DOC_NUM = SCTM.APP_DOC_NUM)
+		                            ON( BDDT.BID_NUM = BDES.BID_NUM
+		                            AND BDDT.BID_CNT = BDES.BID_CNT)
+		                        ON( ECMT.PR_NUM = BDDT.PR_NUM
+		                        AND ECMT.PR_SQ = BDDT.PR_SQ)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)                                
+		                    UNION ALL
+		                    --SCTM.ATT_FILE_NUM POHD
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCPODT PODT
+		                            LEFT JOIN STOCPOHD POHD
+		                                LEFT JOIN STOCSCTM SCTM
+		                                ON( POHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                        
+		                            ON( PODT.PO_NUM = POHD.PO_NUM)
+		                        ON( ECMT.CONT_NUM = PODT.CONT_NUM
+		                        AND ECMT.CONT_CNT = PODT.CONT_CNT)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)                                 
+		                    UNION ALL
+		                    --SCTM.ATT_FILE_NUM IVHD
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCPODT PODT
+		                            LEFT JOIN STOCIVGH IVGH
+		                                LEFT JOIN STOCIVHD IVHD
+		                                    LEFT JOIN STOCSCTM SCTM
+		                                    ON( IVHD.APP_DOC_NUM = SCTM.APP_DOC_NUM)                                                    
+		                                ON( IVGH.INV_NUM = IVHD.INV_NUM)
+		                            ON( PODT.PO_NUM = IVGH.PO_NUM)
+		                        ON( ECMT.CONT_NUM = PODT.CONT_NUM
+		                        AND ECMT.CONT_CNT = PODT.CONT_CNT)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)                           
+		                    UNION ALL
+		                    --SCTM.ATT_FILE_NUM IVAP
+                            SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+                            FROM STOCECMT ECMT
+                                LEFT JOIN STOCPODT PODT
+                                    LEFT JOIN STOCIVAP IVAP
+                                        LEFT JOIN STOCSCTM SCTM
+                                        ON( IVAP.APP_DOC_NUM = SCTM.APP_DOC_NUM)                                    
+                                    ON( PODT.PO_NUM = IVAP.PO_NUM)
+                                ON( ECMT.CONT_NUM = PODT.CONT_NUM
+                                AND ECMT.CONT_CNT = PODT.CONT_CNT)  
+                            WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)                    
+		                    UNION ALL
+		                    --SCTM.ATT_FILE_NUM BDES
+		                    SELECT 
+		                    MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT) AS CONT_NUM_CNT
+		                    FROM STOCECMT ECMT
+		                        LEFT JOIN STOCRQDT RQDT
+		                            LEFT JOIN STOCBDES BDES
+		                                LEFT JOIN STOCSCTM SCTM
+		                                ON( BDES.APP_DOC_NUM = SCTM.APP_DOC_NUM)
+		                            ON( RQDT.RFX_NUM = BDES.BID_NUM
+		                            AND RQDT.RFX_CNT = BDES.BID_CNT)
+		                        ON( ECMT.PR_NUM = RQDT.PR_NUM
+		                        AND ECMT.PR_SQ = RQDT.PR_SQ)  
+		                    WHERE SCTM.APP_DOC_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,3)	     
+		                ) SCTM                 
+		               )                                 
+		               
+		          WHEN SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_ETST_REQ' 
+		          THEN          
+		               NVL(REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@EN')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,1)
+		               ||'@@'||REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@EN')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,2),'')
+		                        
+		          WHEN SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'AP' 
+		            OR SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) = 'SMS_AP' 
+		          THEN
+		               (
+		                SELECT 
+		                NVL(MAX(ECMT.CONT_NUM||'@@'||ECMT.CONT_CNT),'NOT ECMT')
+		                FROM STOCECMT ECMT
+		                    LEFT JOIN STOCPODT PODT
+		                        LEFT JOIN STOCIVAP IVAP
+		                        ON( PODT.PO_NUM = IVAP.PO_NUM)
+		                    ON( ECMT.CONT_NUM = PODT.CONT_NUM
+		                    AND ECMT.CONT_CNT = PODT.CONT_CNT)  
+		                WHERE IVAP.AP_NUM = REGEXP_SUBSTR(SUBSTR(BRK.CONT_TBL_PK,INSTR(BRK.CONT_TBL_PK,'@@AP')+2,LENGTH(BRK.CONT_TBL_PK)),'[^@@]+',1,1)                
+		               )                           
+		 END,' ') AS CONT_NUM_CNT
+		FROM TB_PR_DM_FEE_OCC_BRK BRK
+		WHERE 
+		BRK.OCC_DT BETWEEN #{FROMDATE} AND #{TODATE}
+		AND BRK.CORP_NO IN ('2148206195','1028506404')
+		AND BRK.COST != 0
+		AND BRK.EPRO_FEE_DSC = '03'
+		AND BRK.BIGO IS NULL
+		AND SUBSTR(BRK.CONT_TBL_PK,0,INSTR(BRK.CONT_TBL_PK,'@@')-1) NOT IN (
+		'SMS_CTRL'
+		,'SMS_VEND'
+		,'SMS_VOC_CMPL'
+		,'SMS_VOC_REQ'
+		,'VC'
+		,'VEND'
+		,'SMS_PC_REQ'
+		,'SMS_PC_RJT'
+		,'SMS_TC_REQ'
+		)
+
+
+		   
+
+	</select>
+
+    <update id="upBIGO" parameterType="hashMap">
+		UPDATE TB_PR_DM_FEE_OCC_BRK 
+		   SET
+               BIGO  = #{CONT_NUM_CNT} 
+		 WHERE 
+		   OCC_DT    = #{OCC_DT}
+		   AND OCC_NO = #{OCC_NO}
+	</update>
+
+</mapper>

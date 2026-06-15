@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCTR.CCTR0012_Mapper">
+	<resultMap id="clobMap" type="HashMap">
+		<result property="FORM_TEXT" column="FORM_TEXT" jdbcType="CLOB" javaType="java.lang.String" />
+		<result property="RMK" column="RMK" jdbcType="CLOB" javaType="java.lang.String" />
+	</resultMap>
+
+	<select id="cctr0012_doSearch" parameterType="hashmap" resultType="hashmap">
+		SELECT ECCF.BUYER_CD
+		     , ECCF.FORM_NUM
+			 , <include refid="common.sql.dbo"/>GETCOMPANYNAME(ECCF.GATE_CD, ECCF.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+			 , ECCF.FORM_TYPE
+			 , ECCF.CONT_TYPE
+			 , ECCF.FORM_NM
+			 , ECCF.CONT_DIV
+			 , ECCF.BUNDLE_FLAG
+			 , ECCF.AUTO_RENEW_FLAG
+			 , ECCF.NH_COMM_FLAG
+			 , ECCF.USE_FLAG
+			 , ECCF.SIGN_STATUS
+			 , <include refid="common.sql.toChar"/>(ECCF.REG_DATE , 'YYYYMMDD') AS REG_DATE
+			 , (SELECT COUNT(*) FROM STOCECRL RL
+			 	  JOIN STOCECCT CT -- 전자계약서
+					   ON (RL.GATE_CD  = CT.GATE_CD
+					   AND RL.BUYER_CD = CT.BUYER_CD
+					   AND RL.CONT_NUM = CT.CONT_NUM
+					   AND RL.CONT_CNT = CT.CONT_CNT
+					   AND CT.DEL_FLAG = '0')
+				 WHERE RL.GATE_CD  = ECCF.GATE_CD
+				   AND RL.FORM_NUM = ECCF.FORM_NUM
+				   AND RL.DEL_FLAG = '0') +
+			   (SELECT COUNT(*) FROM STOCLEGL -- 정도경영 및 보안서약서
+				 WHERE GATE_CD  = ECCF.GATE_CD
+				   AND FORM_NUM = ECCF.FORM_NUM
+				   AND DEL_FLAG = '0') AS FORM_USE_CNT -- 해당 폼 사용횟수
+		  FROM STOCECCF ECCF
+		  LEFT OUTER JOIN STOCCUST CUST
+		    ON (CUST.GATE_CD  = ECCF.GATE_CD
+		   AND  CUST.CUST_CD = ECCF.BUYER_CD
+		   AND  CUST.DEL_FLAG = '0')
+		 WHERE ECCF.GATE_CD = #{ses.gateCd}
+		 <if test="BUYER_CD != null and BUYER_CD != ''">
+		   AND ECCF.BUYER_CD = #{BUYER_CD}
+		</if>		
+		 <if test="BUYER_NM != null and BUYER_NM != ''">
+		   AND UPPER(CUST.CUST_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="FORM_NM != null and FORM_NM != ''">
+		   AND UPPER(ECCF.FORM_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{FORM_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="SIGN_STATUS != null and SIGN_STATUS != ''">
+		   AND ECCF.SIGN_STATUS = #{SIGN_STATUS}
+		</if>
+		<if test="REG_FROM_DATE != '' and REG_FROM_DATE != null">
+           AND ECCF.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_FROM_DATE})
+        </if>
+        <if test="REG_TO_DATE != '' and REG_TO_DATE != null">
+           AND ECCF.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_TO_DATE})
+        </if>
+		<if test="FORM_TYPE != null and FORM_TYPE != ''">
+		   AND ECCF.FORM_TYPE = #{FORM_TYPE}
+		</if>
+		<if test="CONT_TYPE != null and CONT_TYPE != ''">
+		   AND ECCF.CONT_TYPE = #{CONT_TYPE}
+		</if>
+		<if test="CONT_DIV != null and CONT_DIV != ''">
+		   AND ECCF.CONT_DIV = #{CONT_DIV}
+		</if>
+		<if test="BUNDLE_FLAG != null and BUNDLE_FLAG != ''">
+		   AND ECCF.BUNDLE_FLAG = #{BUNDLE_FLAG}
+		</if>
+		<if test="AUTO_RENEW_FLAG != null and AUTO_RENEW_FLAG != ''">
+		   AND ECCF.AUTO_RENEW_FLAG = #{AUTO_RENEW_FLAG}
+		</if>
+		<if test="USE_FLAG != null and USE_FLAG != ''">
+		   AND ECCF.USE_FLAG = #{USE_FLAG}
+		</if>
+		   AND ECCF.DEL_FLAG = '0'
+		 ORDER BY ECCF.BUYER_CD, ECCF.FORM_TYPE, ECCF.CONT_TYPE, ECCF.FORM_NM
+	</select>
+	
+	
+	<!-- 계약서식 사용여부 변경 -->
+	<update id="cctr0012_doUpdateECCF" parameterType="hashmap">
+		UPDATE STOCECCF
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+		     , USE_FLAG = #{USE_FLAG}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND FORM_NUM = #{FORM_NUM}
+	</update>
+	
+	<update id="cctr0012_doDeleteECCF" parameterType="hashmap">
+		UPDATE STOCECCF
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+		     , DEL_FLAG = '1'
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND FORM_NUM = #{FORM_NUM}
+	</update>
+
+	<update id="cctr0012_doDeleteECCR">
+		UPDATE STOCECCR
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , DEL_FLAG    = '1'
+		WHERE GATE_CD  = #{ses.gateCd}
+		  AND FORM_NUM = #{FORM_NUM}
+	</update>
+
+    <insert id="cctr0012_doCopyECCF">
+        INSERT INTO STOCECCF (
+               GATE_CD
+             , BUYER_CD
+             , FORM_NUM
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , FORM_TYPE
+             , CONT_TYPE
+             , CONT_DIV
+             , FORM_NM
+             , BUNDLE_FLAG
+             , AUTO_RENEW_FLAG
+             , NH_COMM_FLAG
+             , RMK
+             , FORM_TEXT_NUM
+             , FORM_TEXT
+             , SUB_FORM_DIV
+             , ATT_FILE_NUM
+             , USE_FLAG
+             , ECONT_FLAG
+             , APPROVAL_FLAG
+             , SIGN_STATUS
+        )
+        SELECT GATE_CD
+             , #{BUYER_CD}
+             , #{NEW_FORM_NUM}
+             , SYSDATE
+             , #{ses.userId}
+             , SYSDATE
+             , #{ses.userId}
+             , '0'
+             , FORM_TYPE
+             , CONT_TYPE
+             , CONT_DIV
+             , '[Copied] ' <include refid="common.sql.stringMerge"/> FORM_NM
+             , BUNDLE_FLAG
+             , AUTO_RENEW_FLAG
+             , NH_COMM_FLAG
+             , RMK
+             , #{NEW_FORM_TEXT_NUM}
+             , FORM_TEXT
+             , SUB_FORM_DIV
+             , ATT_FILE_NUM
+             , '1'
+             , ECONT_FLAG
+             , APPROVAL_FLAG
+             , 'T'
+          FROM STOCECCF
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND FORM_NUM = #{FORM_NUM}
+    </insert>
+
+    <insert id="cctr0012_doCopyECCR">
+        INSERT INTO STOCECCR (
+               GATE_CD
+             , BUYER_CD
+             , FORM_NUM
+             , REL_FORM_NUM
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , REL_FORM_SQ
+             , REQUIRE_FLAG
+        )
+        SELECT GATE_CD
+             , BUYER_CD
+             , #{NEW_FORM_NUM}
+             , REL_FORM_NUM
+             , SYSDATE
+             , #{ses.userId}
+			 , SYSDATE
+			 , #{ses.userId}
+             , DEL_FLAG
+             ,(CASE WHEN REL_FORM_SQ IS NULL THEN <include refid="nextFormSq"/> ELSE REL_FORM_SQ END)
+             , REQUIRE_FLAG
+          FROM STOCECCR
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND FORM_NUM = #{FORM_NUM}
+    </insert>
+
+	<select id="ccti0013_doSearch" resultType="java.util.Map" resultMap="clobMap">
+		SELECT ECCF.BUYER_CD
+			 , ECCF.FORM_NUM
+			 , ECCF.FORM_TYPE
+			 , ECCF.CONT_TYPE
+			 , ECCF.CONT_DIV
+			 , ECCF.FORM_NM
+			 , ECCF.BUNDLE_FLAG
+			 , ECCF.AUTO_RENEW_FLAG
+			 , ECCF.NH_COMM_FLAG
+			 , ECCF.RMK
+			 , ECCF.SUB_FORM_DIV
+			 , ECCF.ATT_FILE_NUM
+			 , ECCF.USE_FLAG
+			 , ECCF.APP_DOC_NUM
+			 , ECCF.APP_DOC_CNT
+			 , ECCF.SIGN_STATUS
+			 , CUST.CUST_NM AS BUYER_NM
+		     , ECCF.FORM_FILE_NM
+		     , (SELECT RELAT_YN FROM STOCCUST WHERE GATE_CD = #{ses.gateCd} AND CUST_CD = #{BUYER_CD}) AS RELAT_YN
+		  FROM STOCECCF ECCF
+		  LEFT OUTER JOIN STOCECCR ECCR
+		   ON (ECCF.GATE_CD  = ECCR.GATE_CD
+		   AND ECCF.FORM_NUM = ECCR.REL_FORM_NUM
+		   AND ECCR.FORM_NUM = (SELECT FORM_NUM
+		   						  FROM STOCECCF
+		   						 WHERE GATE_CD = #{ses.gateCd}
+								<choose>
+									<when test='BUYER_CD != null and BUYER_CD != ""'>  AND BUYER_CD = #{BUYER_CD} </when>
+									<otherwise> AND BUYER_CD = #{BUYER_CD} </otherwise>
+								</choose>
+								<choose>
+									<when test="FORM_NUM != '' and FORM_NUM != null">
+										AND FORM_NUM = #{FORM_NUM}
+									</when>
+									<otherwise>
+										<if test="APP_DOC_NUM != '' and APP_DOC_NUM != null">
+											AND APP_DOC_NUM = #{APP_DOC_NUM}
+											AND APP_DOC_CNT = #{APP_DOC_CNT}
+										</if>
+									</otherwise>
+								</choose>
+		   						)
+		   AND ECCR.DEL_FLAG = '0')
+		  LEFT OUTER JOIN STOCCUST CUST
+			   ON (CUST.GATE_CD = ECCF.GATE_CD
+			  AND  CUST.CUST_CD = ECCF.BUYER_CD)
+		 WHERE ECCF.GATE_CD  = #{ses.gateCd}
+		<choose>
+			<when test='BUYER_CD != null and BUYER_CD != ""'>  AND ECCF.BUYER_CD = #{BUYER_CD} </when>
+			<otherwise> AND ECCF.BUYER_CD = #{BUYER_CD} </otherwise>
+		</choose>
+		<choose>
+			<when test="FORM_NUM != '' and FORM_NUM != null">
+				AND ECCF.FORM_NUM = #{FORM_NUM}
+			</when>
+			<otherwise>
+				<if test="APP_DOC_NUM != '' and APP_DOC_NUM != null">
+					AND ECCF.APP_DOC_NUM = #{APP_DOC_NUM}
+					AND ECCF.APP_DOC_CNT = #{APP_DOC_CNT}
+				</if>
+			</otherwise>
+		</choose>
+		   AND ECCF.DEL_FLAG = '0'
+ 	</select>
+
+	<!-- 부서식만 조회 -->
+	<select id="ccti0013_doSearchECCR" resultType="hashMap">
+        SELECT (CASE WHEN ECCR.FORM_NUM IS NULL THEN 0 ELSE 1 END) AS SELECTED
+             , ECCF.BUYER_CD
+        	 , ECCF.FORM_NUM AS REL_FORM_NUM
+             , ECCF.FORM_TYPE
+             , ECCF.FORM_NM
+             , ECCR.FORM_NUM
+             , row_number() over( order by ECCF.FORM_NM DESC) AS NUM
+             , ECCR.REQUIRE_FLAG
+             , ECCR.REL_FORM_SQ
+          FROM STOCECCF ECCF
+          LEFT OUTER JOIN STOCECCR ECCR
+           	   ON (ECCF.GATE_CD  = ECCR.GATE_CD
+		<choose>
+			<when test='relatYN == "0"'>
+			   AND (ECCF.BUYER_CD = ECCR.BUYER_CD OR ECCF.NH_COMM_FLAG = '1')
+            </when>
+			<otherwise>
+			   AND ECCF.BUYER_CD = ECCR.BUYER_CD
+			</otherwise>
+		</choose>
+		       AND ECCF.FORM_NUM = ECCR.REL_FORM_NUM
+		       AND ECCR.FORM_NUM = #{FORM_NUM}
+		       AND ECCR.DEL_FLAG = '0')
+	     WHERE ECCF.GATE_CD   = #{ses.gateCd}
+		<choose>
+			<when test='relatYN == "0"'>
+				AND (ECCF.BUYER_CD = #{BUYER_CD} OR ECCF.NH_COMM_FLAG = '1')
+            </when>
+			<otherwise> AND ECCF.BUYER_CD = #{BUYER_CD} </otherwise>
+		</choose>
+		   AND ECCF.FORM_TYPE = '200' --부서식만
+		<if test="FORM_NUM != '' and FORM_NUM != null">
+		   AND ECCF.FORM_NUM != #{FORM_NUM}
+		</if>
+	       <!-- AND ECCF.NH_COMM_FLAG = '1' -->
+		   AND ECCF.DEL_FLAG  = '0'
+		   AND ECCF.SIGN_STATUS = 'E' -- 결재완료
+		   AND ECCF.USE_FLAG = '1'    -- 사용중
+	     ORDER BY ECCR.REL_FORM_SQ, ECCR.FORM_NUM, ECCF.FORM_NUM
+    </select>
+
+	<insert id="ccti0013_doInsertForm" parameterType="hashmap">
+		INSERT INTO STOCECCF (
+			   GATE_CD
+			 , BUYER_CD
+			 , FORM_NUM
+			 , REG_DATE
+			 , REG_USER_ID
+			 , MOD_DATE
+			 , MOD_USER_ID
+			 , DEL_FLAG
+			 , FORM_TYPE
+			 , CONT_TYPE
+			 , CONT_DIV
+			 , FORM_NM
+			 , BUNDLE_FLAG
+			 , AUTO_RENEW_FLAG
+			 , NH_COMM_FLAG
+			 , RMK
+			 , SUB_FORM_DIV
+			 , ATT_FILE_NUM
+			 , USE_FLAG
+			 , SIGN_STATUS
+			 , FORM_FILE_NM
+		) VALUES (
+			   #{ses.gateCd}
+			 , #{BUYER_CD}
+			 , #{FORM_NUM}
+			 , SYSDATE
+			 , #{ses.userId}
+			 , SYSDATE
+			 , #{ses.userId}
+			 , '0'
+			 , #{FORM_TYPE}
+			 , #{CONT_TYPE}
+			 , #{CONT_DIV}
+			 , #{FORM_NM}
+			 , #{BUNDLE_FLAG}
+			 , #{AUTO_RENEW_FLAG}
+			 , <include refid="common.sql.nvl"/>(#{NH_COMM_FLAG}, '0')
+			 , #{RMK}
+			 , #{SUB_FORM_DIV}
+			 , #{ATT_FILE_NUM}
+			 , #{USE_FLAG}
+			 , 'T'
+			 , #{FORM_FILE_NM}
+		)
+	</insert>
+
+	<update id="ccti0013_doUpdateForm" parameterType="hashmap">
+		UPDATE STOCECCF SET
+			   MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , FORM_TYPE = #{FORM_TYPE}
+			 , CONT_TYPE = #{CONT_TYPE}
+			 , CONT_DIV = #{CONT_DIV}
+			 , FORM_NM = #{FORM_NM}
+			 , BUNDLE_FLAG = #{BUNDLE_FLAG}
+			 , AUTO_RENEW_FLAG = #{AUTO_RENEW_FLAG}
+			 , NH_COMM_FLAG = <include refid="common.sql.nvl"/>(#{NH_COMM_FLAG}, '0')
+			 , RMK = #{RMK}
+			 , SUB_FORM_DIV = #{SUB_FORM_DIV}
+			 , ATT_FILE_NUM = #{ATT_FILE_NUM}
+			 , USE_FLAG = #{USE_FLAG}
+			 , SIGN_STATUS = 'T'
+		     , FORM_FILE_NM = #{FORM_FILE_NM}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND FORM_NUM = #{FORM_NUM}
+		   AND DEL_FLAG = '0'
+	</update>
+
+	<sql id="nextFormSq">
+        (SELECT <include refid="common.sql.nvl"/>(MAX(REL_FORM_SQ), 0) + 1
+		   FROM STOCECCR
+		  WHERE GATE_CD  = #{ses.gateCd}
+		    AND BUYER_CD = #{BUYER_CD}
+		    AND FORM_NUM = #{FORM_NUM})
+    </sql>
+
+	<update id="newFormRegistrationDoUpdateGridData">
+        UPDATE STOCECCR
+           SET MOD_DATE = SYSDATE,
+               MOD_USER_ID = #{ses.userId},
+               REQUIRE_FLAG = #{REQUIRE_FLAG},
+			<if test='updateRelFormSeq == "true"'>
+               REL_FORM_SQ = (CASE WHEN #{REL_FORM_SQ} IS NULL THEN <include refid="nextFormSq"/> ELSE TO_NUMBER(#{REL_FORM_SQ}) END),
+			</if>
+               DEL_FLAG = '0'
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND FORM_NUM = #{FORM_NUM}
+           AND REL_FORM_NUM = #{REL_FORM_NUM}
+    </update>
+
+	 <update id="newFormRegistrationDoDeleteGridData">
+        UPDATE STOCECCR
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , DEL_FLAG       = '1'
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND FORM_NUM = #{FORM_NUM}
+		   AND REL_FORM_NUM = #{REL_FORM_NUM}
+    </update>
+
+	 <select id="newFormRegistrationGetExistCount" resultType="int">
+        SELECT COUNT(GATE_CD)
+		  FROM STOCECCR
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND FORM_NUM = #{FORM_NUM}
+		   AND REL_FORM_NUM = #{REL_FORM_NUM}
+    </select>
+
+	<select id="ccti0013_doSearchFormText" resultType="java.lang.String">
+		SELECT FORM_TEXT
+		  FROM STOCECCF
+	     WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND FORM_NUM = #{FORM_NUM}
+ 	</select>
+
+	<insert id="newFormRegistrationDoInsertGridData" parameterType="hashMap">
+	    INSERT INTO STOCECCR (
+               GATE_CD
+             , BUYER_CD
+	         , FORM_NUM
+	         , REL_FORM_NUM
+	         , REG_DATE
+	         , REG_USER_ID
+	         , MOD_DATE
+	         , MOD_USER_ID
+	         , DEL_FLAG
+	         , REL_FORM_SQ
+	         , REQUIRE_FLAG
+	    ) VALUES (
+		       #{ses.gateCd}
+		     , #{BUYER_CD}
+		     , #{FORM_NUM}
+		     , #{REL_FORM_NUM}
+		     , SYSDATE
+             , #{ses.userId}
+             , SYSDATE
+             , #{ses.userId}
+		     , '0'
+		     ,(CASE WHEN #{REL_FORM_SQ} IS NULL THEN <include refid="nextFormSq"/> ELSE TO_NUMBER(#{REL_FORM_SQ}) END)
+		     , #{REQUIRE_FLAG}
+		)
+    </insert>
+
+    <!-- 서식관리 : 결재정보 저장 -->
+	<update id="doUpdateSignInfo" parameterType="hashmap">
+        UPDATE STOCECCF
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , APP_DOC_NUM = #{APP_DOC_NUM}
+			 , APP_DOC_CNT = CASE WHEN #{APP_DOC_CNT} = '' THEN NULL ELSE #{APP_DOC_CNT} END
+			 , SIGN_STATUS = #{SIGN_STATUS}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND FORM_NUM = #{FORM_NUM}
+		   AND DEL_FLAG = '0'
+    </update>
+    
+	<select id="ccti0013_getRelatYN" parameterType="hashmap" resultType="java.lang.String">
+
+		SELECT RELAT_YN FROM STOCCUST WHERE GATE_CD = #{ses.gateCd} AND CUST_CD = #{BUYER_CD}
+
+	</select>    
+</mapper>

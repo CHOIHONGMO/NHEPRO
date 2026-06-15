@@ -1,0 +1,689 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCTR.CCTR0080_Mapper">
+	<!-- CCTR0080 : 위임장 요청현황 -->
+	<select id="cctr0080_doSearch" parameterType="hashmap" resultType="hashmap">
+		SELECT A.*
+		  FROM (
+			SELECT
+				ETHD.GATE_CD
+				, ETHD.BUYER_CD
+				, <include refid="common.sql.dbo"/>GETCUSTNAME(ETHD.GATE_CD, ETHD.BUYER_CD) AS BUYER_NM
+				, ETHD.REQ_NUM
+				, ETHD.REQ_NUM<include refid="common.sql.stringMerge"/>'-'<include refid="common.sql.stringMerge"/>ETDT.REQ_SEQ AS REQ_NUM_VIEW
+				, ETHD.REG_DATE
+				, ETHD.REG_USER_ID
+				, ETHD.MOD_DATE
+				, ETHD.MOD_USER_ID
+				, ETHD.PROGRESS_CD AS HD_PROGRESS_CD
+				, ETHD.REQ_TYPE_CD
+				, ETHD.REF_DOC_NO
+				, ETHD.SUBJECT<include refid="common.sql.stringMerge"/>' - '<include refid="common.sql.stringMerge"/><include refid="common.sql.dbo"/>GETCUSTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD) AS SUBJECT
+				, ETHD.REQ_USER_ID
+				, <include refid="common.sql.dbo"/>GETUSERNAME(ETHD.GATE_CD, ETHD.REQ_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+				, ETHD.REQ_USER_DEPT_CD
+				, <include refid="common.sql.toChar"/>(ETHD.REQ_DATE, 'YYYYMMDD') AS REQ_DATE
+				, <include refid="common.sql.toChar"/>(ETHD.CONT_DATE, 'YYYYMMDD') AS CONT_DATE
+				, <include refid="common.sql.toChar"/>(ETHD.RCV_REQ_DATE, 'YYYYMMDD') AS RCV_REQ_DATE
+				,(CASE WHEN ETDT.SIGN_VALUE IS NOT NULL THEN ETDT.EFORM_ID ELSE NULL END) AS ATT_FILE_NUM
+	            ,(CASE WHEN ETDT.SIGN_VALUE IS NOT NULL THEN (SELECT COUNT(*) FROM STOCATCH
+	                										   WHERE GATE_CD  = ETDT.GATE_CD
+												                 AND UUID     = ETDT.EFORM_ID
+												                 AND DEL_FLAG = '0')
+					   ELSE 0 END) AS ATT_FILE_CNT
+				, ETHD.RMKS
+				, ETDT.REQ_SEQ
+				, ETDT.PROGRESS_CD
+				, ETDT.ENTRST_COMP_CD
+				, <include refid="common.sql.dbo"/>GETCUSTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD) AS ENTRST_COMP_NM
+				, ETDT.ENTRST_OFCE_CD
+				, <include refid="common.sql.dbo"/>GETDEPTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD, ETDT.ENTRST_OFCE_CD, #{ses.langCd}) AS ENTRST_OFCE_NM
+				, ETDT.REJECT_USER_ID
+				,(CASE WHEN ETDT.PROGRESS_CD = 'R' THEN 
+				  <include refid="common.sql.toChar"/>(ETDT.REJECT_DATE, 'YYYY-MM-DD HH24:MI') ELSE NULL END) AS REJECT_DATE
+				,(CASE WHEN ETDT.PROGRESS_CD = 'R' THEN ETDT.REJECT_RMK ELSE NULL END) AS REJECT_RMK
+				,(CASE WHEN ETDT.PROGRESS_CD = 'C' THEN 
+				  <include refid="common.sql.toChar"/>(ETDT.CANCEL_DATE, 'YYYY-MM-DD HH24:MI') ELSE NULL END) AS CANCEL_DATE
+				,(CASE WHEN ETDT.PROGRESS_CD = 'C' THEN ETDT.CANCEL_RMK ELSE NULL END) AS CANCEL_RMK
+				, ETDT.SIGN_USER_ID
+				, <include refid="common.sql.dbo"/>GETUSERNAME(ETDT.GATE_CD, ETDT.SIGN_USER_ID, #{ses.langCd}) AS SIGN_USER_NM
+				,(CASE WHEN ETDT.PROGRESS_CD = 'E' THEN 
+				  <include refid="common.sql.toChar"/>(ETDT.SIGN_DATE, 'YYYY-MM-DD HH24:MI') ELSE NULL END) AS SIGN_DATE
+				, ETDT.EFORM_ID
+			FROM STOCETHD ETHD INNER JOIN STOCETDT ETDT
+								ON (ETHD.GATE_CD  = ETDT.GATE_CD
+								AND ETHD.BUYER_CD = ETDT.BUYER_CD
+								AND ETHD.REQ_NUM  = ETDT.REQ_NUM
+								AND ETDT.DEL_FLAG = '0')
+			WHERE 1 = 1
+			AND ETHD.GATE_CD  = #{ses.gateCd}
+			AND ETHD.BUYER_CD = (CASE WHEN <include refid="common.sql.nvl"/>(#{BUYER_CD}, '') = '' THEN #{ses.companyCd} ELSE #{BUYER_CD} END)
+			AND ETHD.DEL_FLAG = '0'
+			
+		   	<if test="REQ_DATE_FROM != null and REQ_DATE_FROM != '' and REQ_DATE_TO != null and REQ_DATE_TO != ''">
+				AND ETHD.REQ_DATE BETWEEN <include refid="common.sql.toDateFrom"/>(#{REQ_DATE_FROM}) AND <include refid="common.sql.toDateTo"/>(#{REQ_DATE_TO})
+		   	</if>
+			<if test="SUBJECT != null and SUBJECT != ''">
+				AND ETHD.SUBJECT LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SUBJECT}) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+			<!-- 수임사코드 -->
+			<if test="ENTRUST_COMP_CD != null and ENTRUST_COMP_CD != ''">
+				AND ETDT.ENTRST_COMP_CD = UPPER(#{ENTRUST_COMP_CD})
+			</if>
+			<if test="PROGRESS_CD != null and PROGRESS_CD != ''">
+			   	AND ETDT.PROGRESS_CD IN
+				<foreach collection="PROGRESS_CD_LIST" item="item" index="index" separator="," open="(" close=")">
+					#{item}
+				</foreach>
+			</if>
+		  ) A
+		 WHERE 1 = 1
+		<if test="BUYER_NM != null and BUYER_NM != ''">
+		   AND A.BUYER_NM LIKE '%' <include refid="common.sql.stringMerge"/> #{BUYER_NM} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="REQ_USER_NM != null and REQ_USER_NM != ''">
+		   AND A.REQ_USER_NM LIKE '%' <include refid="common.sql.stringMerge"/> #{REQ_USER_NM} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="ENTRUST_COMP_NM != null and ENTRUST_COMP_NM != ''">
+		   AND A.ENTRST_COMP_NM LIKE '%' <include refid="common.sql.stringMerge"/> #{ENTRUST_COMP_NM} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		ORDER BY A.REQ_NUM DESC, A.REQ_SEQ
+	</select>
+	
+	<!-- 위임장 반려, 취소, 전자서명 상태값 체크 -->
+	<select id="cctr0080_checkProgressCd" parameterType="hashmap" resultType="String">
+		SELECT PROGRESS_CD
+		FROM STOCETDT
+		WHERE 1 = 1
+		AND GATE_CD  = #{ses.gateCd}
+		AND BUYER_CD = #{BUYER_CD}
+		AND REQ_NUM  = #{REQ_NUM}
+		AND REQ_SEQ  = #{REQ_SEQ}
+	</select>
+	
+	<!-- 위임장 작성취소 DT -->
+	<!-- 임시저장건 작성취소시 삭제, 전송건 작성취소시 작성취소(C) -->
+	<update id="cctr0080_doCancelDT" parameterType="hashmap">
+		UPDATE STOCETDT SET
+			  MOD_DATE    = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, DEL_FLAG    = CASE WHEN PROGRESS_CD = 'T' THEN '1' ELSE '0' END
+			, PROGRESS_CD = CASE WHEN PROGRESS_CD = 'T' THEN PROGRESS_CD ELSE 'C' END
+			, CANCEL_DATE = SYSDATE
+			, CANCEL_RMK  = #{CANCEL_RMK}
+		WHERE 1 = 1
+		AND GATE_CD  = #{ses.gateCd}
+		AND BUYER_CD = #{BUYER_CD}
+		AND REQ_NUM  = #{REQ_NUM}
+		AND REQ_SEQ  = #{REQ_SEQ}
+	</update>
+	
+	<!-- CCTR0081 : 위임 법인별 위임장 현황 -->
+	<select id="cctr0081_doSearch" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			ETHD.GATE_CD
+			, ETHD.BUYER_CD
+			, <include refid="common.sql.dbo"/>GETCUSTNAME(ETHD.GATE_CD, ETHD.BUYER_CD) AS BUYER_NM
+			, ETHD.REQ_NUM
+			, ETHD.REQ_NUM<include refid="common.sql.stringMerge"/>'-'<include refid="common.sql.stringMerge"/>ETDT.REQ_SEQ AS REQ_NUM_VIEW
+			, ETHD.REG_DATE
+			, ETHD.REG_USER_ID
+			, ETHD.MOD_DATE
+			, ETHD.MOD_USER_ID
+			, ETHD.REQ_TYPE_CD
+			, ETHD.REF_DOC_NO
+			, ETHD.SUBJECT<include refid="common.sql.stringMerge"/>' - '<include refid="common.sql.stringMerge"/><include refid="common.sql.dbo"/>GETCUSTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD) AS SUBJECT
+			, ETHD.REQ_USER_ID
+			, <include refid="common.sql.dbo"/>GETUSERNAME(ETHD.GATE_CD, ETHD.REQ_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+			, ETHD.REQ_USER_DEPT_CD
+			, <include refid="common.sql.toChar"/>(ETHD.REQ_DATE, 'YYYYMMDD') AS REQ_DATE
+			, <include refid="common.sql.toChar"/>(ETHD.CONT_DATE, 'YYYYMMDD') AS CONT_DATE
+			, <include refid="common.sql.toChar"/>(ETHD.RCV_REQ_DATE, 'YYYYMMDD') AS RCV_REQ_DATE
+			,(CASE WHEN ETDT.SIGN_VALUE IS NOT NULL THEN ETDT.EFORM_ID ELSE NULL END) AS ATT_FILE_NUM
+            ,(CASE WHEN ETDT.SIGN_VALUE IS NOT NULL THEN (SELECT COUNT(*) FROM STOCATCH
+                										   WHERE GATE_CD  = ETDT.GATE_CD
+											                 AND UUID     = ETDT.EFORM_ID
+											                 AND DEL_FLAG = '0')
+				   ELSE 0 END) AS ATT_FILE_CNT
+			, ETHD.RMKS
+			, ETDT.REQ_SEQ
+			, ETDT.PROGRESS_CD
+			, ETDT.ENTRST_COMP_CD
+			, <include refid="common.sql.dbo"/>GETCUSTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD) AS ENTRST_COMP_NM
+			, ETDT.ENTRST_OFCE_CD
+			, <include refid="common.sql.dbo"/>GETDEPTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD, ETDT.ENTRST_OFCE_CD, #{ses.langCd}) AS ENTRST_OFCE_NM
+			, ETDT.REJECT_USER_ID
+			,(CASE WHEN ETDT.PROGRESS_CD = 'R' THEN 
+			  <include refid="common.sql.toChar"/>(ETDT.REJECT_DATE, 'YYYY-MM-DD HH24:MI') ELSE NULL END) AS REJECT_DATE
+			,(CASE WHEN ETDT.PROGRESS_CD = 'R' THEN ETDT.REJECT_RMK ELSE NULL END) AS REJECT_RMK
+			,(CASE WHEN ETDT.PROGRESS_CD = 'C' THEN 
+			  <include refid="common.sql.toChar"/>(ETDT.CANCEL_DATE, 'YYYY-MM-DD HH24:MI') ELSE NULL END) AS CANCEL_DATE
+			,(CASE WHEN ETDT.PROGRESS_CD = 'C' THEN ETDT.CANCEL_RMK ELSE NULL END) AS CANCEL_RMK
+			, ETDT.SIGN_USER_ID
+			, <include refid="common.sql.dbo"/>GETUSERNAME(ETDT.GATE_CD, ETDT.SIGN_USER_ID, #{ses.langCd}) AS SIGN_USER_NM
+			,(CASE WHEN ETDT.PROGRESS_CD = 'E' THEN 
+			  <include refid="common.sql.toChar"/>(ETDT.SIGN_DATE, 'YYYY-MM-DD HH24:MI') ELSE NULL END) AS SIGN_DATE
+			, ETDT.EFORM_ID
+			, ETDT.APP_STATUS
+			, ETDT.APP_DATE
+		FROM STOCETHD ETHD INNER JOIN STOCETDT ETDT
+							ON (ETHD.GATE_CD  = ETDT.GATE_CD
+							AND ETHD.BUYER_CD = ETDT.BUYER_CD
+							AND ETHD.REQ_NUM  = ETDT.REQ_NUM
+							AND ETDT.DEL_FLAG = '0')
+		WHERE 1 = 1
+		AND ETHD.GATE_CD  = #{ses.gateCd}
+		AND ETHD.DEL_FLAG = '0'
+		AND ETDT.ENTRST_COMP_CD = #{ses.companyCd}
+		
+	   	<if test="REQ_DATE_FROM != null and REQ_DATE_FROM != '' and REQ_DATE_TO != null and REQ_DATE_TO != ''">
+			AND ETHD.REQ_DATE BETWEEN <include refid="common.sql.toDateFrom"/>(#{REQ_DATE_FROM}) AND <include refid="common.sql.toDateTo"/>(#{REQ_DATE_TO})
+	   	</if>
+		<if test="SUBJECT != null and SUBJECT != ''">
+			AND ETHD.SUBJECT LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SUBJECT}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="PROGRESS_CD != null and PROGRESS_CD != ''">
+		   	AND ETDT.PROGRESS_CD IN
+			<foreach collection="PROGRESS_CD_LIST" item="item" index="index" separator="," open="(" close=")">
+				#{item}
+			</foreach>
+		</if>
+		ORDER BY 	ETDT.REQ_NUM DESC,
+					ETDT.REQ_SEQ
+	</select>
+	
+	<!-- CCTR0070 : 위임장 작성 및 수정 Header -->
+	<!-- CLOB -> String -->
+	<resultMap type="hashmap" id="cctr0070_doSearchHD_resultMap">
+		<result property="CONTENTS_CLOB" column="CONTENTS_CLOB" jdbcType="CLOB" javaType="java.lang.String"></result>
+	</resultMap>
+	<select id="cctr0070_doSearchHD" parameterType="hashmap" resultType="hashmap" resultMap="cctr0070_doSearchHD_resultMap">
+		SELECT
+			ETHD.GATE_CD
+			, ETHD.BUYER_CD
+			, <include refid="common.sql.dbo"/>GETCUSTNAME(ETHD.GATE_CD, ETHD.BUYER_CD) AS BUYER_NM
+			, ETHD.REQ_NUM
+			, ETHD.REG_DATE
+			, ETHD.REG_USER_ID
+			, ETHD.MOD_DATE
+			, ETHD.MOD_USER_ID
+			, ETHD.PROGRESS_CD
+			, <include refid="common.sql.dbo"/>GETCOMCODE(ETHD.GATE_CD, 'NH0027', ETHD.PROGRESS_CD, 0, 'KO') AS PROGRESS_CD_LOC
+			, ETHD.REQ_TYPE_CD
+			, ETHD.REF_DOC_NO
+			, ETHD.SUBJECT
+			, ETHD.CONTENTS_CLOB
+			, ETHD.REQ_USER_ID
+			, <include refid="common.sql.dbo"/>GETUSERNAME(ETHD.GATE_CD, ETHD.REQ_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+			, ETHD.REQ_USER_DEPT_CD
+			, <include refid="common.sql.dbo"/>GETDEPTNAME(ETHD.GATE_CD, ETHD.BUYER_CD, ETHD.REQ_USER_DEPT_CD, #{ses.langCd}) AS REQ_USER_DEPT_NM
+			, <include refid="common.sql.strDecStart"/>ETHD.REQ_USER_TEL_NUM<include refid="common.sql.strDecEnd"/> AS REQ_USER_TEL_NUM
+			, <include refid="common.sql.toChar"/>(ETHD.REQ_DATE, 'YYYYMMDD') AS REQ_DATE
+			, <include refid="common.sql.toChar"/>(ETHD.CONT_DATE, 'YYYYMMDD') AS CONT_DATE
+			, <include refid="common.sql.toChar"/>(ETHD.RCV_REQ_DATE, 'YYYYMMDD') AS RCV_REQ_DATE
+			, ETHD.ATT_FILE_NUM
+            , (SELECT COUNT(*) FROM STOCATCH
+                WHERE GATE_CD  = ETHD.GATE_CD
+                  AND UUID     = ETHD.ATT_FILE_NUM
+                  AND DEL_FLAG = '0') AS ATT_FILE_CNT
+			, ETHD.RMKS
+			, ETHD.EFORM_ID
+			, ETHD.ATT_CONTENTS
+		FROM STOCETHD ETHD
+		WHERE 1 = 1
+		AND ETHD.GATE_CD  = #{ses.gateCd}
+		AND ETHD.BUYER_CD = (CASE WHEN <include refid="common.sql.nvl"/>(#{BUYER_CD}, '') = '' THEN #{ses.companyCd} ELSE #{BUYER_CD} END)
+		AND ETHD.REQ_NUM  = #{REQ_NUM}
+		AND ETHD.DEL_FLAG = '0'
+	</select>
+	
+	<!-- CCTR0070 : 위임장 작성 및 수정 Detail -->
+	<select id="cctr0070_doSearchDT" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			ETDT.REQ_NUM
+			, ETDT.REQ_SEQ
+			, ETDT.PROGRESS_CD
+			,(SELECT IRS_NUM FROM STOCCUST WHERE GATE_CD = ETDT.GATE_CD AND CUST_CD = ETDT.ENTRST_COMP_CD) AS ENTRST_IRS_NO
+			, ETDT.ENTRST_COMP_CD
+			, <include refid="common.sql.dbo"/>GETCUSTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD) AS ENTRST_COMP_NM
+			, ETDT.ENTRST_OFCE_CD
+			, <include refid="common.sql.dbo"/>GETDEPTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD, ETDT.ENTRST_OFCE_CD, #{ses.langCd}) AS ENTRST_OFCE_NM
+			, ETDT.REJECT_USER_ID
+			,(CASE WHEN ETDT.PROGRESS_CD = 'R' THEN 
+			  <include refid="common.sql.toChar"/>(ETDT.REJECT_DATE, 'YYYY-MM-DD HH24:MI') ELSE NULL END) AS REJECT_DATE
+			,(CASE WHEN ETDT.PROGRESS_CD = 'R' THEN ETDT.REJECT_RMK ELSE NULL END) AS REJECT_RMK
+			, ETDT.SIGN_USER_ID
+            , <include refid="common.sql.toChar"/>(ETDT.SIGN_DATE, 'YYYY-MM-DD HH24:MI') AS SIGN_DATE
+			, ETDT.EFORM_ID
+			, ETDT.ENTRST_COMP_CD<include refid="common.sql.stringMerge"/>'-'<include refid="common.sql.stringMerge"/>ETDT.ENTRST_OFCE_CD AS CHECK_DUP
+			, <include refid="common.sql.strDecStart"/>ETDT.VENDOR_PIC_USER_NM<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_NM
+			, <include refid="common.sql.strDecStart"/>ETDT.VENDOR_PIC_USER_EMAIL<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_EMAIL
+			, <include refid="common.sql.strDecStart"/>ETDT.VENDOR_PIC_USER_CELL_NUM<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_CELL_NUM
+		FROM STOCETDT ETDT
+		WHERE 1 = 1
+		AND ETDT.GATE_CD  = #{ses.gateCd}
+		AND ETDT.BUYER_CD = (CASE WHEN <include refid="common.sql.nvl"/>(#{BUYER_CD}, '') = '' THEN #{ses.companyCd} ELSE #{BUYER_CD} END)
+		AND ETDT.REQ_NUM  = #{REQ_NUM}
+		AND ETDT.DEL_FLAG = '0'
+	</select>
+
+	<!-- CCTR0070 : 위임장 Header 등록 -->
+	<insert id="cctr0070_doInsertHD" parameterType="hashmap">
+		INSERT INTO STOCETHD (
+			GATE_CD
+			, BUYER_CD
+			, REQ_NUM
+			, REG_DATE
+			, REG_USER_ID
+			, DEL_FLAG
+			, PROGRESS_CD
+			, REQ_TYPE_CD
+			, REF_DOC_NO
+			, SUBJECT
+			, CONTENTS_CLOB
+			, REQ_USER_ID
+			, REQ_USER_DEPT_CD
+			, REQ_USER_EMAIL
+			, REQ_USER_CELL_NUM
+			, REQ_USER_TEL_NUM
+			, REQ_DATE
+			, CONT_DATE
+			, RCV_REQ_DATE
+			, ATT_FILE_NUM
+			, RMKS
+			, ATT_CONTENTS
+		) VALUES (
+			#{ses.gateCd}
+			, #{ses.companyCd}
+			, #{REQ_NUM}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, #{PROGRESS_CD}
+			, #{REQ_TYPE_CD}
+			, #{REF_DOC_NO}
+			, #{SUBJECT}
+			, #{CONTENTS_CLOB}
+			, #{REQ_USER_ID}
+			, #{REQ_USER_DEPT_CD}
+			, <include refid="common.sql.strEncStart"/>#{REQ_USER_EMAIL}<include refid="common.sql.strEncEnd"/>
+			, <include refid="common.sql.strEncStart"/>#{REQ_USER_CELL_NUM}<include refid="common.sql.strEncEnd"/>
+			, <include refid="common.sql.strEncStart"/>#{REQ_USER_TEL_NUM}<include refid="common.sql.strEncEnd"/>
+			, SYSDATE
+			, #{CONT_DATE}
+			, #{RCV_REQ_DATE}
+			, #{ATT_FILE_NUM}
+			, #{RMKS}
+			, #{ATT_CONTENTS}
+		)
+	</insert>
+
+	<!-- CCTR0070 : 위임장 Header 수정 -->
+	<update id="cctr0070_doUpdateHD" parameterType="hashmap">
+		UPDATE STOCETHD SET
+			  MOD_DATE    		= SYSDATE
+			, MOD_USER_ID 		= #{ses.userId}
+			, DEL_FLAG	  		= '0'
+			, PROGRESS_CD	  	= #{PROGRESS_CD}
+			, REQ_TYPE_CD	  	= #{REQ_TYPE_CD}
+			, REF_DOC_NO	  	= #{REF_DOC_NO}
+			, SUBJECT	  		= #{SUBJECT}
+			, CONTENTS_CLOB		  	= #{CONTENTS_CLOB}
+			, REQ_USER_ID	  	= #{REQ_USER_ID}
+			, REQ_USER_DEPT_CD	= #{REQ_USER_DEPT_CD}
+			, REQ_USER_EMAIL	= <include refid="common.sql.strEncStart"/>#{REQ_USER_EMAIL}<include refid="common.sql.strEncEnd"/>
+			, REQ_USER_CELL_NUM	= <include refid="common.sql.strEncStart"/>#{REQ_USER_CELL_NUM}<include refid="common.sql.strEncEnd"/>
+			, REQ_USER_TEL_NUM	= <include refid="common.sql.strEncStart"/>#{REQ_USER_TEL_NUM}<include refid="common.sql.strEncEnd"/>
+			, REQ_DATE	  		= SYSDATE
+			, CONT_DATE			= #{CONT_DATE}
+			, RCV_REQ_DATE	  	= #{RCV_REQ_DATE}
+			, ATT_FILE_NUM	  	= #{ATT_FILE_NUM}
+			, RMKS	  			= #{RMKS}
+			, ATT_CONTENTS      = #{ATT_CONTENTS}
+		 WHERE 1 = 1
+		 AND GATE_CD  = #{ses.gateCd}
+		 AND BUYER_CD = #{ses.companyCd}
+		 AND REQ_NUM  = #{REQ_NUM}
+	</update>
+	
+	<!-- CCTR0070 : 위임장 Detail 삭제 -->
+	<delete id="cctr0070_doDeleteDT" parameterType="hashmap">
+		DELETE FROM STOCETDT
+		WHERE 1 = 1
+		AND GATE_CD  = #{ses.gateCd}
+		AND BUYER_CD = #{ses.companyCd}
+		AND REQ_NUM  = #{REQ_NUM}
+	</delete>
+	
+	<!-- CCTR0070 : 위임장 Detail 저장 -->
+	<insert id="cctr0070_doInsertDT" parameterType="hashmap">
+		<selectKey keyProperty="reqSeq" resultType="java.lang.Integer" order="BEFORE">
+            SELECT <include refid="common.sql.nvl"/>(MAX(REQ_SEQ) + 1, 1) AS REQSEQ FROM STOCETDT
+            WHERE GATE_CD = #{ses.gateCd} AND BUYER_CD = #{ses.companyCd} AND REQ_NUM = #{REQ_NUM}
+        </selectKey>
+        
+		INSERT INTO STOCETDT (
+			GATE_CD
+			, BUYER_CD
+			, REQ_NUM
+			, REQ_SEQ
+			, REG_DATE
+			, REG_USER_ID
+			, DEL_FLAG
+			, PROGRESS_CD
+			, ENTRST_COMP_CD
+			, ENTRST_OFCE_CD
+			, VENDOR_PIC_USER_NM
+			, VENDOR_PIC_USER_EMAIL
+			, VENDOR_PIC_USER_CELL_NUM
+		) VALUES (
+			#{ses.gateCd}
+			, #{ses.companyCd}
+			, #{REQ_NUM}
+			, #{reqSeq}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, #{PROGRESS_CD}
+			, #{ENTRST_COMP_CD}
+			, #{ENTRST_OFCE_CD}
+			,<include refid="common.sql.strEncStart"/>#{VENDOR_PIC_USER_NM}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{VENDOR_PIC_USER_EMAIL}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{VENDOR_PIC_USER_CELL_NUM}<include refid="common.sql.strEncEnd"/>
+		)
+	</insert>
+	
+	<!-- 위임장 작성취소 HD -->
+	<update id="cctr0070_doCancelHD" parameterType="hashmap">
+		UPDATE STOCETHD SET
+			  MOD_DATE    = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, DEL_FLAG    = CASE WHEN PROGRESS_CD = 'T' THEN '1' ELSE '0' END
+			, PROGRESS_CD = CASE WHEN PROGRESS_CD = 'T' THEN PROGRESS_CD ELSE 'C' END
+		WHERE 1 = 1
+		AND GATE_CD  = #{ses.gateCd}
+		AND BUYER_CD = #{ses.companyCd}
+		AND REQ_NUM  = #{REQ_NUM}
+	</update>
+	
+	<!-- 위임장 작성취소 DT -->
+	<update id="cctr0070_doCancelDT" parameterType="hashmap">
+		UPDATE STOCETDT SET
+			  MOD_DATE    = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, DEL_FLAG    = CASE WHEN PROGRESS_CD = 'T' THEN '1' ELSE '0' END
+			, PROGRESS_CD = CASE WHEN PROGRESS_CD = 'T' THEN PROGRESS_CD ELSE 'C' END
+			, CANCEL_DATE = SYSDATE
+			, CANCEL_RMK  = #{CANCEL_RMK}
+		WHERE 1 = 1
+		AND GATE_CD  = #{ses.gateCd}
+		AND BUYER_CD = #{ses.companyCd}
+		AND REQ_NUM  = #{REQ_NUM}
+	</update>
+	
+	<!-- CCTR0071 : 위임장 상세 -->
+	<select id="cctr0071_doSearch" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			ETHD.GATE_CD
+			, ETHD.REQ_NUM
+			, ETHD.REG_DATE
+			, ETHD.REG_USER_ID
+			, ETHD.MOD_DATE
+			, ETHD.MOD_USER_ID
+			, ETHD.BUYER_CD
+			, <include refid="common.sql.dbo"/>GETCOMPANYNAME(ETHD.GATE_CD, ETHD.BUYER_CD, #{ses.langCd})
+			  <include refid="common.sql.stringMerge"/>' '<include refid="common.sql.stringMerge"/>
+			  <include refid="common.sql.dbo"/>GETDEPTNAME(ETHD.GATE_CD, ETHD.BUYER_CD, ETHD.REQ_USER_DEPT_CD, #{ses.langCd}) AS BUYER_NM
+			, ETHD.REQ_TYPE_CD
+			, ETHD.REF_DOC_NO
+			, ETHD.SUBJECT
+			, ETHD.CONTENTS_CLOB
+			, ETHD.REQ_USER_ID
+			, <include refid="common.sql.dbo"/>GETUSERNAME(ETHD.GATE_CD, ETHD.REQ_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+			, ETHD.REQ_USER_DEPT_CD
+			, <include refid="common.sql.dbo"/>GETDEPTNAME(ETHD.GATE_CD, ETHD.BUYER_CD, ETHD.REQ_USER_DEPT_CD, #{ses.langCd}) AS REQ_USER_DEPT_NM
+			, <include refid="common.sql.strDecStart"/>ETHD.REQ_USER_TEL_NUM<include refid="common.sql.strDecEnd"/> AS REQ_USER_TEL_NUM
+			, <include refid="common.sql.toChar"/>(ETHD.REQ_DATE, 'YYYYMMDD') AS REQ_DATE
+			, <include refid="common.sql.toChar"/>(ETHD.CONT_DATE, 'YYYYMMDD') AS CONT_DATE
+			, <include refid="common.sql.toChar"/>(ETHD.RCV_REQ_DATE, 'YYYYMMDD') AS RCV_REQ_DATE
+			, ETHD.ATT_FILE_NUM
+            , (SELECT COUNT(*) FROM STOCATCH
+                WHERE GATE_CD  = ETHD.GATE_CD
+                  AND UUID     = ETHD.ATT_FILE_NUM
+                  AND DEL_FLAG = '0') AS ATT_FILE_CNT
+			, ETHD.RMKS
+			, ETHD.ATT_CONTENTS
+			, ETDT.REQ_SEQ
+			, ETDT.PROGRESS_CD
+			,(SELECT IRS_NUM FROM STOCCUST WHERE GATE_CD = ETDT.GATE_CD AND CUST_CD = ETDT.ENTRST_COMP_CD) AS ENTRST_IRS_NO
+			, ETDT.ENTRST_COMP_CD
+			, <include refid="common.sql.dbo"/>GETCUSTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD) AS ENTRST_COMP_NM
+			, ETDT.ENTRST_OFCE_CD
+			, <include refid="common.sql.dbo"/>GETDEPTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD, ETDT.ENTRST_OFCE_CD, #{ses.langCd}) AS ENTRST_OFCE_NM
+			, ETDT.REJECT_USER_ID
+			,(CASE WHEN ETDT.PROGRESS_CD = 'R' THEN 
+			  <include refid="common.sql.toChar"/>(ETDT.REJECT_DATE, 'YYYY-MM-DD HH24:MI') ELSE NULL END) AS REJECT_DATE
+			,(CASE WHEN ETDT.PROGRESS_CD = 'R' THEN ETDT.REJECT_RMK ELSE NULL END) AS REJECT_RMK
+			, ETDT.SIGN_USER_ID
+            , <include refid="common.sql.toChar"/>(ETDT.SIGN_DATE, 'YYYY-MM-DD HH24:MI') AS SIGN_DATE
+			, ETDT.EFORM_ID
+			, ETDT.APP_DOC_NUM
+			, ETDT.APP_DOC_CNT
+			, ETDT.APP_STATUS
+			, ETDT.APP_DATE
+		FROM STOCETHD ETHD INNER JOIN STOCETDT ETDT
+							ON (ETHD.GATE_CD  = ETDT.GATE_CD
+							AND ETHD.BUYER_CD = ETDT.BUYER_CD
+							AND ETHD.REQ_NUM  = ETDT.REQ_NUM
+							AND ETDT.DEL_FLAG = '0')
+		WHERE 1 = 1
+		  AND ETHD.GATE_CD  = #{ses.gateCd}
+		<choose>
+			<when test="REQ_NUM != '' and REQ_NUM != null and REQ_SEQ != '' and REQ_SEQ != null">
+				AND ETHD.BUYER_CD = #{BUYER_CD}
+				AND ETHD.REQ_NUM  = #{REQ_NUM}
+				AND ETDT.REQ_SEQ  = #{REQ_SEQ}
+			</when>
+			<otherwise>
+				AND ETDT.ENTRST_COMP_CD = #{BUYER_CD}
+				AND ETDT.APP_DOC_NUM    = #{APP_DOC_NUM}
+			</otherwise>
+		</choose>
+		  AND ETHD.DEL_FLAG = '0'
+	</select>
+	
+	<!-- CCTR0071 : 위임장 작성 후 Detail의 위임장 eform 번호 변경 -->
+	<update id="cctr0071_doSaveEform" parameterType="hashmap">
+		UPDATE STOCETDT SET
+			  MOD_DATE    = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, EFORM_ID    = #{UUID}
+		WHERE GATE_CD  = #{ses.gateCd}
+		  AND BUYER_CD = #{BUYER_CD}
+		  AND REQ_NUM  = #{REQ_NUM}
+		  AND REQ_SEQ  = #{REQ_SEQ}
+	</update>
+	
+	<!-- CCTR0071 : 위임장 결재상태 진행중으로 변경 -->
+	<update id="doUpdateStatusOfETDT">
+        UPDATE STOCETDT SET
+              MOD_DATE    = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , APP_STATUS  = #{SIGN_STATUS}
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND REQ_NUM  = #{REQ_NUM}
+           AND REQ_SEQ  = #{REQ_SEQ}
+    </update>
+    
+	<!-- CCTR0071 : 결재상신 후 결재문서 번호 저장 -->
+	<update id="doUpdateApprovalETDT" parameterType="hashmap">
+        UPDATE STOCETDT
+		   SET APP_DOC_NUM = #{APP_DOC_NUM}
+             , APP_DOC_CNT = CASE WHEN #{APP_DOC_CNT} = '' THEN NULL ELSE #{APP_DOC_CNT} END
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND REQ_NUM  = #{REQ_NUM}
+           AND REQ_SEQ  = #{REQ_SEQ}
+    </update>
+    
+	<!-- CCTR0071 : 위임장 전자서명 -->
+	<update id="sctr0071_doSaveSignedData" parameterType="hashmap">
+		UPDATE STOCETDT SET
+			  MOD_DATE     = SYSDATE
+			, MOD_USER_ID  = #{ses.userId}
+			, PROGRESS_CD  = 'E'
+			, SIGN_USER_ID = #{ses.userId}
+			, SIGN_DATE    = SYSDATE
+			, SIGN_VALUE   = #{SIGN_VALUE}
+			, VID_RANDOM   = #{VID_RANDOM}
+		WHERE 1 = 1
+		  AND GATE_CD  = #{ses.gateCd}
+		  AND BUYER_CD = #{BUYER_CD}
+		  AND REQ_NUM  = #{REQ_NUM}
+		  AND REQ_SEQ  = #{REQ_SEQ}
+	</update>
+	    
+	<!-- CCTR0071 : 위임장 요청반려 -->
+	<update id="cctr0071_doReject" parameterType="hashmap">
+		UPDATE STOCETDT SET
+			  MOD_DATE    	 = SYSDATE
+			, MOD_USER_ID 	 = #{ses.userId}
+			, PROGRESS_CD 	 = 'R'
+			, REJECT_USER_ID = #{ses.userId}
+			, REJECT_DATE 	 = SYSDATE
+			, REJECT_RMK  	 = #{REJECT_RMK}
+		WHERE 1 = 1
+		  AND GATE_CD  = #{ses.gateCd}
+		  AND BUYER_CD = #{BUYER_CD}
+		  AND REQ_NUM  = #{REQ_NUM}
+		  AND REQ_SEQ  = #{REQ_SEQ}
+	</update>
+	
+	<!-- 2021.05.14 변경 -->
+	<!-- CCTR0071 : 법인 전자서명시 위임회사에 사용 수수료 부과하기 -->
+	<select id="costPayInfo_20210514" parameterType="hashmap" resultType="hashmap">
+
+        SELECT CUST.IRS_NUM     	AS CORP_NO
+             , ETDT.ENTRST_OFCE_CD 	AS BRC
+             ,<include refid="common.sql.toChar"/>(ETDT.SIGN_DATE, 'yyyyMMdd') AS APLY_DT
+             , ETDT.SIGN_USER_ID 	AS USER_ID
+             , 'ETST'        <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.GATE_CD  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.BUYER_CD <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.REQ_NUM  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.REQ_SEQ 		AS CONT_TBL_PK		/** ETDT(업무유형 : 위임장) @@ GATE_CD @@ BUYER_CD @@ REQ_NUM @@ REQ_SEQ */
+             , NULL             	AS FILE_SIZE
+             , '01'					AS EPRO_RATE_DSC	-- 단가코드(01 : 최초, 02 : 재입찰/재계약/재요청)
+          FROM STOCETDT ETDT
+          JOIN STOCCUST CUST
+	           ON (CUST.GATE_CD  = ETDT.GATE_CD
+	           AND CUST.CUST_CD  = ETDT.ENTRST_COMP_CD)
+         WHERE ETDT.GATE_CD  = #{ses.gateCd}
+           AND ETDT.BUYER_CD = #{BUYER_CD}
+           AND ETDT.REQ_NUM  = #{REQ_NUM}
+		   AND ETDT.REQ_SEQ  = #{REQ_SEQ}
+    </select>
+    
+    <!-- 2021.05.14 두번째 변경 (수임회사 -> 위임회사 -> 수임회사) -->
+    <!-- CCTR0071 : 법인 전자서명시 수임회사에 사용 수수료 부과하기 -->
+	<select id="costPayInfo" parameterType="hashmap" resultType="hashmap">
+
+        SELECT CUST.IRS_NUM     	 AS CORP_NO
+             , ETHD.REQ_USER_DEPT_CD AS BRC
+             ,<include refid="common.sql.toChar"/>(ETDT.SIGN_DATE, 'yyyyMMdd') AS APLY_DT
+             , ETHD.REQ_USER_ID 	 AS USER_ID
+             , 'ETST'        <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.GATE_CD  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.BUYER_CD <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.REQ_NUM  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.REQ_SEQ 		 AS CONT_TBL_PK		/** ETDT(업무유형 : 위임장) @@ GATE_CD @@ BUYER_CD @@ REQ_NUM @@ REQ_SEQ */
+             , NULL             	 AS FILE_SIZE
+          FROM STOCETDT ETDT
+          JOIN STOCETHD ETHD
+          	   ON (ETDT.GATE_CD  = ETHD.GATE_CD
+          	   AND ETDT.REQ_NUM  = ETHD.REQ_NUM
+          	   AND ETHD.DEL_FLAG = '0')
+          LEFT JOIN STOCCUST CUST
+	           ON (ETHD.GATE_CD  = CUST.GATE_CD
+	           AND ETHD.BUYER_CD = CUST.CUST_CD)
+         WHERE ETDT.GATE_CD  = #{ses.gateCd}
+           AND ETDT.BUYER_CD = #{BUYER_CD}
+           AND ETDT.REQ_NUM  = #{REQ_NUM}
+		   AND ETDT.REQ_SEQ  = #{REQ_SEQ}
+    </select>
+	
+	<!-- 2021.05.13 추가 -->
+	<!-- 위임장 요청 후 메일 대상(위임회사) 가져오기 -->
+    <select id="getMailTargetList" parameterType="hashmap" resultType="hashmap">
+
+        SELECT
+			  ETDT.BUYER_CD
+			,<include refid="common.sql.dbo"/>GETCUSTNAME(ETDT.GATE_CD, ETDT.BUYER_CD) AS BUYER_NM
+			, ETDT.REQ_NUM
+			, ETDT.REQ_SEQ
+			, ETHD.SUBJECT
+			, ETHD.REQ_USER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(ETHD.GATE_CD, ETHD.REQ_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+			, ETHD.REQ_USER_DEPT_CD
+			,<include refid="common.sql.dbo"/>GETDEPTNAME(ETHD.GATE_CD, ETHD.BUYER_CD, ETHD.REQ_USER_DEPT_CD, #{ses.langCd}) AS REQ_DEPT_NM
+			,<include refid="common.sql.toChar"/>(ETHD.REQ_DATE, 'YYYY-MM-DD') AS REQ_DATE
+			,<include refid="common.sql.toChar"/>(ETHD.RCV_REQ_DATE, 'YYYY-MM-DD') AS RCV_REQ_DATE
+			,<include refid="common.sql.dbo"/>GETDECPERSONALINFO(ETHD.REQ_USER_TEL_NUM) AS REQ_TEL_NUM
+			, ETDT.ENTRST_COMP_CD AS RECV_COMP_CD
+			,<include refid="common.sql.dbo"/>GETCUSTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD) AS RECV_COMP_NM
+			, ETDT.ENTRST_OFCE_CD AS RECV_DEPT_CD
+			,<include refid="common.sql.dbo"/>GETDEPTNAME(ETDT.GATE_CD, ETDT.ENTRST_COMP_CD, ETDT.ENTRST_OFCE_CD, #{ses.langCd}) AS RECV_DEPT_NM
+			,(CASE WHEN ETDT.VENDOR_PIC_USER_NM IS NOT NULL 
+						THEN <include refid="common.sql.strDecStart"/>ETDT.VENDOR_PIC_USER_NM<include refid="common.sql.strDecEnd"/>
+				   ELSE NULL
+			  END) AS RECV_USER_NM
+			,(CASE WHEN ETDT.VENDOR_PIC_USER_EMAIL IS NOT NULL 
+						THEN <include refid="common.sql.strDecStart"/>ETDT.VENDOR_PIC_USER_EMAIL<include refid="common.sql.strDecEnd"/>
+				   ELSE NULL
+			  END) AS RECV_USER_EMAIL
+			,(CASE WHEN ETDT.VENDOR_PIC_USER_CELL_NUM IS NOT NULL 
+						THEN <include refid="common.sql.strDecStart"/>ETDT.VENDOR_PIC_USER_CELL_NUM<include refid="common.sql.strDecEnd"/>
+				   ELSE NULL
+			  END) AS RECV_USER_CELL_NUM
+		 FROM STOCETDT ETDT
+		 JOIN STOCETHD ETHD
+		 	  ON (ETDT.GATE_CD  = ETHD.GATE_CD
+		 	  AND ETDT.BUYER_CD = ETHD.BUYER_CD
+		 	  AND ETDT.REQ_NUM  = ETHD.REQ_NUM)
+		WHERE ETDT.GATE_CD  = #{ses.gateCd}
+		  AND ETDT.BUYER_CD = #{ses.companyCd}
+		  AND ETDT.REQ_NUM  = #{REQ_NUM}
+		  AND ETDT.DEL_FLAG = '0'
+    </select>
+    
+    <!-- 2021.05.14 추가 -->
+	<!-- 위임장 요청시 수임사에게 SMS에 대한 수수료 부과하기 -->
+	<select id="costSmsInfo" parameterType="hashmap" resultType="hashmap">
+		
+		SELECT CUST.IRS_NUM     	 AS CORP_NO
+             , ETHD.REQ_USER_DEPT_CD AS BRC
+             ,<include refid="common.sql.toChar"/>(SYSDATE, 'yyyyMMdd') AS APLY_DT
+             , ETHD.REQ_USER_ID 	 AS USER_ID
+             , 'SMS_ETST_REQ'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.GATE_CD  	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.BUYER_CD 	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.REQ_NUM  	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               ETDT.REQ_SEQ 		 AS CONT_TBL_PK		/** ETDT(업무유형 : 위임장) @@ GATE_CD @@ BUYER_CD @@ REQ_NUM @@ REQ_SEQ */
+             , NULL             	 AS FILE_SIZE
+          FROM STOCETDT ETDT
+          JOIN STOCETHD ETHD
+          	   ON (ETDT.GATE_CD  = ETHD.GATE_CD
+          	   AND ETDT.REQ_NUM  = ETHD.REQ_NUM
+          	   AND ETHD.DEL_FLAG = '0')
+          LEFT JOIN STOCCUST CUST
+	           ON (ETHD.GATE_CD  = CUST.GATE_CD
+	           AND ETHD.BUYER_CD = CUST.CUST_CD)
+         WHERE ETDT.GATE_CD  = #{ses.gateCd}
+           AND ETDT.BUYER_CD = #{BUYER_CD}
+           AND ETDT.REQ_NUM  = #{REQ_NUM}
+		   AND ETDT.REQ_SEQ  = #{REQ_SEQ}
+    </select>
+    
+</mapper>

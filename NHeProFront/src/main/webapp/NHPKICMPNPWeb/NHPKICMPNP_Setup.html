@@ -1,0 +1,114 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta http-equiv="Content-Type" content="text-html; charset=utf-8"/>
+    <meta http-equiv="Cache-Control" content="no-cache"/>
+    <meta http-equiv="Expires" content="-1"/>
+    <meta http-equiv="Pragma" content="no-cache"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>사설인증센터 보안프로그램 설치</title>
+
+	<!--사설인증센터 CSS-->
+	<link rel="stylesheet" href="css/NHPKICMPNP_Style.css">
+
+	<!--CORE JS-->
+	<script language="javascript" src="js/var.js"></script>
+
+	<!--사설인증센터 JS-->
+	<script type="text/javascript" src="js/jquery-1.12.4.min.js"></script>
+	<script type="text/javascript" src="js/NHPKICMPNP_jquery-ui.min.js"></script>
+	<script type="text/javascript" src="js/NHPKICMPNP_Common.js"></script>
+	<script src="js/jquery-autoclear.min.js"></script>
+</head>
+<body style="border:0;overflow:hidden" onload="afterInstalled()">
+	<!-- Login Layer -->
+	<iframe id="NHPKICMPNPIframe" style="display:none"></iframe>
+	<div class="ML_NH_setup_wrap" id="popup">
+		<div class="ML_NH_title">사설인증센터 보안프로그램 설치</div>
+		<div class="ML_NH_setup_wrap_pd">
+			<div class="ML_NH_guide_setup">
+				<ul>
+					<li>- 안전한 서비스 이용을 위해 아래 보안프로그램을 설치하시기 바랍니다.</li>
+					<li>- 설치 버튼 클릭시 선택적으로 보안프로그램 설치가 가능합니다.</li>
+				</ul>
+			</div>
+			<div class="setup_list_wrap">
+				<div class="setup_list_tbl_wrap">
+					<!-- Content_table : S -->
+					<div class="con_tb_area">
+						<div class="con_menu_tb_wrap">
+							<div class="table_setup_wrap">
+								<table class="dt_tbl02">
+									<colgroup>
+										<col class="dt_tbl_width20">
+										<col class="dt_tbl_width50">
+										<col class="dt_tbl_width30">
+									</colgroup>
+									<thead>
+									<tr>
+										<th>구분</th>
+										<th>프로그램명 및 기능</th>
+										<th>설치상태</th>
+									</tr>
+									</thead>
+									<tbody>
+									<tr>
+										<td rowspan="2">필수</td>
+										<td>NHPKICMP NP Client</td>
+										<td rowspan="2">
+											<div class="blue_btn_mn">
+												<button type="button" onclick="installPlugin()"><span>설치</span></button>
+											</div>
+										</td>
+									</tr>
+									<tr>
+										<td>인증서관리 클라이언트</td>
+									</tr>
+									</tbody>
+								</table>
+							</div>
+
+						</div>
+					</div>
+					<!-- Content_table : E -->
+				</div>
+			</div>
+			<div class="setup_list_wrap">
+				<ul>
+					<li style="font-weight:bold; color:#ff5500; font-size:14px">※  Internet Explorer 설정방법 ※ </li>
+					<li style="font-weight:bold; color:#ff5500;">※ Alt키를 눌러 메뉴 표시 - 도구 - ActiveX 필터링 체크해제 - F5키를 눌러 새로고침 ※</li>
+				</ul>
+			</div>
+			<div class="setup_btn_wrap">
+				<div class="whtgrey_btn">
+					<button onclick="backToMain()"><span>설치하지 않음</span></button>
+				</div>
+			</div>
+		</div>
+		<div class="ML_NH_footer">
+			<div id="version" class="ft_version"></div>
+			<div class="ft_copy">ⓒ 2020. Dreamsecurity all rights reserved.</div>
+		</div>
+	</div>
+	<!-- Login Layer -->
+	<div id="dialog" title="Confirmation Required" style="display:none;">
+		Are you sure about this?
+	</div>
+</body>
+<script type="text/javascript">
+	$(document).ready(function () {
+		$('#version').html('v'+NHPKICMPNP_VERSION);
+	});
+
+	function backToMain() {
+		location.href = "NHPKICMPNP_Main.html";
+	}
+
+    $(function () {
+        $("#tabs").tabs();
+        $("#phone_num1").selectmenu();
+    });
+</script>
+</html>

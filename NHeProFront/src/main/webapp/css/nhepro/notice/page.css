@@ -1,0 +1,3348 @@
+/***
+style.css
+***/
+
+
+/*****
+
+main_page
+
+*****/
+
+.main_page .title {
+    font-size: 24px;
+    color: #404040;
+    line-height: 39px;
+}
+
+.main_page .menu_title .title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #303030;
+}
+
+.main_page .txt {
+    font-size: 14px;
+    line-height: 20px;
+    color: #606060;
+}
+
+.main_page .time {
+    color: #00abcd;
+    font-weight: bold
+}
+
+
+/***
+main_page - 슬라이드 영역
+***/
+
+.slide {
+    width: 100%;
+    position: relative;
+}
+
+.slide_main .slide_wrap {
+    width: 100%;
+    height: 500px;
+    position: relative;
+    top: 0;
+    left: 0;
+    /*overflow: hidden;*/
+}
+
+.slide_main .slide_img {
+    /*width: 5760px;*/
+    width: 300%;
+    height: 500px;
+    position: absolute;
+    left: 0;
+}
+
+.slide_main .slide_img > li {
+    float: left;
+    /*width: 1920px;*/
+    width: 33.33%;
+    height: 500px;
+    position: relative;
+}
+
+.slide_main .slide_img .slide_first .bg {
+    background: url(/images/ymro/main/main_bg_01.png) no-repeat center top;
+}
+.slide_main .slide_img .slide_second .bg {
+    background: url(/images/ymro/main/main_bg_02.png) no-repeat center top;
+}
+.slide_main .slide_img .slide_third .bg {
+    background: url(/images/ymro/main/main_bg_03.png) no-repeat center top;
+}
+
+.slide_main .slide_img li a {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.slide_main .slide_img .slide_txt {
+    display: block;
+    width: 1080px;
+    margin: 0 auto;
+    color: #303030;
+    font-size: 20px;
+    line-height: 40px;
+}
+
+.slide_main .slide_img .slide_first .slide_txt {
+    text-align: center;
+    padding-top: 160px;
+}
+
+.slide_main .slide_img .slide_second .slide_txt {
+    padding-top: 193px;
+    padding-left: 360px;
+}
+
+.slide_main .slide_img .slide_third .slide_txt {
+    text-align: center;
+    padding-top: 173px;
+    padding-left: 80px;
+}
+.slide_main .slide_txt > em {
+    font-weight: bold;
+    font-size: 28px;
+}
+
+.slide_main .slide_img img {
+    position: absolute;
+    top: 0;
+}
+
+
+
+
+
+
+
+
+/***
+main_page - 콘텐츠 영역
+***/
+.contents {
+    position: relative;
+    margin: 0 auto;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.contents_main {
+    width: 1080px;
+}
+
+.contents_main .con_top {
+    width: 1080px;
+    height: 200px;
+    position: relative;
+    top: -20px;
+    background: #ffffff;
+    border: 1px solid #d5d5d5;
+    padding-top: 10px;
+}
+
+.contents_main .con_top > div {
+    float: left;
+    width: 359px;
+    padding: 0 29px;
+    border-right: 1px solid #e8e8e8;
+    box-sizing: border-box;
+}
+
+.contents_main .con_top > div:last-child {
+    border-right: none;
+}
+
+
+/***
+main_page - 콘텐츠 영역 - 로그인
+***/
+
+.contents_main .con_top .login_area {
+    padding-top: 20px;
+}
+
+.contents_main .con_top .login_area > ul {
+    height: 76px;
+}
+
+.contents_main .con_top .login_area > ul > li {
+    display: inline-block;
+}
+
+.contents_main .con_top .input_box {
+    float: left;
+    width: 200px;
+}
+
+.contents_main .con_top .input_box:first-child {
+    margin-bottom: 8px;
+}
+
+.contents_main .con_top .input_box input{
+    width: 200px;
+    height: 34px;
+    border-bottom: 1px solid #909090;
+}
+
+.contents_main .con_top .input_box input:focus {
+    border-bottom: 1px solid #606060;
+}
+
+.contents_main .con_top .input_box:first-child {
+    position: relative;
+    top: 0;
+    left: 0;
+}
+
+.contents_main .con_top .input_box .button_clear {
+    position: absolute;
+    top: 9px;
+    right: 0 ;
+}
+
+.contents_main .con_top .input_box input:focus ~ .button_clear {
+    display: inline-block;
+}
+
+
+
+
+.contents_main .con_top .login_submit {
+    width: 90px;
+    height: 76px;
+    background: #00abcd;
+    margin-left: 10px;
+}
+
+.contents_main .con_top .login_submit > a {
+    width: 100%;
+    height: 100%;
+    display: inline-block;
+    line-height: 76px;
+    text-align: center;
+    color: #ffffff;
+    font-size: 16px;
+}
+
+.contents_main .con_top .save_box {
+    position: relative;
+    margin-top: 7px;
+    height: 22px;
+
+}
+
+.contents_main .con_top .save_box > span {
+    display: inline-block;
+    text-indent: -9999px;
+    overflow: hidden;
+    width: 22px;
+    height: 22px;
+    border: 1px solid #d5d5d5;
+    border-radius: 5px;
+}
+
+.contents_main .con_top .save_box > input {
+    width: 22px;
+    height: 22px;
+}
+
+.contents_main .con_top .save_box > label {
+    display: inline-block;
+    font-size: 12px;
+    color: #909090;
+    position: absolute;
+    left: 30px;
+    line-height: 24px;
+}
+
+
+.contents_main .con_top .resister_new {
+    padding-top: 7px;
+}
+
+.contents_main .con_top .resister_new a {
+    display: inline-block;
+    width: 146px;
+    height: 28px;
+    border: 1px solid #c3c3c3;
+    color: #606060;
+    font-size: 12px;
+    line-height: 28px;
+    text-align: center;
+}
+
+.contents_main .con_top .resister_new a:first-child {
+    margin-right: 8px;
+}
+
+/***
+main_page - 콘텐츠 영역 - 공지사항
+***/
+
+.contents_main .con_top .notice_area {
+    padding-top: 10px;
+}
+
+.contents_main .con_top .notice_area h2 {
+    position: relative;
+    color: #404040;
+    font-size: 24px;
+    border-bottom: 1px solid #909090;
+}
+
+.contents_main .con_top .notice_area h2 .btn_more {
+    width: 18px;
+    height: 18px;
+    position: absolute;
+    top: 11px;
+    right: 0;
+    display: inline-block;
+    text-indent: -9999px;
+    overflow: hidden;
+    background: url(/images/ymro/common/sprite_common.png);
+    background-position: 0 0;
+}
+
+.contents_main .con_top .notice_area > ul {
+    padding-top: 8px;
+}
+
+.contents_main .con_top .notice_area > ul > li {
+    line-height: 26px;
+}
+
+.contents_main .con_top .notice_list li a {
+    display: inline-block;
+}
+
+.contents_main .con_top .notice_list li a.text_ellipsis {
+    width: 73%;
+}
+
+.contents_main .con_top .notice_list li span {
+    display: inline-block;
+    font-size: 12px;
+    color: #909090;
+    float: right;
+}
+
+
+/***
+main_page - 콘텐츠 영역 - 고객센터
+***/
+
+.contents_main .con_top .service_area {
+    padding-top: 10px;
+}
+
+.contents_main .con_top .service_number {
+    font-size: 26px;
+    line-height: 30px;
+    color: #303030;
+}
+
+.contents_main .con_top .service_area > div {
+    /*position: relative;*/
+    margin-top: 10px;
+    margin-left: 20px;
+}
+
+.contents_main .con_top .service_area > div p {
+    display: inline-block;
+    float: left;
+}
+
+.contents_main .con_top .service_area .time {
+    padding-bottom: 2px;
+    border-bottom: 2px solid #00abcd;
+    margin-left: 4px;
+}
+
+.contents_main .con_top .service_area .time:first-child {
+    margin-right: 3px;
+}
+
+.contents_main .con_top .service_area > div > span {
+    width: 47px;
+    height: 42px;
+    display: inline-block;
+    text-indent: -9999px;
+    overflow: hidden;
+    background: url(/images/ymro/common/sprite_common.png);
+    background-position: 0 -50px;
+    margin-left: 13px;
+}
+
+
+
+/***
+main_page - 콘텐츠 영역 - 용마로지스
+***/
+.contents_main .con_bottom {
+    position: relative;
+    width:100%;
+    height: 179px;
+    padding: 0 60px;
+    margin-top: 9px;
+}
+
+.contents_main .con_bottom article {
+    float: left;
+    width: 480px;
+    height: 126px;
+    padding-left: 60px;
+}
+.contents_main .con_bottom article:first-child {
+    padding-left: 0;
+}
+
+.contents_main .con_bottom .txt {
+    padding-top: 15px;
+    display: inline-block;
+}
+
+.contents_main .con_bottom > article > a {
+    display: inline-block;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.contents_main .con_bottom > article:first-child > a {
+    width: 91px;
+    height: 73px;
+    margin-left: 76px;
+    background:url(/images/ymro/main/icon_building.png);
+}
+
+.contents_main .con_bottom > article:last-child > a {
+    width: 99px;
+    height: 66px;
+    margin-left: 35px;
+    background:url(/images/ymro/main/icon_diagram.png);
+}
+
+
+/*****
+
+sub_page
+
+*****/
+
+
+/***
+sub_page - 회사소개
+***/
+
+.sub_page .spot_bg {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 180px;
+}
+
+.sub_page .spot_intro_company {
+    background: url(/images/ymro/sub/spot_intro_bg.png) center;
+}
+
+.sub_page .spot_bg .title {
+    color: #ffffff;
+    font-size: 18px;
+    line-height: 26px;
+    text-align: center;
+}
+
+.sub_page .spot_bg.spot_intro_company .title {
+    padding-top: 42px;
+}
+
+.sub_page .spot_bg .title span {
+    font-size: 20px;
+}
+
+/***
+sub_page - 회사소개
+***/
+.contents.contents_intro {
+    width: 1020px;
+}
+
+
+.contents_intro_company .top {
+    text-align: center;
+    padding-bottom: 40px;
+
+    position: relative;
+    top: -20px;
+    left: 0;
+    border-bottom: 1px solid #d5d5d5;
+}
+
+.contents_intro_company .top .title {
+    font-size: 30px;
+    font-weight: bold;
+    color: #303030;
+    line-height: 50px;
+    padding-top: 9px;
+    margin-bottom: 24px;
+}
+
+.contents_intro_company .top .sub_title {
+    font-size: 22px;
+    line-height: 28px;
+    color: #00a9ca;
+}
+
+.contents_intro_company .top .txt {
+    padding-top: 33px;
+    font-size: 18px;
+    line-height: 26px;
+    color: #606060;
+}
+
+.contents_intro_company .top .txt em {
+    color: #303030;
+    font-weight: bold;
+}
+
+.contents_intro_company .top .img {
+    display: inline-block;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+/***
+sub_page - 회사소개 - CEO인사말
+***/
+.contents_intro.contents_ceo_greeting .path {
+    margin-bottom: 147px;
+}
+
+.contents_intro.contents_ceo_greeting .top {
+    padding-bottom: 147px;
+    text-align: left;
+    border-bottom: none;
+}
+
+.contents_intro.contents_ceo_greeting .top .photo {
+    display: block;
+    width: 940px;
+    height: 386px;
+    background: url(/images/ymro/sub/ceo_photo.png) no-repeat center;
+    text-indent: -9999px;
+    overflow: hidden;
+    margin-bottom: 57px;
+
+}
+
+.contents_intro.contents_ceo_greeting .top .greeting {
+    padding-left: 60px;
+    margin-bottom: 42px;
+}
+
+.contents_intro.contents_ceo_greeting .top .greeting .txt {
+    line-height: 24px;
+}
+
+.contents_intro.contents_ceo_greeting .top .greeting  .txt:first-child {
+    padding-top: 0;
+}
+
+.contents_intro.contents_ceo_greeting .top .signature{
+    padding-right: 60px;
+    text-align: right;
+}
+
+.contents_intro.contents_ceo_greeting .top .signature .txt{
+    padding-top: 0;
+    margin-bottom: 19px;
+}
+
+.contents_intro.contents_ceo_greeting .top .signature img {
+    display: inline-block;
+    margin-right: 12px;
+}
+
+
+
+/***
+sub_page - 회사소개 - 회사개요
+***/
+.contents_intro_company.contents_intro_summary .top .txt  {
+    margin-bottom: 76px;
+}
+
+.contents_intro.contents_intro_summary .top .img {
+    display: inline-block;
+
+    background: url(/images/ymro/sub/yongma_ability.png) no-repeat;
+    width: 725px;
+    height: 600px;
+
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.contents_intro_summary .text_list {
+    padding: 35px 0 100px 60px;
+}
+
+
+
+
+
+/***
+sub_page - 회사소개 - 비전과 미션
+***/
+
+.contents_intro_vision .bottom {
+    position: relative;
+    top: -20px;
+    text-align: center;
+    padding-top: 77px;
+}
+
+
+.contents_intro_vision .bottom .title {
+    font-size: 30px;
+    font-weight: bold;
+    color: #303030;
+    line-height: 50px;
+    padding-top: 9px;
+    margin-bottom: 24px;
+}
+
+.contents_intro_vision .bottom .sub_title {
+    font-size: 22px;
+    line-height: 28px;
+    color: #00a9ca;
+    margin-bottom: 37px;
+}
+
+.contents_intro_vision .bottom .vision_list {
+    margin: 0 auto 80px;
+    display: block;
+    width: 784px;
+    height: 557px;
+    background: url(/images/ymro/sub/vision_list.png) no-repeat center;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.contents_intro_vision .bottom .vision_value {
+    margin: 0 auto;
+    display: block;
+    width: 796px;
+    height: 360px;
+    background: url(/images/ymro/sub/vision_core_value.png) no-repeat center;
+    text-indent: -9999px;
+    overflow: hidden;
+    margin-bottom: 120px;
+}
+
+
+/***
+sub_page - 회사소개 - 연혁
+***/
+.box_history {
+    position: relative;
+    padding-bottom: 100px;
+}
+
+.box_history .text_box {
+    position: absolute;
+    top: 12px;
+    left: 40px;
+}
+
+.box_history .text_box .title {
+    font-size: 22px;
+    line-height: 28px;
+    color: #00a9ca;
+    margin-bottom: 54px;
+}
+
+.box_history .text_box .sub_title {
+    font-size: 18px;
+    line-height: 26px;
+    color: #606060;
+}
+
+.box_history .list_box {
+    position: relative;
+    top: 0;
+    left: 50%;
+    margin-top: 44px;
+    margin-left: -3px;
+}
+
+.box_history .list_box::before{
+    display: inline-block;
+    background: #d5d5d5;
+    width: 6px;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    content: "";
+}
+
+
+.list_box .list {
+    margin-bottom: 100px;
+}
+
+.list_box .list:last-of-type {
+    margin-bottom: 0;
+}
+
+.list_box .list .title {
+    font-size: 30px;
+    line-height: 34px;
+    font-weight: bold;
+    color: #31b5ff;
+    position: relative;
+    padding-left: 26px;
+    vertical-align: middle;
+    margin-bottom: 30px;
+}
+
+.list_box .list .title em {
+    display: inline-block;
+    background: url(/images/ymro/common/sprite_common.png) no-repeat center;
+    background-position: -200px 0;
+    width: 32px;
+    height: 32px;
+    text-indent: -9999px;
+    overflow: hidden;
+
+    position: absolute;
+    top: 0;
+    left: -13px;
+}
+
+
+.list_box .list .desc {
+    font-size: 15px;
+    line-height: 20px;
+    color: #606060;
+    position: relative;
+    vertical-align: middle;
+    padding-left: 27px;
+    margin-bottom: 18px;
+}
+
+.list_box .list .desc em {
+    display: inline-block;
+    background: url(/images/ymro/common/sprite_common.png) no-repeat center;
+    background-position: -250px 0;
+    width: 20px;
+    height: 20px;
+    text-indent: -9999px;
+    overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: -7px;
+}
+
+.list_box .list .img {
+    width: 300px;
+    height: 210px;
+    border: 1px solid #e3e3e3;
+    padding: 14px;
+    margin-bottom: 100px;
+    margin-left: 27px;
+}
+
+.list_box .list .img.award_img {
+    width: 180px;
+    height: 270px;
+}
+
+.list_box .list .img img {
+    width: 100%;
+    height: 100%;
+}
+
+.list_box .list:last-of-type .desc:last-of-type{
+    margin-bottom: 0;
+}
+
+/***
+sub_page - 회사소개 - 연혁 1990's
+***/
+.intro_history_1990s .box_history .list_box::before {
+    height: 1457px;
+}
+
+/***
+sub_page - 회사소개 - 오시는 길
+***/
+
+.contents.contents_how_come .path {
+    margin-bottom: 85px;
+}
+
+.contents_how_come .info {
+    margin-bottom: 56px;
+}
+
+.info > div {
+    float: left;
+    margin-left: 40px;
+}
+
+.info .desc_wrap {
+    position: relative;
+    padding-left: 80px;
+    margin-bottom: 13px;
+}
+
+.info .title {
+    float: left;
+    position: absolute;
+    left: 0;
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: bold;
+    color: #31b5ff;
+}
+
+.info .desc {
+    float: left;
+    font-size: 18px;
+    line-height: 24px;
+    color: #606060;
+}
+
+/*지도*/
+.map_info {
+    margin-bottom: 100px;
+}
+
+.map_info .map_desc {
+    width: 355px;
+    height: 112px;
+    background: #ffffff;
+    -webkit-box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+/***
+sub_page - 사업소개
+***/
+.sub_page .spot_intro_business {
+    background: url(/images/ymro/sub/intro_delivery_bg.png) center;
+}
+
+.contents_intro_business .top {
+    position: relative;
+    text-align: center;
+    padding: 0 40px 56px;
+    border-bottom: 1px solid #d5d5d5;
+}
+
+.contents_intro_business .top .sub_title {
+    font-size: 22px;
+    line-height: 28px;
+    color: #00a9ca;
+
+    padding-top: 86px;
+}
+
+.contents_intro_business .top .txt {
+    font-size: 18px;
+    line-height: 26px;
+    color: #606060;
+    padding-top: 31px;
+    margin-bottom: 35px;
+}
+
+.sub_page .spot_bg.spot_intro_business .title {
+    padding-top: 42px;
+    /*height: 54px;*/
+}
+
+/***
+sub_page - 사업소개 - 구매서비스
+***/
+
+.contents_intro_purchase .top {
+    border-bottom: none;
+    padding:56px 0 0 40px;
+    margin-bottom: 51px;
+}
+
+.contents_intro_purchase .top .desc {
+    font-size: 18px;
+    line-height: 26px;
+    color: #606060;
+    text-align: left;
+}
+
+
+.contents_intro_purchase .middle {
+    padding: 0 40px;
+    margin-bottom: 100px;
+}
+
+
+
+.contents_intro_purchase .middle .feature {
+    margin-bottom: 93px;
+}
+
+
+.contents_intro_purchase .middle .title {
+    margin-bottom: 36px;
+}
+
+
+.contents_intro_purchase .middle .feature .img {
+    margin-bottom: 75px;
+}
+
+.contents_intro_purchase .round_list_box .list_title {
+    margin-bottom: 18px;
+}
+
+.contents_intro_purchase .round_list_box .list {
+    margin-bottom: 0;
+}
+
+.contents_intro_purchase .round_list_box .list p {
+    font-size: 14px;
+    line-height: 20px;
+    color: #606060;
+}
+
+.contents_intro_purchase .state .img {
+    margin-bottom: 56px;
+}
+
+
+
+
+.list_box_plain.list_box_col3 .list_box_1depth {
+    width: 33.3%;
+    padding-left: 15px;
+}
+
+.list_box_plain.list_box_col3 .list_box_1depth:first-child {
+    width: 33.34%;
+}
+
+.list_box_plain .list_box_1depth {
+    float: left;
+}
+
+.list_box_plain .list_box_1depth > .title {
+    display: block;
+    color: #31b5ff;
+    margin-bottom: 18px;
+    font-size: 22px;
+    font-weight: bold;
+    line-height: 28px;
+}
+
+.list_box_plain .list_box_2depth {
+    margin-bottom: 21px;
+}
+
+.list_box_plain .list_box_2depth > .title {
+    color: #303030;
+    font-size: 14px;
+    line-height: 20px;
+    margin-bottom: 0;
+}
+
+.list_box_plain .list_box_2depth .list li {
+    font-size: 14px;
+    line-height: 20px;
+    color: #606060;
+}
+
+.list_box_plain .list_box_2depth .list li:before {
+    content:"-";
+    margin-right: 3px;
+
+}
+
+/***
+sub_page - 사업소개 - 구매서비스 - 프로세스 및 기대효과
+***/
+
+.contents_intro_purchase .intro_purchase_precess .process {
+    margin-bottom: 60px;
+}
+
+/***
+sub_page - 사업소개 -  택배서비스 소개
+***/
+
+.contents_intro_delivery .sub_tab_01 .top .img {
+    display: inline-block;
+    background: url(/images/ymro/sub/yongma_delivery_intro.png) no-repeat center;
+    width: 940px;
+    height: 299px;
+
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.contents_intro_delivery .sub_tab_01 .top .desc {
+    font-size: 16px;
+    line-height: 22px;
+    color: #606060;
+    text-align: left;
+
+    padding-top: 18px;
+}
+
+.contents_intro_delivery .middle {
+    position: relative;
+    padding: 56px  0 0 33px;
+}
+
+.contents_intro_delivery .middle .title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #303030;
+    line-height: 28px;
+    margin-bottom: 44px;
+}
+
+.contents_intro_delivery .sub_tab_01 .feature .middle .title {
+    margin-bottom: 76px;
+}
+
+.contents_intro_delivery .middle .title_point {
+    display: inline-block;
+    text-indent: -9999px;
+    overflow: hidden;
+    width: 4px;
+    height: 20px;
+    background: #31b5ff;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+.contents_intro_delivery .sub_tab_01 .middle .feature {
+    padding-bottom: 12px;
+}
+
+
+.contents_intro_delivery .sub_tab_01 .feature .list.speed span {
+    background: url(/images/ymro/sub/service_speed.png) no-repeat;
+}
+
+.contents_intro_delivery .sub_tab_01 .feature .list.pro span  {
+    background: url(/images/ymro/sub/service_pro.png) no-repeat;
+}
+.contents_intro_delivery .sub_tab_01 .feature .list.stab span  {
+    background: url(/images/ymro/sub/service_stability.png) no-repeat;
+}
+.contents_intro_delivery .sub_tab_01 .feature .list.eco span {
+    background: url(/images/ymro/sub/service_economy.png) no-repeat;
+}
+
+
+.contents_intro_delivery .sub_tab_01 .middle .state {
+    margin-bottom: 93px;
+}
+
+.contents_intro_delivery .sub_tab_01 .middle .state .title {
+    margin-bottom: 16px;
+}
+
+.contents_intro_delivery .sub_tab_01 .middle .state ul {
+    padding-left: 33px;
+}
+
+.contents_intro_delivery .sub_tab_01 .middle .state ul li {
+    font-size: 18px;
+    line-height: 24px;
+    color: #606060;
+}
+
+.contents_intro_delivery .major_custom .title {
+    margin-bottom: 16px;
+}
+
+.contents_intro_delivery .sub_tab_01 .middle .major_custom {
+    margin-bottom: 99px;
+}
+
+
+
+
+.list_box_logo{
+    padding-left: 20px;
+}
+
+.list_box_logo li {
+    float: left;
+    height: 136px;
+    border: 1px solid #e5e5e5;
+    margin: 0 0 6px 5px;
+
+    text-indent: -9999px;
+    overflow: hidden;
+
+    padding: 16px 6px;
+}
+
+.list_box_logo_col3 li {
+    width: 312px;
+}
+
+.list_box_logo_col3 .list01 {
+    margin-left: 0;
+}
+
+.list_box_logo_col3 .list04 {
+    margin-left: 0;
+    margin-bottom: 0;
+}
+
+.list_box_logo_col3 .list05 {
+    margin-bottom: 0;
+}
+
+.list_box_logo_col3 .list06 {
+    margin-bottom: 0;
+}
+
+
+.contents_intro_delivery .sub_tab_01 .middle .list_box_logo .list01 {
+    background: url(/images/ymro/sub/cus_otsuka.png) no-repeat center;
+}
+
+.contents_intro_delivery .sub_tab_01 .middle .list_box_logo .list02 {
+    background: url(/images/ymro/sub/cus_dongsuhfood.png) no-repeat center;
+}
+
+.contents_intro_delivery .sub_tab_01 .middle .list_box_logo .list03 {
+    background: url(/images/ymro/sub/cus_thefaceshop.png) no-repeat center;
+}
+.contents_intro_delivery .sub_tab_01 .middle .list_box_logo .list04 {
+    background: url(/images/ymro/sub/cus_susuk.png) no-repeat center;
+}
+
+.contents_intro_delivery .sub_tab_01 .middle .list_box_logo .list05 {
+    background: url(/images/ymro/sub/cus_lg.png) no-repeat center;
+}
+
+.contents_intro_delivery .sub_tab_01 .middle .list_box_logo .list06 {
+    background: url(/images/ymro/sub/cus_korealogispool.png) no-repeat center;
+}
+
+
+/***
+sub_page - 사업소개 -  택배서비스 flow
+***/
+
+.contents_intro_delivery .sub_tab_02 .top {
+    padding-bottom: 0;
+}
+
+.contents_intro_delivery .sub_tab_02 .top .txt {
+    margin-bottom: 56px;
+}
+
+.contents_intro_delivery .sub_tab_02 .middle .feature .title {
+    margin-bottom: 45px;
+}
+.contents_intro_delivery .sub_tab_02 .middle .feature .flow_img {
+    margin: 0 auto 12px;
+}
+
+.contents_intro_delivery .sub_tab_02 .middle .feature .desc {
+    font-size: 16px;
+    line-height: 22px;
+    color: #606060;
+    margin-bottom: 91px;
+}
+
+
+/***
+sub_page - 사업소개 -  택배서비스 network
+***/
+
+.contents_intro_delivery .sub_tab_03 .middle {
+    padding-bottom: 100px;
+}
+
+.contents_intro_delivery .sub_tab_03 .middle .network_system_img{
+    display: block;
+    width: 940px;
+    height: 697px;
+    background: url(/images/ymro/sub/delivery_network_system.png) no-repeat center;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+/***
+sub_page - 사업소개 -  택배서비스 contact point
+***/
+
+.contents_intro_delivery .sub_tab_04 .middle {
+    margin-bottom: 100px;
+}
+
+
+.border_box > .box {
+    float: left;
+    border: 1px solid #d5d5d5;
+    padding: 26px;
+    width: 440px;
+    height: 200px;
+    margin-right: 30px;
+    box-sizing: border-box;
+}
+
+.border_box > .box .box_title {
+    font-size: 22px;
+    line-height: 28px;
+    color: #303030;
+    margin-bottom: 21px;
+}
+
+.border_box > .box dl {
+    position: relative;
+}
+
+.border_box > .box dl .list_title {
+    width: 120px;
+    font-size: 18px;
+    line-height: 30px;
+    color: #606060;
+    position: absolute;
+    left: 0;
+    padding-left: 10px;
+}
+
+.border_box > .box dl .list_desc {
+    font-size: 18px;
+    line-height: 30px;
+    color: #606060;
+    padding-left: 120px;
+}
+
+
+
+
+/***
+sub_page - 사업소개 -  수송서비스 소개
+***/
+
+.contents_intro_transport .top .img {
+    display: inline-block;
+    background: url(/images/ymro/sub/yongma_transport_intro.png) no-repeat center;
+    width: 940px;
+    height: 299px;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+
+.contents_intro_transport .middle {
+    padding-left: 40px;
+}
+.contents_intro_transport .middle .feature{
+    padding-top: 56px;
+}
+
+.contents_intro_transport .sub_tab_01 .feature {
+    padding-top: 0;
+}
+
+.contents_intro_transport .text_list {
+    margin-bottom: 92px;
+}
+
+.contents_intro_transport .middle .title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #303030;
+    line-height: 28px;
+    margin-bottom: 44px;
+}
+
+.contents_intro_transport .middle .feature .title {
+    margin-bottom: 76px;
+}
+
+.contents_intro_transport .middle .title_point {
+    display: inline-block;
+    text-indent: -9999px;
+    overflow: hidden;
+    width: 4px;
+    height: 20px;
+    background: #31b5ff;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+.contents_intro_transport .middle .state {
+    margin-bottom: 92px;
+}
+
+.contents_intro_transport .middle .state .title {
+    margin-bottom: 16px;
+}
+.contents_intro_transport .middle .state ul {
+    padding-left: 33px;
+}
+
+.contents_intro_transport .middle .state ul li {
+    font-size: 18px;
+    line-height: 24px;
+    color: #606060;
+}
+
+.contents_intro_transport .sub_tab_01 .feature {
+    margin-bottom: 112px;
+}
+.contents_intro_transport .sub_tab_01 .round_list_box .list {
+    margin-bottom: 0;
+}
+
+.contents_intro_transport .sub_tab_01 .round_list_box .list.trust span {
+    background: url(/images/ymro/sub/service_trust.png) no-repeat;
+}
+.contents_intro_transport .sub_tab_01 .round_list_box .list.exact span {
+    background: url(/images/ymro/sub/service_exact.png) no-repeat;
+}
+.contents_intro_transport .sub_tab_01 .round_list_box .list.effect span {
+    background: url(/images/ymro/sub/service_effect.png) no-repeat;
+}
+
+
+.contents_intro_transport .middle .major_custom .title {
+    margin-bottom: 16px;
+}
+
+.contents_intro_transport .middle .major_custom {
+    margin-bottom: 92px;
+}
+
+.contents_intro_transport .sub_tab_01 .middle .list_box_logo .list01 {
+    background: url(/images/ymro/sub/cus_otsuka.png) no-repeat center;
+}
+
+.contents_intro_transport .sub_tab_01 .middle .list_box_logo .list02 {
+    background: url(/images/ymro/sub/cus_dongsuhfood.png) no-repeat center;
+}
+
+.contents_intro_transport .sub_tab_01 .middle .list_box_logo .list03 {
+    background: url(/images/ymro/sub/cus_thefaceshop.png) no-repeat center;
+}
+.contents_intro_transport .sub_tab_01 .middle .list_box_logo .list04 {
+    background: url(/images/ymro/sub/cus_susuk.png) no-repeat center;
+}
+
+.contents_intro_transport .sub_tab_01 .middle .list_box_logo .list05 {
+    background: url(/images/ymro/sub/cus_lg.png) no-repeat center;
+}
+
+.contents_intro_transport .sub_tab_01 .middle .list_box_logo .list06 {
+    background: url(/images/ymro/sub/cus_korealogispool.png) no-repeat center;
+}
+
+.contents_intro_transport .sub_tab_02 .middle .feature .title {
+    margin-bottom: 45px;
+}
+
+/***
+sub_page - 사업소개 -  수송서비스 flow
+***/
+
+.contents_intro_transport .middle {
+    padding-top: 55px;
+}
+
+.contents_intro_transport .sub_tab_02 .middle .flow {
+    margin-bottom: 96px;
+}
+
+.contents_intro_transport .sub_tab_02 .middle .flow img {
+    width: 936px;
+    height: 641px;
+}
+
+.contents_intro_transport .sub_tab_03 .middle .title {
+    margin-bottom: 26px;
+}
+
+
+
+/***
+sub_page - 사업소개 -  수송서비스 contact
+***/
+
+.contents_intro_transport .middle .border_box_wrap {
+    margin-bottom: 90px;
+    float: left;
+}
+
+.contents_intro_transport .middle .border_box_wrap:last-of-type {
+    clear: left;
+}
+
+.contents_intro_transport .middle .border_box_wrap:last-of-type dl .list_desc {
+    margin-bottom: 20px;
+}
+
+.contents_intro_transport .middle .border_box_wrap:last-of-type dl:last-of-type .list_desc {
+    margin-bottom: 0;
+}
+
+.contents_intro_transport .middle .border_box_wrap:last-of-type .box:last-of-type {
+    margin-top: 40px;
+}
+
+/***
+sub_page - 사업소개 -  가치제공 - 고객사
+***/
+
+.contents_worthy .top {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 80px;
+}
+
+.contents_worthy .top .txt {
+    margin-bottom: 28px;
+}
+
+.contents_worthy .top .txt:last-of-type {
+    margin-bottom: 75px;
+    padding-top: 0;
+}
+
+.contents_worthy .bottom {
+    margin-bottom: 100px;
+    padding: 0 40px;
+}
+
+.box.box_w_183 .card {
+    width: 183px;
+}
+
+.box.box_w_283 .card.card_img:first-child {
+    margin-left: 22px;
+}
+
+.card.card_img .con {
+    height: 310px;
+    padding: 25px 0 0;
+}
+
+.card.card_img:nth-of-type(1) .con {
+    padding-top: 56px;
+}
+
+.card.card_img:nth-of-type(3) .con {
+    padding-top: 54px;
+}
+
+
+.card.card_img .img {
+    margin-bottom: 58px;
+}
+
+.card.card_img:nth-of-type(2) .img {
+    margin-bottom: 21px;
+}
+
+.card.card_img:nth-of-type(3) .img {
+    margin-bottom: 55px;
+}
+
+.card.card_img ul {
+    padding-left: 20px;
+}
+
+.card.card_img .con li {
+    margin-bottom: 0;
+}
+
+
+
+/***
+sub_page - 사업소개 -  가치제공 - 공급사
+***/
+
+.worth_supplier .round_list_box .list {
+    margin-bottom: 0;
+}
+
+.worth_supplier .round_list_box .list span {
+    width: 181px;
+    height: 181px;
+}
+
+.worth_supplier .round_list_box .list.route span {
+    background: url(/images/ymro//sub/worth_sup_route.png) no-repeat;
+}
+
+.worth_supplier .round_list_box .list.safe span {
+    background: url(/images/ymro//sub/worth_sup_safe.png) no-repeat;
+}
+
+.worth_supplier .round_list_box .list.effect span {
+    background: url(/images/ymro//sub/worth_sup_effect.png) no-repeat;
+}
+
+.worth_supplier .round_list_box .list.info span {
+    background: url(/images/ymro//sub/worth_sup_info.png) no-repeat;
+}
+
+.worth_supplier .round_list_box .list .list_title {
+    margin-bottom: 17px;
+}
+
+.worth_supplier .round_list_box .list p {
+    font-size: 14px;
+    line-height: 20px;
+    color: #303030;
+}
+
+
+
+
+/***
+sub_page - 고객지원
+***/
+
+.contents_cus_center {
+    width: 1188px;
+}
+
+.spot_customer_service {
+    background: url(/images/ymro//sub/spot_customer_bg.png) center;
+}
+
+.spot_customer_service .title {
+    padding-top: 43px;
+}
+
+/***
+sub_page - 고객지원 - 고객의 소리
+***/
+
+.customer_opinion {
+    padding-left: 40px;
+}
+
+.contents_cus_center .top  {
+    margin-bottom: 55px;
+}
+
+
+.contents_cus_center .top .desc {
+    font-size: 18px;
+    line-height: 26px;
+    color: #606060;
+}
+
+.contents_cus_center .top .desc:first-child {
+    margin-bottom: 26px;
+}
+
+.contents_cus_center .bottom {
+    margin-bottom: 100px;
+}
+
+.list_box_square_col3 .box {
+    float: left;
+    padding-top: 30px;
+    width: 300px;
+    height: 188px;
+    border: 1px solid #d5d5d5;
+    margin-left: 10px;
+    text-align: center;
+}
+
+.list_box_square .box:first-child {
+    margin-left: 0;
+}
+
+.list_box_square .box span {
+    display: block;
+    background: url(/images/ymro//common/sprite_common.png) no-repeat;
+    margin: 0 auto 16px;
+}
+
+.list_box_square .box:first-child span {
+    width: 90px;
+    height: 59px;
+    background-position: 0 -100px;
+}
+
+.list_box_square .box:nth-of-type(2) span {
+    width: 68px;
+    height: 64px;
+    background-position: -100px -100px;
+}
+
+.list_box_square .box:nth-of-type(3) span {
+    width: 65px;
+    height: 65px;
+    background-position: -200px -100px;
+}
+
+.list_box_square .box p {
+    font-size: 18px;
+    line-height: 24px;
+    color: #606060;
+}
+
+.list_box_square .box p em {
+    font-size: 22px;
+    line-height: 32px;
+    font-weight: bold;
+    color: #303030;
+}
+
+
+/***
+sub_page - 고객지원 - 가입안내
+***/
+
+.join_guide .guide_cus {
+    margin-bottom: 96px;
+}
+
+.join_guide .title {
+    margin-bottom: 46px;
+}
+
+.join_ask {
+    margin-bottom: 20px;
+}
+
+.border_box_col1 > .box {
+    width: 100%;
+}
+
+.join_guide .join_order > .box {
+    height: auto;
+}
+.join_guide .join_order > .box > .desc {
+    font-size: 18px;
+    line-height: 30px;
+    color: #606060;
+    margin-bottom: 32px;
+}
+
+
+.box.box_add_arrow {
+    padding-left: 14px;
+}
+
+.join_guide .join_order {
+    margin-bottom: 20px;
+}
+
+.box_add_arrow .card {
+    width: 183px;
+    text-align: center;
+}
+
+.box_add_arrow .card .con {
+    height: 130px;
+    padding-left: 0;
+    padding-top: 14px;
+
+}
+.box_add_arrow .card .con li {
+    padding-left: 0;
+    line-height: 24px;
+    margin-bottom: 0;
+}
+
+.box_add_arrow .card .con li:first-child {
+    margin-bottom: 0;
+}
+
+.box_add_arrow .card .con li:before {
+    display: none;
+}
+
+.box .card .con li .point {
+    color: #31b5ff;
+    font-weight: bold;
+}
+
+.box .arrow_order {
+    float: left;
+    margin: 67px 17px 0;
+    display: inline-block;
+    width: 21px;
+    height: 102px;
+    background: url(/images/ymro//common/sprite_common.png) no-repeat;
+    background-position: -400px -100px;
+}
+
+.card_padding {
+    padding-top: 40px;
+}
+
+
+
+
+.btn_no_icon {
+    padding: 0 32px;
+    background-color: #1582bd;
+    height: 50px;
+    line-height: 50px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+}
+
+.join_guide .btn{
+    left: 44%;
+    margin-left: -101px;
+    margin-top: 170px;
+}
+
+.join_guide .guide_sup {
+    margin-bottom: 100px;
+}
+
+.guide_sup .border_box > .box {
+    padding-bottom: 40px;
+}
+
+.guide_sup .box_radius_add_arrow .box {
+    margin-bottom: 40px;
+}
+
+.guide_sup .box_radius_add_arrow .box:nth-of-type(5),
+.guide_sup .box_radius_add_arrow .box:nth-of-type(6) {
+    margin-bottom: 0;
+}
+
+
+
+
+/***
+sub_page - 고객지원 - 공지사항(list)
+***/
+
+.notice_list .notice_area {
+    margin-bottom: 100px;
+}
+
+/******공지사항 검색영역 시작******/
+.table_search {
+    float: right;
+    margin-bottom: 26px;
+}
+
+.table_search select {
+    float: left;
+    width: 110px;
+    height: 34px;
+    border: 1px solid #c4bfbf;
+    padding-left: 19px;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background: url(/images/ymro//common/search_arrow.png) no-repeat right 10px center;
+    font-size: 16px;
+    line-height: 26px;
+    color: #606060;
+    margin-right: 10px;
+}
+
+.table_search select option {
+    font-size: 16px;
+    line-height: 26px;
+    color: #606060;
+}
+
+.table_search .input_search {
+    float: left;
+    margin-right: 10px;
+    display: block;
+    width: 230px;
+    height: 34px;
+    border: 1px solid #e0e0e0;
+}
+
+.table_search .btn_search {
+    float: left;
+    border: 1px solid #118fe3;
+    color: #fff;
+    background: #118fe3;
+}
+
+.table_search .btn_search:hover {
+    color: #000 !important;
+}
+/******공지사항 검색영역 끝******/
+
+
+
+
+
+
+
+/******공지사항 테이블******/
+.table_list {
+    border-top: 2px solid #118fe3;
+    width: 100%;
+    margin-bottom: 30px;
+}
+
+.table_list tr {
+    line-height: 41px;
+    text-align: center;
+    border-bottom: 1px solid #d5d5d5;
+}
+
+.table_list th {
+    text-align: center;
+}
+
+.table_list thead tr th:first-child {
+    width: 100px;
+}
+
+.table_list tr td {
+    font-size: 16px;
+    color: #606060;
+}
+.table_list tr td:nth-of-type(3) {
+    text-align: left;
+    padding-left: 30px;
+}
+
+.table_list.notice tr td:nth-of-type(3) {
+    text-align: center;
+    padding-left: 0;
+}
+
+.table_list.notice thead tr th:nth-of-type(3) {
+    width: 200px;
+}
+
+.table_list.notice tr td:nth-of-type(2) {
+    text-align: left;
+    padding-left: 140px;
+}
+
+.table_paginate {
+    width: 407px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.table_paginate a {
+    float: left;
+    display: inline-block;
+    width: 34px;
+    height: 34px;
+    margin-left: 6px;
+    line-height: 34px;
+}
+
+.table_paginate a:active,
+.table_paginate a.active {
+    border: 1px solid #c4bfbf;
+    line-height: 32px;
+    color: #303030;
+    font-weight: bold;
+}
+
+.table_paginate .first,
+.table_paginate .prev,
+.table_paginate .next,
+.table_paginate .last {
+    border: 1px solid #c4bfbf;
+    color: transparent;
+
+}
+.table_paginate .prev {
+    margin-right: 26px;
+}
+
+.table_paginate .next {
+    margin-left: 26px;
+}
+
+.table_paginate a span {
+    display: inline-block;
+    background: url(/images/ymro//common/sprite_common.png) no-repeat;
+    margin-top: 10px;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.table_paginate .first span {
+    background-position: -300px -100px;
+    width: 15px;
+    height: 12px;
+}
+
+.table_paginate .prev span {
+    background-position: -350px -100px;
+    width: 7px;
+    height: 12px;
+}
+
+.table_paginate .next span {
+    background-position: -350px -100px;
+    -ms-transform: rotate(180deg);;
+    -webkit-transform: rotate(180deg);;
+    transform: rotate(180deg);
+    width: 7px;
+    height: 12px;
+}
+
+.table_paginate .last span {
+    background-position: -300px -100px;
+    -ms-transform: rotate(180deg);;
+    -webkit-transform: rotate(180deg);;
+    transform: rotate(180deg);
+    width: 15px;
+    height: 12px;
+}
+/******공지사항 테이블 끝******/
+
+
+/***
+sub_page - 고객지원 - 공지사항(detail)
+***/
+
+
+.notice_detail {
+    margin-bottom: 100px;
+}
+
+
+/******공지사항 게시판영역 시작******/
+.board_list {
+    border-bottom: 1px solid #d5d5d5;
+    margin-bottom: 20px;
+}
+
+.board_list .title_area {
+    border-top: 2px solid #31b5ff;
+    border-bottom: 1px solid #d5d5d5;
+    padding-left: 37px;
+    padding-top: 11px;
+}
+
+.board_list .title_area .title {
+    font-size: 20px;
+    line-height: 32px;
+    color: #303030;
+}
+
+.board_list .title_area .date {
+    font-size: 14px;
+    color: #606060;
+    line-height: 20px;
+    margin-bottom: 8px;
+}
+
+.board_list .contents_area {
+    padding: 16px 40px;
+    min-height: 420px;
+}
+
+.board_list .contents_area .para {
+    font-size: 16px;
+    line-height: 24px;
+    color: #606060;
+    margin-bottom: 26px;
+}
+
+.board_list .contents_area .para:last-of-type {
+    margin-bottom: 0;
+}
+
+.notice_detail .btn {
+    float: right;
+}
+
+
+/******공지사항 게시판영역 끝******/
+
+
+/***
+sub_page - 고객지원 - FAQ(고객사)
+***/
+
+.tabs_contents.faq_cus,
+.tabs_contents.faq_sup {
+    min-height: 500px;
+}
+
+.contents_faq section {
+    margin-bottom: 40px;
+}
+
+.contents_faq section:first-child {
+    padding-top: 56px;
+}
+
+.contents_faq .title {
+    margin-bottom: 16px;
+}
+
+
+/*****faq 리스트 시작*****/
+.border_box_list {
+    border-top: 1px solid #d5d5d5;
+}
+
+.border_box_list .list {
+    border-bottom: 1px solid #d5d5d5;
+    height: 40px;
+    padding-left: 50px;
+    position: relative;
+}
+
+.border_box_list .list .q {
+    float: left;
+    display: inline-block;
+    position: absolute;
+    top: 6px;
+    left: 11px;
+    width: 26px;
+    height: 26px;
+    background: url(/images/ymro//common/sprite_common.png) no-repeat;
+    background-position: -450px -100px;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+.border_box_list .list .tit {
+    float: left;
+    line-height: 40px;
+    font-size: 18px;
+    color: #606060;
+}
+
+.border_box_list .answer_box {
+    padding: 18px 0 18px 92px;
+    position: relative;
+    border-bottom: 1px solid #d5d5d5;
+    display: none;
+}
+
+.border_box_list .answer_box .a{
+    float: left;
+    display: inline-block;
+    position: absolute;
+    top: 18px;
+    left: 50px;
+    width: 26px;
+    height: 26px;
+    background: url(/images/ymro//common/sprite_common.png) no-repeat;
+    background-position: -500px -100px;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.border_box_list .answer_box .answer {
+    font-size: 18px;
+    line-height: 24px;
+    color: #606060;
+    margin-bottom: 23px;
+}
+
+.border_box_list .answer_box .answer:last-of-type {
+    margin-bottom: 0;
+}
+
+
+
+
+
+/***
+sub_page - 고객지원 - FAQ(공급사)
+***/
+
+
+
+
+
+
+
+/***
+sub_page - 홍보센터
+***/
+
+.contents_ad_center {
+    width: 1020px;
+}
+
+.sub_page .spot_ad_center {
+    background: url(/images/ymro/sub/spot_ad_center_bg.png) center;
+}
+
+
+.sub_page .spot_bg.spot_ad_center .title {
+    padding-top: 42px;
+}
+
+/***
+sub_page - 홍보센터 - 수상 및 인증 2010s
+***/
+.award_history_2010s .box_history .list_box::before {
+    height: 3446px;
+}
+
+
+/***
+sub_page - 홍보센터 - 인재상
+***/
+
+.contents_right_human .top .title {
+    font-size: 30px;
+    font-weight: bold;
+    color: #303030;
+    line-height: 50px;
+    padding-top: 9px;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.contents_right_human .top .sub_title {
+    font-size: 22px;
+    line-height: 28px;
+    color: #00a9ca;
+}
+
+.contents_right_human .top .txt {
+    padding-top: 33px;
+    font-size: 18px;
+    line-height: 26px;
+    color: #606060;
+}
+
+.contents_right_human .top .txt em {
+    color: #303030;
+    font-weight: bold;
+}
+
+.contents_right_human .top .img {
+    display: inline-block;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.contents_right_human .top{
+    border-bottom: none;
+}
+
+.contents_right_human .top .img {
+    width: 1024px;
+    height: 1323px;
+    background: url(/images/ymro/sub/right_human_type.png) no-repeat;
+}
+
+
+/***
+sub_page - 홍보센터 - CSR -CSR추진현황
+***/
+
+.contents_ad_center .top {
+    padding-top: 55px;
+    padding-left: 40px;
+}
+
+.contents_ad_center .title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #303030;
+    line-height: 28px;
+    margin-bottom: 16px;
+}
+
+.contents_csr .sub_tab_01 .top .title {
+    margin-bottom: 38px;
+}
+.contents_csr .sub_tab_01 .top .title .eng {
+    color: #909090;
+    font-size: 18px;
+    line-height: 29px;
+    margin-left: 10px;
+}
+
+
+.contents_ad_center .title_point {
+    display: inline-block;
+    text-indent: -9999px;
+    overflow: hidden;
+    width: 4px;
+    height: 20px;
+    background: #31b5ff;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+.round_list_box_wrap  {
+    padding-bottom: 30px;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #d5d5d5;
+}
+
+
+.round_list_box_horizon  {
+    position: relative;
+}
+
+
+.round_list_box_horizon img {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.round_list_box_horizon ul {
+    padding-left: 170px;
+    height: 150px;
+}
+
+.round_list_box_horizon ul li {
+    font-size: 16px;
+    line-height: 26px;
+    color: #606060;
+}
+
+.round_list_box_horizon ul li:before{
+    content:"-";
+    display: inline-block;
+    margin-right: 5px;
+}
+
+ul .point:before{
+    content:"" !important;
+}
+
+.round_list_box_horizon ul .point {
+    padding-left: 12px;
+}
+
+.round_list_box_horizon ul .point a {
+    color: #31b5ff;
+    font-weight: bold;
+}
+
+
+.contents_csr_intro .round_list_box_wrap {
+    margin-bottom: 77px;
+}
+
+.contents_csr_intro .round_list_box_horizon ul {
+    padding-left: 490px;
+    height: 162px;
+}
+
+.contents_csr_intro .round_list_box_horizon ul li {
+    margin-bottom: 28px;
+}
+
+
+/***
+sub_page - 홍보센터 - 홍보 - CI
+***/
+.contents_ad_ci .symbol {
+    margin-bottom: 97px;
+}
+
+.contents_ad_ci .symbol img{
+    float: left;
+}
+
+.contents_ad_ci .symbol .desc_box {
+    float: left;
+    padding-left: 33px;
+}
+
+.contents_ad_ci .symbol .desc_box .sub_title {
+    font-size: 22px;
+    line-height: 28px;
+    color: #606060;
+    margin-bottom: 33px;
+}
+
+.contents_ad_ci .symbol .desc_box .sub_title em {
+    color: #31b5ff;
+    font-weight: bold;
+}
+
+.contents_ad_ci .symbol .desc_box .desc {
+    font-size: 16px;
+    line-height: 22px;
+    color: #606060;
+    margin-bottom: 20px;
+}
+.contents_ad_ci .symbol .desc_box .desc em {
+    color: #846108;
+}
+
+.contents_ad_ci .logo_type {
+    margin-bottom: 97px;
+}
+
+.contents_ad_ci .logo_type p {
+    float: right;
+    font-size: 12px;
+    line-height: 22px;
+    color: #606060;
+    margin-top: 10px;
+    padding-right: 40px;
+}
+
+.contents_ad_ci .logo_type .btn {
+    margin-left: 10px;
+}
+
+
+.contents_ad_ci .color_system {
+    margin-bottom: 97px;
+}
+
+.contents_ad_ci .color_system img {
+    margin-bottom: 16px;
+}
+
+.contents_ad_ci .color_system .desc {
+    font-size: 16px;
+    line-height: 22px;
+    color: #606060;
+}
+
+.contents_ad_ci .ci_history {
+    margin-bottom: 97px;
+}
+
+.contents_ad_ci .ci_history .ci_history_img {
+    margin-bottom: 16px;
+}
+
+.contents_ad_ci .ci_history .iist {
+    padding-top: 25px;
+    padding-bottom: 25px;
+    border-bottom: 1px solid #d5d5d5;
+}
+
+.contents_ad_ci .ci_history .iist img{
+    float: left;
+    padding-left: 40px;
+}
+
+.contents_ad_ci .ci_history .iist p {
+    padding-left: 150px;
+    font-size: 16px;
+    line-height: 22px;
+    color: #606060;
+}
+
+.contents_ad_ci .ci_history .iist .year {
+    margin-bottom: 20px;
+}
+
+.contents_ad_ci .ci_history .iist .year em {
+    color: #846108;
+}
+
+.contents_ad_ci .ci_history .present .year em,
+.contents_ad_ci .ci_history .present em {
+    color: #31b5ff;
+    font-weight: bold;
+}
+
+.contents_ad_ci .no_use {
+    margin-bottom: 97px;
+}
+
+
+
+
+/***
+sub_page - 홍보센터 - 홍보 - 홍보자료
+***/
+
+.contents_ad_doc .sub_tab_02 .top {
+    margin-bottom: 100px;
+}
+
+.contents_ad_doc .sub_tab_02 .top .title {
+    margin-bottom: 16px;
+}
+
+.contents_ad_doc .sub_tab_02 .brochure {
+    margin-bottom: 96px;
+}
+
+.contents_ad_doc .sub_tab_02 .brochure .img {
+    float: left;
+    width: 280px;
+    height: 395px;
+    border: 1px solid #e4e4e4;
+    background: url(/images/ymro/sub/ad_brochure.png) no-repeat center;
+    text-indent: -9999px;
+    overflow: hidden;
+    margin-right: 20px;
+}
+
+.contents_ad_doc .sub_tab_02 .brochure p {
+    font-size: 22px;
+    line-height: 28px;
+    color: #606060;
+    padding-top: 7px;
+    margin-bottom: 54px;
+}
+
+.contents_ad_doc .sub_tab_02 .certify_mark .img {
+    border: 1px solid #c9c9c9;
+    margin-left:10px;
+    margin-bottom: 10px;
+    background: url(/images/ymro/sub/mark_kmar.png) no-repeat center;
+    width: 218px;
+    height: 198px;
+    text-indent: -9999px;
+    overflow: hidden;
+    float: left;
+}
+
+.contents_ad_doc .sub_tab_02 .certify_mark .kmar {
+    background-image: url(/images/ymro/sub/mark_kmar.png);
+}
+.contents_ad_doc .sub_tab_02 .certify_mark .green {
+    background-image: url(/images/ymro/sub/mark_green_company.png);
+}
+.contents_ad_doc .sub_tab_02 .certify_mark .celc {
+    background-image: url(/images/ymro/sub/mark_celc.png);
+}
+.contents_ad_doc .sub_tab_02 .certify_mark .celc_transport{
+    background-image: url(/images/ymro/sub/mark_celc_transport.png);
+}
+.contents_ad_doc .sub_tab_02 .certify_mark .web_award {
+    background-image: url(/images/ymro/sub/mark_web_award.png);
+    margin-bottom: 0;
+}
+
+
+
+/***
+sub_page - 윤리경영
+***/
+
+.contents_ethical_management {
+    width: 1020px;
+}
+
+.sub_page .spot_bg.spot_ethical_management .title {
+    padding-top: 42px;
+}
+
+.spot_ethical_management {
+    background: url(/images/ymro/sub/spot_ethical_bg.png) no-repeat center;
+}
+
+.contents_ethical_management .tabs_contents {
+    padding-top: 56px;
+}
+
+.contents_ethical_management .tabs_contents > section {
+    margin-bottom: 92px;
+}
+
+
+.contents_ethical_management .title {
+    margin-bottom: 32px;
+}
+
+
+.index .list {
+    padding-left: 40px;
+    margin-bottom: 32px;
+}
+
+.index .title {
+    margin-bottom: 14px;
+    padding-left: 40px;
+    font-size: 22px;
+    line-height: 28px;
+    font-weight: bold;
+}
+
+.index_color .title {
+    color: #31b5ff;
+}
+
+.index_color .list li,
+.index_color .desc {
+    color: #606060;
+}
+
+.index .list li {
+    font-size: 18px;
+    line-height: 24px;
+    padding-left: 12px;
+    position: relative;
+}
+
+.index .list li:before {
+    content:"-";
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.index .list .list_title:before {
+    display: none;
+}
+
+.index .desc {
+    font-size: 18px;
+    line-height: 24px;
+    padding-left: 40px;
+    margin-bottom: 24px;
+}
+
+.index .desc_caution {
+    margin-top: 91px;
+    font-size: 16px;
+    color: #18a3f1;
+}
+
+.index .list .list_3depth li:before {
+    content:"";
+    background: #606060;
+    width: 3px;
+    height: 3px;
+    -webkit-border-radius: 100%;
+    border-radius: 100%;
+    top: 10px;
+}
+
+
+/***
+sub_page - 회원가입
+***/
+
+.spot_user_registery {
+    background: url(/images/ymro/sub/spot_user_bg.png) no-repeat center;
+}
+
+.spot_user_registery  .title {
+    padding-top: 65px;
+}
+
+
+.contents.contents_user {
+    padding-top: 36px;
+}
+
+
+
+
+.title_h_28 {
+    font-size: 28px;
+    font-weight: bold;
+    color: #303030;
+    line-height: 34px;
+    margin-bottom: 36px;
+}
+
+
+/*step*/
+.step_bar > div {
+    float: left;
+    width: 320px;
+    height: 70px;
+    border: 1px solid #dedede;
+    text-align: center;
+    -webkit-border-radius: 35px;
+    border-radius: 35px;
+    font-size: 18px;
+    line-height: 24px;
+    color: #b0b0b0;
+    padding-top: 10px;
+}
+
+.step_bar > div em {
+    font-size: 14px;
+    line-height: 18px;
+}
+
+.step_bar > div.active {
+    background: #0096eb;
+    border: none;
+    color: #ffffff;
+}
+
+.step_bar span {
+    float: left;
+    margin: 27px 9px;
+}
+
+.contents_registery .step {
+    margin-bottom: 55px;
+}
+
+.contents_registery section {
+    margin-bottom: 48px;
+}
+
+.registery_step02 section {
+    margin-bottom: 0;
+}
+
+.contents_registery section > .title {
+    margin-bottom: 16px;
+}
+
+
+.contents_registery .policy_box {
+    width: 100%;
+    height: 240px;
+    border: 1px solid #dedede;
+    overflow-y: scroll;
+    margin-bottom: 8px;
+    padding: 18px 0;
+
+}
+
+.contents_registery .policy_box .policy {
+    font-size: 14px;
+    line-height: 18px;
+    color: #707070;
+    padding: 20px 33px;
+}
+
+.contents_registery .policy_box .policy * {
+    margin-bottom: 18px;
+}
+
+
+.input_checkbox {
+    height: 25px;
+}
+
+.input_checkbox input{
+    float: left;
+    width: 24px;
+    height: 24px;
+    background-image: url(/images/ymro/common/bg_checkbox_sq.png);
+}
+
+.input_checkbox input:checked {
+    background-image: url(/images/ymro/common/bg_checkbox_sq_active.png);
+}
+
+.input_checkbox label {
+    float: left;
+    display: inline-block;
+    line-height: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #0096eb;
+    margin-left: 12px;
+}
+
+.corp_num {
+    width: 100%;
+    height: 60px;
+    border: 1px solid #dedede;
+    padding: 12px 32px;
+}
+
+.input_textbox label {
+    line-height: 34px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #303030;
+    margin-right: 20px;
+}
+
+.input_textbox input {
+    width: 290px;
+    height: 34px;
+    border: 1px solid #dedede;
+    padding: 0 10px;
+}
+
+.contents_user > div {
+    margin-bottom: 100px;
+}
+
+.btn_p_50 {
+    padding: 0 50px;
+}
+
+.registery_step01 .btn {
+    position: relative;
+    left: 50%;
+    margin-left: -95px;
+}
+
+
+
+/***
+sub_page - 회원가입 - step02
+***/
+
+.registery_step02 .title_arrow {
+    font-size: 18px;
+    font-weight: bold;
+    color: #303030;
+    line-height: 28px;
+    position: relative;
+    padding-left: 22px;
+    margin-bottom: 5px;
+}
+
+.registery_step02 .title_arrow span {
+    margin-right: 6px;
+    position: absolute;
+    left: 0;
+    top: 5px;
+}
+
+.sprite_arrow_blue {
+    width: 16px;
+    height: 16px;
+    background-position: -200px -50px;
+}
+
+.info_box {
+    border-top: 2px solid #0072c9;
+    margin-bottom: 60px;
+}
+
+.info_box.margin_bottom {
+    margin-bottom: 8px;
+}
+
+.info_box dl {
+    float: left;
+    width: 510px;
+    height: 40px;
+    border-bottom: 1px solid #b7b7b7;
+    border-right: 1px solid #b7b7b7;
+    position: relative;
+    padding-left: 205px;
+}
+
+.info_box dl:nth-of-type(2n){
+    border-right: none;
+}
+
+.info_box dl dt {
+    width: 205px;
+    background: #ededed;
+    font-size: 14px;
+    line-height: 39px;
+    color: #606060;
+    padding-left: 25px;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.info_box dl dt:before {
+    content:"";
+    display: inline-block;
+    background: #909090;
+    width: 6px;
+    height: 6px;
+    border-radius: 100%;
+    margin-right: 5px;
+
+}
+
+.info_box dl dt .check {
+    position: absolute;
+    top: 12px;
+    right: 11px;
+}
+
+.info_box dl dd {
+    background: #ffffff;
+    padding: 2px;
+    position: relative;
+}
+
+.info_box dl dd input {
+    width: 100%;
+    height: 35px;
+    border: 1px solid #dbdbdb;
+    color: #303030;
+    font-size: 14px;
+    padding-left: 10px;
+}
+
+.info_box dl dd input.reg_check {
+    width: 22px;
+    height: 22px;
+    border: none;
+    color: #303030;
+    font-size: 14px;
+    vertical-align: middle;
+    margin: 6px 0 -1px 0;
+}
+
+.info_box table tr th {
+    background: #eeeeee;
+}
+
+.info_box table tr th input.reg_check,
+.info_box table tr td input.reg_check {
+    width: 22px;
+    height: 22px;
+    border: none;
+    color: #303030;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.info_box table tr th,
+.info_box table tr td {
+    border: 1px solid #b7b7b7;
+}
+
+.info_box dl dd label {
+    font-size: 13px;
+    vertical-align: bottom;
+}
+
+.check {
+    width: 14px;
+    height: 10px;
+    background-position:  -50px -200px;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+.info_box dl dd select {
+    width: 100%;
+    height: 35px;
+    padding-left: 10px;
+    border: 1px solid #dbdbdb;
+    border-right: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: url(/images/ymro/common/select_arrow.png) no-repeat right center;
+}
+
+.info_box .table_have_btn dd {
+    position: relative;
+}
+
+.info_box .table_have_btn dd > div {
+    float: left;
+}
+
+.info_box .table_have_btn div:first-child {
+    width: 100%;
+    padding-right: 91px;
+}
+
+.info_box .table_have_btn .have_btn {
+    position: absolute;
+    right: 2px;
+    top: 2px;
+}
+
+.info_box .btn {
+    min-width: 89px;
+    padding: 0;
+    font-size: 12px;
+    padding-left: 23px
+}
+
+.icon_search {
+    width: 14px;
+    height: 14px;
+    background-position: 0 -200px;
+    position: absolute;
+    top: 11px;
+    left: 9px;
+}
+
+.info_box .table_w1020 {
+    width: 1020px;
+    border-right: none;
+}
+
+.info_box .table_three_box {
+    height: 80px;
+}
+
+.info_box .table_three_box dt {
+    line-height: 79px;
+}
+
+.input_search_box {
+    width: 301px;
+    position: relative;
+}
+
+.input_search_box input[type="text"]{
+    width: 266px;
+    border-right: none;
+}
+
+.input_search_box .input_search {
+    padding-left: 0;
+    width: 35px;
+    height: 35px;
+    background: url(/images/ymro/common/input_search_box.png) no-repeat;
+    position: absolute;
+    top: 0;
+    right: 0;
+    border: none;
+}
+
+.input_half_box {
+    height: 40px;
+    padding: 4px 0 2px;
+}
+
+.info_box .table_three_box .input_half_box > input {
+    float: left;
+    width: 401px;
+    height: 35px;
+    border: 1px solid #dbdbdb;
+    margin-left: 9px;
+}
+
+.input_half_box input:disabled {
+    background: #ffffff;
+}
+
+.info_box .table_three_box .input_half_box > input:first-child {
+    margin-left: 0;
+}
+
+.table_w305 {
+    width: 305px;
+}
+
+.btn_wrap {
+    margin-top: 8px;
+    text-align: center;
+}
+
+.btn_middle {
+    min-width: 183px;
+}
+
+.btn_cancel {
+    background: #ffffff;
+    border: 1px solid #b1b1b1;
+    color: #606060;
+}
+
+/***
+sub_page - 회원가입 - step03
+***/
+
+
+.contents_user > .registery_step03 {
+    margin-bottom: 190px;
+}
+
+.registery_step03 .complete {
+    text-align: center;
+}
+
+.registery_step03 .complete .sprite {
+    width: 70px;
+    height: 52px;
+    background-position:  -100px -200px;
+    text-indent: -9999px;
+    overflow: hidden;
+    margin: 22px 0 26px;
+}
+
+.registery_step03 .complete p {
+    font-size: 28px;
+    line-height: 34px;
+    color: #303030;
+    margin-bottom: 86px;
+}
+.registery_step03 .complete em {
+    color: #0096eb;
+    margin-right: 8px;
+}
+
+
+
+/***
+sub_page - ID/PW 찾기
+***/
+.contents_search_id section {
+    float: left;
+    width: 470px;
+    margin-left: 40px;
+}
+
+.contents_search_id section:nth-of-type(1) {
+    margin-left: 0;
+    margin-right: 40px;
+}
+
+.contents_search_id section .title {
+    margin-bottom: 16px;
+}
+
+.contents_search_id section .search_info {
+    border-top: 2px solid #0072c9;
+    border-bottom: 1px solid #b7b7b7;
+    height: 282px;
+    margin-bottom: 20px;
+}
+
+.search_info {
+    padding: 24px 40px;
+}
+
+.search_info dl {
+    line-height: 31px;
+    margin-top: 10px;
+}
+
+.search_info dl:first-child {
+    margin-top: 0;
+}
+
+.search_info dl dt {
+    float: left;
+    width: 127px;
+    line-height: 31px;
+    font-size: 14px;
+    color: #606060;
+}
+
+.search_info dl dt:before {
+    display: inline-block;
+    content:"";
+    background: #909090;
+    width: 6px;
+    height: 6px;
+    -webkit-border-radius: 100%;
+    border-radius: 100%;
+    margin-right: 7px;
+}
+
+
+.search_info dl dd {
+    float: left;
+}
+
+.search_info dl dd input {
+    width: 241px;
+    height: 31px;
+    border: 1px solid #dbdbdb;
+}
+
+.search_info dl dd input[type="radio"]{
+    width: 20px;
+    height: 20px;
+    border: 1px solid #dbdbdb;
+    vertical-align: text-bottom;
+}
+
+.search_info dl dd select {
+    width: 241px;
+    height: 35px;
+    padding-left: 10px;
+    border: 1px solid #dbdbdb;
+    border-right: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: url(/images/ymro/common/select_arrow.png) no-repeat right center;
+}
+
+/***
+sub_page - SITEMAP
+***/
+
+.contents_user.contents_site_map > div {
+    margin-bottom: 195px;
+}
+
+.contents_site_map section {
+    border-top: 2px solid #0072c9;
+}
+
+.contents_site_map section > div {
+    padding: 0 40px;
+}
+
+.contents_site_map .site_title {
+    border-bottom: 1px solid #e2e2e2;
+    height: 63px;
+}
+
+.contents_site_map .site_title p {
+    float: left;
+    font-size: 18px;
+    color: #31b5ff;
+    font-weight: bold;
+    line-height: 28px;
+    padding-top: 27px;
+    margin-bottom: 5px;
+}
+
+.col_5 p,
+.col_5 ul {
+    width: 20%;
+}
+
+.contents_site_map .site_list {
+    min-height: 250px;
+    border-bottom: 1px solid #e2e2e2;
+}
+
+.contents_site_map .site_list ul {
+    float: left;
+    padding-top: 7px;
+}
+
+.contents_site_map .site_list ul li a {
+    font-size: 16px;
+    color: #606060;
+    line-height: 40px;
+}
+
+.contents_site_map .site_user p {
+    float: left;
+    padding-top: 7px;
+}
+
+.contents_site_map .site_user p  a {
+    font-size: 16px;
+    line-height: 40px;
+    color: #606060;
+}
+
+/***
+sub_page - 이용약관
+***/
+
+
+.contents_policy .title_h_28 {
+    margin-bottom: 95px;
+}
+
+.chapter {
+    padding: 0 40px;
+    margin-bottom: 65px;
+}
+
+.chapter:last-of-type {
+    margin-bottom: 0;
+}
+
+.chapter > div{
+    margin-bottom: 40px;
+}
+
+.chapter > div:last-of-type {
+    margin-bottom: 0;
+}
+
+.chapter .title {
+    font-size: 14px;
+    line-height: 22px;
+    color: #303030;
+    font-weight: bold;
+}
+
+.chapter .margin {
+    margin-bottom: 22px;
+}
+
+
+.chapter .title_main {
+    font-size: 18px;
+    margin-bottom: 24px;
+}
+
+.title.title_blue {
+    color: #31b5ff;
+}
+
+.chapter p {
+    font-size: 12px;
+    line-height: 22px;
+    color: #606060;
+    margin-bottom: 22px;
+}
+
+.chapter ol li {
+    font-size: 12px;
+    line-height: 22px;
+    color: #606060;
+}
+
+.chapter > ol > li {
+    margin-bottom: 22px;
+}
+
+.chapter > div > ol > li {
+    margin-bottom: 22px;
+}
+
+.chapter > ol > li > ol {
+    padding-top: 22px;
+}
+
+
+
+.chapter .margin_bottom {
+    margin-bottom: 22px;
+}
+
+
+.chapter .no_margin_b {
+    margin-bottom: 0;
+}
+
+.chapter .no_margin_b li {
+    margin-bottom: 0;
+}
+
+.chapter .padding_top {
+    padding-top: 10px;
+}
+
+
+.chapter ol.margin_b {
+    margin-bottom: 40px;
+}
+
+
+.chapter span {
+    display: block;
+    font-size: 12px;
+    color: #606060;
+}
+
+
+
+/*table*/
+
+.table_border th {
+    border: 1px solid #c3c3c3;
+}
+
+.table_border td {
+    border: 1px solid #c3c3c3;
+}
+
+.table_col2 th {
+    width: 50%;
+}
+
+.table_col3  th {
+    width: 33.3%;
+}
+.table_col3  th:first-child {
+    width: 33.4%;
+}
+
+
+/*정책/약관 페이지에 들어가는 표일 경우 table_policy 사용*/
+.table_policy {
+    width: 100%;
+    font-size: 14px;
+    line-height: 20px;
+    color: #606060;
+    text-align: center;
+}
+
+.table_policy th {
+    height:40px;
+    vertical-align: middle;
+}
+
+.table_policy td {
+    height: 80px;
+    vertical-align: middle;
+    font-size: 12px;
+    color: #606060;
+}
+
+.table .text_left {
+    text-align: left;
+}
+
+.table_policy .padding td {
+    padding-left: 110px;
+}
+
+.table_policy.table_margin_b {
+    /*margin-bottom: 52px;*/
+    margin-bottom: 30px;
+}
+
+
+/*
+---------------------
+*/
+
+.chapter_inner .title {
+    color: #707070;
+    line-height: 20px;
+    font-weight: normal;
+}
+
+.chapter_inner p {
+    font-size:14px;
+    color: #707070;
+    margin-bottom: 18px;
+}
+
+.chapter_inner span {
+    line-height: 20px;
+    font-size: 14px;
+}
+
+.chapter_inner > ol > li {
+    margin-bottom: 20px;
+}
+
+.chapter_inner ol li {
+    font-size: 14px;
+    line-height: 20px;
+    color: #707070;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="date"]::-webkit-outer-spin-button,
+input[type="date"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+select { -webkit-appearance: none; -moz-appearance: none;appearance: none; background:#fff;}
+select::-ms-expand { display:none; }

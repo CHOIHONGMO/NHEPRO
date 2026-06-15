@@ -1,0 +1,150 @@
+package com.st_ones.common.login;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import com.st_ones.common.login.domain.LoginSearch;
+import com.st_ones.common.login.domain.UserInfo;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : LoginMapper.java
+ * @date 2013. 07. 22.
+ * @version 1.0
+ * @see
+ */
+@Repository
+public interface LoginMapper {
+
+	String getDecUserId(LoginSearch loginSearch);
+
+	String findUserId(LoginSearch loginSearch);
+
+	String findUserIdPW(LoginSearch loginSearch);
+
+	UserInfo getUserInfoC(LoginSearch loginSearch);
+
+	UserInfo getUserInfoB(LoginSearch loginSearch);
+
+	UserInfo getUserInfoS(LoginSearch loginSearch);
+	
+	// 2021.02.17 변경
+	// return type 변경 : String => Map<String, String>
+	Map<String, String> findUserType(Map<String, String> param);
+
+	String checkAgree(Map<String, String> param);
+
+	String checkAgree_BS(Map<String, String> param);
+
+	void ConfirmAgree(Map<String, String> param)throws Exception;
+
+	void ConfirmAgree_BS(Map<String, String> param)throws Exception;
+	
+	// 2021.02.17 추가
+	// ASP 이용계약서 및 전자서명값 저장
+	void ConfirmAgreeSV(Map<String, String> param)throws Exception;
+
+	List<Map<String, String>> getVendorUserList();
+
+	void updateWrongPasswordCount(Map<String, String> userInfo);
+	
+	int getPasswordWrongCount(Map<String, String> userInfo);
+	
+	//2022.10.28 개인근로자 파트너스 로직 추가
+	int getPasswordWrongCountPT(Map<String, String> userInfo);
+
+	void resetPasswordWrongCount(Map<String, String> userInfo);
+
+	void setLastLoginDate(Map<String, String> userInfo);
+
+    String getUserType(Map<String, String> userInfo);
+
+    List<Map<String,String>> getNoticeListPopup(Map<String, String> noticeInfo);
+
+    // 인터페이스 유저테이블 조회
+	Map<String, String> chkTbCoUser(Map<String, String> param);
+    // 인터페이스 부서테이블 조회
+	Map<String, String> chkTbCoBrc(Map<String, String> param);
+    // 인터페이스 고객사테이블 조회
+	Map<String, String> chkTbCoCorp(Map<String, String> param);
+
+    // 유저테이블 조회
+	Map<String, String> chkCvur(Map<String, String> param);
+    // 부서테이블 조회
+	Map<String, String> chkOgdp(Map<String, String> param);
+    // 고객사테이블 조회
+	Map<String, String> chkCust(Map<String, String> param);
+
+    void insCust(Map<String, String> userInfo);
+    void upsCust(Map<String, String> userInfo);
+
+    void insOgdp(Map<String, String> userInfo);
+    void insCvur(Map<String, String> userInfo);
+
+    void insUsap(Map<String, String> userInfo);
+
+    void insBacp(Map<String, String> userInfo);
+
+	UserInfo getMobile_UserInfo(LoginSearch loginSearch);
+	
+	//2022.10.25 개인근로자 파트너스 추가
+	UserInfo getMobile_UserInfoPT(LoginSearch loginSearch);
+	
+    int get90DaysCount(Map<String, String> param);
+	int getPwResetFlag(Map<String, String> param);
+	int getPwResetDate(Map<String, String> param);
+	
+	//2022.10.28 개인근로자 파트너스 추가
+	int getPwResetFlagPT(Map<String, String> param);
+	int getPwResetDatePT(Map<String, String> param);
+
+	int findNonUserId(LoginSearch loginSearch);
+	
+	int findNonUserIdPT(LoginSearch loginSearch); //2023.01.10 개인근로자 파트너스 휴면계정 관련 추가
+
+	void changeLongTermNonUser(Map<String, String> param);
+	
+	//2023.01.10 개인근로자_휴면계정 로그인 처리
+	void changeLongTermNonUserPT(Map<String, String> param);
+	
+	void changeLongTermNonUserUsap(Map<String, String> param);
+	
+	void changeLongTermNonUserBacp(Map<String, String> param);
+
+	void deleteChangeLongTermNonUser(Map<String, String> param);
+
+	List<Map<String, String>> getPossibleIP(Map<String, String> sParam);
+	
+	// 2021.04.05 로그인 후 ID, PASSWORD가 동일한 경우 기존 휴대번호, 이메일 정보가 존재하지 않는 경우 개인정보 변경 팝업 오픈하는 경우에 추가
+	//Map<String, String> passSameCheck(Map<String, String> param);
+	int passSameCheck(Map<String, String> param);
+
+	Map<String, String> isFirstLogin(Map<String, String> param);
+	
+	int findDelUserId(LoginSearch loginSearch);
+
+	Map<String, String> getNameAndPhoneNum(Map<String, String> param);
+
+	Map<String, String> getConfirmReason(Map<String, String> param);	
+	
+	// 2021.12.13 : 관리자 인증키 저장
+	void doSaveVerCode(Map<String, String> userInfo);
+	
+	// 2021.12.13 : 관리자 인증키 가져오기
+	int findManagerKey(Map<String, String> param);
+	
+	// 2022.05.16 추가 ajk 부서별 ASP이용 대상 확인
+	Map<String, String> findUserDeptAsp(Map<String, String> param);		
+	
+	Map<String, String> findCompanyAsp(Map<String, String> param);	
+}
+

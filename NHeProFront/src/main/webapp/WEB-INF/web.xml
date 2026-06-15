@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee"
+         id="WebApp_ID" metadata-complete="true" version="3.0" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
+
+    <display-name>NHeProFront</display-name>
+    <welcome-file-list>
+        <welcome-file>/index.jsp</welcome-file>
+    </welcome-file-list>
+    <servlet>
+        <servlet-name>EverSRM Dispatcher</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>
+                classpath:spring/context-*.xml
+                classpath:spring/dwr.xml
+            </param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>EverSRM Dispatcher</servlet-name>
+        <url-pattern>*.so</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>EverSRM Dispatcher</servlet-name>
+        <url-pattern>/dwr/*</url-pattern>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>QuartzInitializer</servlet-name>
+        <servlet-class>org.quartz.ee.servlet.QuartzInitializerServlet</servlet-class>
+        <init-param>
+            <param-name>config-file</param-name>
+            <param-value>quartz.properties</param-value>
+        </init-param>
+        <init-param>
+            <param-name>shutdown-on-unload</param-name>
+            <param-value>true</param-value>
+        </init-param>
+        <init-param>
+            <param-name>start-scheduler-on-load</param-name>
+            <param-value>true</param-value>
+        </init-param>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+    <listener>
+        <listener-class>com.st_ones.common.util.clazz.EverServletContextListener</listener-class>
+    </listener>
+    <listener>
+        <display-name>User Login Status Manager</display-name>
+        <listener-class>com.st_ones.common.session.web.EverHttpSessionListener</listener-class>
+    </listener>
+    <listener>
+        <display-name>Batch Program</display-name>
+        <listener-class>com.st_ones.common.schedule.ScheduleListener</listener-class>
+    </listener>
+    <filter>
+        <filter-name>encodingFilter</filter-name>
+        <filter-class>com.st_ones.common.EverSrmFilter</filter-class>
+        <init-param>
+            <param-name>encoding</param-name>
+            <param-value>UTF-8</param-value>
+        </init-param>
+        <init-param>
+            <param-name>forceEncoding</param-name>
+            <param-value>true</param-value>
+        </init-param>
+    </filter>
+    <filter-mapping>
+        <filter-name>encodingFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    <filter>
+    	<filter-name>CORSFilter</filter-name>
+    	<filter-class>com.st_ones.common.CORSFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>CORSFilter</filter-name>
+        <url-pattern>/nhepro/IPRONET/*</url-pattern>
+    </filter-mapping>
+    <filter>
+        <filter-name>EverFrameworkServletFilter</filter-name>
+        <filter-class>com.st_ones.everf.serverside.filter.EverFrameworkServletFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>EverFrameworkServletFilter</filter-name>
+        <url-pattern>*.so</url-pattern>
+        <url-pattern>*.jsp</url-pattern>
+    </filter-mapping>
+    <session-config>
+        <session-timeout>360</session-timeout>
+    </session-config>
+    <error-page>
+        <error-code>403</error-code>
+        <location>/pageNotFound.so</location>
+    </error-page>
+    <error-page>
+        <error-code>404</error-code>
+        <location>/pageNotFound.so</location>
+    </error-page>
+    <error-page>
+        <error-code>500</error-code>
+        <location>/error.so</location>
+    </error-page>
+    <resource-ref>
+        <res-ref-name>jdbc/nhepro</res-ref-name>
+        <res-type>javax.sql.DataSource</res-type>
+        <res-auth>Container</res-auth>
+    </resource-ref>
+</web-app>

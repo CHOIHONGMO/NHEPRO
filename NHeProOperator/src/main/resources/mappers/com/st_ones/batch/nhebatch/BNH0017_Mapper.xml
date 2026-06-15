@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.batch.nhebatch.BNH0017_Mapper">
+	<insert id="insertSTOHCVUR">
+		INSERT INTO STOHCVUR (
+			   GATE_CD
+			 , USER_ID
+			 , REG_DATE
+			 , REG_USER_ID
+			 , MOD_DATE
+			 , MOD_USER_ID
+			 , DEL_FLAG
+			 , COMPANY_CD
+			 , MNG_YN
+			 , USER_TYPE
+			 , WORK_TYPE
+			 , USER_NM
+			 , PASSWORD
+			 , EMPLOYEE_NO
+			 , DEPT_CD
+			 , DEPT_NM
+			 , POSITION_NM
+			 , TEL_NUM
+			 , FAX_NUM
+			 , CELL_NUM
+			 , EMAIL
+			 , ZIP_CD
+			 , ADDR_1
+			 , ADDR_2
+			 , SMS_FLAG
+			 , MAIL_FLAG
+			 , BLOCK_FLAG
+			 , BLOCK_REASON
+			 , PW_WRONG_CNT
+			 , PW_RESET_FLAG
+			 , PW_RESET_DATE
+			 , LAST_LOGIN_DATE
+			 , IP_ADDR
+			 , USE_FLAG
+			 , PROGRESS_CD
+			 , CONFIRM_USER_ID
+			 , CONFIRM_DATE
+			 , DATA_CREATION_TYPE
+			 , ERP_IF_ID
+			 , ERP_IF_SEND_FLAG
+			 , VNGL_ROLE
+			 , AGREE_ATT_FILE_NUM
+			 , AGREE_YN
+			 , AGREE_YN_DATE
+			 , DUTY_NM
+			 , CHIEF_USER_ID
+			 , ROLE_TEXT
+			 , ROLE_TEXT_DETAIL
+			 , ONES_DUTY_NM
+			 , PARENT_DEPT_CD
+			 , PARENT_DEPT_NM
+			 , EMPLOYEE_NUM
+			 , BLOCK_DATE
+			 , SITE_USER_ID
+			 , GENDER
+			 , BIRTH_DATE
+		)
+		SELECT GATE_CD
+			 , USER_ID
+			 , REG_DATE
+			 , REG_USER_ID
+			 , MOD_DATE
+			 , MOD_USER_ID
+			 , '1' AS DEL_FLAG
+			 , COMPANY_CD
+			 , MNG_YN
+			 , USER_TYPE
+			 , WORK_TYPE
+			 , USER_NM
+			 , PASSWORD
+			 , EMPLOYEE_NO
+			 , DEPT_CD
+			 , DEPT_NM
+			 , POSITION_NM
+			 , TEL_NUM
+			 , FAX_NUM
+			 , CELL_NUM
+			 , EMAIL
+			 , ZIP_CD
+			 , ADDR_1
+			 , ADDR_2
+			 , SMS_FLAG
+			 , MAIL_FLAG
+			 , BLOCK_FLAG
+			 , BLOCK_REASON
+			 , PW_WRONG_CNT
+			 , PW_RESET_FLAG
+			 , PW_RESET_DATE
+			 , LAST_LOGIN_DATE
+			 , IP_ADDR
+			 , USE_FLAG
+			 , PROGRESS_CD
+			 , CONFIRM_USER_ID
+			 , CONFIRM_DATE
+			 , DATA_CREATION_TYPE
+			 , ERP_IF_ID
+			 , ERP_IF_SEND_FLAG
+			 , VNGL_ROLE
+			 , AGREE_ATT_FILE_NUM
+			 , AGREE_YN
+			 , AGREE_YN_DATE
+			 , DUTY_NM
+			 , CHIEF_USER_ID
+			 , ROLE_TEXT
+			 , ROLE_TEXT_DETAIL
+			 , ONES_DUTY_NM
+			 , PARENT_DEPT_CD
+			 , PARENT_DEPT_NM
+			 , EMPLOYEE_NUM
+			 , BLOCK_DATE
+			 , SITE_USER_ID
+			 , GENDER
+			 , BIRTH_DATE
+		  FROM STOCCVUR
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND USER_ID = #{USER_ID}
+ 	</insert>
+
+	<delete id="deleteSTOCCVUR">
+		DELETE FROM STOCCVUR
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND USER_ID = #{USER_ID}
+ 	</delete>
+ 	
+ 	<update id="updateSTOCUSAP" parameterType="hashMap">
+		UPDATE STOCUSAP SET
+			  MOD_DATE = SYSDATE -- MOD_DATE
+			, MOD_USER_ID = 'ARO_BATCH' -- MOD_USER_ID
+			, DEL_FLAG = '1' -- DEL_FLAG
+		WHERE GATE_CD = #{ses.gateCd}
+		  AND USER_ID = #{USER_ID}
+	</update>
+	
+	<update id="updateSTOCBACP" parameterType="hashMap">
+		UPDATE STOCBACP SET
+			  MOD_DATE = SYSDATE -- MOD_DATE
+			, MOD_USER_ID = 'ARO_BATCH' -- MOD_USER_ID
+			, DEL_FLAG = '1' -- DEL_FLAG
+		WHERE GATE_CD = #{ses.gateCd}
+		  AND CTRL_USER_ID = #{USER_ID}
+	</update>
+	
+	<delete id="deleteSTOHCVUR">
+		DELETE FROM STOHCVUR
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND USER_ID = #{USER_ID}
+	</delete>
+	
+	<delete id="deleteSTOCUSAP">
+		DELETE FROM STOCUSAP
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND USER_ID = #{USER_ID}
+	</delete>
+	
+	<delete id="deleteSTOCBACP">
+		DELETE FROM STOCBACP
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND CTRL_USER_ID = #{USER_ID}
+	</delete>
+ 	
+ 	<!-- 2021.11.03 DEL_FLAG=1인 삭제계정도 삭제 처리함 -->
+	<select id="getTargetData1" resultType="hashmap" parameterType="hashMap">
+		SELECT USER_ID
+			 , <include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+		  FROM STOCCVUR
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND TO_CHAR(LAST_LOGIN_DATE, 'YYYYMMDD') <![CDATA[<]]> TO_CHAR(ADD_MONTHS(SYSDATE, #{minusMonth}), 'YYYYMMDD')
+		   AND USER_TYPE IN ('B','S')
+	</select>
+
+ 	<!-- 2021.11.03 DEL_FLAG=1인 삭제계정도 삭제 처리함 -->
+	<select id="getTargetData2" resultType="hashmap" parameterType="hashMap">
+		SELECT USER_ID
+			 , <include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+		  FROM STOHCVUR
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND TO_CHAR(LAST_LOGIN_DATE, 'YYYYMMDD') <![CDATA[<]]> TO_CHAR(ADD_MONTHS(SYSDATE, #{minusMonth}), 'YYYYMMDD')
+		   AND USER_TYPE IN ('B','S')
+	</select>
+
+</mapper>

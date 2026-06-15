@@ -1,0 +1,577 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CTPI.CTPI0010_Mapper">
+
+	
+	<select id="ctpi0010_doSearchAmtList" parameterType="hashmap" resultType="hashmap">
+		SELECT SIMP_C,AMN_HDNG_EXPL3, trim(TO_CHAR(AMN_HDNG_EXPL3, '999,999,999,999,999')) as amt_comma
+		FROM 
+			NHEBILL.TB_EB_CD_COMM 
+		WHERE 
+			SIMP_TPC ='EPRO_WRS_NO'
+			AND DEL_YN='N'
+		ORDER BY to_number(AMN_HDNG_EXPL3)
+	</select>
+	
+	<select id="ctpi0010_doSearchTpayInfo" parameterType="hashmap" resultType="hashmap">
+		SELECT *
+		FROM 
+			NHEBILL.TB_EB_CD_COMM 
+		WHERE 
+			SIMP_TPC ='EPRO_TPAY'
+		
+	</select>
+	
+	<select id="ctpi0010_doSearchCompanyType"  resultType="hashmap">
+		SELECT
+			CORP_NO,
+            NC_COMP_DS_C,
+            (SELECT NVL(BRC,'') FROM TB_CO_USER where CORP_NO = corp.CORP_NO and user_id= #{ses.userId} ) RQS_BRC
+		FROM
+		    TB_CO_CORP corp
+		WHERE 
+		    CORP_NO IN 
+		        ( 
+		        	SELECT 
+		            	CORP_NO
+		          	FROM
+		            	TB_CO_USER
+		          	WHERE
+		            	USER_ID=#{ses.userId}
+		            
+		         UNION ALL
+		         
+		           	SELECT 
+	           		 	IRS_NUM
+		           	FROM 
+		           	 	STOCCUST
+		           	WHERE 
+		           	 	GATE_CD = #{ses.gateCd}
+		           		AND CUST_CD = (
+	           				SELECT 
+		           				COMPANY_CD
+		                	FROM 
+		                		STOCCVUR
+		                 	WHERE
+		                 		USER_ID = #{ses.userId} 
+	                 		) 
+                 	) 
+
+		
+	</select>
+	
+	<insert id="ctpi0010_doInsertPoint" parameterType="hashmap">
+		<selectKey resultType="String" keyProperty="inSeq" order="BEFORE">
+            SELECT NVL(MAX(TO_NUMBER(RQR_NO))+1,1) from TB_PR_DM_PNT
+        </selectKey>
+		INSERT 	INTO 
+			TB_PR_DM_PNT (RQR_NO,   
+				CORP_NO, USER_ID, RQR_CHRRNM, DCZ_AM,  
+				RQR_CHRR_EMAIL,
+				RQR_CHRR_MPNO, 
+				PCH_DS, PAY_GBN, 
+				BANK_CD, VR_AC_NO_SEQ, EPRO_WRS_NO, PNT_AM, 
+				TR_DTM, ATTC_C, TID_CODE, BRC, MNBANK_ID, 
+				FSRGDTM, FSRGID, LSCHGDTM, LSCHGID)
+			VALUES (
+			    LPAD(#{inSeq}, 20, '0'),
+				#{CORP_NO}, #{ses.userId}, #{buyerName} , TO_NUMBER(#{amt}), 
+				 <include refid="common.sql.strEncStart"/> #{buyerEmail} <include refid="common.sql.strEncEnd"/>,
+				 <include refid="common.sql.strEncStart"/> #{buyerTel} <include refid="common.sql.strEncEnd"/>,
+				(SELECT SIMP_C FROM NHEBILL.TB_EB_CD_COMM WHERE SIMP_TPC = 'PCH_DS' AND AMN_HDNG_EXPL6 = #{payMethod}), '1', 
+				#{fnCd}, #{vbankNum}, #{goodsName}, TO_NUMBER(#{amt})/11*10, 
+				SYSDATE, #{authCode}, #{tid}, '000000', #{mid}, 
+				SYSDATE, #{ses.userId}, SYSDATE, #{ses.userId}
+				)
+		
+	</insert>
+	
+	<!-- 이용권 구매 금액 (임시) 레코드 추가 -->
+	<insert id="ctpi0010_doInsertTmptPoint" parameterType="hashmap">
+		INSERT INTO TB_PR_DM_TPAY (USER_ID, DCZ_AM, MOID, BUYER_NAME, MERCHANT_KEY) VALUES (#{ses.userId}, #{total}, #{moid}, #{buyerName}, #{merchantKey})
+	</insert>
+	
+	<!-- 이용권 구매 금액 (임시) 레코드 삭제 -->
+	<delete id="ctpi0010_doDeleteTmpPoint">
+        DELETE FROM TB_PR_DM_TPAY WHERE USER_ID = #{ses.userId}
+    </delete>
+	
+	<!-- 이용권 구매 포인트 합산 -->
+	<update id="ctpi0010_doUpdatePoint" parameterType="hashmap">
+			UPDATE 
+				TB_CO_CORP 
+			SET 
+				PPAY_BAC = NVL(PPAY_BAC, 0) + (#{amt}/11*10) 
+			WHERE 
+				CORP_NO = #{CORP_NO} 
+	</update>
+	
+	
+	<select id="ctpi0020_doSearch" parameterType="hashmap" resultType="hashmap">
+		
+			SELECT
+			 	ROW_NUMBER() OVER (ORDER BY RQR_NO) AS RN_NO, 
+			 	TO_CHAR(TR_DTM, 'YYYY-MM-DD') TR_DT, NVL(EPRO_WRS_NO, '') WRS_NO, 
+			 	NVL(RQR_CHRRNM, '') RQR_CHRRNM, 
+				(SELECT SIMP_CNM FROM NHEBILL.TB_EB_CD_COMM WHERE SIMP_TPC = 'PCH_DS' AND SIMP_C = PCH_DS) PCH_DS, 
+				PNT_AM, DCZ_AM
+			FROM 
+				TB_PR_DM_PNT	
+			WHERE 
+				CORP_NO = #{CORP_NO} 
+				AND TO_CHAR(TR_DTM, 'YYYYMMDD') BETWEEN #{DATE_FROM} AND #{DATE_TO} 
+			ORDER BY RQR_NO DESC
+	</select>
+	
+	<select id="ctpi0010_getDecValue" parameterType="hashmap" resultType="hashmap">
+		SELECT *
+		FROM 
+			TB_PR_DM_TPAY 
+		WHERE 
+			USER_ID=#{ses.userId}
+		
+	</select>
+	
+	<select id="ctpu0040_getUserInfo" parameterType="hashmap" resultType="hashmap">
+		SELECT 
+			'(' || SUBSTR(CORP_NO,0,3) || '-' || SUBSTR(CORP_NO,4,2) || '-' || SUBSTR(CORP_NO,6,5) || ')' CORP_NUM, 
+			PPAY_BAC AMOUNT
+		FROM 
+			TB_CO_CORP 
+		WHERE 
+			CORP_NO = #{CORP_NO}
+		
+	</select>
+	
+	
+	<!-- 이용권 환불 신청 등록 -->
+	<insert id="CTPU0040_insertRefundRequest" parameterType="hashmap">
+		INSERT 	INTO 
+			TB_PR_DM_PNT_REFUND_BRK 
+			(	RFDM_REQ_DT, 
+				RQ_RGMN,
+				RFDM_PNT, RFDM_DS, 
+				BNKNM, 
+				ACNO,
+				DPRNM, 
+				CORP_NO, BRC, 
+				RFDM_SQNO, FSRGDTM, FSRGID, LSCHGDTM, LSCHGID, RFDM_OBJAM) 
+		VALUES 
+			(TO_CHAR(SYSDATE,'YYYYMMDD'), 
+			 #{RQ_RGMN} ,
+			 #{RFDM_PNT} , 'I', 
+			(SELECT SIMP_CNM FROM NHEBILL.TB_EB_CD_COMM WHERE SIMP_TPC = 'BANK_CD' AND SIMP_C = #{BANK_CD}),
+			<include refid="common.sql.strEncStart"/> #{ACNO} <include refid="common.sql.strEncEnd"/>,
+			#{DPRNM} , 
+			#{CORP_NO}, '000000',
+			(SELECT COUNT(*) FROM TB_PR_DM_PNT_REFUND_BRK WHERE RFDM_REQ_DT = TO_CHAR(SYSDATE,'YYYYMMDD')), SYSDATE, #{ses.userId}, SYSDATE, #{ses.userId}, #{AMOUNT})
+	
+	</insert>
+	
+	<!-- 이용권 환불 신청 포인트 차감 -->
+	<update id="CTPU0040_updateRefundPoint" parameterType="hashmap">
+			UPDATE 
+				TB_CO_CORP 
+			SET 
+				PPAY_BAC = PPAY_BAC - #{RFDM_PNT}
+			WHERE 
+				CORP_NO = #{CORP_NO} 
+	</update>
+	
+	<select id="ctpr0050_doSearch" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			 	ROW_NUMBER() OVER (ORDER BY RFDM_REQ_DT) AS RN_NO, 
+				NVL(RFDM_REQ_DT, '') RFDM_REQ_DT, 
+				NVL(DPRNM, '') DPRNM, 
+				NVL(BNKNM, '')  BNKNM, 
+				<include refid="common.sql.strDecStart"/>NVL(ACNO, '') <include refid="common.sql.strDecEnd"/> ACNO, 
+				ACTL_RFDM_AM, 
+				NVL((SELECT SIMP_CNM FROM NHEBILL.TB_EB_CD_COMM WHERE SIMP_TPC = 'RFDM_DS' AND SIMP_C = RFDM_DS), '') RFDM_DS, 
+				NVL(RFDM_DT, '') RFDM_DT 
+			FROM 
+				TB_PR_DM_PNT_REFUND_BRK 
+			WHERE 
+				CORP_NO = #{CORP_NO}
+				AND RFDM_REQ_DT BETWEEN #{DATE_FROM} AND #{DATE_TO}
+			ORDER BY RFDM_REQ_DT DESC, RFDM_SQNO DESC
+		
+	</select>
+	
+	<select id="CTPR0060R1" parameterType="map" resultType="map">
+        SELECT ROW_NUMBER() OVER (ORDER BY TR_DTM) AS RN_NO 
+       		 , tr_dtm                                               AS tr_dtm        /* 사용일자         */
+             , use_cmt                                              AS use_cmt       /* 구입유형         */
+             , pnt_in                                               AS pnt_in        /* 구매(취소)이용권 */
+             , pnt_out                                              AS pnt_out       /* 사용이용권       */
+             , SUM(pnt_in - pnt_out) OVER (ORDER BY tr_dtm, ROWNUM) AS bac           /* 잔여(누적)이용권 */
+             , adj_meth_dsc                                         AS adj_meth_dsc  /* 선후불구분       */
+          FROM (SELECT /* 이전잔액 */
+                       '00000000000000' AS tr_dtm        /* 사용일자         */
+                     , '이전잔액'       AS use_cmt       /* 구입유형         */
+                     , SUM(A.pnt_in)    AS pnt_in        /* 구매(취소)이용권 */
+                     , 0                AS pnt_out       /* 사용이용권       */
+                     , SUM(A.pnt_in)    AS bac           /* 잔여(누적)이용권 */
+                     , '01'             AS adj_meth_dsc  /* 선후불구분       */
+                  FROM (SELECT /* 충전내역 */
+                               NVL(A.pnt_am, 0) AS pnt_in
+                          FROM NHEPRO.TB_PR_DM_PNT A  /* 마감정산_이용권거래원장 */
+                         WHERE 1 = 1
+                           AND A.pay_gbn = '1'
+                           AND A.CORP_NO = #{CORP_NO}
+                           AND A.tr_dtm <![CDATA[<]]> TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+
+                         UNION ALL
+
+                        SELECT /* 구매대체 */
+                               NVL(A.s_ch_amt, 0) AS pnt_in
+                          FROM NHEPRO.TB_PR_DM_PNT_MOVE_BRK A  /* 마감정산_포인트이동내역 */
+                         WHERE 1 = 1
+                           AND A.s_sys_dsc = 'PR'
+                           AND A.CORP_NO = #{CORP_NO}
+                           AND A.lschgdtm <![CDATA[<]]> TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+
+                         UNION ALL
+
+                        SELECT /* 사용대체 */
+                               NVL(A.t_de_amt, 0) * -1 AS pnt_in
+                          FROM NHEPRO.TB_PR_DM_PNT_MOVE_BRK A  /* 마감정산_포인트이동내역 */
+                         WHERE 1 = 1
+                           AND A.t_sys_dsc = 'PR'
+                           AND A.CORP_NO = #{CORP_NO}
+                           AND A.lschgdtm <![CDATA[<]]> TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+
+                         UNION ALL
+
+                        SELECT NVL(A.cost, 0) * -1 AS pnt_in
+                          FROM NHEPRO.TB_PR_DM_PNT_UG_BRK A  /* 마감정산_이용권 사용내역 */
+                         WHERE 1 = 1
+                           AND A.del_yn       = '0'
+                           AND A.adj_meth_dsc = '01'
+                           AND A.CORP_NO      = #{CORP_NO}
+                           AND A.use_dt <![CDATA[<]]> #{ST_DT}
+
+                         UNION ALL
+
+                        SELECT NVL(A.rfdm_pnt, 0) * -1 AS pnt_in
+                          FROM NHEPRO.TB_PR_DM_PNT_REFUND_BRK A  /* 마감정산_이용권환불신청내역 */
+                             , (SELECT simp_c   AS simp_c    /* 단순코드   */
+                                     , simp_cnm AS simp_cnm  /* 단순코드명 */
+                                  FROM NHEBILL.TB_EB_CD_COMM
+                                 WHERE 1 = 1
+                                   AND simp_tpc = 'REFUND_GBN'
+                                   AND simp_c  IN ('Y', 'I')
+                               ) B
+                         WHERE 1 = 1
+                           AND A.CORP_NO = #{CORP_NO}
+                           AND A.fsrgdtm <![CDATA[<]]> TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+                           AND A.rfdm_ds = B.simp_c
+                       ) A
+
+                 UNION ALL
+
+                SELECT tr_dtm       AS tr_dtm        /* 구매일자         */
+                     , simp_cnm     AS simp_cnm      /* 구입유형         */
+                     , pnt_in       AS pnt_in        /* 구매(취소)이용권 */
+                     , pnt_out      AS pnt_out       /* 사용이용권       */
+                     , 0            AS bac
+                     , adj_meth_dsc AS adj_meth_dsc  /* 선후불구분       */
+                  FROM (SELECT tr_dtm       AS tr_dtm        /* 구매일자         */
+                             , simp_cnm     AS simp_cnm      /* 구입유형         */
+                             , pnt_in       AS pnt_in        /* 구매(취소)이용권 */
+                             , pnt_out      AS pnt_out       /* 사용이용권       */
+                             , adj_meth_dsc AS adj_meth_dsc  /* 선후불구분       */
+                          FROM (SELECT /* 구매 */
+                                       TO_CHAR(A.tr_dtm, 'YYYY-MM-DD HH24:MI:SS') AS tr_dtm        /* 구매일자         */
+                                     , A.simp_cnm                            AS simp_cnm      /* 구입유형         */
+                                     , A.pnt_in                              AS pnt_in        /* 구매(취소)이용권 */
+                                     , A.pnt_out                             AS pnt_out       /* 사용이용권       */
+                                     , A.adj_meth_dsc                        AS adj_meth_dsc  /* 선후불구분       */
+                                  FROM (SELECT A.tr_dtm         AS tr_dtm        /* 구매일자         */
+                                             , B.simp_cnm       AS simp_cnm      /* 구입유형         */
+                                             , NVL(A.pnt_am, 0) AS pnt_in        /* 구매(취소)이용권 */
+                                             , 0                AS pnt_out       /* 사용이용권       */
+                                             , NVL(A.pnt_am, 0) AS bac           /* 잔여(누적)이용권 */
+                                             , '01'             AS adj_meth_dsc  /* 선후불구분       */
+                                          FROM NHEPRO.TB_PR_DM_PNT A  /* 마감정산_이용권거래원장 */
+                                             , (SELECT simp_c   AS simp_c    /* 단순코드   */
+                                                     , simp_cnm AS simp_cnm  /* 단순코드명 */
+                                                  FROM NHEBILL.TB_EB_CD_COMM
+                                                 WHERE 1 = 1
+                                                   AND simp_tpc = 'PCH_DS'
+                                               ) B
+                                         WHERE 1 = 1
+                                           AND A.CORP_NO      = #{CORP_NO}
+                                           AND A.tr_dtm BETWEEN TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+                                                            AND TO_DATE(#{ED_DT} || '235959', 'YYYY-MM-DD HH24:MI:SS')
+                                           AND A.pch_ds       = B.simp_c
+
+                                         UNION ALL
+
+                                        SELECT A.fsrgdtm          AS tr_dtm        /* 구매일자         */
+                                             , '구매대체'         AS simp_cnm      /* 구입유형         */
+                                             , NVL(A.s_ch_amt, 0) AS pnt_in        /* 구매(취소)이용권 */
+                                             , 0                  AS pnt_out       /* 사용이용권       */
+                                             , NVL(A.s_ch_amt, 0) AS bac           /* 잔여(누적)이용권 */
+                                             , '01'               AS adj_meth_dsc  /* 선후불구분       */
+                                          FROM NHEPRO.TB_PR_DM_PNT_MOVE_BRK A  /* 마감정산_포인트이동내역 */
+                                         WHERE 1 = 1
+                                           AND A.s_sys_dsc      = 'PR'
+                                           AND A.CORP_NO        = #{CORP_NO}
+                                           AND A.lschgdtm BETWEEN TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+                                                              AND TO_DATE(#{ED_DT} || '235959', 'YYYY-MM-DD HH24:MI:SS')
+                                       ) A
+
+                                 UNION ALL
+
+                                SELECT /* 사용_선불 */
+                                       TO_CHAR(A.tr_dtm, 'YYYY-MM-DD HH24:MI:SS')            AS tr_dtm        /* 사용일자         */
+                                     , A.use_cmt                                        AS use_cmt       /* 구입유형         */
+                                     , A.pnt_in                                         AS pnt_in        /* 구매(취소)이용권 */
+                                     , A.pnt_out                                        AS pnt_out       /* 사용이용권       */
+                                     , A.adj_meth_dsc                                   AS adj_meth_dsc  /* 선후불구분       */
+                                  FROM (SELECT A.fsrgdtm      AS tr_dtm        /* 사용일자         */
+                                             , B.simp_cnm     AS use_cmt       /* 구입유형         */
+                                             , 0              AS pnt_in        /* 구매(취소)이용권 */
+                                             , A.cost         AS pnt_out       /* 사용이용권       */
+                                             , A.adj_meth_dsc AS adj_meth_dsc  /* 선후불구분       */
+                                          FROM NHEPRO.TB_PR_DM_PNT_UG_BRK A  /* 마감정산_이용권 사용내역 */
+                                             , (SELECT simp_c   AS simp_c    /* 단순코드   */
+                                                     , simp_cnm AS simp_cnm  /* 단순코드명 */
+                                                  FROM NHEBILL.TB_EB_CD_COMM
+                                                 WHERE 1 = 1
+                                                   AND simp_tpc = 'EPRO_FEE_DSC'
+                                               ) B
+                                         WHERE 1 = 1
+                                           AND A.del_yn        = '0'
+                                           AND A.adj_meth_dsc  = '01'
+                                           AND A.CORP_NO       = #{CORP_NO}
+                                           AND A.use_dt  BETWEEN #{ST_DT} AND #{ED_DT}
+                                           AND A.epro_fee_dsc = B.simp_c
+
+                                         UNION ALL
+
+                                        SELECT A.fsrgdtm  AS tr_dtm        /* 사용일자         */
+                                             , '사용대체' AS use_cmt       /* 구입유형         */
+                                             , 0          AS pnt_in        /* 구매(취소)이용권 */
+                                             , A.t_de_amt AS pnt_out       /* 사용이용권       */
+                                             , '01'       AS adj_meth_dsc  /* 선후불구분       */
+                                          FROM NHEPRO.TB_PR_DM_PNT_MOVE_BRK A  /* 마감정산_포인트이동내역 */
+                                         WHERE 1 = 1
+                                           AND A.t_sys_dsc      = 'PR'
+                                           AND A.CORP_NO        = #{CORP_NO}
+                                           AND A.lschgdtm BETWEEN TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+                                                              AND TO_DATE(#{ED_DT} || '235959', 'YYYY-MM-DD HH24:MI:SS')
+                                       ) A
+
+                                 UNION ALL
+
+                                SELECT /* 환불 */
+                                       TO_CHAR(A.tr_dtm, 'YYYY-MM-DD HH24:MI:SS')            AS tr_dtm        /* 사용일자         */
+                                     , A.use_cmt                                        AS use_cmt       /* 구입유형         */
+                                     , A.pnt_in                                         AS pnt_in        /* 구매(취소)이용권 */
+                                     , A.pnt_out                                        AS pnt_out       /* 사용이용권       */
+                                     , A.adj_meth_dsc                                   AS adj_meth_dsc  /* 선후불구분       */
+                                  FROM (SELECT A.fsrgdtm          AS tr_dtm        /* 사용일자         */
+                                             , B.simp_cnm         AS use_cmt       /* 구입유형         */
+                                             , 0                  AS pnt_in        /* 구매(취소)이용권 */
+                                             , NVL(A.rfdm_pnt, 0) AS pnt_out       /* 사용이용권       */
+                                             , '01'               AS adj_meth_dsc  /* 선후불구분       */
+                                          FROM NHEPRO.TB_PR_DM_PNT_REFUND_BRK A  /* 마감정산_이용권환불신청내역 */
+                                             , (SELECT simp_c   AS simp_c    /* 단순코드   */
+                                                     , simp_cnm AS simp_cnm  /* 단순코드명 */
+                                                  FROM NHEBILL.TB_EB_CD_COMM
+                                                 WHERE 1 = 1
+                                                   AND simp_tpc = 'REFUND_GBN'
+                                                   AND simp_c  IN ('Y', 'I')
+                                               ) B
+                                         WHERE 1 = 1
+                                           AND A.CORP_NO       = #{CORP_NO}
+                                           AND A.fsrgdtm BETWEEN TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+                                                             AND TO_DATE(#{ED_DT} || '235959', 'YYYY-MM-DD HH24:MI:SS')
+                                           AND A.rfdm_ds       = B.simp_c
+                                       ) A
+                               )
+                       )
+               )
+    </select>
+    
+    <select id="CTPR0060R2" parameterType="map" resultType="map">
+	    SELECT ROW_NUMBER() OVER (ORDER BY TR_DTM) AS RN_NO  
+	    	 , A.tr_dtm                          AS tr_dtm        /* 구매일자         */
+	         , A.use_cmt                         AS use_cmt       /* 구입유형         */
+	         , A.pnt_in                          AS pnt_in        /* 구매(취소)이용권 */
+	         , A.pnt_out                         AS pnt_out       /* 사용이용권       */
+	         , SUM(A.bac) OVER (ORDER BY ROWNUM) AS bac           /* 잔여(누적)이용권 */
+	         , A.adj_meth_dsc                    AS adj_meth_dsc  /* 선후불구분       */
+	      FROM (SELECT A.tr_dtm       AS tr_dtm        /* 구매일자         */
+	                 , A.simp_cnm     AS use_cmt       /* 구입유형         */
+	                 , A.pnt_in       AS pnt_in        /* 구매(취소)이용권 */
+	                 , A.pnt_out      AS pnt_out       /* 사용이용권       */
+	                 , A.bac          AS bac           /* 잔여(누적)이용권 */
+	                 , A.adj_meth_dsc AS adj_meth_dsc  /* 선후불구분       */
+	              FROM (SELECT A.tr_dtm         AS tr_dtm        /* 구매일자         */
+	                         , B.simp_cnm       AS simp_cnm      /* 구입유형         */
+	                         , NVL(A.pnt_am, 0) AS pnt_in        /* 구매(취소)이용권 */
+	                         , 0                AS pnt_out       /* 사용이용권       */
+	                         , NVL(A.pnt_am, 0) AS bac           /* 잔여(누적)이용권 */
+	                         , '01'             AS adj_meth_dsc  /* 선후불구분       */
+	                      FROM NHEPRO.TB_PR_DM_PNT A  /* 마감정산_이용권거래원장 */
+	                         , (SELECT simp_c   AS simp_c    /* 단순코드   */
+	                                 , simp_cnm AS simp_cnm  /* 단순코드명 */
+	                              FROM NHEBILL.TB_EB_CD_COMM
+	                             WHERE 1 = 1
+	                               AND simp_tpc = 'PCH_DS'
+	                           ) B
+	                     WHERE 1 = 1
+	                       AND A.CORP_NO      = #{CORP_NO}
+	                       AND A.tr_dtm BETWEEN TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+	                                        AND TO_DATE(#{ED_DT} || '235959', 'YYYY-MM-DD HH24:MI:SS')
+	                       AND A.pch_ds       = B.simp_c
+	
+	                     UNION ALL
+	
+	                    SELECT A.fsrgdtm          AS tr_dtm        /* 구매일자         */
+	                         , '구매대체'         AS simp_cnm      /* 구입유형         */
+	                         , NVL(A.s_ch_amt, 0) AS pnt_in        /* 구매(취소)이용권 */
+	                         , 0                  AS pnt_out       /* 사용이용권       */
+	                         , NVL(A.s_ch_amt, 0) AS bac           /* 잔여(누적)이용권 */
+	                         , '01'               AS adj_meth_dsc  /* 선후불구분       */
+	                      FROM NHEPRO.TB_PR_DM_PNT_MOVE_BRK A  /* 마감정산_포인트이동내역 */
+	                     WHERE 1 = 1
+	                       AND A.s_sys_dsc      = 'PR'
+	                       AND A.CORP_NO        = #{CORP_NO}
+	                       AND A.lschgdtm BETWEEN TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+	                                          AND TO_DATE(#{ED_DT} || '235959', 'YYYY-MM-DD HH24:MI:SS')
+	                   ) A
+	             ORDER BY A.tr_dtm
+	           ) A
+    </select>
+    
+    <select id="CTPR0060R3" parameterType="map" resultType="map">
+        SELECT ROW_NUMBER() OVER (ORDER BY TR_DTM) AS RN_NO 
+        	 , A.tr_dtm                                         AS tr_dtm        /* 사용일자         */
+             , A.use_cmt                                        AS use_cmt       /* 구입유형         */
+             , A.pnt_in                                         AS pnt_in        /* 구매(취소)이용권 */
+             , A.pnt_out                                        AS pnt_out       /* 사용이용권       */
+             , SUM(A.pnt_in - A.pnt_out) OVER (ORDER BY ROWNUM) AS bac
+             , A.adj_meth_dsc                                   AS adj_meth_dsc  /* 선후불구분       */
+          FROM (SELECT /* 선불 */
+                       A.tr_dtm       AS tr_dtm        /* 사용일자         */
+                     , A.use_cmt      AS use_cmt       /* 구입유형         */
+                     , A.pnt_in       AS pnt_in        /* 구매(취소)이용권 */
+                     , A.pnt_out      AS pnt_out       /* 사용이용권       */
+                     , A.adj_meth_dsc AS adj_meth_dsc  /* 선후불구분       */
+                  FROM (SELECT A.fsrgdtm      AS tr_dtm        /* 사용일자         */
+                             , B.simp_cnm     AS use_cmt       /* 구입유형         */
+                             , 0              AS pnt_in        /* 구매(취소)이용권 */
+                             , A.cost         AS pnt_out       /* 사용이용권       */
+                             , A.adj_meth_dsc AS adj_meth_dsc  /* 선후불구분       */
+                          FROM NHEPRO.TB_PR_DM_PNT_UG_BRK A  /* 마감정산_이용권 사용내역 */
+                             , (SELECT simp_c   AS simp_c    /* 단순코드   */
+                                     , simp_cnm AS simp_cnm  /* 단순코드명 */
+                                  FROM NHEBILL.TB_EB_CD_COMM
+                                 WHERE 1 = 1
+                                   AND simp_tpc = 'EPRO_RATE_DSC'
+                               ) B
+                         WHERE 1 = 1
+                           AND A.del_yn        = '0'
+                           AND A.adj_meth_dsc  = '01'
+                           AND A.CORP_NO       = #{CORP_NO}
+                           AND A.use_dt  BETWEEN #{ST_DT} AND #{ED_DT}
+                           AND A.epro_rate_dsc = B.simp_c
+
+                         UNION ALL
+
+                        SELECT A.fsrgdtm  AS tr_dtm        /* 사용일자         */
+                             , '사용대체' AS use_cmt       /* 구입유형         */
+                             , 0          AS pnt_in        /* 구매(취소)이용권 */
+                             , A.t_de_amt AS pnt_out       /* 사용이용권       */
+                             , '01'       AS adj_meth_dsc  /* 선후불구분       */
+                          FROM NHEPRO.TB_PR_DM_PNT_MOVE_BRK A  /* 마감정산_포인트이동내역 */
+                         WHERE 1 = 1
+                           AND A.t_sys_dsc      = 'PR'
+                           AND A.CORP_NO        = #{CORP_NO}
+                           AND A.lschgdtm BETWEEN TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+                                              AND TO_DATE(#{ED_DT} || '235959', 'YYYY-MM-DD HH24:MI:SS')
+                       ) A
+                 ORDER BY A.tr_dtm
+               ) A
+    </select>
+    
+    <select id="CTPR0060R4" parameterType="map" resultType="map">
+        SELECT ROW_NUMBER() OVER (ORDER BY TR_DTM) AS RN_NO 
+        	 , A.tr_dtm                                         AS tr_dtm        /* 사용일자         */
+             , A.use_cmt                                        AS use_cmt       /* 구입유형         */
+             , A.pnt_in                                         AS pnt_in        /* 구매(취소)이용권 */
+             , A.pnt_out                                        AS pnt_out       /* 사용이용권       */
+             , SUM(A.pnt_in - A.pnt_out) OVER (ORDER BY ROWNUM) AS bac           /* 잔여(누적)이용권 */
+             , A.adj_meth_dsc                                   AS adj_meth_dsc  /* 선후불구분       */
+          FROM (SELECT A.fsrgdtm          AS tr_dtm        /* 사용일자         */
+                     , B.simp_cnm         AS use_cmt       /* 구입유형         */
+                     , 0                  AS pnt_in        /* 구매(취소)이용권 */
+                     , NVL(A.rfdm_pnt, 0) AS pnt_out       /* 사용이용권       */
+                     , '01'               AS adj_meth_dsc  /* 선후불구분       */
+                  FROM NHEPRO.TB_PR_DM_PNT_REFUND_BRK A  /* 마감정산_이용권환불신청내역 */
+                     , (SELECT simp_c   AS simp_c    /* 단순코드   */
+                             , simp_cnm AS simp_cnm  /* 단순코드명 */
+                          FROM NHEBILL.TB_EB_CD_COMM
+                         WHERE 1 = 1
+                           AND simp_tpc = 'REFUND_GBN'
+                           AND simp_c  IN ('Y', 'I')
+                       ) B
+                 WHERE 1 = 1
+                   AND A.CORP_NO       = #{CORP_NO}
+                   AND A.fsrgdtm BETWEEN TO_DATE(#{ST_DT} || '000000', 'YYYY-MM-DD HH24:MI:SS')
+                                     AND TO_DATE(#{ED_DT} || '235959', 'YYYY-MM-DD HH24:MI:SS')
+                   AND A.rfdm_ds       = B.simp_c
+                 ORDER BY A.fsrgdtm
+               ) A
+    </select>
+    
+	<!-- 월별 이용수수료 청구내역 목록 조회 -->
+	<select id="CTPR0070_doSearch" parameterType="map"  resultType="map">
+	
+		SELECT
+			ROW_NUMBER() OVER (ORDER BY RQS_YM DESC) AS RN_NUM,  
+			ROWNUM AS NO, 
+			SUBSTR(RQS_YM, 0, 4) || '-' || SUBSTR(RQS_YM, 5, 2) RQS_YM, 
+			NHEBILL.GET_SIMP_CNM('ADJ_METH_DSC',ADJ_METH_DSC) ADJ_METH_DSC, 
+			NHEBILL.GET_SIMP_CNM('RQS_DS',RQS_DS) RQS_DS, 
+			RQS_AM,  
+			TXA,  
+			TT_AM, 
+			LEV_AM, 
+			(TT_AM - LEV_AM) AS NON_PAY, 
+			RQS_BRC, 
+			RQS_CORP_NO, 
+			SUBSTR(RQS_CORP_NO, 0, 3) || '-' || SUBSTR(RQS_CORP_NO, 4, 2) || '-' || SUBSTR(RQS_CORP_NO, 6, 5) RQS_CORP_NM, 
+			NHEBILL.GET_SIMP_CNM('NC_COMP_DS_C',B.NC_COMP_DS_C) NC_COMP_DS_C, 
+			B.corp_nm	CONM, 
+			NHEBILL.GET_AC_NO(A.VR_AC_NO_SEQ) AC_NO,
+			RQS_NO				 				 
+		FROM
+			  TB_PR_DM_MONTH_CHRG_ACC A
+            , TB_CO_CORP B
+            , TB_CO_BRC  C
+		WHERE 
+			A.RQS_YM BETWEEN #{ST_DT} AND #{ED_DT}
+			AND A.ADJ_YN = 'Y'
+			AND A.RQS_CORP_NO = B.CORP_NO (+)
+            AND A.RQS_CORP_NO = C.CORP_NO (+)
+			AND A.RQS_BRC     = C.BRC (+)
+			AND ( #{RQS_BRC} IS  NULL  OR A.RQS_BRC = #{RQS_BRC})
+			
+		ORDER BY  A.RQS_YM DESC 
+		
+	</select>
+	
+	<select id="ctpi0010_doSearchTpayInfo2" parameterType="hashmap" resultType="hashmap">
+		SELECT *
+		FROM 
+			NHEBILL.TB_EB_CD_COMM 
+		WHERE 
+			SIMP_TPC ='EPRO_NPAY'
+		
+	</select>	
+</mapper>

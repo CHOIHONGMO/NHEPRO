@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.screen.MSRA0010_Mapper">
+
+    <select id="doSearchScreenManagement" parameterType="hashmap" resultType="hashmap">
+
+		SELECT
+			  GATE_CD
+		    , MODULE_TYPE
+	        , SCREEN_ID
+	        , SCREEN_ID_ORG
+		    , SCREEN_NM
+	        , SCREEN_URL
+		    , USE_FLAG
+	        , DATA_AUTH_FLAG
+	        , REG_USER_ID
+	        , ('') AS SCREEN_NM_IMG
+	        , POPUP_NM AS POPUP_NM_IMG
+	        , REG_DATE
+	        , INSERT_FLAG, SCREEN_TYPE
+	        , DEVELOPER_CD
+	        , GRID_TYPE
+	        , EXCEL_OPTION
+	        , AUTH_IMG
+	        , HELP_INFO
+	        , PANEL_USE_FLAG
+            , OUT_URL
+            , POPUP
+            , SHRINK_TO_FIT
+			, APPROVAL_TYPE
+	    FROM (
+	        SELECT
+	        	  SCRN.GATE_CD
+		       	, SCRN.MODULE_TYPE
+		       	, SCRN.SCREEN_ID
+		       	, SCRN.SCREEN_ID AS SCREEN_ID_ORG
+		       	, SCRN.SCREEN_URL
+		       	, SCRN.USE_FLAG
+		        , SCRN.DATA_AUTH_FLAG
+		        , (SELECT <include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> FROM STOCUSER UR WHERE UR.GATE_CD = SCRN.GATE_CD AND UR.USER_ID = SCRN.REG_USER_ID) AS REG_USER_ID
+		        , 'U' AS INSERT_FLAG
+		        , SCRN.SCREEN_TYPE
+		        , SCRN.DEVELOPER_CD
+		        , SCRN.GRID_TYPE
+		        , SCRN.EXCEL_OPTION
+		        , (CASE WHEN HELP_TEXT_NUM IS NULL THEN (CASE WHEN HELP_ATT_FILE_NUM IS NULL THEN '' ELSE '1' END)
+	        			ELSE '1' END) AS HELP_INFO
+		        , (SELECT CASE WHEN SUM(CASE WHEN <include refid="common.sql.nvl"/>(TEXT1, '-') != '-' OR <include refid="common.sql.nvl"/>(TEXT2, '-') != '-' OR <include refid="common.sql.nvl"/>(TEXT3, '-') != '-' OR <include refid="common.sql.nvl"/>(TEXT4, '-') != '-' THEN 1 ELSE 0 END) > 0 THEN 'Y' ELSE '' END
+		        	 FROM STOCCODD
+	         		WHERE GATE_CD = SCRN.GATE_CD
+	           		  AND CODE_TYPE = 'SCRN_AUTH'
+	           		  AND LANG_CD = 'KO'
+	           		  AND CODE = SCRN.SCREEN_ID
+	           		  AND DEL_FLAG = '0') AS AUTH_IMG
+	            , <include refid="common.sql.nvl"/>(SCRN.PANEL_USE_FLAG, '0') AS PANEL_USE_FLAG
+	            , <include refid="common.sql.nvl"/>(SCRN.SHRINK_TO_FIT, '0') AS SHRINK_TO_FIT
+                , SCRN.OUT_URL
+                , SCRN.POPUP
+		        , <include refid="common.sql.dbo"/>GETMULTINAME(SCRN.GATE_CD, 'SC', #{ses.langCd}, '', SCRN.SCREEN_ID) AS SCREEN_NM
+		        , <include refid="common.sql.dbo"/>GETMULTINAME(SCRN.GATE_CD, 'SCP', #{ses.langCd}, '', SCRN.SCREEN_ID) AS POPUP_NM
+		        , <include refid="common.sql.toChar"/>(SCRN.REG_DATE, 'yyyyMMdd') AS REG_DATE
+	        	, SCRN.APPROVAL_TYPE
+	         FROM STOCSCRN SCRN
+	        WHERE SCRN.GATE_CD = #{ses.gateCd}
+	          AND SCRN.DEL_FLAG = '0'
+	        <if test="SCREEN_TYPE != '' and SCREEN_TYPE != null">
+	            AND SCREEN_TYPE = #{SCREEN_TYPE}
+	        </if>
+	        <if test="MODULE_TYPE !='' and MODULE_TYPE != null">
+	            AND MODULE_TYPE = #{MODULE_TYPE}
+	        </if>
+	        <if test="SCREEN_ID !='' and SCREEN_ID != null">
+	            AND UPPER(SCREEN_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SCREEN_ID}) <include refid="common.sql.stringMerge"/> '%'
+	        </if>
+	        <if test="SCREEN_URL != '' and SCREEN_URL != null">
+	            AND UPPER(SCREEN_URL) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SCREEN_URL}) <include refid="common.sql.stringMerge"/> '%'
+	        </if>
+	        <if test="DEVELOPER_CD != '' and DEVELOPER_CD != null">
+	            AND DEVELOPER_CD = #{DEVELOPER_CD}
+	        </if>
+	        <if test="SCREEN_NM !='' and SCREEN_NM != null">
+	            AND UPPER(<include refid="common.sql.dbo"/>GETMULTINAME(SCRN.GATE_CD, 'SC', #{ses.langCd}, '', SCRN.SCREEN_ID)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SCREEN_NM}) <include refid="common.sql.stringMerge"/> '%'
+	        </if>
+	        ) SC
+        WHERE 1=1
+        ORDER BY MODULE_TYPE, SCREEN_ID
+    </select>
+
+    <select id="checkScreenManagement" parameterType="hashMap" resultType="java.lang.Integer">
+
+		SELECT <include refid="common.sql.mtop1"/> COUNT(SCREEN_ID)
+		  FROM STOCSCRN
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND SCREEN_ID = #{SCREEN_ID}
+		   <include refid="common.sql.otop1"/>
+
+    </select>
+
+    <insert id="doInsertScreenManagement" parameterType="hashMap">
+
+        INSERT INTO STOCSCRN (
+	          GATE_CD
+	        , SCREEN_ID
+	        , REG_DATE
+	        , REG_USER_ID
+	        , MOD_DATE
+	        , MOD_USER_ID
+	        , DEL_FLAG
+	        , USE_FLAG
+	        , MODULE_TYPE
+	        , SCREEN_URL
+	        , DATA_AUTH_FLAG
+	        , SCREEN_TYPE
+	        , DEVELOPER_CD
+	        , GRID_TYPE
+	        , EXCEL_OPTION
+	        , PANEL_USE_FLAG
+	        , SHRINK_TO_FIT
+	        , APPROVAL_TYPE
+        ) VALUES(
+	          #{ses.gateCd}
+	        , #{SCREEN_ID}
+	        , SYSDATE
+	        , #{ses.userId}
+	        , SYSDATE
+	        , #{ses.userId}
+	        , '0'
+	        , #{USE_FLAG}
+	        , #{MODULE_TYPE}
+	        , #{SCREEN_URL}
+	        , #{DATA_AUTH_FLAG}
+	        , #{SCREEN_TYPE}
+	        , #{DEVELOPER_CD}
+	        , #{GRID_TYPE}
+	        , #{EXCEL_OPTION}
+	        , #{PANEL_USE_FLAG}
+	        , #{SHRINK_TO_FIT}
+	        , #{APPROVAL_TYPE}
+        )
+
+    </insert>
+
+    <update id="doUpdateScreenManagement" parameterType="hashMap">
+
+        UPDATE STOCSCRN SET
+	          MOD_USER_ID = #{ses.userId}
+	        , MOD_DATE = SYSDATE
+	        , SCREEN_ID = #{SCREEN_ID}
+	        , USE_FLAG = #{USE_FLAG}
+	        , MODULE_TYPE = #{MODULE_TYPE}
+	        , SCREEN_TYPE = #{SCREEN_TYPE}
+	        , SCREEN_URL = #{SCREEN_URL}
+	        , DATA_AUTH_FLAG = #{DATA_AUTH_FLAG}
+	        , GRID_TYPE = #{GRID_TYPE}
+	        , DEL_FLAG = '0'
+	        , DEVELOPER_CD = #{DEVELOPER_CD}
+	        , EXCEL_OPTION = #{EXCEL_OPTION}
+	        , PANEL_USE_FLAG = #{PANEL_USE_FLAG}
+            , OUT_URL = #{OUT_URL}
+            , POPUP = #{POPUP}
+            , SHRINK_TO_FIT = #{SHRINK_TO_FIT}
+        	, APPROVAL_TYPE = #{APPROVAL_TYPE}
+        WHERE GATE_CD = #{GATE_CD}
+          AND SCREEN_ID = #{SCREEN_ID}
+
+    </update>
+
+    <update id="doDeleteScreenManagement" parameterType="hashMap">
+
+        UPDATE STOCSCRN SET
+	          DEL_FLAG = '1'
+	        , MOD_USER_ID = #{ses.userId}
+	        , MOD_DATE = SYSDATE
+        WHERE GATE_CD = #{GATE_CD}
+        AND SCREEN_ID = #{SCREEN_ID_ORG}
+
+    </update>
+
+    <select id="doSearchScreenIdPopup" parameterType="hashMap" resultType="hashMap">
+
+        SELECT MODULE_TYPE, SCREEN_ID, SCREEN_NM, SCREEN_URL, USE_FLAG, DATA_AUTH_FLAG, REG_USER_NM, REG_DATE
+          FROM (
+            SELECT
+            	  SCRN.SCREEN_ID
+        		, SCRN.GATE_CD
+        		, <include refid="common.sql.toChar"/>(SCRN.REG_DATE, 'yyyyMMdd') AS REG_DATE
+        		, SCRN.REG_USER_ID
+        		, <include refid="common.sql.dbo"/>GETMULTINAME(SCRN.GATE_CD, 'SC', #{ses.langCd}, '', SCRN.SCREEN_ID) AS SCREEN_NM
+        		, SCRN.MODULE_TYPE
+        		, SCRN.USE_FLAG
+        		, SCRN.SCREEN_URL
+        		, SCRN.DATA_AUTH_FLAG
+        		, (SELECT <include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> FROM STOCUSER UR WHERE UR.GATE_CD = SCRN.GATE_CD AND UR.USER_ID = SCRN.REG_USER_ID) AS REG_USER_NM
+        	 FROM STOCSCRN SCRN
+        	WHERE SCRN.GATE_CD = #{ses.gateCd}
+        	  AND SCRN.DEL_FLAG = '0'
+        	<if test="MODULE_TYPE != '' and MODULE_TYPE != null">
+              AND SCRN.MODULE_TYPE = #{MODULE_TYPE}
+        	</if>
+        ) SC
+        WHERE 1 = 1
+        <if test="SCREEN_NM != '' and SCREEN_NM != null">
+            AND UPPER(SCREEN_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SCREEN_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="SCREEN_URL != '' and SCREEN_URL != null">
+            AND UPPER(SCREEN_URL) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SCREEN_URL}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="SCREEN_ID != '' and SCREEN_ID != null">
+            AND UPPER(SCREEN_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SCREEN_ID}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+
+        ORDER BY MODULE_TYPE, SCREEN_ID
+
+    </select>
+
+	<select id="selectHelpInfo" parameterType="hashmap" resultType="hashmap">
+
+        SELECT
+        	  HELP_TEXT_NUM
+            , HELP_ATT_FILE_NUM
+            , SCREEN_ID
+          FROM STOCSCRN
+         WHERE GATE_CD = #{ses.gateCd}
+           AND SCREEN_ID = #{paramScreenId}
+           AND DEL_FLAG = '0'
+
+    </select>
+
+	<update id="updateHelpInfo" parameterType="hashmap">
+
+        UPDATE STOCSCRN SET
+        	  MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , HELP_TEXT_NUM = #{HELP_TEXT_NUM}
+            , HELP_ATT_FILE_NUM = #{HELP_ATT_FILE_NUM}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND SCREEN_ID = #{SCREEN_ID}
+
+    </update>
+
+	<update id="deleteHelpInfo" parameterType="hashmap">
+
+        UPDATE STOCSCRN SET
+        	  MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , HELP_TEXT_NUM = NULL
+            , HELP_ATT_FILE_NUM = NULL
+         WHERE GATE_CD = #{ses.gateCd}
+           AND SCREEN_ID = #{SCREEN_ID}
+
+    </update>
+
+</mapper>

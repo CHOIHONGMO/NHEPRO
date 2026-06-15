@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCDU.CCDU0010_Mapper">
+
+	<select id="ccdu0010_doSearch" parameterType="hashmap" resultType="hashmap">
+
+		SELECT CUST.RELAT_YN
+			 ,<include refid="common.sql.dbo"/>GETCODENAME(CUST.GATE_CD, 'NH0005', CUST.RELAT_YN, #{ses.langCd}) AS RELAT_YN_NM
+		     , CUST.CORP_TYPE
+			 ,<include refid="common.sql.dbo"/>GETCODENAME(CUST.GATE_CD, 'NH0002', CUST.CORP_TYPE, #{ses.langCd}) AS CORP_TYPE_NM
+		     , CUST.CUST_CD
+		     ,<include refid="common.sql.dbo"/>GETCUSTNAME(CUST.GATE_CD, CUST.CUST_CD) AS CUST_NM
+			 , CUST.IRS_NUM
+			 , OGDP.DEPT_CD
+			 , OGDP.DEPT_NM
+			 , OGDP.BRANCH_FLAG
+			 , CUST.CUST_CD <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> OGDP.DEPT_CD AS CHECK_DUP
+		  FROM STOCCUST CUST
+		  JOIN STOCOGDP OGDP
+		   ON (CUST.GATE_CD = OGDP.GATE_CD
+		   AND CUST.CUST_CD = OGDP.BUYER_CD)
+		 WHERE OGDP.GATE_CD = #{ses.gateCd}
+  		<if test="RELAT_YN != null and RELAT_YN != ''">
+		   AND CUST.RELAT_YN = #{RELAT_YN}
+		</if>
+		<if test="CORP_TYPE != null and CORP_TYPE != ''">
+		   AND CUST.CORP_TYPE = #{CORP_TYPE}
+		</if>
+		<if test="CUST_CD != null and CUST_CD != ''">
+		   AND CUST.CUST_CD = #{CUST_CD}
+		</if>
+		<if test="DEPT_CD != null and DEPT_CD != ''">
+		   AND OGDP.DEPT_CD = #{DEPT_CD}
+		</if>
+		<if test="DEPT_NM != null and DEPT_NM != ''">
+			<choose>
+           		<when test='CORP_TYPE == "2"'>
+           AND (UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(CUST.GATE_CD, CUST.CUST_CD, OGDP.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+	 	   OR UPPER(CUST.CUST_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+           		</when>
+           		<otherwise>
+           AND UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(CUST.GATE_CD, CUST.CUST_CD, OGDP.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+           		</otherwise>
+       		</choose>
+		</if>
+		<if test="IRS_NUM != null and IRS_NUM != ''">
+   		   AND CUST.IRS_NUM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{IRS_NUM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="BRANCH_FLAG != null and BRANCH_FLAG != ''">
+   		   AND OGDP.BRANCH_FLAG = #{BRANCH_FLAG}
+		</if>
+		   AND OGDP.DEL_FLAG = '0'
+	</select>
+
+	<select id="ccdu0010_getCust" parameterType="hashMap" resultType="hashMap">
+			SELECT CUST_CD "value", CUST_NM "text"
+			FROM STOCCUST
+			WHERE GATE_CD = #{ses.gateCd}
+			AND RELAT_YN  = #{RELAT_YN}
+			AND CORP_TYPE = #{CORP_TYPE}
+			AND DEL_FLAG  = '0'
+    </select>
+
+	<select id="ccdu0020_doSearch" parameterType="hashmap" resultType="hashmap">
+		<choose>
+	    	<when test="CTRL_CD != null and CTRL_CD != ''">
+	    		SELECT DISTINCT
+	    		       CUST.RELAT_YN
+				     ,<include refid="common.sql.dbo"/>GETCODENAME(CUST.GATE_CD, 'NH0005', CUST.RELAT_YN, #{ses.langCd}) AS RELAT_YN_NM
+				     , CUST.CORP_TYPE
+					 ,<include refid="common.sql.dbo"/>GETCODENAME(CUST.GATE_CD, 'NH0002', CUST.CORP_TYPE, #{ses.langCd}) AS CORP_TYPE_NM
+				     , CUST.CUST_CD
+				     ,<include refid="common.sql.dbo"/>GETCUSTNAME(CUST.GATE_CD, CUST.CUST_CD) AS CUST_NM
+					 , CUST.IRS_NUM
+					 , CVUR.DEPT_CD
+					 , CVUR.DEPT_NM
+				  	 , CVUR.USER_ID
+				  	 ,<include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD, CVUR.USER_ID, #{ses.langCd}) AS USER_NM
+				  	 , CVUR.POSITION_NM
+			  	 	 , CVUR.DUTY_NM
+			  	 	 , OGDP.BRANCH_FLAG
+					 ,<include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+					 ,<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+	    			 ,<include refid="common.sql.strDecStart"/>CUST.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+				FROM STOCBACP BACP
+			  	JOIN STOCCVUR CVUR
+		            ON (CVUR.GATE_CD    = BACP.GATE_CD
+		            AND CVUR.COMPANY_CD = BACP.BUYER_CD
+		            AND CVUR.USER_ID    = BACP.CTRL_USER_ID
+		            AND CVUR.USER_TYPE  = 'B'
+		            AND CVUR.DEL_FLAG   = '0')
+		        LEFT JOIN STOCCUST CUST
+				    ON (CUST.GATE_CD  = BACP.GATE_CD
+				    AND CUST.CUST_CD  = BACP.BUYER_CD
+				    AND CUST.DEL_FLAG = '0')
+				LEFT JOIN STOCOGDP OGDP
+				    ON (CVUR.GATE_CD = OGDP.GATE_CD
+				    AND CVUR.COMPANY_CD = OGDP.BUYER_CD
+				    AND CVUR.DEPT_CD = OGDP.DEPT_CD
+				    AND OGDP.DEL_FLAG = '0')
+				 WHERE BACP.GATE_CD = #{ses.gateCd}
+				<if test="CTRL_CD != null and CTRL_CD != ''">
+				   	AND BACP.CTRL_CD IN
+					<foreach collection="CTRL_CD_LIST" item="item" index="index" separator="," open="(" close=")">
+						#{item}
+					</foreach>
+				</if>
+				<if test="CUST_CD != null and CUST_CD != ''">
+					AND CVUR.COMPANY_CD = #{CUST_CD}
+				</if>
+				<if test="DEPT_CD != null and DEPT_CD != ''">
+			   		AND CVUR.DEPT_CD = #{DEPT_CD}
+				</if>
+				<if test="DEPT_NM != null and DEPT_NM != ''">
+					<choose>
+                   		<when test='CORP_TYPE == "2"'>
+                   AND (UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(CVUR.GATE_CD, CVUR.COMPANY_CD, CVUR.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+				   OR UPPER(CUST.CUST_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+                   		</when>
+                   		<otherwise>
+                   AND UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(CVUR.GATE_CD, CVUR.COMPANY_CD, CVUR.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+                   		</otherwise>
+               		</choose>
+				</if>
+				<if test="USER_ID != '' and USER_ID != null">
+			   		AND UPPER(CVUR.USER_ID)  LIKE '%'<include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/>'%'
+				</if>
+				<if test="USER_NM != '' and USER_NM != null">
+			   		AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD, CVUR.USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+				</if>
+				<if test="IRS_NUM != null and IRS_NUM != ''">
+		   		   AND CUST.IRS_NUM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{IRS_NUM}) <include refid="common.sql.stringMerge"/> '%'
+				</if>
+	  			<if test="RELAT_YN != null and RELAT_YN != ''">
+			   		AND CUST.RELAT_YN = #{RELAT_YN}
+				</if>
+				<if test="CORP_TYPE != null and CORP_TYPE != ''">
+			   		AND CUST.CORP_TYPE = #{CORP_TYPE}
+				</if>
+				<if test="BRANCH_FLAG != null and BRANCH_FLAG != ''">
+	   		   		AND OGDP.BRANCH_FLAG = #{BRANCH_FLAG}
+				</if>
+				   AND BACP.DEL_FLAG = '0'
+				   AND BACP.USE_FLAG = '1'
+			</when>
+
+			<otherwise>
+				SELECT CUST.RELAT_YN
+				     ,<include refid="common.sql.dbo"/>GETCODENAME(CUST.GATE_CD, 'NH0005', CUST.RELAT_YN, #{ses.langCd}) AS RELAT_YN_NM
+				     , CUST.CORP_TYPE
+					 ,<include refid="common.sql.dbo"/>GETCODENAME(CUST.GATE_CD, 'NH0002', CUST.CORP_TYPE, #{ses.langCd}) AS CORP_TYPE_NM
+				     , CUST.CUST_CD
+				     ,<include refid="common.sql.dbo"/>GETCUSTNAME(CUST.GATE_CD, CUST.CUST_CD) AS CUST_NM
+					 , CUST.IRS_NUM
+					 , CVUR.DEPT_CD
+					 , CVUR.DEPT_NM
+				  	 , CVUR.USER_ID
+				  	 ,<include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD, CVUR.USER_ID, #{ses.langCd}) AS USER_NM
+				  	 , CVUR.POSITION_NM
+			  	 	 , CVUR.DUTY_NM
+			  	 	 , OGDP.BRANCH_FLAG
+					 ,<include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+					 ,<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+					 ,<include refid="common.sql.strDecStart"/>CUST.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+				  FROM STOCCVUR CVUR
+				  JOIN STOCCUST CUST
+					   ON (CVUR.GATE_CD = CUST.GATE_CD
+					   AND CVUR.COMPANY_CD = CUST.CUST_CD
+					<if test="RELAT_YN != null and RELAT_YN != ''">
+					   AND CUST.RELAT_YN = #{RELAT_YN}
+					</if>
+					<if test="CORP_TYPE != null and CORP_TYPE != ''">
+					   AND CUST.CORP_TYPE = #{CORP_TYPE}
+					</if>
+					   AND CUST.DEL_FLAG = '0')
+				  JOIN STOCOGDP OGDP
+					   ON (CVUR.GATE_CD = OGDP.GATE_CD
+					   AND CVUR.COMPANY_CD = OGDP.BUYER_CD
+					   AND CVUR.DEPT_CD = OGDP.DEPT_CD
+					<if test="BRANCH_FLAG != null and BRANCH_FLAG != ''">
+			   		   AND OGDP.BRANCH_FLAG = #{BRANCH_FLAG}
+					</if>
+					   AND OGDP.DEL_FLAG = '0')
+				 WHERE CVUR.GATE_CD = #{ses.gateCd}
+				<if test="CUST_CD != null and CUST_CD != ''">
+				   AND CVUR.COMPANY_CD = #{CUST_CD}
+				</if>
+				<if test="DEPT_CD != null and DEPT_CD != ''">
+				   AND CVUR.DEPT_CD = #{DEPT_CD}
+				</if>
+				<if test="DEPT_NM != null and DEPT_NM != ''">
+					<choose>
+                   		<when test='CORP_TYPE == "2"'>
+                   AND (UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(CVUR.GATE_CD, CVUR.COMPANY_CD, CVUR.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+				   OR UPPER(CUST.CUST_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+                   		</when>
+                   		<otherwise>
+                   AND UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(CVUR.GATE_CD, CVUR.COMPANY_CD, CVUR.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+                   		</otherwise>
+               		</choose>
+				</if>
+				<if test="USER_ID != '' and USER_ID != null">
+				   AND UPPER(CVUR.USER_ID)  LIKE '%'<include refid="common.sql.stringMerge"/>  UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/>'%'
+				</if>
+				<if test="USER_NM != '' and USER_NM != null">
+				   AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD, CVUR.USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+				</if>
+				   AND CVUR.DEL_FLAG = '0'
+				   AND CVUR.USER_TYPE = 'B'
+				   AND CVUR.USE_FLAG = '1'
+			</otherwise>
+		</choose>
+	</select>
+	
+	<!-- 2021.05.17 쿼리문 변경 -->
+	<!-- 주무서무는 1명만 나오도록 한다. -->
+	<select id="ccdu0030_doSearch" resultType="java.util.Map">
+		SELECT CUST.RELAT_YN
+			 ,<include refid="common.sql.dbo"/>GETCODENAME(CUST.GATE_CD, 'NH0005', CUST.RELAT_YN, #{ses.langCd}) AS RELAT_YN_NM
+		     , CUST.CORP_TYPE
+			 ,<include refid="common.sql.dbo"/>GETCODENAME(CUST.GATE_CD, 'NH0002', CUST.CORP_TYPE, #{ses.langCd}) AS CORP_TYPE_NM
+		     , CUST.CUST_CD
+		     , CUST.CUST_CD AS VENDOR_CD
+		     ,<include refid="common.sql.dbo"/>GETCUSTNAME(CUST.GATE_CD, CUST.CUST_CD) AS CUST_NM
+		     ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(OGDP.GATE_CD, OGDP.BUYER_CD, OGDP.DEPT_CD, #{ses.langCd}) AS VENDOR_NM
+		     ,<include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_NM
+			 ,<include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_EMAIL
+		 	 ,<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS VENDOR_PIC_USER_CELL_NUM
+			 , CUST.IRS_NUM
+			 , OGDP.DEPT_CD
+			 , OGDP.DEPT_CD AS VENDOR_DEPT_CD
+			 , OGDP.DEPT_NM
+			 , OGDP.BRANCH_FLAG
+			 , CUST.CUST_CD <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> OGDP.DEPT_CD AS CHECK_DUP
+			 , OGDP.ZONE_CD
+			 ,<include refid="common.sql.dbo"/>GETCODENAME(CUST.GATE_CD, 'NH0049', OGDP.ZONE_CD, #{ses.langCd}) AS ZONE_CD_NM
+		  FROM STOCCUST CUST
+		  JOIN STOCOGDP OGDP
+			   ON (CUST.GATE_CD  = OGDP.GATE_CD
+			   AND CUST.CUST_CD  = OGDP.BUYER_CD
+			   AND OGDP.DEL_FLAG = '0')
+		  LEFT JOIN STOCCVUR CVUR
+		   	   ON (CUST.GATE_CD = CVUR.GATE_CD
+		   	   AND CUST.CUST_CD = CVUR.COMPANY_CD
+		   	   AND CVUR.USER_ID = (SELECT MAX(USER_ID) FROM STOCCVUR
+				   	   				WHERE GATE_CD    = CVUR.GATE_CD
+				   	   				  AND COMPANY_CD = CUST.CUST_CD
+				   	   				  AND MNG_YN     = '1'	-- 관리자
+								   	  AND USE_FLAG   = '1'	-- 사용여부
+									  AND WORK_TYPE  = '1'	-- 주무서무
+								   	  AND BLOCK_FLAG = '0'	-- BLOCK여부
+								   	  AND DEL_FLAG   = '0')
+		   	   AND CVUR.DEL_FLAG = '0')
+		 WHERE CUST.GATE_CD  = #{ses.gateCd}
+  		<if test="RELAT_YN != null and RELAT_YN != ''">
+		   AND CUST.RELAT_YN = #{RELAT_YN}
+		</if>
+		<if test="CORP_TYPE != null and CORP_TYPE != ''">
+		   AND CUST.CORP_TYPE = #{CORP_TYPE}
+		</if>
+		<if test="CUST_CD != null and CUST_CD != ''">
+		   AND CUST.CUST_CD = #{CUST_CD}
+		</if>
+		<if test="DEPT_NM != null and DEPT_NM != ''">
+			<choose>
+           		<when test='CORP_TYPE == "2"'>
+           AND (UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(CUST.GATE_CD, CUST.CUST_CD, OGDP.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+	 	   OR UPPER(CUST.CUST_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+           		</when>
+           		<otherwise>
+           AND UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(CUST.GATE_CD, CUST.CUST_CD, OGDP.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+           		</otherwise>
+       		</choose>
+		</if>
+		<if test="IRS_NUM != null and IRS_NUM != ''">
+   		   AND CUST.IRS_NUM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{IRS_NUM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="DEPT_CD != null and DEPT_CD != ''">
+		   AND OGDP.DEPT_CD = #{DEPT_CD}
+		</if>
+		<if test="BRANCH_FLAG != null and BRANCH_FLAG != ''">
+   		   AND OGDP.BRANCH_FLAG = #{BRANCH_FLAG}
+		</if>
+		<if test="ZONE_CD != null and ZONE_CD != ''">
+   		   AND OGDP.ZONE_CD = #{ZONE_CD}
+		</if>		
+		
+	</select>
+
+</mapper>

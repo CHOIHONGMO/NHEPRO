@@ -1,0 +1,1824 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CBDR.CBDR0060_Mapper">
+	
+	<!-- 2021.05.18 : 변경, 연장계약의 이전계약번호, 차수 등 추가 -->
+	<!-- 2021.10.13 : 협력사 투찰수량 변경정보 추가 -->
+    <select id="cbdr0060_doSearch" parameterType="hashmap" resultType="hashMap">
+
+        SELECT
+              A.PR_BUYER_CD
+            ,<include refid="common.sql.dbo"/>getCustName(PRDT.GATE_CD, PRDT.PR_BUYER_CD)
+             <include refid="common.sql.stringMerge"/>' '
+             <include refid="common.sql.stringMerge"/>getDeptName(PRDT.GATE_CD, PRDT.PR_BUYER_CD, PRDT.PR_DEPT_CD, #{ses.langCd}) AS PR_BUYER_NM
+            , A.PURCHASE_TYPE
+            , A.REQ_NUM
+            , A.REQ_CNT
+            , A.SUBJECT
+            , A.RFX_TYPE
+            , A.SETTLE_TYPE
+            , A.CONT_TYPE1
+            , A.CONT_TYPE2
+            , A.CONT_TYPE3
+            , A.CONT_TYPE
+            , A.ITEM_CD
+            , A.ITEM_DESC
+            , A.ITEM_SPEC
+            , A.BID_QT
+            ,(CASE WHEN A.ADJ_PRC_STATUS IN ('100', '150') THEN NULL ELSE A.PR_QT END) AS PR_QT		-- 대기, 임시저장시 NULL
+            , A.UNIT_CD
+            , A.VENDOR_CD
+            , A.VENDOR_NM
+            , A.CUR
+            ,(CASE WHEN A.ADJ_PRC_STATUS IN ('100', '150') THEN NULL ELSE A.PR_AMT END) AS PR_AMT	-- 대기, 임시저장시 NULL
+            , A.TCO_YEAR_CNT
+            ,(CASE WHEN A.ADJ_PRC_STATUS IN ('100', '150') THEN NULL ELSE A.TCO_AMT END) AS TCO_AMT	-- 대기, 임시저장시 NULL
+            , A.VAT_TYPE
+            , A.QTA_NUM
+            , A.VOTE_DATE
+            , A.SETTLE_DATE
+            , A.PR_NUM
+            , A.CTRL_USER_ID
+            , A.CTRL_USER_NM
+            , A.END_DATE
+            , A.VOTE_CNT
+            , PRHD.SUBJECT AS PR_SUBJECT
+            , A.EXEC_WT_NUM
+            , A.BUYER_CD
+            , A.TCO_FLAG
+            , A.PB_BUYER_CD
+            ,(CASE WHEN A.ADJ_PRC_STATUS = '150' THEN '100' ELSE A.ADJ_PRC_STATUS END) AS ADJ_PRC_STATUS
+			, A.VEND_QT_FLAG	-- 협력사 투찰시 품목별 투찰수량 변경여부(1/0)
+            , PRHD.IF_TYPE
+			,<include refid="common.sql.nvl"/>(PRHD.PR_TYPE, '10') AS PR_TYPE
+			, PRDT.PRE_BUYER_CD
+			, PRDT.PRE_CONT_NUM
+			, PRDT.PRE_CONT_CNT
+			, PRDT.CM_REQ_ID
+          FROM (
+              SELECT
+                  BDDT.PURCHASE_TYPE
+                , HB.BID_NUM AS REQ_NUM
+                , HB.BID_CNT AS REQ_CNT
+                , BDHD.ANN_ITEM AS SUBJECT
+                , HB.RFX_TYPE
+                , BDHD.CONT_TYPE2 AS SETTLE_TYPE
+                ,<include refid="common.sql.dbo"/>GETCOMCODE(BDHD.GATE_CD, 'M301', BDHD.CONT_TYPE1, 0, #{ses.langCd}) AS CONT_TYPE1
+                ,<include refid="common.sql.dbo"/>GETCOMCODE(BDHD.GATE_CD, 'M302', BDHD.CONT_TYPE2, 0, #{ses.langCd}) AS CONT_TYPE2
+                ,<include refid="common.sql.dbo"/>GETCOMCODE(BDHD.GATE_CD, 'M303', BDHD.CONT_TYPE3, 0, #{ses.langCd}) AS CONT_TYPE3
+                , BDHD.CONT_TYPE2 AS CONT_TYPE
+                , BDDT.ITEM_CD
+                , BDDT.ITEM_DESC
+                , BDDT.ITEM_SPEC
+                , BDDT.PR_QT AS BID_QT	-- 고객사 입찰수량
+	            ,(CASE WHEN <include refid="common.sql.nvl"/>(BDVD.PR_QT, '0') = '0' THEN BDDT.PR_QT
+	            	   ELSE BDVD.PR_QT
+	              END) AS PR_QT			-- 협력사 투찰수량(투찰수량 변경 가능)
+                , BDDT.UNIT_CD
+                , HB.VENDOR_CD
+                , VNGL.VENDOR_NM
+                , BDHD.CUR
+                , BDVD.PR_AMT
+                , BDHD.TCO_YEAR_CNT
+                , BDVD.TCO_AMT
+                , BDHD.VAT_TYPE
+                , BDHD.BID_NUM AS QTA_NUM
+                ,<include refid="common.sql.toChar"/>(BDVO.VOTE_DATE, 'YYYYMMDD') AS VOTE_DATE
+                ,<include refid="common.sql.toChar"/>(<include refid="common.sql.nvl"/>(BDVO.SETTLE_DATE, BDVO.MOD_DATE), 'YYYYMMDD') AS SETTLE_DATE	-- 2021.11.02 낙찰일자 추가
+                , BDDT.PR_NUM
+                , BDDT.PR_SQ
+                , BDDT.PR_BUYER_CD
+                , BDHD.BID_USER_ID AS CTRL_USER_ID
+                ,<include refid="common.sql.dbo"/>GETUSERNAME(BDHD.GATE_CD, BDHD.BID_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+                ,<include refid="common.sql.toChar"/>(BDPG.BID_END_DATE, 'YYYYMMDD') AS END_DATE
+                ,<include refid="common.sql.nvl"/>(BDHD.TCO_FLAG, '0') AS TCO_FLAG
+                , BDVO.VOTE_CNT
+                , HB.EXEC_WT_NUM
+                , HB.GATE_CD
+                , HB.BUYER_CD
+                , HB.PB_BUYER_CD
+                ,<include refid="common.sql.nvl"/>(BDVO.ADJ_PRC_STATUS, '100') AS ADJ_PRC_STATUS
+                ,(CASE WHEN (SELECT COUNT(*) FROM STOCBDVD
+			                  WHERE GATE_CD  = BDVD.GATE_CD
+			                    AND BUYER_CD = BDVD.BUYER_CD
+			                    AND BID_NUM  = BDVD.BID_NUM
+			                    AND BID_CNT  = BDVD.BID_CNT
+			                    AND VOTE_CNT = BDVD.VOTE_CNT
+			                    AND VENDOR_CD= BDVD.VENDOR_CD
+			                    AND <include refid="common.sql.nvl"/>(PR_QT, 0) > 0
+			                    AND <include refid="common.sql.nvl"/>(PR_QT, 0) != <include refid="common.sql.nvl"/>(BDDT.PR_QT, 0)
+			                    AND DEL_FLAG = '0') > 0 THEN '1'
+			           ELSE '0'
+			      END) AS VEND_QT_FLAG	-- 협력사 투찰시 품목별 투찰수량 변경여부
+              FROM STOCCNHB HB
+              LEFT JOIN STOCVNGL VNGL
+	               ON (HB.GATE_CD   = VNGL.GATE_CD
+	               AND HB.VENDOR_CD = VNGL.VENDOR_CD)
+              JOIN STOCBDDT BDDT
+	               ON (HB.GATE_CD  = BDDT.GATE_CD
+	               AND HB.BUYER_CD = BDDT.BUYER_CD
+	               AND HB.BID_NUM  = BDDT.BID_NUM
+	               AND HB.BID_CNT  = BDDT.BID_CNT
+	               AND HB.ITEM_SQ  = BDDT.ITEM_SQ
+	               AND BDDT.DEL_FLAG = '0')
+              JOIN STOCBDHD BDHD
+	               ON (HB.GATE_CD    = BDHD.GATE_CD
+	               AND HB.BUYER_CD   = BDHD.BUYER_CD
+	               AND HB.BID_NUM    = BDHD.BID_NUM
+	               AND HB.BID_CNT    = BDHD.BID_CNT
+	               AND BDHD.BID_STATUS = '2500'
+	               AND BDHD.DEL_FLAG = '0')
+              JOIN STOCBDVD BDVD
+	               ON (HB.GATE_CD    = BDVD.GATE_CD
+	               AND HB.BUYER_CD   = BDVD.BUYER_CD
+	               AND HB.BID_NUM    = BDVD.BID_NUM
+	               AND HB.BID_CNT    = BDVD.BID_CNT
+	               AND HB.VOTE_CNT   = BDVD.VOTE_CNT
+	               AND HB.VENDOR_CD  = BDVD.VENDOR_CD
+	               AND HB.ITEM_SQ    = BDVD.ITEM_SQ
+	               AND BDVD.DEL_FLAG = '0')
+              JOIN STOCBDVO BDVO
+	               ON (BDVD.GATE_CD   = BDVO.GATE_CD
+	               AND BDVD.BUYER_CD  = BDVO.BUYER_CD
+	               AND BDVD.BID_NUM   = BDVO.BID_NUM
+	               AND BDVD.BID_CNT   = BDVO.BID_CNT
+	               AND BDVD.VOTE_CNT  = BDVO.VOTE_CNT
+	               AND BDVD.VENDOR_CD = BDVO.VENDOR_CD
+	               AND BDVO.DEL_FLAG  = '0')
+              LEFT JOIN STOCBDPG BDPG
+	               ON (HB.GATE_CD  = BDPG.GATE_CD
+	               AND HB.BUYER_CD = BDPG.BUYER_CD
+	               AND HB.BID_NUM  = BDPG.BID_NUM
+	               AND HB.BID_CNT  = BDPG.BID_CNT
+	               AND HB.VOTE_CNT = BDPG.VOTE_CNT)
+             WHERE HB.GATE_CD  = #{ses.gateCd}
+               AND HB.BUYER_CD = #{ses.companyCd}
+               AND HB.DEL_FLAG = '0'
+
+            UNION ALL
+
+			SELECT
+                  RQDT.PURCHASE_TYPE
+                , CNHB.RFX_NUM AS REQ_NUM
+                , CNHB.RFX_CNT AS REQ_CNT
+                , RQHD.RFX_SUBJECT AS SUBJECT
+                , CNHB.RFX_TYPE
+                , 'LP' AS SETTLE_TYPE	-- 견적에서는 '최저가'
+				,<include refid="common.sql.dbo"/>GETCOMCODE(RQHD.GATE_CD, 'M066', RQHD.VENDOR_OPEN_TYPE, 0, #{ses.langCd}) AS CONT_TYPE1
+				,(CASE WHEN CNHB.RFX_TYPE = 'RPC' or CNHB.RFX_TYPE = 'RCA' or CNHB.RFX_TYPE = 'RFQ' or CNHB.RFX_TYPE = 'RYQ' THEN NULL
+				 	   ELSE <include refid="common.sql.dbo"/>GETCOMCODE(RQHD.GATE_CD, 'M302', 'LP', 0, #{ses.langCd})
+				  END) AS CONT_TYPE2
+                ,<include refid="common.sql.dbo"/>GETCOMCODE(RQHD.GATE_CD, 'M303', RQHD.AMT_TYPE, 0, #{ses.langCd}) AS CONT_TYPE3
+                ,(CASE WHEN CNHB.RFX_TYPE = 'RPC' or CNHB.RFX_TYPE = 'RCA' or CNHB.RFX_TYPE = 'RFQ' or CNHB.RFX_TYPE = 'RYQ' THEN NULL
+				 	   ELSE 'LP'
+				  END) AS CONT_TYPE
+                , RQDT.ITEM_CD
+                , RQDT.ITEM_DESC
+                , RQDT.ITEM_SPEC
+                , RQDT.RFX_QT AS BID_QT
+                , RQDT.RFX_QT AS PR_QT
+                , RQDT.UNIT_CD
+                , CNHB.VENDOR_CD
+                , VNGL.VENDOR_NM
+                , RQHD.CUR
+                , QTDT.SETTLE_AMT AS PR_AMT
+                , 0 AS TCO_YEAR_CNT
+                , 0 AS TCO_AMT
+                , RQHD.VAT_TYPE
+                , QTHD.QTA_NUM
+                ,<include refid="common.sql.toChar"/>(QTHD.SEND_DATE, 'YYYYMMDD') AS VOTE_DATE
+                ,<include refid="common.sql.toChar"/>(RQDT.SETTLE_DATE, 'YYYYMMDD') AS SETTLE_DATE
+                , RQDT.PR_NUM
+                , RQDT.PR_SQ
+                , RQDT.PR_BUYER_CD
+                , RQHD.CTRL_USER_ID
+                ,<include refid="common.sql.dbo"/>GETUSERNAME(RQHD.GATE_CD, RQHD.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+                ,<include refid="common.sql.toChar"/>(RQHD.RFX_END_DATE, 'YYYYMMDD') AS END_DATE
+                , '0'  AS TCO_FLAG
+                , 0    AS VOTE_CNT
+                , CNHB.EXEC_WT_NUM
+                , CNHB.GATE_CD
+                , CNHB.BUYER_CD
+                , CNHB.PB_BUYER_CD
+                , ''  AS ADJ_PRC_STATUS
+                , '0' AS VEND_QT_FLAG
+              FROM STOCCNHB CNHB
+              LEFT JOIN STOCVNGL VNGL
+	               ON (CNHB.GATE_CD = VNGL.GATE_CD
+	               AND CNHB.VENDOR_CD = VNGL.VENDOR_CD)
+              JOIN STOCRQDT RQDT
+	               ON (CNHB.GATE_CD  = RQDT.GATE_CD
+	               AND CNHB.BUYER_CD = RQDT.BUYER_CD
+	               AND CNHB.RFX_NUM  = RQDT.RFX_NUM
+	               AND CNHB.RFX_CNT  = RQDT.RFX_CNT
+	               AND CNHB.RFX_SQ   = RQDT.RFX_SQ
+	               AND RQDT.PROGRESS_CD = '2500'		-- 업체선정
+              	   AND RQDT.DEL_FLAG = '0')
+              JOIN STOCRQHD RQHD
+	               ON (CNHB.GATE_CD  = RQHD.GATE_CD
+	               AND CNHB.BUYER_CD = RQHD.BUYER_CD
+	               AND CNHB.RFX_NUM  = RQHD.RFX_NUM
+	               AND CNHB.RFX_CNT  = RQHD.RFX_CNT
+	               AND RQHD.PROGRESS_CD = '2500'		-- 업체선정
+	               AND RQHD.DEL_FLAG = '0')
+              JOIN STOCRQVN RQVN
+	               ON (CNHB.GATE_CD   = RQVN.GATE_CD
+	               AND CNHB.BUYER_CD  = RQVN.BUYER_CD
+	               AND CNHB.RFX_NUM   = RQVN.RFX_NUM
+	               AND CNHB.RFX_CNT   = RQVN.RFX_CNT
+	               AND CNHB.VENDOR_CD = RQVN.VENDOR_CD
+	               AND RQVN.DEL_FLAG = '0')
+	          JOIN STOCQTHD QTHD
+				   ON (RQVN.GATE_CD   = QTHD.GATE_CD
+				   AND RQVN.BUYER_CD  = QTHD.BUYER_CD
+				   AND RQVN.RFX_NUM   = QTHD.RFX_NUM
+				   AND RQVN.RFX_CNT   = QTHD.RFX_CNT
+				   AND RQVN.VENDOR_CD = QTHD.VENDOR_CD
+				   AND QTHD.SEND_DATE IS NOT NULL
+				   AND QTHD.DEL_FLAG  = '0')
+			  JOIN STOCQTDT QTDT
+				   ON (QTHD.GATE_CD  = QTDT.GATE_CD
+				   AND QTHD.BUYER_CD = QTDT.BUYER_CD
+				   AND QTHD.QTA_NUM  = QTDT.QTA_NUM
+				   AND QTDT.QTA_SQ   = RQDT.RFX_SQ
+				   AND (CASE WHEN QTDT.SETTLE_AMT IS NULL OR QTDT.SETTLE_AMT = 0 THEN 0 ELSE QTDT.SETTLE_AMT END) > 0	-- 선정금액 > 0
+				   AND QTDT.DEL_FLAG = '0')
+             WHERE CNHB.GATE_CD  = #{ses.gateCd}
+               AND CNHB.BUYER_CD = #{ses.companyCd}
+               AND CNHB.DEL_FLAG = '0'
+               AND RQHD.RFX_TYPE IN ('RFQ','RYQ','RPC','RCA')	/** 견적, 견적(연단가), 수의시담, 부속합의 */
+          ) A
+          LEFT JOIN STOCPRDT PRDT
+	           ON (A.GATE_CD = PRDT.GATE_CD
+	           AND A.PR_BUYER_CD = PRDT.PR_BUYER_CD
+	           AND A.PR_NUM  = PRDT.PR_NUM
+	           AND A.PR_SQ   = PRDT.PR_SQ)
+          LEFT JOIN STOCPRHD PRHD
+	           ON (PRDT.GATE_CD  = PRHD.GATE_CD
+	           AND PRDT.BUYER_CD = PRHD.BUYER_CD
+	           AND PRDT.PR_NUM   = PRHD.PR_NUM)
+         WHERE PRDT.DEL_FLAG = '0'
+           AND PRHD.DEL_FLAG = '0'
+
+        <if test="END_DATE_FROM !='' and END_DATE_FROM != null and END_DATE_TO !='' and END_DATE_TO != null">
+           AND A.END_DATE <![CDATA[>=]]> #{END_DATE_FROM}
+           AND A.END_DATE <![CDATA[<=]]> #{END_DATE_TO}
+        </if>
+        <if test="BUYER_CD != '' and BUYER_CD != null">
+           AND PRDT.PR_BUYER_CD = #{BUYER_CD}
+        </if>
+        <if test="BUYER_NM != '' and BUYER_NM != null">
+           AND UPPER(<include refid="common.sql.dbo"/>getCustName(PRDT.GATE_CD, PRDT.PR_BUYER_CD)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REQ_NUM != '' and REQ_NUM != null">
+           AND UPPER(A.REQ_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{REQ_NUM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="SUBJECT != '' and SUBJECT != null">
+           AND UPPER(REPLACE(A.SUBJECT, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{SUBJECT}, ' ', '')) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="CTRL_USER_ID != '' and CTRL_USER_ID != null">
+           AND A.CTRL_USER_ID = #{CTRL_USER_ID}
+        </if>
+        <if test="CTRL_USER_NM != '' and CTRL_USER_NM != null">
+           AND UPPER(A.CTRL_USER_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CTRL_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VENDOR_CD != '' and VENDOR_CD != null">
+           AND A.VENDOR_CD = #{VENDOR_CD}
+        </if>
+        <if test="VENDOR_NM != '' and VENDOR_NM != null">
+           AND UPPER(A.VENDOR_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="PR_NUM != '' and PR_NUM != null">
+           AND UPPER(A.PR_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_NUM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="PR_SUBJECT != '' and PR_SUBJECT != null">
+           AND UPPER(REPLACE(PRHD.SUBJECT, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{PR_SUBJECT}, ' ', '')) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+			
+         ORDER BY A.EXEC_WT_NUM DESC
+    </select>
+
+    <select id="cbdr0060_getCancelPossibleFlag" parameterType="hashmap" resultType="java.lang.String">
+
+        SELECT (CASE WHEN COUNT(*) <![CDATA[>]]> 0 THEN 'Y' ELSE 'N' END) 
+          FROM STOCCNHB
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND EXEC_WT_NUM = #{EXEC_WT_NUM}
+    </select>
+    
+    <!-- 구매관리 > 품의관리 > 선정품의 대기목록 (CBDR0060) : 동일한 견적번호로 품의중인 품목이 존재하는지 검토 -->
+    <select id="cbdr0060_getConfirmProgressFlag" parameterType="hashmap" resultType="java.lang.String">
+
+        SELECT (CASE WHEN COUNT(*) > 0 THEN 'Y' ELSE 'N' END) AS PROGRESS_FLAG
+          FROM STOCCNDT CNDT
+          JOIN STOCCNHD CNHD
+          	   ON( CNDT.GATE_CD  = CNHD.GATE_CD
+          	   AND CNDT.BUYER_CD = CNHD.BUYER_CD
+          	   AND CNDT.EXEC_NUM = CNHD.EXEC_NUM
+          	   AND CNHD.DEL_FLAG = '0')
+         WHERE CNDT.GATE_CD  = #{ses.gateCd}
+           AND CNDT.BUYER_CD = #{BUYER_CD}
+           AND CNDT.RFX_NUM  = #{REQ_NUM}
+           AND CNDT.RFX_CNT  = #{REQ_CNT}
+    </select>
+
+    <select id="cbdr0060_getTargetList" parameterType="hashmap" resultType="hashmap">
+
+        SELECT
+             HB.BUYER_CD
+            ,HB.BID_NUM, HB.BID_CNT
+            ,HB.VOTE_CNT, HB.VENDOR_CD
+            ,HB.EXEC_WT_NUM
+            ,HB.PR_NUM, HB.PR_SQ, HB.PB_BUYER_CD
+          FROM STOCCNHB HB
+          INNER JOIN (SELECT C.GATE_CD, C.BUYER_CD, C.BID_NUM, C.BID_CNT FROM STOCCNHB C
+                     WHERE C.GATE_CD = #{ses.gateCd}
+                       AND C.EXEC_WT_NUM = #{EXEC_WT_NUM}) SUB
+           ON (HB.GATE_CD = SUB.GATE_CD
+           AND HB.BUYER_CD = SUB.BUYER_CD
+           AND HB.BID_NUM = SUB.BID_NUM
+           AND HB.BID_CNT = SUB.BID_CNT)
+         WHERE HB.GATE_CD = #{ses.gateCd}
+    </select>
+	
+	<!-- 협력사 선정취소 : 상태 = 업체선정대기 -->
+    <update id="cancelBDHD" parameterType="hashmap">
+
+        UPDATE STOCBDHD SET
+              BID_STATUS = '2400'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND BID_NUM  = #{BID_NUM}
+           AND BID_CNT  = #{BID_CNT}
+    </update>
+
+    <update id="cancelBDVO" parameterType="hashmap">
+
+        UPDATE STOCBDVO SET
+              BID_STATUS  = NULL
+            , SETTLE_DATE = NULL
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD   = #{ses.gateCd}
+          AND BUYER_CD  = #{BUYER_CD}
+          AND BID_NUM   = #{BID_NUM}
+          AND BID_CNT   = #{BID_CNT}
+          AND VOTE_CNT  = #{VOTE_CNT}
+          AND VENDOR_CD = #{VENDOR_CD}
+    </update>
+
+    <update id="cancelPRDT" parameterType="hashmap">
+
+        UPDATE STOCPRDT SET
+               MOD_DATE    = SYSDATE
+             , MOD_USER_ID = #{ses.userId}
+             , PROGRESS_CD = '2400'
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{PB_BUYER_CD}
+           AND PR_NUM   = #{PR_NUM}
+           AND PR_SQ    = #{PR_SQ}
+    </update>
+
+    <delete id="deleteCNHB" parameterType="hashmap">
+
+        DELETE FROM STOCCNHB
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND EXEC_WT_NUM = #{EXEC_WT_NUM}
+    </delete>
+
+	<!-- CBDR0060 : 품의대기목록 > 견적 업체 선정 취소 -->
+	<update id="doUpdateProgressRQHD" parameterType="hashmap">
+
+		UPDATE STOCRQHD SET
+			  MOD_DATE    = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, DEL_FLAG    = '0'
+			, PROGRESS_CD = '2400'
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+           AND RFX_NUM  = #{REQ_NUM}
+           AND RFX_CNT  = #{REQ_CNT}
+    </update>
+
+    <update id="doUpdateProgressRQDT" parameterType="hashmap">
+
+		UPDATE STOCRQDT SET
+			  DEL_FLAG = '0'
+			, MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, PROGRESS_CD = '2400'
+			, SETTLE_DATE = NULL
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND RFX_NUM  = #{REQ_NUM}
+           AND RFX_CNT  = #{REQ_CNT}
+    </update>
+	
+	<!-- 협력사 투찰건 선정정보 취소 -->
+	<update id="doUpdateSettleQTDT" parameterType="hashmap">
+
+		UPDATE STOCQTDT SET
+			  DEL_FLAG    = '0'
+			, MOD_DATE    = SYSDATE
+			, MOD_USER_ID =  #{ses.userId}
+			, SETTLE_QT   = 0
+			, SETTLE_AMT  = 0
+			, SETTLE_RMK  = NULL
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND QTA_NUM  = #{QTA_NUM}
+    </update>
+	
+	<!-- 2021.04.23 변경 -->
+	<!-- 품의대기목록에서 선정 취소시 STOCCNHB에서 해당 견적 모두 삭제 -->
+    <delete id="doDeleteCNHB" parameterType="hashmap">
+
+		DELETE FROM STOCCNHB A
+         WHERE A.GATE_CD  = #{ses.gateCd}
+           AND A.BUYER_CD = #{BUYER_CD}
+           AND (A.BUYER_CD, A.RFX_NUM, A.RFX_CNT) IN (
+	           		SELECT BUYER_CD, RFX_NUM, RFX_CNT
+	           		  FROM STOCCNHB
+	           		 WHERE GATE_CD  = A.GATE_CD
+	           		   AND BUYER_CD = A.BUYER_CD
+	           		   AND EXEC_WT_NUM = #{EXEC_WT_NUM}
+           	   )
+    </delete>
+
+	<!-- CBDR0060 : 품의대기목록 > 견적의 구매요청건 가져오기 -->
+	<select id="doSearchRqdt" parameterType="hashMap" resultType="hashMap">
+
+		SELECT DISTINCT
+			   PB_BUYER_CD
+			 , PR_NUM
+			 , PR_SQ
+		  FROM STOCRQDT
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND RFX_NUM  = #{REQ_NUM}
+		   AND PR_NUM IS NOT NULL
+	</select>
+
+	<!-- CBDR0060 : 품의대기목록 > 구매요청품목 진행상태 => 입찰/견적 진행중(2350)으로 변경 -->
+	<update id="doUpdateInitJungGa" parameterType="hashmap">
+
+		UPDATE STOCPRDT SET
+			  MOD_DATE = SYSDATE
+		 	, MOD_USER_ID = #{ses.userId}
+		 	, PROGRESS_CD = '2350'
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{PB_BUYER_CD}
+           AND PR_NUM   = #{PR_NUM}
+           AND PR_SQ    = #{PR_SQ}
+    </update>
+	
+	<!-- 품목별 업체선정취소 : 사용안함 -->
+	<!-- CBDR0060 : 품의대기목록 > 품목별 업체선정의 선정 취소 -->
+	<update id="doUpdateProgressItemRQDT" parameterType="hashmap">
+
+		UPDATE STOCRQDT RQDT SET
+			  DEL_FLAG = '0'
+			, MOD_DATE = SYSDATE
+			, MOD_USER_ID =  #{ses.userId}
+			, PROGRESS_CD = '2400'
+			, SETTLE_DATE = ''
+         WHERE RQDT.GATE_CD  = #{ses.gateCd}
+           AND RQDT.BUYER_CD = #{BUYER_CD}
+           AND RQDT.RFX_NUM  = #{REQ_NUM}
+           AND RQDT.RFX_CNT  = #{REQ_CNT}
+           AND RQDT.RFX_SQ IN (SELECT RFX_SQ FROM STOCQTDT
+           				   		WHERE GATE_CD  = #{ses.gateCd}
+           				   		  AND BUYER_CD = #{BUYER_CD}
+           				     	  AND QTA_NUM  = #{QTA_NUM}
+           				     	  AND SETTLE_QT <![CDATA[>]]> 0
+           				     	  AND DEL_FLAG = '0')
+    </update>
+
+    <select id="cbdr0060_getPrcPossibleFlag" parameterType="hashmap" resultType="java.lang.String">
+
+        SELECT
+            (CASE WHEN ADJ_PRC_STATUS = '200' THEN 'Y' ELSE 'N' END)
+          FROM STOCBDVO
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND BUYER_CD  = #{BUYER_CD}
+           AND BID_NUM   = #{REQ_NUM}
+           AND BID_CNT   = #{REQ_CNT}
+           AND VOTE_CNT  = #{VOTE_CNT}
+           AND VENDOR_CD = #{VENDOR_CD}
+    </select>
+
+    <update id="doUpdateAdjPrcStatus" parameterType="hashmap">
+
+        UPDATE STOCBDVO SET
+              MOD_DATE = SYSDATE
+            , MOD_USER_ID =  #{ses.userId}
+            , ADJ_PRC_STATUS = #{ADJ_PRC_STATUS}
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND BUYER_CD  = #{BUYER_CD}
+           AND BID_NUM   = #{REQ_NUM}
+           AND BID_CNT   = #{REQ_CNT}
+           AND VOTE_CNT  = #{VOTE_CNT}
+           AND VENDOR_CD = #{VENDOR_CD}
+    </update>
+
+    <select id="cbdi0061_doSearchHD" parameterType="hashmap" resultType="hashmap">
+
+        SELECT
+              HD.EXEC_NUM
+            , HD.REF_DOC_NUM
+            , HD.EXEC_SUBJECT
+            ,<include refid="common.sql.toChar"/>(HD.EXEC_DATE, 'YYYYMMDD') AS EXEC_DATE
+            , HD.CTRL_USER_ID
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+            , HD.CUR
+            , HD.EXEC_AMT
+            , HD.VAT_TYPE
+            , HD.EXEC_DOIB_FLAG
+            , HD.EXEC_TCO_FLAG
+            , HD.RMK_TEXT_NUM
+            , HD.ATT_FILE_NUM
+            , HD.GATE_CD
+            , HD.BUYER_CD
+            , HD.DEPT_CD
+            , HD.EXEC_TYPE
+            , HD.APP_DOC_NUM
+            , HD.APP_DOC_CNT
+            , HD.SIGN_STATUS
+            ,(CASE WHEN (SELECT COUNT(D.EXEC_SQ) FROM STOCCNDT D
+                          WHERE D.GATE_CD  = HD.GATE_CD
+                            AND D.BUYER_CD = HD.BUYER_CD
+                            AND D.EXEC_NUM = HD.EXEC_NUM
+                            AND D.TCO_YEAR IS NOT NULL
+                            AND D.DEL_FLAG = '0') <![CDATA[>]]> 0 THEN 'Y' ELSE 'N' END) AS TCO_FLAG
+        FROM STOCCNHD HD
+        WHERE HD.GATE_CD  = #{ses.gateCd}
+          AND HD.BUYER_CD = #{BUYER_CD}
+          AND HD.DEL_FLAG = '0'
+          
+        <choose>
+            <when test="EXEC_NUM != '' and EXEC_NUM != null">
+                AND HD.EXEC_NUM = #{EXEC_NUM}
+            </when>
+            <otherwise>
+                <if test="APP_DOC_NUM != '' and APP_DOC_NUM != null">
+                    AND HD.APP_DOC_NUM = #{APP_DOC_NUM}
+                    AND HD.APP_DOC_CNT = #{APP_DOC_CNT}
+                </if>
+            </otherwise>
+        </choose>
+    </select>
+
+	<!-- CBDI0061 : 품의서작성 > 입찰 또는 견적의 선정업체 가져오기 -->
+    <select id="cbdi0061_doSearchVDByRfx" parameterType="hashmap" resultType="hashmap">
+
+        SELECT
+              A.VENDOR_CD
+            , A.VENDOR_NM
+            , A.IRS_NO
+            , A.CEO_USER_NM
+            , SUM(A.PR_AMT) AS RFX_AMT
+            , SUM(A.PR_AMT) AS PR_AMT
+            , A.TCO_YEAR_CNT
+            , SUM(A.TCO_AMT) AS TCO_AMT
+            , '1' AS CONT_FLAG
+            , A.PIC_USER_ID
+            , A.PIC_USER_NM
+            , A.PIC_TEL_NUM
+            , A.PIC_EMAIL
+            , NULL AS CONT_USER_ID
+            , NULL AS CONT_USER_NM
+            , NULL AS PO_USER_ID
+            , NULL AS PO_USER_NM
+            , A.BUYER_CD
+            , NULL AS EXEC_NUM
+          FROM (
+            SELECT
+                  HB.VENDOR_CD
+                , VNGL.VENDOR_NM
+                , VNGL.IRS_NO
+                ,<include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+                , BDVD.PR_AMT
+                , BDHD.TCO_YEAR_CNT
+                , BDVD.TCO_AMT
+                , BDVD.REG_USER_ID AS PIC_USER_ID
+                ,<include refid="common.sql.nvl"/>(<include refid="common.sql.strDecStart"/>BDAP.VENDOR_PIC_USER_NM<include refid="common.sql.strDecEnd"/>, <include refid="common.sql.dbo"/>GETUSERNAME(BDVD.GATE_CD, BDVD.REG_USER_ID, #{ses.langCd})) AS PIC_USER_NM
+                ,<include refid="common.sql.nvl"/>(<include refid="common.sql.strDecStart"/>BDAP.VENDOR_PIC_USER_CELL_NUM<include refid="common.sql.strDecEnd"/>,<include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>GETUSERINFO(BDVD.GATE_CD, BDVD.REG_USER_ID, 'TEL_NUM'), <include refid="common.sql.dbo"/>GETUSERINFO(BDVD.GATE_CD, BDVD.REG_USER_ID, 'CELL_NUM'))) AS PIC_TEL_NUM
+                ,<include refid="common.sql.strDecStart"/>BDAP.VENDOR_PIC_USER_EMAIL<include refid="common.sql.strDecEnd"/> AS PIC_EMAIL
+                , HB.BUYER_CD
+              FROM STOCCNHB HB
+              LEFT JOIN STOCVNGL VNGL
+	               ON (HB.GATE_CD  = VNGL.GATE_CD
+	               AND HB.VENDOR_CD = VNGL.VENDOR_CD)
+              JOIN STOCBDDT BDDT
+	               ON (HB.GATE_CD  = BDDT.GATE_CD
+	               AND HB.BUYER_CD = BDDT.BUYER_CD
+	               AND HB.BID_NUM  = BDDT.BID_NUM
+	               AND HB.BID_CNT  = BDDT.BID_CNT
+	               AND HB.ITEM_SQ  = BDDT.ITEM_SQ
+	               AND BDDT.DEL_FLAG = '0')
+              JOIN STOCBDHD BDHD
+	               ON (HB.GATE_CD  = BDHD.GATE_CD
+	               AND HB.BUYER_CD = BDHD.BUYER_CD
+	               AND HB.BID_NUM  = BDHD.BID_NUM
+	               AND HB.BID_CNT  = BDHD.BID_CNT
+	               AND BDHD.BID_STATUS = '2500'
+	               AND BDHD.DEL_FLAG = '0')
+	          JOIN STOCBDAP BDAP
+		           ON (HB.GATE_CD   = BDAP.GATE_CD
+	           	   AND HB.BUYER_CD  = BDAP.BUYER_CD
+	           	   AND HB.BID_NUM   = BDAP.BID_NUM
+	           	   AND HB.BID_CNT   = BDAP.BID_CNT
+	           	   AND HB.VENDOR_CD = BDAP.VENDOR_CD
+	           	   AND BDAP.DEL_FLAG = '0') 
+              JOIN STOCBDVD BDVD
+	               ON (HB.GATE_CD  = BDVD.GATE_CD
+	               AND HB.BUYER_CD = BDVD.BUYER_CD
+	               AND HB.BID_NUM  = BDVD.BID_NUM
+	               AND HB.BID_CNT  = BDVD.BID_CNT
+	               AND HB.VOTE_CNT = BDVD.VOTE_CNT
+	               AND HB.VENDOR_CD = BDVD.VENDOR_CD
+	               AND HB.ITEM_SQ  = BDVD.ITEM_SQ
+	               AND BDVD.DEL_FLAG = '0')
+             WHERE HB.GATE_CD  = #{ses.gateCd}
+               AND HB.BUYER_CD = #{BUYER_CD}
+               AND HB.EXEC_WT_NUM IN ${paramExecWtNum}
+               AND HB.DEL_FLAG = '0'
+
+			UNION ALL
+
+			SELECT
+		  		  QTDT.VENDOR_CD
+		  		, VNGL.VENDOR_NM
+		  		, VNGL.IRS_NO
+		  		,<include refid="common.sql.strDecStart"/>VNGL.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+		  		, SUM(QTDT.SETTLE_AMT) AS PR_AMT
+                , 0 AS TCO_YEAR_CNT
+                , 0 AS TCO_AMT
+                , QTHD.REG_USER_ID AS PIC_USER_ID
+		  		,<include refid="common.sql.strDecStart"/>QTHD.PIC_USER_NM<include refid="common.sql.strDecEnd"/> AS PIC_USER_NM
+		  		,<include refid="common.sql.strDecStart"/>QTHD.PIC_TEL_NUM<include refid="common.sql.strDecEnd"/> AS PIC_TEL_NUM
+		  		,<include refid="common.sql.strDecStart"/>QTHD.PIC_EMAIL<include refid="common.sql.strDecEnd"/> AS PIC_EMAIL
+		  		, CNHB.BUYER_CD
+		  	  FROM STOCCNHB CNHB
+		  	  LEFT JOIN STOCVNGL VNGL
+			  	   ON( CNHB.GATE_CD  = VNGL.GATE_CD
+			  	   AND CNHB.VENDOR_CD = VNGL.VENDOR_CD)
+		  	  JOIN STOCQTDT QTDT
+			  	   ON( CNHB.GATE_CD   = QTDT.GATE_CD
+			  	   AND CNHB.BUYER_CD  = QTDT.BUYER_CD
+			  	   AND CNHB.RFX_NUM   = QTDT.RFX_NUM
+			  	   AND CNHB.RFX_CNT   = QTDT.RFX_CNT
+			  	   AND CNHB.RFX_SQ    = QTDT.RFX_SQ
+			  	   AND CNHB.VENDOR_CD = QTDT.VENDOR_CD
+			  	   AND QTDT.DEL_FLAG  = '0')
+		  	  JOIN STOCQTHD QTHD
+			  	   ON( QTDT.GATE_CD  = QTHD.GATE_CD
+			  	   AND QTDT.BUYER_CD = QTHD.BUYER_CD
+			  	   AND QTDT.QTA_NUM  = QTHD.QTA_NUM
+			  	   AND QTHD.DEL_FLAG = '0')
+		  	  JOIN STOCRQHD RQHD
+			  	   ON( QTHD.GATE_CD  = RQHD.GATE_CD
+			  	   AND QTHD.BUYER_CD = RQHD.BUYER_CD
+			  	   AND QTHD.RFX_NUM  = RQHD.RFX_NUM
+			  	   AND QTHD.RFX_CNT  = RQHD.RFX_CNT
+			  	   AND RQHD.DEL_FLAG = '0')
+		  	 WHERE CNHB.GATE_CD  = #{ses.gateCd}
+		  	   AND CNHB.BUYER_CD = #{BUYER_CD}
+		  	   AND CNHB.EXEC_WT_NUM IN ${paramExecWtNum}
+		  	   AND CNHB.DEL_FLAG = '0'
+		  	 GROUP BY QTDT.VENDOR_CD, VNGL.VENDOR_NM, VNGL.IRS_NO,
+		  	 		  VNGL.CEO_USER_NM, QTHD.REG_USER_ID, QTHD.PIC_USER_NM,
+		  	 		  QTHD.PIC_TEL_NUM, QTHD.PIC_EMAIL, CNHB.BUYER_CD
+             ) A
+        GROUP BY A.BUYER_CD, A.VENDOR_CD, A.VENDOR_NM, A.IRS_NO, A.CEO_USER_NM,
+                 A.TCO_YEAR_CNT, A.PIC_USER_ID, A.PIC_USER_NM, A.PIC_TEL_NUM, A.PIC_EMAIL
+    </select>
+
+	<!-- CBDI0061 : 품의서작성 > 품의서 기준 협력업체 가져오기 -->
+	<!-- 2021.06.09 : 협력업체별 도입금액 = 품의금액으로 변경(단가를 입력하지 않는 경우 있음) -->
+    <select id="cbdi0061_doSearchVD" parameterType="hashmap" resultType="hashmap">
+
+        SELECT A.VENDOR_CD
+		 	 , A.VENDOR_NM
+		 	 , A.IRS_NO
+		 	 ,<include refid="common.sql.strDecStart"/>A.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+		 	 ,<include refid="common.sql.nvl"/>((SELECT RFX_AMT FROM STOCCNVD
+											 	  WHERE GATE_CD   = A.GATE_CD
+											 	 	AND EXEC_NUM  = A.EXEC_NUM
+											 	 	AND VENDOR_CD = A.VENDOR_CD), SUM(A.EXEC_AMT)) AS RFX_AMT
+		   -- 2021.06.09 변경
+           --, SUM(A.EXEC_QT * A.UNIT_PRC) AS PR_AMT
+		 	 , SUM(A.EXEC_AMT) AS PR_AMT
+             , MAX(A.TCO_YEAR) AS TCO_YEAR_CNT
+		 	 , SUM(A.TCO_AMT)  AS TCO_AMT
+		 	 , A.CONT_FLAG
+		 	 , A.PIC_USER_ID
+		 	 ,<include refid="common.sql.strDecStart"/>A.PIC_USER_NM<include refid="common.sql.strDecEnd"/> AS PIC_USER_NM
+		 	 ,<include refid="common.sql.strDecStart"/>A.PIC_TEL_NUM<include refid="common.sql.strDecEnd"/> AS PIC_TEL_NUM
+		 	 ,<include refid="common.sql.strDecStart"/>A.PIC_EMAIL<include refid="common.sql.strDecEnd"/> AS PIC_EMAIL
+		 	 , A.CONT_USER_ID
+		 	 ,<include refid="common.sql.dbo"/>GETUSERNAME(#{ses.gateCd}, A.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+		 	 , A.PO_USER_ID
+		 	 ,<include refid="common.sql.dbo"/>GETUSERNAME(#{ses.gateCd}, A.PO_USER_ID, #{ses.langCd}) AS PO_USER_NM
+		 	 , A.BUYER_CD
+		 	 , A.EXEC_NUM
+		 	 , A.BID_NUM
+		 	 , A.BID_CNT
+		 	 , A.VOTE_CNT
+		  FROM (
+			SELECT
+				   VD.VENDOR_CD
+				 , VNGL.VENDOR_NM
+				 , VNGL.IRS_NO
+				 , VNGL.CEO_USER_NM
+           	   	 , DT.EXEC_QT
+           	   	 , DT.UNIT_PRC
+				 , DT.EXEC_AMT
+				 , DT.TCO_YEAR
+				 , DT.TCO_AMT
+				 , VD.CONT_FLAG
+				 , NULL AS PIC_USER_ID
+				 , VD.PIC_USER_NM
+				 , VD.PIC_TEL_NUM
+				 , VD.PIC_EMAIL
+				 , VD.CONT_USER_ID
+				 , VD.PO_USER_ID
+				 , DT.GATE_CD
+				 , DT.BUYER_CD
+				 , DT.EXEC_NUM
+				 , DT.BID_NUM
+				 , DT.BID_CNT
+				 , DT.VOTE_CNT
+			FROM STOCCNHD HD
+			JOIN STOCCNDT DT
+			     ON (HD.GATE_CD  = DT.GATE_CD
+				 AND HD.BUYER_CD = DT.BUYER_CD
+				 AND HD.EXEC_NUM = DT.EXEC_NUM)
+			JOIN STOCCNVD VD
+				 ON (HD.GATE_CD   = VD.GATE_CD
+				 AND HD.BUYER_CD  = VD.BUYER_CD
+				 AND HD.EXEC_NUM  = VD.EXEC_NUM
+				 AND DT.VENDOR_CD = VD.VENDOR_CD)
+			LEFT JOIN STOCVNGL VNGL
+				 ON (VD.GATE_CD   = VNGL.GATE_CD
+				 AND VD.VENDOR_CD = VNGL.VENDOR_CD)
+			WHERE HD.GATE_CD  = #{ses.gateCd}
+         	  AND HD.BUYER_CD = #{BUYER_CD}
+          	  AND HD.EXEC_NUM = #{EXEC_NUM}
+			  AND HD.DEL_FLAG = '0'
+		  ) A
+		 WHERE 1 = 1
+		 GROUP BY A.VENDOR_CD, A.VENDOR_NM, A.IRS_NO, A.CEO_USER_NM, A.CONT_FLAG
+			 	, A.PIC_USER_ID, A.PIC_USER_NM, A.PIC_TEL_NUM, A.PIC_EMAIL, A.CONT_USER_ID
+			 	, A.PO_USER_ID, A.BUYER_CD, A.EXEC_NUM, A.GATE_CD, A.BID_NUM, A.BID_CNT, A.VOTE_CNT
+    </select>
+
+	<!-- CBDI0061 : 품의서작성 > 입찰 또는 견적의 선정품목 가져오기 -->
+    <select id="cbdi0061_doSearchDTByRfx" parameterType="hashmap" resultType="hashmap">
+
+        SELECT
+               A.PR_BUYER_CD
+             ,<include refid="common.sql.dbo"/>getCustName(A.GATE_CD, A.PR_BUYER_CD) AS PR_BUYER_NM, A.PR_DEPT_CD
+             , A.PURCHASE_TYPE
+             , A.ITEM_CD
+             , A.ITEM_DESC
+             , A.ITEM_SPEC
+             , A.MAKER_CD
+             ,<include refid="common.sql.dbo"/>GETMKBRNAME(A.GATE_CD, A.BUYER_CD, 'MK', A.MAKER_CD) AS MAKER_NM
+             , A.MAKER_ART_NO
+             , A.ORIGIN_CD
+             , A.VENDOR_CD
+             , A.VENDOR_NM
+             , A.PR_QT
+             , A.UNIT_CD
+             ,(CASE WHEN A.RFX_TYPE = 'BID'
+                    THEN (SELECT <include refid="common.sql.nvl"/>(PRE_VD.UNIT_PRC, 0) FROM STOCBDVD PRE_VD
+                           WHERE PRE_VD.GATE_CD   = A.GATE_CD
+                             AND PRE_VD.BUYER_CD  = A.BUYER_CD
+                             AND PRE_VD.BID_NUM   = A.REQ_NUM
+                             AND PRE_VD.BID_CNT   = A.REQ_CNT
+                             AND PRE_VD.VOTE_CNT  = (A.VOTE_CNT - 1)
+                             AND PRE_VD.VENDOR_CD = A.VENDOR_CD
+                             AND PRE_VD.ITEM_SQ   = A.ITEM_SQ)
+                    ELSE (SELECT <include refid="common.sql.nvl"/>(PRE_QT.UNIT_PRC, 0) FROM STOCQTDT PRE_QT
+		            	   WHERE PRE_QT.GATE_CD   = A.GATE_CD
+		                     AND PRE_QT.RFX_NUM   = A.REQ_NUM
+		                     AND PRE_QT.RFX_CNT   =(A.REQ_CNT - 1)
+		                     AND PRE_QT.RFX_SQ    = A.ITEM_SQ
+		                     AND PRE_QT.VENDOR_CD = A.VENDOR_CD
+		                     AND PRE_QT.DEL_FLAG  = '0') END) AS PRE_UNIT_PRC
+             , A.UNIT_PRC
+             , 0 AS DISCOUNT_RATE
+             , A.BUYER_CD
+             , A.REQ_NUM
+             , A.REQ_CNT
+             , A.RFX_TYPE
+             , A.ITEM_SQ
+             , A.EXEC_WT_NUM
+             , A.VOTE_CNT
+             , A.QTA_NUM
+             , A.QTA_SQ
+             , A.CONT_TYPE1
+             , A.CONT_TYPE2
+             , A.CONT_TYPE3
+             , A.PR_AMT
+             , A.TCO_YEAR_CNT
+             , A.TCO_AMT
+             , A.SW_BUS_AMT
+             , 0 AS SW_BUS_RATE
+             , A.MNT_SANGJU_YN
+             , A.CONSUMER_AMT
+             , 0 AS CONSUMER_RATE
+             , A.FC_MNT_TERM
+             , A.CH_RATE
+             , A.DOIB_AMOUNT
+             , A.MNT_RATE
+             , A.MNT_SDAY
+             , A.MNT_EDAY
+             , A.MNT_GUR_MONTH
+             , A.RT_INSP_PERIOD
+             , A.FALT_RC_TG_TIME
+             , A.DUE_DATE
+             , A.BATT_FILE_NUM
+             , TO_CHAR(<include refid="common.sql.dbo"/>GETFILECOUNT(A.GATE_CD, A.BATT_FILE_NUM)) AS BATT_FILE_CNT
+             , A.SATT_FILE_NUM
+             , TO_CHAR(<include refid="common.sql.dbo"/>GETFILECOUNT(A.GATE_CD, A.SATT_FILE_NUM)) AS SATT_FILE_CNT
+             , A.BITEM_RMK
+             , A.SITEM_RMK
+             , '0' AS INFO_FLAG
+             , '' AS VALID_FROM_DATE
+             , '' AS VALID_TO_DATE
+             , A.PB_BUYER_CD
+             , A.PR_NUM
+             , A.PR_SQ
+             , PRHD.IF_TYPE
+			 ,<include refid="common.sql.nvl"/>(PRHD.PR_TYPE, '10') AS PR_TYPE
+			 , PRDT.PRE_BUYER_CD
+			 , PRDT.PRE_CONT_NUM
+			 , PRDT.PRE_CONT_CNT
+			 , PRDT.CM_REQ_ID
+        FROM (
+             SELECT
+                    BDDT.PR_BUYER_CD
+                  , BDDT.PR_DEPT_CD
+                  , BDDT.PURCHASE_TYPE
+                  , BDDT.ITEM_CD
+                  , BDDT.ITEM_DESC
+                  , BDDT.ITEM_SPEC
+                  , BDDT.MAKER_CD
+                  , BDDT.MAKER_ART_NO
+                  , BDDT.ORIGIN_CD
+                  , HB.VENDOR_CD
+                  , VNGL.VENDOR_NM
+                  ,(CASE WHEN <include refid="common.sql.nvl"/>(BDVD.PR_QT, '0') = '0' THEN BDDT.PR_QT
+		            	 ELSE BDVD.PR_QT
+		            END) AS PR_QT			-- 협력사 투찰수량(존재하는 경우 투찰수량을 사용함)
+                  , BDDT.UNIT_CD
+                  , BDVD.UNIT_PRC
+                  , BDHD.CONT_TYPE1
+                  , BDHD.CONT_TYPE2
+                  , BDHD.CONT_TYPE3
+                  , HB.PR_NUM
+                  , HB.PR_SQ
+                  , BDVD.PR_AMT
+                  , BDHD.TCO_YEAR_CNT
+                  , BDVD.TCO_AMT
+                  , BDVD.SW_BUS_AMT
+                  , BDVD.MNT_SANGJU_YN
+                  , BDVD.CONSUMER_AMT
+                  , BDVD.FC_MNT_TERM
+                  , BDVD.CH_RATE
+                  , BDVD.DOIB_AMOUNT
+                  , BDVD.MNT_RATE
+                  ,<include refid="common.sql.toChar"/>(BDVD.MNT_SDAY, 'YYYYMMDD') AS MNT_SDAY
+                  ,<include refid="common.sql.toChar"/>(BDVD.MNT_EDAY, 'YYYYMMDD') AS MNT_EDAY
+                  , BDVD.MNT_GUR_MONTH
+                  , BDVD.RT_INSP_PERIOD
+                  , BDVD.FALT_RC_TG_TIME
+                  ,<include refid="common.sql.toChar"/>(BDDT.DUE_DATE, 'YYYYMMDD') AS DUE_DATE
+                  , BDDT.ATT_FILE_NUM AS BATT_FILE_NUM
+                  , BDVD.ATT_FILE_NUM AS SATT_FILE_NUM
+                  , BDDT.ITEM_RMK AS BITEM_RMK
+                  , BDVD.ITEM_RMK AS SITEM_RMK
+                  , BDDT.BID_NUM AS REQ_NUM
+                  , BDDT.BID_CNT AS REQ_CNT
+                  , BDVD.VOTE_CNT
+                  , BDDT.ITEM_SQ
+                  , HB.QTA_NUM
+                  , HB.QTA_SQ
+                  , HB.GATE_CD
+                  , HB.BUYER_CD
+                  , HB.RFX_TYPE
+                  , HB.EXEC_WT_NUM
+                  , HB.PB_BUYER_CD
+             FROM STOCCNHB HB
+             LEFT JOIN STOCVNGL VNGL
+	              ON (HB.GATE_CD = VNGL.GATE_CD
+	              AND HB.VENDOR_CD = VNGL.VENDOR_CD)
+             JOIN STOCBDDT BDDT
+	              ON (HB.GATE_CD = BDDT.GATE_CD
+	              AND HB.BUYER_CD = BDDT.BUYER_CD
+	              AND HB.BID_NUM = BDDT.BID_NUM
+	              AND HB.BID_CNT = BDDT.BID_CNT
+	              AND HB.ITEM_SQ = BDDT.ITEM_SQ
+	              AND BDDT.DEL_FLAG = '0')
+             JOIN STOCBDHD BDHD
+	              ON (HB.GATE_CD = BDHD.GATE_CD
+	              AND HB.BUYER_CD = BDHD.BUYER_CD
+	              AND HB.BID_NUM = BDHD.BID_NUM
+	              AND HB.BID_CNT = BDHD.BID_CNT
+	              AND BDHD.BID_STATUS = '2500'
+	              AND BDHD.DEL_FLAG = '0')
+             JOIN STOCBDVD BDVD
+	              ON (HB.GATE_CD = BDVD.GATE_CD
+	              AND HB.BUYER_CD = BDVD.BUYER_CD
+	              AND HB.BID_NUM = BDVD.BID_NUM
+	              AND HB.BID_CNT = BDVD.BID_CNT
+	              AND HB.VOTE_CNT = BDVD.VOTE_CNT
+	              AND HB.VENDOR_CD = BDVD.VENDOR_CD
+	              AND HB.ITEM_SQ = BDVD.ITEM_SQ
+	              AND BDVD.DEL_FLAG = '0')
+            WHERE HB.GATE_CD  = #{ses.gateCd}
+              AND HB.BUYER_CD = #{BUYER_CD}
+              AND HB.EXEC_WT_NUM IN ${paramExecWtNum}
+              AND HB.DEL_FLAG = '0'
+
+            UNION ALL
+
+			SELECT
+                  RQDT.PR_BUYER_CD
+                , RQDT.PR_DEPT_CD
+                , RQDT.PURCHASE_TYPE
+                , RQDT.ITEM_CD
+                , RQDT.ITEM_DESC
+                , RQDT.ITEM_SPEC
+                , RQDT.MAKER_CD
+                , RQDT.MAKER_PART_NO AS MAKER_ART_NO
+                , RQDT.ORIGIN_CD
+                , CNHB.VENDOR_CD
+                , VNGL.VENDOR_NM
+                , RQDT.RFX_QT AS PR_QT
+                , RQDT.UNIT_CD
+                , QTDT.UNIT_PRC
+                , RQHD.VENDOR_OPEN_TYPE AS CONT_TYPE1
+				, NULL AS CONT_TYPE2
+                , RQHD.AMT_TYPE AS CONT_TYPE3
+                , RQDT.PR_NUM
+                , RQDT.PR_SQ
+                , QTDT.SETTLE_AMT AS PR_AMT
+                , 0 AS TCO_YEAR_CNT
+                , 0 AS TCO_AMT
+	            , QTDT.SW_BUS_PRICE
+	            , QTDT.MNT_SANGJU_YN
+	            , QTDT.CONSUMER_AMT
+	            , QTDT.FC_MNT_TERM
+	            , QTDT.CH_RATE
+	            , QTDT.DOIB_AMT
+	            , QTDT.MNT_RATE
+	            ,<include refid="common.sql.toChar"/>(QTDT.MNT_SDAY, 'YYYYMMDD') AS MNT_SDAY
+	            ,<include refid="common.sql.toChar"/>(QTDT.MNT_EDAY, 'YYYYMMDD') AS MNT_EDAY
+	            , QTDT.MNT_GUR_MONTH
+	            , QTDT.RT_INSP_PERIOD
+	            , QTDT.FALT_RC_TG_TIME
+           		,<include refid="common.sql.toChar"/>(RQDT.DUE_DATE, 'YYYYMMDD') AS DUE_DATE
+                , RQDT.ATT_FILE_NUM AS BATT_FILE_NUM
+                , QTDT.ATT_FILE_NUM AS SATT_FILE_NUM
+                , RQDT.ITEM_RMK AS BITEM_RMK
+                , QTDT.ITEM_RMK AS SITEM_RMK
+                , CNHB.RFX_NUM AS REQ_NUM
+                , CNHB.RFX_CNT AS REQ_CNT
+                , 0 AS VOTE_CNT
+                , CNHB.RFX_SQ AS ITEM_SQ
+                , CNHB.QTA_NUM
+                , CNHB.QTA_SQ
+                , CNHB.GATE_CD
+                , CNHB.BUYER_CD
+                , CNHB.RFX_TYPE
+                , CNHB.EXEC_WT_NUM
+                , CNHB.PB_BUYER_CD
+              FROM STOCCNHB CNHB
+              LEFT JOIN STOCVNGL VNGL
+	               ON (CNHB.GATE_CD = VNGL.GATE_CD
+	               AND CNHB.VENDOR_CD = VNGL.VENDOR_CD)
+              JOIN STOCRQDT RQDT
+	               ON (CNHB.GATE_CD  = RQDT.GATE_CD
+	               AND CNHB.BUYER_CD = RQDT.BUYER_CD
+	               AND CNHB.RFX_NUM  = RQDT.RFX_NUM
+	               AND CNHB.RFX_CNT  = RQDT.RFX_CNT
+	               AND CNHB.RFX_SQ   = RQDT.RFX_SQ
+	               AND RQDT.PROGRESS_CD = '2500'		-- 업체선정
+              	   AND RQDT.DEL_FLAG = '0')
+              JOIN STOCRQHD RQHD
+	               ON (CNHB.GATE_CD  = RQHD.GATE_CD
+	               AND CNHB.BUYER_CD = RQHD.BUYER_CD
+	               AND CNHB.RFX_NUM  = RQHD.RFX_NUM
+	               AND CNHB.RFX_CNT  = RQHD.RFX_CNT
+	               AND RQHD.PROGRESS_CD = '2500'		-- 업체선정
+	               AND RQHD.DEL_FLAG = '0')
+              JOIN STOCRQVN RQVN
+	               ON (CNHB.GATE_CD   = RQVN.GATE_CD
+	               AND CNHB.BUYER_CD  = RQVN.BUYER_CD
+	               AND CNHB.RFX_NUM   = RQVN.RFX_NUM
+	               AND CNHB.RFX_CNT   = RQVN.RFX_CNT
+	               AND CNHB.VENDOR_CD = RQVN.VENDOR_CD
+	               AND RQVN.DEL_FLAG = '0')
+	          JOIN STOCQTHD QTHD
+				   ON (RQVN.GATE_CD   = QTHD.GATE_CD
+				   AND RQVN.BUYER_CD  = QTHD.BUYER_CD
+				   AND RQVN.RFX_NUM   = QTHD.RFX_NUM
+				   AND RQVN.RFX_CNT   = QTHD.RFX_CNT
+				   AND RQVN.VENDOR_CD = QTHD.VENDOR_CD
+				   AND QTHD.SEND_DATE IS NOT NULL
+				   AND QTHD.DEL_FLAG  = '0')
+			  JOIN STOCQTDT QTDT
+				   ON (QTHD.GATE_CD  = QTDT.GATE_CD
+				   AND QTHD.BUYER_CD = QTDT.BUYER_CD
+				   AND QTHD.QTA_NUM  = QTDT.QTA_NUM
+				   AND QTDT.QTA_SQ   = RQDT.RFX_SQ
+				   AND (CASE WHEN QTDT.SETTLE_AMT IS NULL OR QTDT.SETTLE_AMT = 0 THEN 0 ELSE QTDT.SETTLE_AMT END) > 0	-- 선정금액 > 0
+				   AND QTDT.DEL_FLAG = '0')
+             WHERE CNHB.GATE_CD  = #{ses.gateCd}
+               AND CNHB.BUYER_CD = #{BUYER_CD}
+               AND CNHB.EXEC_WT_NUM IN ${paramExecWtNum}
+               AND CNHB.DEL_FLAG = '0'
+         ) A
+         LEFT JOIN STOCPRDT PRDT
+         	  ON (A.GATE_CD = PRDT.GATE_CD
+         	  AND A.PB_BUYER_CD = PRDT.BUYER_CD
+         	  AND A.PR_NUM  = PRDT.PR_NUM
+         	  AND A.PR_SQ   = PRDT.PR_SQ)
+         LEFT JOIN STOCPRHD PRHD
+         	  ON (PRHD.GATE_CD  = PRDT.GATE_CD
+         	  AND PRHD.BUYER_CD = PRDT.BUYER_CD
+         	  AND PRHD.PR_NUM   = PRDT.PR_NUM)
+		WHERE 1 = 1
+    </select>
+
+	<!-- CBDI0061 : 품의서작성 > 품의서 작성품목 가져오기 -->
+    <select id="cbdi0061_doSearchDT" parameterType="hashmap" resultType="hashmap">
+
+        SELECT
+               A.PR_BUYER_CD
+             , A.PR_BUYER_NM
+             , A.PURCHASE_TYPE
+             , A.ITEM_CD
+             , A.ITEM_DESC
+             , A.ITEM_SPEC
+             , A.MAKER_CD
+             , A.MAKER_NM
+             , A.MAKER_ART_NO
+             , A.ORIGIN_CD
+             , A.VENDOR_CD
+             , VNGL.VENDOR_NM
+             , A.PR_QT
+             , A.UNIT_CD
+             , A.PRE_UNIT_PRC
+             , A.UNIT_PRC
+             , A.REQ_NUM
+             , A.REQ_CNT
+             , A.QTA_NUM
+             , A.QTA_SQ
+             , A.CONT_TYPE1
+             , A.CONT_TYPE2
+             , A.CONT_TYPE3
+             , A.PR_AMT
+             , A.TCO_YEAR_CNT
+             , A.TCO_AMT
+             , A.SW_BUS_AMT
+             , A.MNT_SANGJU_YN
+             , A.CONSUMER_AMT
+             , A.FC_MNT_TERM
+             , A.CH_RATE
+             , A.DOIB_AMOUNT
+             , A.MNT_RATE
+             , A.MNT_SDAY
+             , A.MNT_EDAY
+             , A.MNT_GUR_MONTH
+             , A.RT_INSP_PERIOD
+             , A.FALT_RC_TG_TIME
+             , A.DUE_DATE
+             , A.BATT_FILE_CNT
+             , A.BATT_FILE_NUM
+             , A.SATT_FILE_CNT
+             , A.SATT_FILE_NUM
+             , A.BITEM_RMK
+             , A.SITEM_RMK
+             , A.INFO_FLAG
+             , A.VALID_FROM_DATE
+             , A.VALID_TO_DATE
+             , A.BUYER_CD
+             , A.EXEC_SQ
+             , A.EXEC_WT_NUM
+             , A.ITEM_SQ
+             , A.PR_DEPT_CD
+             , A.RFX_TYPE
+             , A.VOTE_CNT
+             , A.PB_BUYER_CD
+             , A.PR_NUM
+             , A.PR_SQ
+             , PRHD.IF_TYPE
+			 ,<include refid="common.sql.nvl"/>(PRHD.PR_TYPE, '10') AS PR_TYPE
+			 , PRDT.PRE_BUYER_CD
+			 , PRDT.PRE_CONT_NUM
+			 , PRDT.PRE_CONT_CNT
+			 , PRDT.CM_REQ_ID
+        FROM (
+             SELECT
+                    CNDT.GATE_CD
+                  , CNDT.PR_BUYER_CD
+                  ,<include refid="common.sql.dbo"/>getCustName(CNDT.GATE_CD, CNDT.PR_BUYER_CD) AS PR_BUYER_NM
+                  , CNDT.PURCHASE_TYPE
+                  , CNDT.ITEM_CD
+                  , CNDT.ITEM_DESC
+                  , CNDT.ITEM_SPEC
+                  , CNDT.MAKER_CD
+                  ,<include refid="common.sql.dbo"/>GETMKBRNAME(CNDT.GATE_CD, CNDT.BUYER_CD, 'MK', CNDT.MAKER_CD) AS MAKER_NM
+                  , CNDT.MAKER_PART_NO AS MAKER_ART_NO
+                  , CNDT.ORIGIN_CD
+                  , CNDT.VENDOR_CD
+                  , CNDT.EXEC_QT AS PR_QT
+                  , CNDT.UNIT_CD
+                  , CNDT.PRIOR_UNIT_PRC AS PRE_UNIT_PRC
+                  , CNDT.UNIT_PRC
+                  , CNDT.CONT_TYPE1
+                  , CNDT.CONT_TYPE2
+                  , CNDT.CONT_TYPE3
+                  , CNDT.PR_NUM
+                  , CNDT.PR_SQ
+                  , CNDT.EXEC_AMT AS PR_AMT
+                  , CNDT.TCO_YEAR AS TCO_YEAR_CNT
+                  , CNDT.TCO_AMT
+                  , CNDT.SW_BUS_PRICE AS SW_BUS_AMT
+                  , CNDT.MNT_SANGJU_YN
+                  , CNDT.CONSUMER_AMT
+                  , CNDT.FC_MNT_TERM
+                  , CNDT.CH_RATE
+                  , CNDT.DOIB_AMT AS DOIB_AMOUNT
+                  , CNDT.MNT_RATE
+                  ,<include refid="common.sql.toChar"/>(CNDT.MNT_SDAY, 'YYYYMMDD') AS MNT_SDAY
+                  ,<include refid="common.sql.toChar"/>(CNDT.MNT_EDAY, 'YYYYMMDD') AS MNT_EDAY
+                  , CNDT.MNT_GUR_MONTH
+                  , CNDT.RT_INSP_PERIOD
+                  , CNDT.FALT_RC_TG_TIME
+                  ,<include refid="common.sql.toChar"/>(CNDT.DUE_DATE, 'YYYYMMDD') AS DUE_DATE
+                  , TO_CHAR(<include refid="common.sql.dbo"/>GETFILECOUNT(BDDT.GATE_CD, BDDT.ATT_FILE_NUM)) AS BATT_FILE_CNT
+                  , BDDT.ATT_FILE_NUM AS BATT_FILE_NUM
+                  , TO_CHAR(<include refid="common.sql.dbo"/>GETFILECOUNT(BDVD.GATE_CD, BDVD.ATT_FILE_NUM)) AS SATT_FILE_CNT
+                  , BDVD.ATT_FILE_NUM AS SATT_FILE_NUM
+                  , BDDT.ITEM_RMK AS BITEM_RMK
+                  , BDVD.ITEM_RMK AS SITEM_RMK
+                  , CNDT.INFO_FLAG
+                  ,<include refid="common.sql.toChar"/>(CNDT.VALID_FROM_DATE, 'YYYYMMDD') AS VALID_FROM_DATE
+                  ,<include refid="common.sql.toChar"/>(CNDT.VALID_TO_DATE, 'YYYYMMDD') AS VALID_TO_DATE
+                  , CNDT.BUYER_CD
+                  , CNDT.EXEC_SQ
+                  , CNDT.BID_NUM AS REQ_NUM
+                  , CNDT.BID_CNT AS REQ_CNT
+                  , CNDT.VOTE_CNT
+                  , CNDT.ITEM_SQ
+                  , CNDT.QTA_NUM
+                  , CNDT.QTA_SQ
+                  , CNDT.PR_DEPT_CD
+                  , CNDT.RFX_TYPE
+                  , CNDT.EXEC_WT_NUM
+                  , CNDT.PB_BUYER_CD
+              FROM STOCCNDT CNDT
+              JOIN STOCBDDT BDDT
+	               ON (CNDT.GATE_CD   = BDDT.GATE_CD
+	               AND CNDT.BUYER_CD  = BDDT.BUYER_CD
+	               AND CNDT.BID_NUM   = BDDT.BID_NUM
+	               AND CNDT.BID_CNT   = BDDT.BID_CNT
+	               AND CNDT.ITEM_SQ   = BDDT.ITEM_SQ)
+              JOIN STOCBDVD BDVD
+	               ON (CNDT.GATE_CD   = BDVD.GATE_CD
+	               AND CNDT.BUYER_CD  = BDVD.BUYER_CD
+	               AND CNDT.BID_NUM   = BDVD.BID_NUM
+	               AND CNDT.BID_CNT   = BDVD.BID_CNT
+	               AND CNDT.VOTE_CNT  = BDVD.VOTE_CNT
+	               AND CNDT.ITEM_SQ   = BDVD.ITEM_SQ
+	               AND CNDT.VENDOR_CD = BDVD.VENDOR_CD
+	               AND BDVD.DEL_FLAG = '0')
+             WHERE CNDT.GATE_CD  = #{ses.gateCd}
+               AND CNDT.BUYER_CD = #{BUYER_CD}
+               AND CNDT.EXEC_NUM = #{EXEC_NUM}
+               AND CNDT.DEL_FLAG = '0'
+               AND BDDT.DEL_FLAG = '0'
+
+             UNION ALL
+
+             SELECT
+                    CNDT.GATE_CD
+                  , CNDT.PR_BUYER_CD
+                  ,<include refid="common.sql.dbo"/>getCustName(CNDT.GATE_CD, CNDT.PR_BUYER_CD) AS PR_BUYER_NM
+                  , CNDT.PURCHASE_TYPE
+                  , CNDT.ITEM_CD
+                  , CNDT.ITEM_DESC
+                  , CNDT.ITEM_SPEC
+                  , CNDT.MAKER_CD
+                  ,<include refid="common.sql.dbo"/>GETMKBRNAME(CNDT.GATE_CD, CNDT.BUYER_CD, 'MK', CNDT.MAKER_CD) AS MAKER_NM
+                  , CNDT.MAKER_PART_NO AS MAKER_ART_NO
+                  , CNDT.ORIGIN_CD
+                  , CNDT.VENDOR_CD
+                  , CNDT.EXEC_QT AS PR_QT
+                  , CNDT.UNIT_CD
+                  , CNDT.PRIOR_UNIT_PRC AS PRE_UNIT_PRC
+                  , CNDT.UNIT_PRC
+                  , CNDT.CONT_TYPE1
+                  , NULL AS CONT_TYPE2
+                  , CNDT.CONT_TYPE3
+                  , CNDT.PR_NUM
+                  , CNDT.PR_SQ
+                  , CNDT.EXEC_AMT AS PR_AMT
+                  , CNDT.TCO_YEAR AS TCO_YEAR_CNT
+                  , CNDT.TCO_AMT
+                  , CNDT.SW_BUS_PRICE AS SW_BUS_AMT
+                  , CNDT.MNT_SANGJU_YN
+                  , CNDT.CONSUMER_AMT
+                  , CNDT.FC_MNT_TERM
+                  , CNDT.CH_RATE
+                  , CNDT.DOIB_AMT AS DOIB_AMOUNT
+                  , CNDT.MNT_RATE
+                  ,<include refid="common.sql.toChar"/>(CNDT.MNT_SDAY, 'YYYYMMDD') AS MNT_SDAY
+                  ,<include refid="common.sql.toChar"/>(CNDT.MNT_EDAY, 'YYYYMMDD') AS MNT_EDAY
+                  , CNDT.MNT_GUR_MONTH
+                  , CNDT.RT_INSP_PERIOD
+                  , CNDT.FALT_RC_TG_TIME
+                  ,<include refid="common.sql.toChar"/>(CNDT.DUE_DATE, 'YYYYMMDD') AS DUE_DATE
+                  , TO_CHAR(<include refid="common.sql.dbo"/>GETFILECOUNT(RQDT.GATE_CD, RQDT.ATT_FILE_NUM)) AS BATT_FILE_CNT
+                  , RQDT.ATT_FILE_NUM AS BATT_FILE_NUM
+                  , TO_CHAR(<include refid="common.sql.dbo"/>GETFILECOUNT(QTDT.GATE_CD, QTDT.ATT_FILE_NUM)) AS SATT_FILE_CNT
+                  , QTDT.ATT_FILE_NUM AS SATT_FILE_NUM
+                  , RQDT.ITEM_RMK AS BITEM_RMK
+                  , QTDT.ITEM_RMK AS SITEM_RMK
+                  , CNDT.INFO_FLAG
+                  ,<include refid="common.sql.toChar"/>(CNDT.VALID_FROM_DATE, 'YYYYMMDD') AS VALID_FROM_DATE
+                  ,<include refid="common.sql.toChar"/>(CNDT.VALID_TO_DATE, 'YYYYMMDD') AS VALID_TO_DATE
+                  , CNDT.BUYER_CD
+                  , CNDT.EXEC_SQ
+                  , CNDT.RFX_NUM AS REQ_NUM
+                  , CNDT.RFX_CNT AS REQ_CNT
+                  , CNDT.VOTE_CNT
+                  , CNDT.RFX_SQ  AS ITEM_SQ
+                  , CNDT.QTA_NUM
+                  , CNDT.QTA_SQ
+                  , CNDT.PR_DEPT_CD
+                  , CNDT.RFX_TYPE
+                  , CNDT.EXEC_WT_NUM
+                  , CNDT.PB_BUYER_CD
+              FROM STOCCNDT CNDT
+              JOIN STOCRQDT RQDT
+	               ON (CNDT.GATE_CD  = RQDT.GATE_CD
+	               AND CNDT.BUYER_CD = RQDT.BUYER_CD
+	               AND CNDT.RFX_NUM  = RQDT.RFX_NUM
+	               AND CNDT.RFX_CNT  = RQDT.RFX_CNT
+	               AND CNDT.RFX_SQ   = RQDT.RFX_SQ)
+              JOIN STOCQTDT QTDT
+	               ON (CNDT.GATE_CD  = QTDT.GATE_CD
+	               AND CNDT.BUYER_CD = QTDT.BUYER_CD
+	               AND CNDT.QTA_NUM  = QTDT.QTA_NUM
+	               AND CNDT.QTA_SQ   = QTDT.QTA_SQ
+	               AND QTDT.DEL_FLAG = '0')
+             WHERE CNDT.GATE_CD  = #{ses.gateCd}
+               AND CNDT.BUYER_CD = #{BUYER_CD}
+               AND CNDT.EXEC_NUM = #{EXEC_NUM}
+               AND CNDT.DEL_FLAG = '0'
+               AND RQDT.DEL_FLAG = '0'
+         ) A
+         LEFT JOIN STOCPRDT PRDT
+         	  ON (A.GATE_CD = PRDT.GATE_CD
+         	  AND A.PB_BUYER_CD = PRDT.BUYER_CD
+         	  AND A.PR_NUM  = PRDT.PR_NUM
+         	  AND A.PR_SQ   = PRDT.PR_SQ)
+         LEFT JOIN STOCPRHD PRHD
+         	  ON (PRHD.GATE_CD  = PRDT.GATE_CD
+         	  AND PRHD.BUYER_CD = PRDT.BUYER_CD
+         	  AND PRHD.PR_NUM   = PRDT.PR_NUM)
+         LEFT JOIN STOCVNGL VNGL
+	          ON (A.GATE_CD   = VNGL.GATE_CD
+	          AND A.VENDOR_CD = VNGL.VENDOR_CD)
+        ORDER BY A.EXEC_SQ
+    </select>
+
+    <insert id="cbdi0061_doMergeHD" parameterType="hashmap">
+
+        MERGE <include refid="common.sql.mergeInto"/> STOCCNHD CNHD
+        USING (SELECT
+                     #{ses.gateCd} AS GATE_CD
+                    ,#{BUYER_CD} AS BUYER_CD
+                    ,#{EXEC_NUM} AS EXEC_NUM
+                 <include refid="common.sql.dual"/>) B
+          ON (CNHD.GATE_CD  = B.GATE_CD
+          AND CNHD.BUYER_CD = B.BUYER_CD
+          AND CNHD.EXEC_NUM = B.EXEC_NUM)
+        WHEN MATCHED THEN
+        UPDATE SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,REF_DOC_NUM = #{REF_DOC_NUM}
+            ,EXEC_SUBJECT = #{EXEC_SUBJECT}
+            ,EXEC_DOIB_FLAG = #{EXEC_DOIB_FLAG}
+            ,EXEC_TCO_FLAG = #{EXEC_TCO_FLAG}
+            ,EXEC_AMT = #{EXEC_AMT}
+            ,RMK_TEXT_NUM = #{RMK_TEXT_NUM}
+            ,ATT_FILE_NUM = #{ATT_FILE_NUM}
+            ,SIGN_STATUS  = #{SIGN_STATUS}
+        WHEN NOT MATCHED THEN
+        INSERT (
+             GATE_CD
+            ,BUYER_CD
+            ,EXEC_NUM
+            ,REG_DATE
+            ,REG_USER_ID
+            ,MOD_DATE
+            ,MOD_USER_ID
+            ,DEL_FLAG
+            ,DEPT_CD
+            ,REF_DOC_NUM
+            ,EXEC_TYPE
+            ,EXEC_SUBJECT
+            ,EXEC_DATE
+            ,CTRL_USER_ID
+            ,EXEC_DOIB_FLAG
+            ,EXEC_TCO_FLAG
+            ,CUR
+            ,EXEC_AMT
+            ,VAT_TYPE
+            ,RMK_TEXT_NUM
+            ,ATT_FILE_NUM
+            ,SIGN_STATUS
+        ) VALUES (
+             #{ses.gateCd}
+            ,#{BUYER_CD}
+            ,#{EXEC_NUM}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,'0'
+            ,#{DEPT_CD}
+            ,#{REF_DOC_NUM}
+            ,'G'
+            ,#{EXEC_SUBJECT}
+            ,<include refid="common.sql.toDate"/>(#{EXEC_DATE}, 'yyyyMMdd')
+            ,#{CTRL_USER_ID}
+            ,#{EXEC_DOIB_FLAG}
+            ,#{EXEC_TCO_FLAG}
+            ,#{CUR}
+            ,#{EXEC_AMT}
+            ,#{VAT_TYPE}
+            ,#{RMK_TEXT_NUM}
+            ,#{ATT_FILE_NUM}
+            ,#{SIGN_STATUS}
+        )
+        <include refid="common.sql.comma"/>
+    </insert>
+
+    <insert id="cbdi0061_doMergeVD" parameterType="hashmap">
+
+        MERGE <include refid="common.sql.mergeInto"/> STOCCNVD CNVD
+        USING (SELECT
+                     #{ses.gateCd} AS GATE_CD
+                    ,#{BUYER_CD} AS BUYER_CD
+                    ,#{EXEC_NUM} AS EXEC_NUM
+                    ,#{VENDOR_CD} AS VENDOR_CD
+                 <include refid="common.sql.dual"/>) B
+          ON (CNVD.GATE_CD = B.GATE_CD
+          AND CNVD.BUYER_CD = B.BUYER_CD
+          AND CNVD.EXEC_NUM = B.EXEC_NUM
+          AND CNVD.VENDOR_CD = B.VENDOR_CD)
+        WHEN MATCHED THEN
+        UPDATE SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,CONT_FLAG = #{CONT_FLAG}
+            ,CONT_USER_ID = #{CONT_USER_ID}
+            ,PO_USER_ID = #{PO_USER_ID}
+        WHEN NOT MATCHED THEN
+        INSERT (
+             GATE_CD
+            ,BUYER_CD
+            ,EXEC_NUM
+            ,VENDOR_CD
+            ,REG_DATE
+            ,REG_USER_ID
+            ,MOD_DATE
+            ,MOD_USER_ID
+            ,DEL_FLAG
+            ,CONT_FLAG
+            ,PIC_USER_NM
+            ,PIC_TEL_NUM
+            ,PIC_EMAIL
+            ,CONT_USER_ID
+            ,PO_USER_ID
+            ,RFX_AMT
+        )
+        VALUES (
+             #{ses.gateCd}
+            ,#{BUYER_CD}
+            ,#{EXEC_NUM}
+            ,#{VENDOR_CD}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,'0'
+            ,#{CONT_FLAG}
+            ,<include refid="common.sql.strEncStart"/>#{PIC_USER_NM}<include refid="common.sql.strEncEnd"/>
+            ,<include refid="common.sql.strEncStart"/>#{PIC_TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            ,<include refid="common.sql.strEncStart"/>#{PIC_EMAIL}<include refid="common.sql.strEncEnd"/>
+            ,#{CONT_USER_ID}
+            ,#{PO_USER_ID}
+            ,#{RFX_AMT}
+        )
+        <include refid="common.sql.comma"/>
+    </insert>
+
+    <delete id="cbdi0061_doDeleteAllDT" parameterType="hashmap">
+
+        DELETE FROM STOCCNDT
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND EXEC_NUM = #{EXEC_NUM}
+    </delete>
+
+    <insert id="cbdi0061_doInsertDT" parameterType="hashmap">
+
+        <selectKey keyProperty="EXEC_SQ_KEY" resultType="int" order="BEFORE">
+            SELECT (CASE WHEN <include refid="common.sql.nvl"/>(TO_CHAR(#{EXEC_SQ}), '-') = '-' THEN <include refid="common.sql.nvl"/>(MAX(EXEC_SQ), 0) + 1 ELSE TO_NUMBER(#{EXEC_SQ}) END) 
+              FROM STOCCNDT
+             WHERE GATE_CD  = #{ses.gateCd}
+               AND BUYER_CD = #{BUYER_CD}
+               AND EXEC_NUM = #{EXEC_NUM}
+        </selectKey>
+
+        INSERT INTO STOCCNDT (
+              GATE_CD
+            , BUYER_CD
+            , EXEC_NUM
+            , EXEC_SQ
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , PROGRESS_CD
+            , PR_NUM
+            , PR_SQ
+            , RFX_TYPE
+        <choose>
+          <when test="RFX_TYPE != '' and RFX_TYPE != null and RFX_TYPE == 'BID'">
+            , BID_NUM
+            , BID_CNT
+            , VOTE_CNT
+            , ITEM_SQ
+          </when>
+          <otherwise>
+            , RFX_NUM
+            , RFX_CNT
+            , RFX_SQ
+            , QTA_NUM
+            , QTA_SQ
+          </otherwise>
+        </choose>
+            , VENDOR_CD
+            , PR_BUYER_CD
+            , PR_DEPT_CD
+            , PURCHASE_TYPE
+            , ITEM_CD
+            , ITEM_DESC
+            , ITEM_SPEC
+            , MAKER_CD
+            , MAKER_PART_NO
+            , ORIGIN_CD
+            , EXEC_QT
+            , UNIT_CD
+            , PRIOR_UNIT_PRC
+            , UNIT_PRC
+            , CONT_TYPE1
+            , CONT_TYPE2
+            , CONT_TYPE3
+            , EXEC_DOIB_AMT
+            , TCO_YEAR
+            , TCO_AMT
+            , EXEC_AMT
+            , SW_BUS_PRICE
+            , MNT_SANGJU_YN
+            , CONSUMER_AMT
+            , FC_MNT_TERM
+            , CH_RATE
+            , DOIB_AMT
+            , MNT_RATE
+            , MNT_SDAY
+            , MNT_EDAY
+            , MNT_GUR_MONTH
+            , RT_INSP_PERIOD
+            , FALT_RC_TG_TIME
+            , DUE_DATE
+            , INFO_FLAG
+            , VALID_FROM_DATE
+            , VALID_TO_DATE
+            , EXEC_WT_NUM
+            , PB_BUYER_CD
+        ) VALUES (
+              #{ses.gateCd}
+            , #{BUYER_CD}
+            , #{EXEC_NUM}
+            ,(SELECT <include refid="common.sql.nvl"/>(MAX(EXEC_SQ), 0) + 1 FROM STOCCNDT
+                   WHERE GATE_CD = #{ses.gateCd}
+                     AND BUYER_CD = #{BUYER_CD}
+                     AND EXEC_NUM = #{EXEC_NUM})
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{PROGRESS_CD}
+            , #{PR_NUM}
+            , #{PR_SQ}
+            , #{RFX_TYPE}
+        <choose>
+          <when test="RFX_TYPE != '' and RFX_TYPE != null and RFX_TYPE == 'BID'">
+            , #{REQ_NUM}
+            , #{REQ_CNT}
+            , #{VOTE_CNT}
+            , #{ITEM_SQ}
+          </when>
+          <otherwise>
+            , #{REQ_NUM}
+            , #{REQ_CNT}
+            , #{ITEM_SQ}
+            , #{QTA_NUM}
+            , #{QTA_SQ}
+          </otherwise>
+        </choose>
+            , #{VENDOR_CD}
+            , #{PR_BUYER_CD}
+            , #{PR_DEPT_CD}
+            , #{PURCHASE_TYPE}
+            , #{ITEM_CD}
+            , #{ITEM_DESC}
+            , #{ITEM_SPEC}
+            , #{MAKER_CD}
+            , #{MAKER_ART_NO}
+            , #{ORIGIN_CD}
+            , #{PR_QT}
+            , #{UNIT_CD}
+            , #{PRE_UNIT_PRC}
+            , #{UNIT_PRC}
+            , #{CONT_TYPE1}
+            , #{CONT_TYPE2}
+            , #{CONT_TYPE3}
+            , #{DOIB_AMOUNT}
+            , #{TCO_YEAR_CNT}
+            , #{TCO_AMT}
+            , #{EXEC_AMT}
+            , #{SW_BUS_AMT}
+            , #{MNT_SANGJU_YN}
+            , #{CONSUMER_AMT}
+            , #{FC_MNT_TERM}
+            , #{CH_RATE}
+            , #{DOIB_AMOUNT}
+            , #{MNT_RATE}
+            ,<include refid="common.sql.toDate"/>(#{MNT_SDAY}, 'yyyyMMdd')
+            ,<include refid="common.sql.toDate"/>(#{MNT_EDAY}, 'yyyyMMdd')
+            , #{MNT_GUR_MONTH}
+            , #{RT_INSP_PERIOD}
+            , #{FALT_RC_TG_TIME}
+            ,<include refid="common.sql.toDate"/>(#{DUE_DATE}, 'yyyyMMdd')
+            , #{INFO_FLAG}
+            ,<include refid="common.sql.toDate"/>(#{VALID_FROM_DATE}, 'yyyyMMdd')
+            ,<include refid="common.sql.toDate"/>(#{VALID_TO_DATE}, 'yyyyMMdd')
+            , #{EXEC_WT_NUM}
+            , #{PB_BUYER_CD}
+        )
+    </insert>
+
+    <delete id="cbdi0061_doDeleteCNHB" parameterType="hashmap">
+
+        DELETE FROM STOCCNHB
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND EXEC_WT_NUM = #{EXEC_WT_NUM}
+    </delete>
+
+    <update id="updateAppNum" parameterType="hashMap">
+
+        UPDATE STOCCNHD SET
+              APP_DOC_NUM = #{APP_DOC_NUM}
+            , APP_DOC_CNT = #{APP_DOC_CNT}
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+          AND EXEC_NUM = #{EXEC_NUM}
+    </update>
+
+    <update id="cbdi0061_doDeleteHD" parameterType="hashmap">
+
+        UPDATE STOCCNHD SET
+              MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , DEL_FLAG = '1'
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND EXEC_NUM = #{EXEC_NUM}
+    </update>
+
+    <update id="cbdi0061_doDeleteVD" parameterType="hashmap">
+
+        UPDATE STOCCNVD SET
+              MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , DEL_FLAG = '1'
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND EXEC_NUM = #{EXEC_NUM}
+    </update>
+
+    <update id="cbdi0061_doDeleteDT" parameterType="hashmap">
+
+        UPDATE STOCCNDT SET
+              MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , DEL_FLAG = '1'
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND EXEC_NUM = #{EXEC_NUM}
+    </update>
+
+    <insert id="cbdi0061_doInsertHB" parameterType="hashmap">
+
+        INSERT INTO STOCCNHB (
+              GATE_CD
+            , BUYER_CD
+            , EXEC_WT_NUM
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , DEPT_CD
+            , CTRL_USER_ID
+            , RFX_TYPE
+            , VENDOR_CD
+            , RFX_NUM
+            , RFX_CNT
+            , RFX_SQ
+            , BID_NUM
+            , BID_CNT
+            , VOTE_CNT
+            , ITEM_SQ
+            , PR_NUM
+            , PR_SQ
+            , QTA_NUM
+            , QTA_SQ
+            , PB_BUYER_CD
+        )
+        SELECT DISTINCT
+               DT.GATE_CD
+             , DT.BUYER_CD
+             , DT.EXEC_WT_NUM
+             , SYSDATE AS REG_DATE
+             , #{ses.userId} AS REG_USER_ID
+             , SYSDATE AS MOD_DATE
+             , #{ses.userId} AS MOD_USER_ID
+             , '0' AS DEL_FLAG
+             , DT.PR_DEPT_CD AS DEPT_CD
+             , HD.CTRL_USER_ID
+             , DT.RFX_TYPE
+             , DT.VENDOR_CD
+             , DT.RFX_NUM
+             , DT.RFX_CNT
+             , DT.RFX_SQ
+             , DT.BID_NUM
+             , DT.BID_CNT
+             , DT.VOTE_CNT
+             , DT.ITEM_SQ
+             , DT.PR_NUM
+             , DT.PR_SQ
+             , DT.QTA_NUM
+             , DT.QTA_SQ
+             , DT.PB_BUYER_CD
+		  FROM STOCCNHD HD
+          LEFT JOIN STOCCNDT DT
+	           ON (HD.GATE_CD  = DT.GATE_CD
+	           AND HD.BUYER_CD = DT.BUYER_CD
+	           AND HD.EXEC_NUM = DT.EXEC_NUM)
+         WHERE HD.GATE_CD  = #{ses.gateCd}
+           AND HD.BUYER_CD = #{BUYER_CD}
+           AND HD.EXEC_NUM = #{EXEC_NUM}
+           AND DT.EXEC_WT_NUM = #{EXEC_WT_NUM}
+    </insert>
+
+	<!-- CBDR0070 : 선정품의현황 > 조회 -->
+    <select id="cbdr0070_doSearch" parameterType="hashmap" resultType="hashMap">
+
+        SELECT
+              A.PR_BUYER_CD
+            ,<include refid="common.sql.dbo"/>getBuyerNames(A.GATE_CD, A.BUYER_CD, 'EX', A.EXEC_NUM, NULL, NULL, #{ses.langCd}) AS PR_BUYER_NM
+            , A.SIGN_STATUS, A.EXEC_TYPE, A.EXEC_NUM, A.EXEC_SUBJECT
+            , A.VENDOR_CDS, A.VENDOR_NMS
+            , A.CUR, A.EXEC_AMT, A.VAT_TYPE
+            , A.EXEC_DATE
+            , A.CTRL_USER_ID, <include refid="common.sql.dbo"/>GETUSERNAME(A.GATE_CD, A.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+            , A.BUYER_CD
+          FROM (
+            SELECT
+                  HD.GATE_CD, HD.BUYER_CD, HD.EXEC_NUM
+                ,(SELECT MAX(CNDT.PR_BUYER_CD) FROM STOCCNDT CNDT
+                   WHERE CNDT.GATE_CD  = HD.GATE_CD
+                     AND CNDT.BUYER_CD = HD.BUYER_CD
+                     AND CNDT.EXEC_NUM = HD.EXEC_NUM
+                     AND CNDT.DEL_FLAG = '0') AS PR_BUYER_CD
+                , HD.SIGN_STATUS
+                , HD.EXEC_TYPE
+                , HD.EXEC_SUBJECT
+                ,(SELECT LISTAGG(VENDOR_CD, ',') WITHIN GROUP(ORDER BY VENDOR_CD)
+                    FROM (SELECT DISTINCT VD.VENDOR_CD FROM STOCCNVD VD
+                           WHERE VD.GATE_CD  = HD.GATE_CD
+                             AND VD.BUYER_CD = HD.BUYER_CD
+                             AND VD.EXEC_NUM = HD.EXEC_NUM
+                             AND VD.DEL_FLAG = '0')) AS VENDOR_CDS
+                ,(SELECT LISTAGG(VENDOR_NM, ',') WITHIN GROUP(ORDER BY VENDOR_NM)
+                    FROM (SELECT DISTINCT GL.VENDOR_NM
+                            FROM STOCCNVD VD LEFT JOIN STOCVNGL GL
+                             ON (VD.GATE_CD = GL.GATE_CD
+                             AND VD.VENDOR_CD = GL.VENDOR_CD)
+                           WHERE VD.GATE_CD  = HD.GATE_CD
+                             AND VD.BUYER_CD = HD.BUYER_CD
+                             AND VD.EXEC_NUM = HD.EXEC_NUM
+                             AND VD.DEL_FLAG = '0'
+                             AND GL.DEL_FLAG = '0')) AS VENDOR_NMS
+                , HD.CUR, HD.EXEC_AMT, HD.VAT_TYPE
+                ,<include refid="common.sql.toChar"/>(HD.EXEC_DATE, 'YYYYMMDD') AS EXEC_DATE
+                , HD.CTRL_USER_ID
+                ,(CASE WHEN (SELECT COUNT(D.EXEC_SQ) FROM STOCCNDT D
+                              WHERE D.GATE_CD = HD.GATE_CD
+                                AND D.BUYER_CD = HD.BUYER_CD
+                                AND D.EXEC_NUM = HD.EXEC_NUM
+                                AND D.TCO_YEAR IS NOT NULL
+                                AND D.DEL_FLAG = '0') <![CDATA[>]]> 0 THEN 'Y' ELSE 'N' END) AS TCO_FLAG
+              FROM STOCCNHD HD
+             WHERE HD.GATE_CD  = #{ses.gateCd}
+               AND HD.BUYER_CD = #{ses.companyCd}
+               AND HD.DEL_FLAG = '0'
+               
+            <if test="EXEC_TYPE != '' and EXEC_TYPE != null">
+               AND HD.EXEC_TYPE = #{EXEC_TYPE}
+            </if>
+            <if test="SIGN_STATUS != '' and SIGN_STATUS != null">
+               AND HD.SIGN_STATUS = #{SIGN_STATUS}
+            </if>
+            <if test="EXEC_NUM_SUBJECT != '' and EXEC_NUM_SUBJECT != null">
+               AND (UPPER(HD.EXEC_NUM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{EXEC_NUM_SUBJECT}) <include refid="common.sql.stringMerge"/> '%'
+                 OR UPPER(REPLACE(HD.EXEC_SUBJECT, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{EXEC_NUM_SUBJECT}, ' ', '')) <include refid="common.sql.stringMerge"/> '%')
+            </if>
+          ) A
+         WHERE 1 = 1
+         
+        <if test="EXEC_DATE_FROM !='' and EXEC_DATE_FROM != null and EXEC_DATE_TO !='' and EXEC_DATE_TO != null">
+           AND A.EXEC_DATE <![CDATA[>=]]> #{EXEC_DATE_FROM}
+           AND A.EXEC_DATE <![CDATA[<=]]> #{EXEC_DATE_TO}
+        </if>
+        <!-- 구매의뢰고객사코드 -->
+        <if test="BUYER_CD != '' and BUYER_CD != null">
+           AND EXISTS (SELECT 1 FROM STOCCNDT
+                        WHERE GATE_CD  = A.GATE_CD
+                          AND BUYER_CD = A.BUYER_CD
+                          AND EXEC_NUM = A.EXEC_NUM
+                          AND PR_BUYER_CD LIKE '%'<include refid="common.sql.stringMerge"/>UPPER(#{BUYER_CD})<include refid="common.sql.stringMerge"/>'%'
+                          AND DEL_FLAG = '0'
+                      )
+        </if>
+        <!-- 구매의뢰고객사명 -->
+        <if test="BUYER_NM != '' and BUYER_NM != null">
+           AND UPPER(<include refid="common.sql.dbo"/>getBuyerNames(A.GATE_CD, A.BUYER_CD, 'EX', A.EXEC_NUM, NULL, NULL, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VENDOR_CD != '' and VENDOR_CD != null">
+           AND UPPER(A.VENDOR_CDS) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VENDOR_NM != '' and VENDOR_NM != null">
+           AND UPPER(A.VENDOR_NMS) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="CTRL_USER_ID != '' and CTRL_USER_ID != null">
+           AND A.CTRL_USER_ID = #{CTRL_USER_ID}
+        </if>
+        <if test="CTRL_USER_NM != '' and CTRL_USER_NM != null">
+           AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(A.GATE_CD, A.CTRL_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CTRL_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+
+        ORDER BY A.EXEC_DATE DESC
+    </select>
+
+    <select id="getSignStatus" parameterType="hashMap" resultType="java.lang.String">
+
+        SELECT SIGN_STATUS FROM STOCCNHD
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND EXEC_NUM = #{EXEC_NUM}
+    </select>
+
+</mapper>

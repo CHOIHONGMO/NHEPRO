@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.batch.nhebatch.BNH0014_Mapper">
+	
+	<!-- 2021.05.04 변경 -->
+	<!-- IF(수의시담, 부속합의) 수의계약으로 처리 -->
+    <select id="getTagrgetData1" resultType="hashmap" parameterType="hashMap">
+		SELECT A.*
+		  FROM (
+			SELECT
+				 <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M070', 'BID', 0, #{ses.langCd}) AS TYPE
+				, 'BID' AS RFX_TYPE
+				, HD.BUYER_CD
+				,<include refid="common.sql.dbo"/>getBuyerNames(HD.GATE_CD, HD.BUYER_CD, 'BID', HD.BID_NUM, HD.BID_CNT, null, #{ses.langCd}) AS BUYER_NM
+				, HD.ANN_NO
+				, HD.ANN_ITEM
+				, HD.ANN_DATE
+				, HD.CONT_TYPE1
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', HD.CONT_TYPE1, 0, #{ses.langCd}) AS CONT_TYPE1_LOC
+				, HD.CONT_TYPE2
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M302', HD.CONT_TYPE2, 0, #{ses.langCd}) AS CONT_TYPE2_LOC
+				, HD.CONT_TYPE3
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M303', HD.CONT_TYPE3, 0, #{ses.langCd}) AS CONT_TYPE3_LOC
+				, SUBSTR(HD.APP_BEGIN_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_DATE, 7, 2) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_TIME, 1, 2) <include refid="common.sql.stringMerge"/> ':' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_TIME, 3, 2) AS APP_BEGIN_DATETIME
+				, SUBSTR(HD.APP_END_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 7, 2) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 1, 2) <include refid="common.sql.stringMerge"/> ':' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 3, 2) AS APP_END_DATETIME
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS
+				, HD.BID_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.BID_USER_ID, #{ses.langCd}) AS BID_USER_NM
+				, HD.ESTM_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.ESTM_USER_ID, #{ses.langCd}) AS ESTM_USER_NM
+				, HD.BID_NUM
+				, HD.BID_CNT
+				,<include refid="common.sql.nvl"/>(ES.SIGN_STATUS,'') AS SIGN_STATUS
+				,<include refid="common.sql.nvl"/>(HD.ESTM_TYPE,'ES') AS ESTM_TYPE
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS_LOC
+				, HD.BID_STATUS AS BID_STATUS2
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+				-- 2021.07.02 : 예정가격 결재 승인에 대한 SMS 수수료 추가
+				,(SELECT IRS_NUM FROM STOCCUST
+	               WHERE GATE_CD = HD.GATE_CD
+	                 AND CUST_CD = HD.BUYER_CD) 	AS CORP_NO
+	            ,(SELECT DEPT_CD FROM STOCCVUR
+				   WHERE GATE_CD = HD.GATE_CD
+				     AND USER_ID = HD.BID_USER_ID) 	AS BRC
+	            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+	            , HD.BID_USER_ID 	AS USER_ID
+	            , 'SMS_BID_BATCH_PRC'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.GATE_CD  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.BUYER_CD 			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.BID_NUM  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.BID_CNT 		AS CONT_TBL_PK
+	            , NULL 				AS FILE_SIZE
+	            , 'STOCBDHD'		AS CONT_TBL_ID
+			 FROM STOCBDHD HD
+			 LEFT JOIN STOCBDES ES
+				  ON (HD.GATE_CD  = ES.GATE_CD
+				  AND HD.BUYER_CD = ES.BUYER_CD
+				  AND HD.BID_NUM  = ES.BID_NUM
+				  AND HD.BID_CNT  = ES.BID_CNT
+				  AND ES.DEL_FLAG = '0')
+			WHERE HD.GATE_CD     = #{ses.gateCd}
+			  AND HD.SIGN_STATUS = 'E'
+			  AND HD.BID_STATUS  NOT IN ('9999', '2303')
+			  AND HD.DEL_FLAG    = '0'
+			  AND <include refid="common.sql.nvl"/>(HD.ESTM_TYPE,'ES') != 'ES' -- 예가 생략 아니것
+
+			UNION ALL
+
+			SELECT
+				 <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M070', HD.RFX_TYPE, 0, #{ses.langCd}) AS TYPE
+				, HD.RFX_TYPE
+				, HD.BUYER_CD
+				,<include refid="common.sql.dbo"/>getBuyerNames(HD.GATE_CD, HD.BUYER_CD, 'RFX', HD.RFX_NUM, HD.RFX_CNT, null, #{ses.langCd}) AS BUYER_NM
+				, HD.RFX_NUM AS ANN_NO
+				, HD.RFX_SUBJECT AS ANN_ITEM
+				,<include refid="common.sql.toChar"/>(HD.SIGN_DATE,'YYYYMMDD') AS ANN_DATE
+				, HD.VENDOR_OPEN_TYPE AS CONT_TYPE1
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', HD.VENDOR_OPEN_TYPE, 0, #{ses.langCd}) AS CONT_TYPE1_LOC
+				, 'LP' AS CONT_TYPE2
+				,(CASE WHEN HD.RFX_TYPE = 'RPC' or HD.RFX_TYPE = 'RCA' or HD.RFX_TYPE = 'RFQ' or HD.RFX_TYPE = 'RYQ' THEN NULL
+				 	   ELSE <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', 'LP', 0, #{ses.langCd})
+				  END) AS CONT_TYPE2_LOC
+				, HD.AMT_TYPE AS CONT_TYPE3
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M303', HD.AMT_TYPE, 0, #{ses.langCd}) AS CONT_TYPE3_LOC
+				,<include refid="common.sql.toChar"/>(RFX_START_DATE, 'YYYY-MM-DD HH24:MI') AS APP_BEGIN_DATETIME
+				,<include refid="common.sql.toChar"/>(RFX_END_DATE, 'YYYY-MM-DD HH24:MI') AS APP_END_DATETIME
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS
+				, HD.CTRL_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.CTRL_USER_ID, #{ses.langCd}) AS BID_USER_NM
+				, HD.CTRL_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.CTRL_USER_ID, #{ses.langCd}) AS ESTM_USER_NM
+				, HD.RFX_NUM AS BID_NUM
+				, HD.RFX_CNT AS BID_CNT
+				,<include refid="common.sql.nvl"/>(ES.SIGN_STATUS,'') AS SIGN_STATUS
+				,(CASE WHEN <include refid="common.sql.nvl"/>(HD.EST_PRICE_TYPE,'0') = '1' THEN 'SE' ELSE 'SE' END) AS ESTM_TYPE
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS_LOC
+				, HD.PROGRESS_CD AS BID_STATUS2
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+				-- 2021.07.02 : 예정가격 결재 승인에 대한 SMS 수수료 추가
+				,(SELECT IRS_NUM FROM STOCCUST
+	               WHERE GATE_CD = HD.GATE_CD
+	                 AND CUST_CD = HD.BUYER_CD) 	AS CORP_NO
+	            ,(SELECT DEPT_CD FROM STOCCVUR
+				   WHERE GATE_CD = HD.GATE_CD
+				     AND USER_ID = HD.CTRL_USER_ID) AS BRC
+	            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+	            , HD.CTRL_USER_ID 	AS USER_ID
+	            , 'SMS_RFQ_BATCH_PRC'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.GATE_CD  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.BUYER_CD 			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.RFX_NUM  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.RFX_CNT 		AS CONT_TBL_PK
+	            , NULL 				AS FILE_SIZE
+	            , 'STOCRQHD'		AS CONT_TBL_ID
+			 FROM STOCRQHD HD
+			 LEFT JOIN STOCBDES ES
+				  ON (HD.GATE_CD  = ES.GATE_CD
+				  AND HD.BUYER_CD = ES.BUYER_CD
+				  AND HD.RFX_NUM  = ES.BID_NUM
+				  AND HD.RFX_CNT  = ES.BID_CNT
+				  AND ES.DEL_FLAG = '0')
+			WHERE HD.GATE_CD     = #{ses.gateCd}
+			  AND HD.RFX_CNT     = '1'
+			  AND HD.SIGN_STATUS = 'E'
+			  AND HD.DEL_FLAG    = '0'
+			  AND <include refid="common.sql.nvl"/>(HD.EST_PRICE_TYPE,'0') != '0' -- 예가 생략 아니것
+		  ) A
+		 WHERE <include refid="common.sql.nvl"/>(SIGN_STATUS, 'T') IN ('T', 'C', 'R') -- 예가 결재상태 : 작성중, 상신취소, 반려
+		   AND TO_DATE(APP_END_DATETIME, 'YYYY-MM-DD HH24:MI') BETWEEN SYSDATE AND SYSDATE + (2/24) + (10/(24*60))
+	</select>
+	
+	<!-- 2021.05.04 변경 -->
+	<!-- IF(수의시담, 부속합의) 수의계약으로 처리 -->
+    <select id="getTagrgetData2" resultType="hashmap" parameterType="hashMap">
+		SELECT A.*
+		  FROM (
+			SELECT
+				 <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M070', 'BID', 0, #{ses.langCd}) AS TYPE
+				, 'BID' AS RFX_TYPE
+				, HD.BUYER_CD
+				,<include refid="common.sql.dbo"/>getBuyerNames(HD.GATE_CD, HD.BUYER_CD, 'BID', HD.BID_NUM, HD.BID_CNT, null, #{ses.langCd}) AS BUYER_NM
+				, HD.ANN_NO
+				, HD.ANN_ITEM
+				, HD.ANN_DATE
+				, HD.CONT_TYPE1
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', HD.CONT_TYPE1, 0, #{ses.langCd}) AS CONT_TYPE1_LOC
+				, HD.CONT_TYPE2
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M302', HD.CONT_TYPE2, 0, #{ses.langCd}) AS CONT_TYPE2_LOC
+				, HD.CONT_TYPE3
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M303', HD.CONT_TYPE3, 0, #{ses.langCd}) AS CONT_TYPE3_LOC
+				, SUBSTR(HD.APP_BEGIN_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_DATE, 7, 2) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_TIME, 1, 2) <include refid="common.sql.stringMerge"/> ':' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_TIME, 3, 2) AS APP_BEGIN_DATETIME
+				, SUBSTR(HD.APP_END_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 7, 2) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 1, 2) <include refid="common.sql.stringMerge"/> ':' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 3, 2) AS APP_END_DATETIME
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS
+				, HD.BID_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.BID_USER_ID, #{ses.langCd}) AS BID_USER_NM
+				, HD.ESTM_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.ESTM_USER_ID, #{ses.langCd}) AS ESTM_USER_NM
+				, HD.BID_NUM
+				, HD.BID_CNT
+				,<include refid="common.sql.nvl"/>(ES.SIGN_STATUS,'') AS SIGN_STATUS
+				,<include refid="common.sql.nvl"/>(HD.ESTM_TYPE,'ES') AS ESTM_TYPE
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS_LOC
+				, HD.BID_STATUS AS BID_STATUS2
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+				-- 2021.07.02 : 예정가격 결재 승인에 대한 SMS 수수료 추가
+				,(SELECT IRS_NUM FROM STOCCUST
+	               WHERE GATE_CD = HD.GATE_CD
+	                 AND CUST_CD = HD.BUYER_CD) 	AS CORP_NO
+	            ,(SELECT DEPT_CD FROM STOCCVUR
+				   WHERE GATE_CD = HD.GATE_CD
+				     AND USER_ID = HD.BID_USER_ID) 	AS BRC
+	            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+	            , HD.BID_USER_ID 	AS USER_ID
+	            , 'SMS_BID_BATCH_PRC'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.GATE_CD  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.BUYER_CD 			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.BID_NUM  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.BID_CNT 		AS CONT_TBL_PK
+	            , NULL 				AS FILE_SIZE
+	            , 'STOCBDHD'		AS CONT_TBL_ID
+			 FROM STOCBDHD HD
+			 LEFT JOIN STOCBDES ES
+				  ON (HD.GATE_CD  = ES.GATE_CD
+				  AND HD.BUYER_CD = ES.BUYER_CD
+				  AND HD.BID_NUM  = ES.BID_NUM
+				  AND HD.BID_CNT  = ES.BID_CNT
+				  AND ES.DEL_FLAG = '0')
+			WHERE HD.GATE_CD     = #{ses.gateCd}
+			  AND HD.SIGN_STATUS = 'E'
+			  AND HD.BID_STATUS  NOT IN ('9999', '2303')
+			  AND HD.DEL_FLAG    = '0'
+			  AND <include refid="common.sql.nvl"/>(HD.ESTM_TYPE,'ES') != 'ES' -- 예가 생략 아니것
+
+			UNION ALL
+
+			SELECT
+				 <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M070', HD.RFX_TYPE, 0, #{ses.langCd}) AS TYPE
+				, HD.RFX_TYPE
+				, HD.BUYER_CD
+				,<include refid="common.sql.dbo"/>getBuyerNames(HD.GATE_CD, HD.BUYER_CD, 'RFX', HD.RFX_NUM, HD.RFX_CNT, null, #{ses.langCd}) AS BUYER_NM
+				, HD.RFX_NUM AS ANN_NO
+				, HD.RFX_SUBJECT AS ANN_ITEM
+				,<include refid="common.sql.toChar"/>(HD.SIGN_DATE,'YYYYMMDD') AS ANN_DATE
+				, HD.VENDOR_OPEN_TYPE AS CONT_TYPE1
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', HD.VENDOR_OPEN_TYPE, 0, #{ses.langCd}) AS CONT_TYPE1_LOC
+				, 'LP' AS CONT_TYPE2
+				,(CASE WHEN HD.RFX_TYPE = 'RPC' or HD.RFX_TYPE = 'RCA' or HD.RFX_TYPE = 'RFQ' or HD.RFX_TYPE = 'RYQ' THEN NULL
+				 	   ELSE <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', 'LP', 0, #{ses.langCd})
+				  END) AS CONT_TYPE2_LOC
+				, HD.AMT_TYPE AS CONT_TYPE3
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M303', HD.AMT_TYPE, 0, #{ses.langCd}) AS CONT_TYPE3_LOC
+				,<include refid="common.sql.toChar"/>(RFX_START_DATE, 'YYYY-MM-DD HH24:MI') AS APP_BEGIN_DATETIME
+				,<include refid="common.sql.toChar"/>(RFX_END_DATE, 'YYYY-MM-DD HH24:MI') AS APP_END_DATETIME
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS
+				, HD.CTRL_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.CTRL_USER_ID, #{ses.langCd}) AS BID_USER_NM
+				, HD.CTRL_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.CTRL_USER_ID, #{ses.langCd}) AS ESTM_USER_NM
+				, HD.RFX_NUM AS BID_NUM
+				, HD.RFX_CNT AS BID_CNT
+				,<include refid="common.sql.nvl"/>(ES.SIGN_STATUS,'') AS SIGN_STATUS
+				,(CASE WHEN <include refid="common.sql.nvl"/>(HD.EST_PRICE_TYPE,'0') = '1' THEN 'SE' ELSE 'SE' END) AS ESTM_TYPE
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS_LOC
+				, HD.PROGRESS_CD AS BID_STATUS2
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+				-- 2021.07.02 : 예정가격 결재 승인에 대한 SMS 수수료 추가
+				,(SELECT IRS_NUM FROM STOCCUST
+	               WHERE GATE_CD = HD.GATE_CD
+	                 AND CUST_CD = HD.BUYER_CD) 	AS CORP_NO
+	            ,(SELECT DEPT_CD FROM STOCCVUR
+				   WHERE GATE_CD = HD.GATE_CD
+				     AND USER_ID = HD.CTRL_USER_ID) AS BRC
+	            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+	            , HD.CTRL_USER_ID 	AS USER_ID
+	            , 'SMS_RFQ_BATCH_PRC'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.GATE_CD  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.BUYER_CD 			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.RFX_NUM  			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              HD.RFX_CNT 		AS CONT_TBL_PK
+	            , NULL 				AS FILE_SIZE
+	            , 'STOCRQHD'		AS CONT_TBL_ID
+			 FROM STOCRQHD HD
+			 LEFT JOIN STOCBDES ES
+				  ON (HD.GATE_CD  = ES.GATE_CD
+				  AND HD.BUYER_CD = ES.BUYER_CD
+				  AND HD.RFX_NUM  = ES.BID_NUM
+				  AND HD.RFX_CNT  = ES.BID_CNT
+				  AND ES.DEL_FLAG = '0')
+			WHERE HD.GATE_CD     = #{ses.gateCd}
+			  AND HD.RFX_CNT     = '1'
+			  AND HD.SIGN_STATUS = 'E'
+			  AND HD.DEL_FLAG    = '0'
+			  AND <include refid="common.sql.nvl"/>(HD.EST_PRICE_TYPE,'0') != '0' -- 예가 생략 아니것
+		  ) A
+		 WHERE A.BID_STATUS_LOC = '0'
+		   AND <include refid="common.sql.nvl"/>(CASE WHEN A.CONT_TYPE2='QE' THEN 'E' ELSE A.SIGN_STATUS END, 'T') = 'E'
+		   AND TO_DATE(A.APP_END_DATETIME, 'YYYY-MM-DD HH24:MI') BETWEEN SYSDATE AND SYSDATE + (2/24) + (10/(24*60))
+	</select>
+	
+</mapper>

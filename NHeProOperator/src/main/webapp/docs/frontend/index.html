@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1><strong>How-To develop with EverUX Framework.</strong></h1><p>이 페이지는 프레임웍을 이용해 간단한 페이지 하나를 개발해볼 수 있도록 안내하기 위해 작성된 문서입니다.</p>
+<p><strong>Controller Class 개발</strong></p>
+<p>클래스를 작성합니다.</p>
+<pre class="prettyprint source"><code>@Controller
+@RequestMapping(value = &quot;/sample&quot;)
+public class TestController extends BaseController {
+  // ...
+}</code></pre><p>개발하는 JSP를 맵핑시킬 메소드를 작성합니다. 모든 JSP는 보안 상 WEB-INF/view 디렉토리에 위치시켜야 하며, 웹상에서는 이 위치를 직접 액세스할 수 없기 때문에 반드시 이 맵핑과정을 거쳐야 합니다.</p>
+<pre class="prettyprint source"><code>@Controller
+@RequestMapping(value = &quot;/sample&quot;)
+public class TestController extends BaseController {
+  @RequestMapping(value = &quot;/testPage/view&quot;)
+    public String view(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+      return &quot;testPage&quot;;    // JSP 파일명 (경로가 있다면 경로까지 지정)
+  }
+}</code></pre><p>결과적으로 클래스의 RequestMapping과 합쳐져서(/sample + /view) /sample/view 라는 맵핑이 완성되었고, EverUX에서는 *.so 확장자를 반드시 붙여야 해당 맵핑을 찾아서 컨트롤러의 해당 메소드를 호출하게 됩니다. (http://localhost/sample/view.so)</p>
+<p><strong>JSP 개발</strong></p>
+<p>이제 맵핑을 마쳤으니 JSP를 개발해 봅니다.</p>
+<pre class="prettyprint source"><code>&lt;%@ page import=&quot;net.htmlparser.jericho.Source&quot; %>
+&lt;%@ page import=&quot;net.htmlparser.jericho.OutputDocument&quot; %>
+&lt;%@ page language=&quot;java&quot; contentType=&quot;text/html; charset=UTF-8&quot; pageEncoding=&quot;UTF-8&quot;%>
+&lt;%@taglib prefix=&quot;e&quot; uri=&quot;http://www.st-ones.com/eversrm&quot; %>
+&lt;e:ui>
+    &lt;script type=&quot;text/javascript&quot;>
+        ...
+    &lt;/script>
+    &lt;e:window id=&quot;화면ID&quot; onReady=&quot;init&quot; name=&quot;test&quot; title=&quot;페이지명&quot;>
+        ...
+    &lt;e:window>
+&lt;/e:ui></code></pre><p>위의 코드는 모든 JSP의 공통된 구조입니다. 화면을 개발하려면 e:window 태그 밑에 작성합니다. 아래의 코드는 간단한 조회화면을 코딩한 화면입니다. 각 컴포넌트의 이름들이 생소할 수 있지만 주석에 씌여진 것과 같이 이 태그들은 모두 해당 html 태그로 결국 변환이 되어 브라우저에서 표시되게 됩니다.</p>
+<p>아래의 코드를 작성한 후 Ever 솔루션의 화면 속성 관리에서 폼, 그리드 컬럼 정보를 먼저 선입력하고 난 후 해당 화면ID와 아래 코드에서 e:window 의 id 속성과 그 값을 같도록 하면 컴포넌트의 각 속성들에 입력한 특정 조건에 따라 해당 입력정보를 치환하여 보여줍니다.</p>
+<pre class="prettyprint source"><code>&lt;e:ui>
+    &lt;script type=&quot;text/javascript&quot;>
+    ...
+    &lt;/script>
+    &lt;e:window id=&quot;test&quot; onReady=&quot;init&quot; name=&quot;test&quot; title=&quot;테스트 페이지&quot;>
+        &lt;e:searchPanel id=&quot;form&quot; name=&quot;form&quot; labelWidth=&quot;120&quot; columnCount=&quot;2&quot;>    &lt;!-- 테이블과 동일 -->
+            &lt;e:row>                                                               &lt;!-- &lt;tr>과 동일 -->
+                &lt;e:label for=&quot;input1&quot; title=&quot;입력1&quot; />                             &lt;!-- &lt;td>와 동일 -->
+                &lt;e:field>
+                    &lt;inputText id=&quot;input1&quot; name=&quot;input1&quot; ... />
+                &lt;/e:field>
+                &lt;e:label for=&quot;input2&quot; title=&quot;입력2&quot; />
+                &lt;e:field>
+                    &lt;inputText id=&quot;input2&quot; name=&quot;input1&quot; ... />
+                &lt;/e:field>
+            &lt;/e:row>
+        &lt;/e:searchPanel>
+        &lt;e:buttonBar id=&quot;buttonBar&quot;>
+        &lt;e:button id=&quot;button&quot; label=&quot;조회&quot; onClick=&quot;doSearch&quot; />
+        &lt;/e:buttonBar>
+        &lt;e:gridPanel id=&quot;grid&quot; name=&quot;test&quot; height=&quot;fit&quot; />
+    &lt;e:window>
+&lt;/e:ui></code></pre><p><strong>Service Class 개발</strong></p>
+<p>화면에 조회 버튼이 있습니다. 이 버튼에 대한 서비스 클래스를 개발해 보겠습니다. 먼저 JSP에서 자바스크립트 함수를 추가합니다.</p>
+<pre class="prettyprint source"><code>&lt;e:ui>
+    &lt;script type=&quot;text/javascript&quot;>
+        function doSearch() {
+            var store = new EVF.Store();            // 통신을 하기 위해 store 객체를 생성합니다.
+            var grid = EVF.getComponent('grid');    // 그리드 객체를 변수에 담습니다.
+            store.getGridData(grid, 'all');         // 모든 그리드 데이터를 넘기려고 합니다.
+            store.setParameter('mode', 'test');     // 특정 파라미터를 넘기려고 합니다.
+            store.load('/sample/testPage/doSearch.so', function() {
+                // 위의 URL로 ajax 통신을 요청하고, 결과메시지를 알림창으로 띄웁니다.
+                alert(this.getResponseMessage());
+            });
+        }
+    &lt;/script>
+    ...</code></pre><p>Controller 클래스에서 doSearch에 대한 기능을 호출해주기 위해 맵핑할 메소드를 하나 더 추가합니다.</p>
+<pre class="prettyprint source"><code>@Controller
+@RequestMapping(value = &quot;/sample&quot;)
+public class TestController extends BaseController {
+
+    @Autowired
+    TestService testService;
+
+    @RequestMapping(value = &quot;/view&quot;)
+    public String view(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+        return &quot;testPage&quot;;
+    }
+
+    @RequestMapper(value = &quot;/doSearch&quot;)
+    public void doSearch(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+        Map&lt;String, String> formData = req.getFormData();
+        Map&lt;String, Object> gridData = req.getGridData(&quot;test&quot;);
+
+        List&lt;Map&lt;String, Object>> resultGridData = testService.doSearch(formData);
+        resp.setGridObject('grid', resultGridData);
+        resp.setResponseCode('0001');
+        resp.setResponseMessage('성공적으로 조회했습니다.');
+    }
+}</code></pre><p>Service 클래스를 개발합니다.</p>
+<pre class="prettyprint source"><code>    @Service(value = &quot;testService&quot;)
+    public class TestService extends BaseService {
+
+    @Autowired
+    public TestMapper testMapper;
+
+    public List&lt;Map&lt;String, Object>> doSearch(Map&lt;String, String> param) throws Exception {
+        return testMapper.doSearch(param);
+  }
+}</code></pre><p><strong>Mapper 클래스 개발</strong></p>
+<pre class="prettyprint source"><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>
+&lt;!DOCTYPE mapper PUBLIC &quot;-//ibatis.apache.org//DTD Mapper 3.0//EN&quot; &quot;http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd&quot;>
+
+&lt;mapper namespace=&quot;test.TestMapper&quot;>
+    &lt;select id=&quot;doSearch&quot; resultType=&quot;hashmap&quot;>
+        SELECT COL1, COL2, COL3, COL4, ...
+          FROM EVERUXDB
+    &lt;/select>
+
+    &lt;insert id=&quot;...&quot; ...>
+        ...
+    &lt;/insert>
+
+    &lt;delete ...
+&lt;/mapper></code></pre><p><strong>Mapper Class 개발</strong></p>
+<pre class="prettyprint source"><code>package test;
+
+public interface TestMapper {
+    public List&lt;Map&lt;String, Object>> doSearch(Map&lt;String, String> param);
+}</code></pre><p>여기까지 간단하게 샘플페이지를 작성하는 방법을 작성하였습니다.</p>
+<p>보다 자세하고 복잡한 화면의 형태는 이 페이지에서 모두 설명할 수 없고, 기 개발된 화면의 소스를 참고하는 것이 더 빠를 것입니다.</p>
+<p>이 페이지의 최상단 메뉴의 Classes 는 EverUX Front-End에서 각 컴포넌트 별로 스크립트로 제어할 수 있는 API가 정리되어 있습니다. Abstract가 prefix로 붙은 클래스들은 모두 super 클래스로써 단독으로 사용되지 않고 컴포넌트들이 상속받아서 구현되는 클래스입니다.</p></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Components</h3><ul><li><a href="EVF.AbstractComponent.html">AbstractComponent</a></li><li><a href="EVF.AbstractComponentContainer.html">AbstractComponentContainer</a></li><li><a href="EVF.AbstractEditField.html">AbstractEditField</a></li><li><a href="EVF.AbstractObject.html">AbstractObject</a></li><li><a href="EVF.Br.html">Br</a></li><li><a href="EVF.Button.html">Button</a></li><li><a href="EVF.ButtonBar.html">ButtonBar</a></li><li><a href="EVF.Check.html">Check</a></li><li><a href="EVF.CheckGroup.html">CheckGroup</a></li><li><a href="EVF.Field.html">Field</a></li><li><a href="EVF.FileManager.html">FileManager</a></li><li><a href="EVF.InputDate.html">InputDate</a></li><li><a href="EVF.InputHidden.html">InputHidden</a></li><li><a href="EVF.InputNumber.html">InputNumber</a></li><li><a href="EVF.InputPassword.html">InputPassword</a></li><li><a href="EVF.InputText.html">InputText</a></li><li><a href="EVF.ModalWindow.html">ModalWindow</a></li><li><a href="EVF.Panel.html">Panel</a></li><li><a href="EVF.Radio.html">Radio</a></li><li><a href="EVF.RadioGroup.html">RadioGroup</a></li><li><a href="EVF.RealGridPanel.html">RealGridPanel</a></li><li><a href="EVF.RichTextEditor.html">RichTextEditor</a></li><li><a href="EVF.Row.html">Row</a></li><li><a href="EVF.Search.html">Search</a></li><li><a href="EVF.SearchPanel.html">SearchPanel</a></li><li><a href="EVF.Select.html">Select</a></li><li><a href="EVF.Store.html">Store</a></li><li><a href="EVF.Tab.html">Tab</a></li><li><a href="EVF.TabPanel.html">TabPanel</a></li><li><a href="EVF.Text.html">Text</a></li><li><a href="EVF.TextArea.html">TextArea</a></li><li><a href="EVF.Title.html">Title</a></li><li><a href="EVF.Window.html">Window</a></li></ul><h3>Namespaces</h3><ul><li><a href="EVF.html">EVF</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> on Fri Dec 08 2017 15:50:11 GMT+0900 (대한민국 표준시)<br/>
+	Copyright © 2013, 2017 ST-Ones. All rights reserved.
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

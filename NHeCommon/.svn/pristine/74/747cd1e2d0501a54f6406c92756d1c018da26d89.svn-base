@@ -1,0 +1,208 @@
+package com.st_ones.common.mail.service;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import javax.mail.MessagingException;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.st_ones.common.file.service.FileAttachService;
+import com.st_ones.common.mail.EverMailMapper;
+import com.st_ones.common.mail.web.EverMailVo;
+import com.st_ones.common.mail.web.MailTemplate;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.common.util.service.LargeTextService;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.everf.serverside.web.BaseController;
+
+import net.sf.json.JSONObject;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : EverMailService.java
+ * @date 2013. 09. 10.
+ * @version 1.0
+ * @see
+ */
+@Service(value = "everMailService")
+public class EverMailService extends BaseController {
+
+	private Logger logger = LoggerFactory.getLogger(EverMailService.class);
+
+	@Autowired FileAttachService fileAttachService;
+
+	@Autowired LargeTextService largeTextService;
+
+	@Autowired EverMailMapper everMailMapper;
+
+	@Autowired protected JavaMailSender mailSender;
+
+
+	@Autowired protected MailTemplate mailtemplate;
+
+
+	public void SendMail(Map<String, String> param) throws Exception {
+
+		String devServerYN = PropertiesManager.getString("eversrm.system.localserver"); // 로컬서버여부
+		String relat_yn = "";
+
+		// 직접 받는 메일,SMS 주소가 들어오면 받는 사람 아이디 삭제
+		if(!EverString.isEmpty(param.get("DIRECT_TARGET")) ) {
+			param.put("RECV_USER_ID","");
+		}
+
+//		if (param.get("RECV_USER_ID") != null) {
+			Map<String,String> smsMap =everMailMapper.getReceiverEmail(param);
+			param.put("RECV_EMAIL", smsMap.get("EMAIL"));
+			param.put("RECV_USER_NM", smsMap.get("USER_NM"));
+			param.put("RELAT_YN", smsMap.get("RELAT_YN"));//농협/비농협 구분[NH0005] - 농협 : 0, 비농협 : 1
+			relat_yn = smsMap.get("RELAT_YN");
+//		}
+
+		boolean isDevelopmentMode = PropertiesManager.getBoolean("eversrm.system.developmentFlag") ;
+		// 개발서버 또는 수신번호 없을때 또는 전송유형이 test일때
+
+		System.err.println("===============================================isDevelopmentMode="+isDevelopmentMode);
+		System.err.println("===============================================mailSendType="+PropertiesManager.getString("eversrm.system.mailSendType"));
+		System.err.println("===============================================RECV_EMAIL="+param.get("RECV_EMAIL"));
+
+		if(isDevelopmentMode || EverString.isEmpty(param.get("RECV_EMAIL")) || PropertiesManager.getString("eversrm.system.mailSendType").equals("test")){
+			param.put("RECV_EMAIL", PropertiesManager.getString("eversrm.system.mail.test.receive.mail"));
+			param.put("RECV_USER_ID", PropertiesManager.getString("eversrm.system.mail.test.receive.ID"));
+		}
+
+		// 보내는 사람
+		param.put("SEND_EMAIL", PropertiesManager.getString("eversrm.system.mailSenderMail"));
+		EverMailVo everMailVO = new EverMailVo();
+		everMailVO.setGateCd(EverString.toEmpty(param.get("GATE_CD")));
+		everMailVO.setSubject(EverString.toEmpty(param.get("SUBJECT")));
+
+
+		param.put("CONTENTS", mailtemplate.getMailTemplate("", EverString.toEmpty(param.get("SUBJECT")), EverString.toEmpty(param.get("CONTENTS")))  );
+
+		everMailVO.setContents(EverString.toEmpty(param.get("CONTENTS")));
+		everMailVO.setContentsTemplate(EverString.toEmpty(param.get("CONTENTS")));
+
+
+
+		everMailVO.setRefNum(EverString.toEmpty(param.get("REF_NUM")));
+		everMailVO.setRefModuleCd(EverString.toEmpty(param.get("REF_MODULE_CD")));
+		// 수신자 정보는 Local, 개발인 경우, Properties에서 가져온다.
+		everMailVO.setReceiverEmail((devServerYN.equals("true") ? PropertiesManager.getString("eversrm.system.mailreceiverMail") : EverString.toEmpty(param.get("RECV_EMAIL")))); // RECEIVER_EMAIL
+		everMailVO.setReceiverUserId(EverString.toEmpty(param.get("RECV_USER_ID"))); // RECEIVER_USER_ID
+		everMailVO.setReceiverNm(EverString.toEmpty(param.get("RECV_USER_NM"))); // RECEIVER_NM
+		// 발신자 정보는 no-reply이므로 무조건 Properties에서 가져온다.
+		everMailVO.setSenderEmail(PropertiesManager.getString("eversrm.system.mailSenderMail")); // SENDER_EMAIL
+		everMailVO.setSenderNm("[NHE] "); // SENDER_NM
+		everMailVO.setSenderUserId((EverString.nullToEmptyString(param.get("SEND_USER_ID")).equals("") ? "SYSTEM" : EverString.nullToEmptyString(param.get("SEND_USER_ID")))); // SENDER_USER_ID  devServerYN
+
+		if(!EverString.nullToEmptyString(everMailVO.getReceiverEmail()).equals("")) {
+
+//			SendMail(everMailVO,relat_yn);
+			String succYn = SendMail(everMailVO,"1");// 20200527 내부 메일 사용안하기로함. 내부 -> 외부 메일만 사용?
+			// 메일전송내용 DB저장
+			Map<String,String> paramF = new HashMap<String,String>();
+			paramF.put("gateCd", EverString.toEmpty(param.get("GATE_CD")));
+			paramF.put("senderEmail", EverString.toEmpty(param.get("SEND_EMAIL")));
+			paramF.put("senderNm", EverString.toEmpty(param.get("SEND_USER_NM")));
+			paramF.put("senderUserId", EverString.toEmpty(param.get("SEND_USER_ID")));
+			paramF.put("receiverEmail", everMailVO.getReceiverEmail());
+			paramF.put("receiverNm", everMailVO.getReceiverNm());
+			paramF.put("receiverUserId", everMailVO.getReceiverUserId());
+			paramF.put("subject", everMailVO.getSubject());
+			paramF.put("buyerCd", everMailVO.getBuyerCd());
+			paramF.put("vendorCd", everMailVO.getVendorCd());
+			paramF.put("attFileNum", everMailVO.getAttFileNum());
+			paramF.put("refNum", everMailVO.getRefNum());
+			paramF.put("refModuleCd", everMailVO.getRefModuleCd());
+			paramF.put("contentsTemplate", everMailVO.getContentsTemplate());
+			paramF.put("SEND_FLAG", succYn);
+			insertMailHistory(paramF);
+			paramF.clear();
+		}
+	}
+
+
+	public void mainaaaa() throws Exception {
+		// TODO Auto-generated method stub
+		//EverMailService mm = new EverMailService();
+
+		EverMailVo vo = new EverMailVo();
+		vo.setSenderUserId("aaaaaa");
+		vo.setReceiverUserId("bbbbbb");
+		vo.setReceiverNm("cccccc");
+		vo.setSubject("제목 제목 >>>>>");
+		vo.setContents("<한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box><한글나라 box>");
+
+		SendMail(vo,"1");
+
+	}
+
+	public synchronized String SendMail(EverMailVo everMailVO,String relatYn) {
+		String succYn = "0";
+		try {
+
+			if(PropertiesManager.getBoolean("eversrm.system.mailSendFlag")) {
+				MimeMessage msg = mailSender.createMimeMessage();
+				MimeMessageHelper helper = new MimeMessageHelper(msg, false);
+				helper.setSubject(everMailVO.getSubject());
+				helper.setFrom(new InternetAddress(everMailVO.getSenderEmail(), everMailVO.getSenderNm(), "UTF-8"));
+				helper.setTo(new InternetAddress(everMailVO.getReceiverEmail(), everMailVO.getReceiverNm(), "UTF-8"));
+				helper.setText(everMailVO.getContentsTemplate(), true);
+
+				if( !PropertiesManager.getBoolean("eversrm.system.localserver")) {
+					// 로컬이 아닐때만 메일을 보낸다.
+					mailSender.send(msg);
+				}
+			}
+			succYn = "1";
+		} catch (Exception mex) {
+			succYn = "0";
+			logger.error(mex.getMessage(), mex);
+		}
+		return succYn;
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	private void insertMailHistory(Map<String, String> param) throws Exception {
+
+		String textNum = largeTextService.saveMailContents(param.get("contentsTemplate"));
+		//everMailVO.setMailTextNum(textNum);
+		param.put("mailTextNum", textNum);
+
+		everMailMapper.doSendMail(param);
+	}
+
+	public List<Map<String, String>> getReceiverMailAddress(Map<String, String> param) throws Exception {
+		return everMailMapper.getReceiverMailAddress(param);
+	}
+
+	public List<Map<String, String>> getBuyerMailAddress(Map<String, String> contInfo) {
+		return everMailMapper.getBuyerMailAddress(contInfo);
+	}
+}

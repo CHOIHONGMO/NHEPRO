@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.st_ones.eversrm.master.user.MTUB0020_Mapper">
+
+    <select id="mtub0020_doSearch" parameterType="hashmap" resultType="hashmap">
+
+        SELECT
+              A.JOB_DATE AS JOB_DATE
+            , A.USER_ID AS USER_ID
+            , A.USER_NM  AS USER_NM
+            , A.JOB_NM AS JOB_NM
+            , A.JOB_DESC AS JOB_DESC
+            , <include refid="common.sql.dbo"/>GETCOMCODE(A.GATE_CD, 'M006', A.USER_TYPE, '0', #{ses.langCd}) AS USER_TYPE
+            , A.IP_ADDR AS IP_ADDR
+            , A.ACTION_CD AS ACTION_CD
+            , <include refid="common.sql.nvl"/>(A.STATUS1, A.STATUS2) as STATUS
+        FROM(
+            SELECT
+                  <include refid="common.sql.toChar"/>(ULOG.JOB_DATE, 'YYYY-MM-DD HH24:MI') AS JOB_DATE
+                , ULOG.JOB_DATE AS JOBDATE
+                , ULOG.USER_ID  AS USER_ID
+                , CASE WHEN ULOG.USER_TYPE = 'O'
+                       THEN (SELECT <include refid="common.sql.strDecStart"/>U.USER_NM<include refid="common.sql.strDecEnd"/>  <include refid="common.sql.stringMerge"/>  ' / '    <include refid="common.sql.stringMerge"/>	GETCOMPANYNAME(U.GATE_CD,U.COMPANY_CD,'KO')  <include refid="common.sql.stringMerge"/> ' / ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.nvl"/>( <include refid="common.sql.dbo"/>GETDEPTNAME(U.GATE_CD, U.COMPANY_CD, U.DEPT_CD, #{ses.langCd}), '')
+                               FROM STOCUSER U
+                              WHERE U.GATE_CD = ULOG.GATE_CD AND U.USER_ID = ULOG.USER_ID)
+                       ELSE (SELECT <include refid="common.sql.strDecStart"/>U.USER_NM<include refid="common.sql.strDecEnd"/>  <include refid="common.sql.stringMerge"/>  ' / '    <include refid="common.sql.stringMerge"/>	GETCOMPANYNAME(U.GATE_CD,U.COMPANY_CD,'KO')  <include refid="common.sql.stringMerge"/> (CASE WHEN <include refid="common.sql.nvl"/>(REPLACE(U.DEPT_NM,'' ,null),'X') = 'X' THEN '' ELSE ' / ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.nvl"/>(U.DEPT_NM,'') END)
+                               FROM STOCCVUR U
+                              WHERE U.GATE_CD = ULOG.GATE_CD AND U.USER_ID =  ULOG.USER_ID )
+                  END AS USER_NM
+                , <include refid="common.sql.dbo"/>GETCOMCODE(ULOG.GATE_CD, 'M022', ULOG.JOB_TYPE, '0', #{ses.langCd}) AS JOB_NM
+                , <include refid="common.sql.nvl"/>(ULOG.ACTION_CD,'Screen') AS ACTION_CD
+                , <include refid="common.sql.dbo"/>GETCOMCODE(ULOG.GATE_CD, 'MP014', ULOG.USER_STATUS, '0', #{ses.langCd}) AS STATUS1
+                , (SELECT <include refid="common.sql.dbo"/>GETCOMCODE(USR.GATE_CD, 'MP014', USR.STATUS, '0', #{ses.langCd})
+                     FROM STOCUSER USR
+                    WHERE USR.GATE_CD = ULOG.GATE_CD
+                      AND USR.USER_ID = ULOG.USER_ID
+                      AND USR.DEL_FLAG = '0') AS STATUS2
+                , ULOG.JOB_TYPE
+                , CASE WHEN (CASE WHEN <include refid="common.sql.nvl"/>(ULOG.JOB_DESC,'Login') = 'Login' THEN 'Login' ELSE <include refid="common.sql.nvl"/>(ULOG.JOB_DESC,'Login') END) = 'LoginS'
+                       THEN <include refid="common.sql.dbo"/>GETCODENAME(ULOG.GATE_CD, 'MP015', 'LoginS', #{ses.langCd})
+                       ELSE ULOG.JOB_DESC END AS JOB_DESC
+                , CASE WHEN ULOG.USER_TYPE = 'N' THEN '' ELSE ULOG.USER_TYPE END AS USER_TYPE
+                , ULOG.IP_ADDR
+                , ULOG.GATE_CD
+             FROM STOCULOG ULOG
+            WHERE ULOG.GATE_CD = #{ses.gateCd}
+
+        <if test="BUYER_CD != '' and BUYER_CD != null">
+            AND ULOG.BUYER_CD = #{BUYER_CD}
+        </if>
+
+            <choose>
+                <when test='JOB_TYPE != null'> AND ULOG.JOB_TYPE IN
+					<foreach collection="JOB_TYPE" item="item"  open="(" close=")" separator=",">
+			            #{item}
+			        </foreach>
+                </when>
+                <otherwise>
+                    AND ULOG.JOB_TYPE IN ('I', 'F')
+                </otherwise>
+            </choose>
+        ) A
+        WHERE 1 = 1
+        <if test="ADD_DATE_FROM != '' and ADD_DATE_FROM != null and ADD_DATE_TO != '' and ADD_DATE_TO != null">
+            AND A.JOBDATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_DATE_FROM})
+	        AND A.JOBDATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{ADD_DATE_TO})
+        </if>
+        <if test="USER_TYPE != '' and USER_TYPE != null">
+            AND A.USER_TYPE = #{USER_TYPE}
+        </if>
+
+    </select>
+
+</mapper>

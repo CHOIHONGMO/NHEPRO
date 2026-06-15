@@ -1,0 +1,294 @@
+package com.st_ones.eversrm.eApproval.service;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.st_ones.common.mail.service.EverMailService;
+import com.st_ones.common.message.service.MessageService;
+import com.st_ones.common.sms.service.EverSmsService;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.eversrm.eApproval.EApprovalMapper;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.AP.service.EApprovalEndAp_Service;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.BID.service.EApprovalEndBid_Service;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.CCTR.service.EApprovalEndCCTR_Service;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.ESTM.service.EApprovalEndESTM_Service;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.ETST.service.EApprovalEndEtst_Service;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.EXEC.service.EApprovalEndExec_Service;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.INV.service.EApprovalEndInv_Service;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.PCONT.service.EApprovalEndPcont_Service;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.PO.service.EApprovalEndPo_Service;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.PR.service.EApprovalEndPr_Service;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.RFQ.service.EApprovalEndRfq_Service;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2014 ST-Ones CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : EndApprovalService.java
+ * @date 2018. 2. 06.
+ * @version 1.0
+ */
+@Service(value = "endApprovalService")
+public class EndApprovalService extends BaseService {
+
+	private enum DOC_TYPE{ PR, BID, BIDRLT, NEGORLT, FORMNO, CANCELBID , ESTM, PO, EC, EC2, INV, DINV, AP, RFQ, EXEC, PCONT, ETST }
+
+    @Autowired private MessageService msg;
+
+    @Autowired private EverSmsService eversmsservice;
+
+    @Autowired private EverMailService evermailservice;
+
+	@Autowired private EApprovalMapper eApprovalMapper;
+
+    @Autowired private EApprovalEndPr_Service endPr;	// 구매의뢰
+
+    @Autowired private EApprovalEndBid_Service endBid;	// 입찰공고
+
+	@Autowired private EApprovalEndESTM_Service endEstm; // 예가 결재
+
+    @Autowired private EApprovalEndCCTR_Service endCctr; // 서식 결재상신
+
+    @Autowired private EApprovalEndPo_Service endPo;	// 발주
+
+	@Autowired private EApprovalEndInv_Service endInv;	// 검수요청
+
+	@Autowired private EApprovalEndAp_Service endAp;	// 대금지급요청
+
+	@Autowired private EApprovalEndRfq_Service endRfq;	// 견적요청서
+
+	@Autowired private EApprovalEndExec_Service endExec;	// 선정품의
+
+	@Autowired private EApprovalEndPcont_Service endPcont;	// 개인근로
+
+	@Autowired private EApprovalEndEtst_Service endEtst;	// 위임장
+
+	// 결재완료(sign_status = 'E')인 경우, 후처리
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doAfterApprove(String docTypeString, String buyerCd, String appDocNum, String appDocCnt,String regUserId) throws Exception {
+
+		DOC_TYPE docType = DOC_TYPE.valueOf(docTypeString);
+		String message = null;
+		/* @formatter:off */
+		switch (docType) {
+
+			// 구매의뢰
+			case PR: message = endPr.endApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 입찰공고
+			case BID: message = endBid.endApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 취소공고
+			case CANCELBID: message = endBid.endCancelApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 입찰결과보고
+			case BIDRLT: message = endBid.endBidRltApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 우선협상자선정결과
+			case NEGORLT: message = endBid.endNegoRltApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+
+			case ESTM: message = endEstm.endApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 서식 결재상신
+			case FORMNO: message = endCctr.endApproval_FORMNO(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 발주
+			case PO: message = endPo.endApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 계약서 결재상신
+			case EC: message = endCctr.endApproval_EC(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 계약서(다수) 결재상신
+			case EC2: message = endCctr.endApproval_EC(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 검수요청
+			case INV:
+			case DINV: message = endInv.endApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 대금지급요청
+			case AP: message = endAp.endApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 견적요청서
+			case RFQ: message = endRfq.endApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 선정품의
+			case EXEC: message = endExec.endApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 개인근로
+			case PCONT: message = endPcont.endApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+			// 위임장
+			case ETST: message = endEtst.endApproval(buyerCd, appDocNum, appDocCnt, "E"); break;
+
+			default: throw new Exception(msg.getMessageForService(this, "no_matched_doc"));
+		}
+
+		Map<String,String> param = new HashMap<String,String>();
+		param.put("BUYER_CD", buyerCd);
+		param.put("APP_DOC_NUM", appDocNum);
+		param.put("APP_DOC_CNT", appDocCnt);
+		Map<String, String> sctmInfo = eApprovalMapper.selectSTOCSCTM(param);		String linkUrl = PropertiesManager.getString("eversrm.urls.maintain.real") ;
+
+		// SMS
+        Map<String,String> smsMap = new HashMap<String,String>();
+        smsMap.put("CONTENTS", "[전자구매시스템] 상신한 결재문서["+sctmInfo.get("SUBJECT")+"]이 ["+sctmInfo.get("NEXT_SIGN_USER_NM")+"]님에게 승인되었습니다 ");
+        smsMap.put("REF_MODULE_CD", "SSIGN03");
+        smsMap.put("REF_NUM", appDocNum);
+        smsMap.put("RECV_USER_ID", regUserId);
+        eversmsservice.sendSmsNhe(smsMap);
+
+		// EMAIL
+        Map<String,String> mailMap = new HashMap<String,String>();
+        mailMap.put("SUBJECT", "[전자구매시스템] 상신한 결재문서["+sctmInfo.get("SUBJECT")+"]이 ["+sctmInfo.get("NEXT_SIGN_USER_NM")+"]님에게 승인되었습니다 ");
+
+        StringBuffer content = new StringBuffer(255);
+        content.append("<BR> 안녕하십니까!                      ");
+        content.append("<BR> ["+sctmInfo.get("BUYER_NM")+"] ["+sctmInfo.get("REG_USER_NM")+"]님    ");
+        content.append("<BR>                   ");
+        content.append("<BR> 아래와 같이 결재문서가 승인되었습니다                            ");
+        content.append("<BR> 문서제목 : "+sctmInfo.get("SUBJECT")+"           ");
+        content.append("<BR>                   ");
+        content.append("<BR> 전자구매시스템에 <a href=\""+linkUrl+"\" target=\"newP\">로그인</a> 세부내용을 확인 후, 사후 처리를 해주십시오.  ");
+        content.append("<BR>                   ");
+        content.append("<BR> 감사합니다.          ");
+        
+        mailMap.put("CONTENTS", content.toString());
+        mailMap.put("REF_MODULE_CD", "MSIGN03");
+        mailMap.put("REF_NUM", appDocNum);
+        mailMap.put("RECV_USER_ID", regUserId);
+        evermailservice.SendMail(mailMap);
+
+		return message;
+	}
+
+	// 결재반려(sign_status = 'R')인 경우, 후처리
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doAfterReject(String docTypeString, String buyerCd, String appDocNum, String appDocCnt,String regUserId) throws Exception {
+
+		DOC_TYPE docType = DOC_TYPE.valueOf(docTypeString);
+		String message = null;
+		/* @formatter:off */
+		switch (docType) {
+
+			// 구매의뢰
+			case PR: message = endPr.endApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+			// 입찰공고
+			case BID: message = endBid.endApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+            // 취소공고
+            case CANCELBID: message = endBid.endCancelApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+            // 입찰결과보고
+            case BIDRLT: message = endBid.endBidRltApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+            // 우선협상결과
+            case NEGORLT: message = endBid.endNegoRltApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+
+			case ESTM: message = endEstm.endApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+			// 서식 결재취소
+			case FORMNO: message = endCctr.endApproval_FORMNO(buyerCd, appDocNum, appDocCnt, "R"); break;
+			// 발주
+			case PO: message = endPo.endApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+			// 계약서 반려
+			case EC: message = endCctr.endApproval_EC(buyerCd, appDocNum, appDocCnt, "R"); break;
+			// 계약서 반려
+			case EC2: message = endCctr.endApproval_EC(buyerCd, appDocNum, appDocCnt, "R"); break;
+			// 검수요청
+			case INV:
+			case DINV: message = endInv.endApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+			// 대금지급요청
+			case AP: message = endAp.endApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+			// 견적요청서
+			case RFQ: message = endRfq.endApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+			// 선정품의
+			case EXEC: message = endExec.endApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+			// 개인근로
+			case PCONT: message = endPcont.endApproval(buyerCd, appDocNum, appDocCnt, "R"); break;
+
+			default: throw new Exception(msg.getMessageForService(this, "no_matched_doc"));
+		}
+		
+		Map<String,String> param = new HashMap<String,String>();
+		param.put("BUYER_CD", buyerCd);
+		param.put("APP_DOC_NUM", appDocNum);
+		param.put("APP_DOC_CNT", appDocCnt);
+		Map<String, String> sctmInfo = eApprovalMapper.selectSTOCSCTM(param);
+
+		String linkUrl = PropertiesManager.getString("eversrm.urls.maintain.real") ;
+		
+		//SMS
+        Map<String,String> smsMap = new HashMap<String,String>();
+        smsMap.put("CONTENTS", "[전자구매시스템] 상신한 결재문서["+sctmInfo.get("SUBJECT")+"]이 ["+sctmInfo.get("NEXT_SIGN_USER_NM")+"]님에게 반려되었습니다 ");
+        smsMap.put("REF_MODULE_CD", "SSIGN03");
+        smsMap.put("REF_NUM", appDocNum);
+        smsMap.put("RECV_USER_ID", regUserId);
+        eversmsservice.sendSmsNhe(smsMap);
+        
+		//EMAIL
+        Map<String,String> mailMap = new HashMap<String,String>();
+        mailMap.put("CONTENTS", "[전자구매시스템] 상신한 결재문서["+sctmInfo.get("SUBJECT")+"]이 ["+sctmInfo.get("NEXT_SIGN_USER_NM")+"]님에게 반려되었습니다 ");
+
+        StringBuffer content = new StringBuffer(255);
+        content.append("<BR> 안녕하십니까!                      ");
+        content.append("<BR> ["+sctmInfo.get("BUYER_NM")+"] ["+sctmInfo.get("REG_USER_NM")+"]님    ");
+        content.append("<BR>                   ");
+        content.append("<BR> 아래와 같이 결재문서가 반려되었습니다                            ");
+        content.append("<BR> 문서제목 : "+sctmInfo.get("SUBJECT")+"           ");
+        content.append("<BR> 반려자 : "+sctmInfo.get("NEXT_SIGN_USER_NM")+"   ");
+        content.append("<BR> 반려내용 : "+sctmInfo.get("SIGN_RMK")+"                  ");
+        content.append("<BR>                   ");
+        content.append("<BR> 전자구매시스템에 <a href=\""+linkUrl+"\" target=\"newP\">로그인</a> 세부내용을 확인 후, 사후 처리를 해주십시오.  ");
+        content.append("<BR>                   ");
+        content.append("<BR> 감사합니다.                                          ");
+        mailMap.put("CONTENTS", content.toString());
+
+        mailMap.put("REF_MODULE_CD", "MSIGN03");
+        mailMap.put("REF_NUM", appDocNum);
+        mailMap.put("RECV_USER_ID", regUserId);
+        evermailservice.SendMail(mailMap);
+
+		return message;
+	}
+
+	// 결재취소(sign_status = 'C')인 경우, 후처리
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String doAfterCancel(String docTypeString, String buyerCd, String appDocNum, String appDocCnt) throws Exception {
+
+		DOC_TYPE docType = DOC_TYPE.valueOf(docTypeString);
+		String message = null;
+		/* @formatter:off */
+		switch (docType) {
+
+			// 구매의뢰
+			case PR: message = endPr.endApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 입찰공고
+			case BID: message = endBid.endApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 취소공고
+			case CANCELBID: message = endBid.endCancelApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 입찰결과보고
+			case BIDRLT: message = endBid.endBidRltApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 우선협상결과
+			case NEGORLT: message = endBid.endNegoRltApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+
+			case ESTM: message = endEstm.endApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 서식 결재상신
+			case FORMNO: message = endCctr.endApproval_FORMNO(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 발주
+			case PO: message = endPo.endApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 계약서 취소
+			case EC: message = endCctr.endApproval_EC(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 계약서(다수) 취소
+			case EC2: message = endCctr.endApproval_EC(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 검수요청
+			case INV:
+			case DINV: message = endInv.endApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 대금지급요청
+			case AP: message = endAp.endApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 견적요청서
+			case RFQ: message = endRfq.endApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 선정품의
+			case EXEC: message = endExec.endApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+			// 개인근로
+			case PCONT: message = endPcont.endApproval(buyerCd, appDocNum, appDocCnt, "C"); break;
+
+			default: throw new Exception(msg.getMessageForService(this, "no_matched_doc"));
+		}
+		/* @formatter:on */
+		return message;
+	}
+
+}

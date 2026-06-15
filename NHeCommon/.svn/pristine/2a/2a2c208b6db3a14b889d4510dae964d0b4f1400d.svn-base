@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.eApproval.eApprovalEnd.INV.EApprovalEndInv_Mapper">
+	
+	<!-- 결재문서번호에 해당하는 검수요청 및 입고번호 -->
+    <select id="getInvNum" parameterType="hashMap" resultType="hashmap">
+        SELECT
+        	  IVHD.INV_NUM
+            , IVHD.DELIVERY_TYPE
+            , GRDT.GR_NUM
+            , GRDT.PO_NUM
+         FROM STOCIVHD IVHD
+         LEFT JOIN STOCGRDT GRDT
+              ON (GRDT.GATE_CD  = IVHD.GATE_CD
+              AND GRDT.BUYER_CD = IVHD.BUYER_CD
+              AND GRDT.INV_NUM  = IVHD.INV_NUM
+              AND GRDT.GR_SQ    = '1'
+              AND GRDT.DEL_FLAG = '0')
+        WHERE IVHD.GATE_CD  = #{ses.gateCd}
+          AND IVHD.BUYER_CD = #{BUYER_CD}
+          AND IVHD.APP_DOC_NUM = #{APP_DOC_NUM}
+          AND IVHD.APP_DOC_CNT = #{APP_DOC_CNT}
+          AND IVHD.DEL_FLAG = '0'
+        GROUP BY IVHD.INV_NUM
+	           , IVHD.DELIVERY_TYPE
+	           , GRDT.GR_NUM
+	           , GRDT.PO_NUM
+    </select>
+
+    <select id="getInvList" parameterType="hashMap" resultType="hashmap">
+        SELECT
+        	  IVHD.BUYER_CD
+            , IVDT.PO_NUM
+            , IVDT.PO_SQ
+            , IVDT.INV_QT
+            , GRDT.GR_NUM
+            , GRDT.GR_SQ
+            , GRDT.GR_APP_QT
+            , GRDT.GR_DATE
+         FROM STOCIVHD IVHD
+         LEFT JOIN STOCIVDT IVDT
+              ON (IVDT.GATE_CD  = IVHD.GATE_CD
+              AND IVDT.BUYER_CD = IVHD.BUYER_CD
+              AND IVDT.INV_NUM  = IVHD.INV_NUM
+              AND IVDT.DEL_FLAG = '0')
+         LEFT JOIN STOCGRDT GRDT
+              ON (GRDT.GATE_CD  = IVHD.GATE_CD
+              AND GRDT.BUYER_CD = IVHD.BUYER_CD
+              AND GRDT.INV_NUM  = IVHD.INV_NUM
+              AND GRDT.PO_NUM   = IVDT.PO_NUM
+              AND GRDT.PO_SQ    = IVDT.PO_SQ
+              AND GRDT.DEL_FLAG = '0')
+        WHERE IVHD.GATE_CD  = #{ses.gateCd}
+          AND IVHD.BUYER_CD = #{BUYER_CD}
+          AND IVHD.APP_DOC_NUM = #{APP_DOC_NUM}
+          AND IVHD.APP_DOC_CNT = #{APP_DOC_CNT}
+          AND IVHD.DEL_FLAG = '0'
+    </select>
+	
+	<!-- 2021.05.10 변경 -->
+	<!-- 검수 승인시 검수요청 협력사에게 메일, SMS 발송 -->
+	<!-- 2021.11.23 변경 -->
+	<!-- 검수 승인시 협력사의 검수요청서 등록자에게 MAIL 발송, SMS는 검수요청서에 저장된 항목으로 전송  -->
+    <select id="getMailList" parameterType="hashMap" resultType="hashMap">
+    	SELECT 
+    		  A.INV_NUM
+    		, A.BUYER_CD
+    		, A.BUYER_NM
+    		,(CASE WHEN A.SUBJECT IS NULL THEN (CASE WHEN A.ITEM_CNT = 1 THEN A.ITEM_DESC ELSE A.ITEM_DESC|| ' 외 ' ||A.ITEM_CNT||'건' END) ELSE A.SUBJECT END) AS SUBJECT
+    		, A.RECV_USER_ID
+    		, A.USER_NM
+    		, A.CELL_NUM
+    		, A.VENDOR_NM
+    		, A.SEND_DATE
+    		, A.INSPECT_USER_ID
+    		, A.INSPECT_USER_NM
+		  FROM (
+	        SELECT
+	        	  IVGH.INV_NUM
+	            , IVGH.BUYER_CD
+	            ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(IVGH.GATE_CD, IVGH.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+	            , IVGH.SUBJECT
+	            ,(SELECT MAX(IVDT.ITEM_DESC) FROM STOCIVDT IVDT
+	               WHERE IVDT.GATE_CD  = IVGH.GATE_CD
+	            	 AND IVDT.BUYER_CD = IVGH.BUYER_CD
+	             	 AND IVDT.INV_NUM  = IVGH.INV_NUM
+	                 AND IVDT.DEL_FLAG = '0') AS ITEM_DESC
+	            ,(SELECT COUNT(*) FROM STOCIVDT IVDT
+	               WHERE IVDT.GATE_CD  = IVGH.GATE_CD
+	            	 AND IVDT.BUYER_CD = IVGH.BUYER_CD
+	             	 AND IVDT.INV_NUM  = IVGH.INV_NUM
+	                 AND IVDT.DEL_FLAG = '0') AS ITEM_CNT  
+	            , IVHD.REG_USER_ID AS RECV_USER_ID		-- 2021.11.23 : 기존 IVHD.VENDOR_CD에서 등록자(IVHD.REG_USER_ID)로 변경
+	            ,<include refid="common.sql.strDecStart"/>IVGH.VENDOR_USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+	            ,<include refid="common.sql.strDecStart"/>IVGH.VENDOR_CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+	            ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(POHD.GATE_CD, POHD.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+	            ,<include refid="common.sql.toChar"/>(IVGH.SEND_DATE, 'YYYY-MM-DD') AS SEND_DATE
+	            ,<include refid="common.sql.toChar"/>(IVHD.SIGN_DATE, 'YYYY-MM-DD') AS SIGN_DATE
+	            ,<include refid="common.sql.nvl"/>(IVHD.PIC_USER_ID, POHD.CTRL_USER_ID) AS INSPECT_USER_ID
+	            ,<include refid="common.sql.dbo"/>GETUSERNAME(POHD.GATE_CD, (<include refid="common.sql.nvl"/>(IVHD.PIC_USER_ID, POHD.CTRL_USER_ID)), #{ses.langCd}) AS INSPECT_USER_NM
+	        FROM STOCIVGH IVGH
+	        LEFT JOIN STOCIVHD IVHD
+	             ON (IVHD.GATE_CD  = IVGH.GATE_CD
+	             AND IVHD.BUYER_CD = IVGH.BUYER_CD
+	             AND IVHD.INV_NUM  = IVGH.INV_NUM
+	             AND IVHD.DEL_FLAG = '0')
+	        LEFT JOIN STOCPOHD POHD
+	             ON (POHD.GATE_CD  = IVGH.GATE_CD
+	             AND POHD.BUYER_CD = IVGH.BUYER_CD
+	             AND POHD.PO_NUM   = IVGH.PO_NUM
+	             AND POHD.DEL_FLAG = '0')
+	        WHERE IVGH.GATE_CD  = #{ses.gateCd}
+	          AND IVGH.BUYER_CD = #{BUYER_CD}
+	          AND IVGH.INV_NUM  = #{INV_NUM}
+		  ) A
+		WHERE 1 = 1
+    </select>
+	
+	<!-- 검수담당자 소속 고객에 수수료 부과 -->
+    <select id="costSmsInfo" parameterType="hashMap" resultType="hashMap">
+        SELECT CUST.IRS_NUM 	AS CORP_NO
+             , CVUR.DEPT_CD 	AS BRC
+             , <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+             , CVUR.USER_ID 	AS USER_ID
+             , 'SMS_INV'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               CUST.GATE_CD	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               CUST.CUST_CD	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               #{INV_NUM}   	AS CONT_TBL_PK
+             , NULL				AS FILE_SIZE
+         FROM STOCCVUR CVUR
+         JOIN STOCCUST CUST
+              ON (CUST.GATE_CD = CVUR.GATE_CD
+              AND CUST.CUST_CD = CVUR.COMPANY_CD)
+        WHERE CVUR.GATE_CD = #{ses.gateCd}
+          AND CVUR.USER_ID = <include refid="common.sql.nvl"/>(#{INSPECT_USER_ID}, #{ses.userId})
+    </select>
+
+    <update id="setInvSignStatusIVHD" parameterType="hashmap">
+        UPDATE STOCIVHD SET
+              SIGN_STATUS = #{SIGN_STATUS}
+		<if test='SIGN_STATUS == "E" or SIGN_STATUS == "R"'>
+            , SIGN_DATE = SYSDATE
+		</if>
+		<if test='PROGRESS_CD != null and PROGRESS_CD != ""'>
+            , PROGRESS_CD = #{PROGRESS_CD}
+		</if>
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+          AND INV_NUM  = #{INV_NUM}
+    </update>
+
+    <update id="setInvRejectIVGH" parameterType="hashmap">
+        UPDATE STOCIVGH SET
+              REJECT_RMK = #{REJECT_RMK}
+            , REJECT_DATE = CASE WHEN #{REJECT_RMK} IS NULL THEN NULL ELSE SYSDATE END
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+          AND INV_NUM  = #{INV_NUM}
+    </update>
+
+    <update id="setInvRejectGRDT" parameterType="hashmap">
+        UPDATE STOCGRDT SET
+              DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+          AND GR_NUM   = #{GR_NUM}
+    </update>
+
+    <update id="setInvSignStatusGRDT" parameterType="hashmap">
+        UPDATE STOCGRDT SET
+              GR_QT = <include refid="common.sql.nvl"/>(#{GR_QT}, 0)
+            , GR_ITEM_AMT = <include refid="common.sql.nvl"/>(#{GR_QT}, 0) * <include refid="common.sql.nvl"/>(GR_UNIT_PRICE, 0)
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+          AND GR_NUM   = #{GR_NUM}
+          AND GR_SQ    = #{GR_SQ}
+    </update>
+	
+	<!-- 2021.08.18 : 검수 승인 후 누적검수수량 UPDATE 오류 수정 -->
+    <update id="setInvSignStatusPODT" parameterType="hashmap">
+        UPDATE STOCPODT SET
+              PROGRESS_CD = CASE WHEN #{DELIVERY_TYPE} = 'DI' THEN CASE WHEN PO_QT = <include refid="common.sql.nvl"/>(GR_QT, 0) + <include refid="common.sql.nvl"/>(#{GR_QT}, 0) THEN #{PROGRESS_CD} ELSE PROGRESS_CD END
+                                 WHEN #{DELIVERY_TYPE} = 'PI' THEN CASE WHEN PO_QT = <include refid="common.sql.nvl"/>(INV_QT, 0) THEN #{PROGRESS_CD} ELSE PROGRESS_CD END
+                                 ELSE PROGRESS_CD
+                            END
+		<if test='DELIVERY_TYPE == "DI"'>
+			, GR_QT = <include refid="common.sql.nvl"/>(GR_QT, 0) + <include refid="common.sql.nvl"/>(#{GR_QT}, 0)
+		</if>
+		<if test='DELIVERY_TYPE == "PI"'>
+			, GR_QT = <include refid="common.sql.nvl"/>(GR_QT, 0) + <include refid="common.sql.nvl"/>(#{INV_QT}, 0)
+		</if>
+        WHERE GATE_CD  = #{ses.gateCd}
+		  AND BUYER_CD = #{BUYER_CD}
+		  AND PO_NUM   = #{PO_NUM}
+		  AND PO_SQ    = #{PO_SQ}
+    </update>
+
+</mapper>

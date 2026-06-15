@@ -1,0 +1,537 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:41 KST 2012 -->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.st_ones.nhepro.MOBILE.Mobile_Mapper">
+
+    <insert id="certified_update">
+        INSERT INTO STOCSMSC (
+                SMS_SEND_NUM
+              , CELL_PHONE_NUM
+              , SMS_SEND_STRING
+              , SMS_SEND_DATE
+        ) VALUES (
+                #{KEY}
+              , <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+              , #{CERTIFIED_NUMBER}
+              , SYSDATE
+        )
+    </insert>
+
+    <insert id="doSave">
+        MERGE INTO STOCCVUR A
+       USING (SELECT #{GATE_CD} AS GATE_CD
+                   , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID}))) AS USER_ID
+                  FROM DUAL) B
+           ON (A.GATE_CD = B.GATE_CD
+          AND  A.USER_ID = B.USER_ID)
+         WHEN NOT MATCHED
+         THEN INSERT (
+               GATE_CD
+             , USER_ID
+             , REG_DATE
+             , REG_USER_ID
+             , DEL_FLAG
+             , COMPANY_CD
+             , USE_FLAG
+             , USER_TYPE
+             , USER_NM
+             , PASSWORD
+             , EMAIL
+             , CELL_NUM
+             , PROGRESS_CD
+             , PW_WRONG_CNT
+             , PW_RESET_FLAG
+             , PW_RESET_DATE
+             , IP_ADDR
+             , MNG_YN
+             , SITE_USER_ID
+             , GENDER
+             , ZIP_CD
+             , ADDR_1
+             , ADDR_2
+             , BIRTH_DATE
+        ) VALUES (
+               #{GATE_CD}
+             , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+             , SYSDATE
+             , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+             , '0'
+             , '1000'
+             , '1'
+             , 'P'
+             , <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+             , #{PASSWORD}
+             , <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+             , 'P'
+             , '0'
+             , '0'
+             , SYSDATE
+             , #{IP_ADDR}
+             , '0'
+             , #{SITE_USER_ID}
+             , #{GENDER}
+             , <include refid="common.sql.strEncStart"/>#{ZIP_CD}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{ADDR}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{ADDR_ETC}<include refid="common.sql.strEncEnd"/>
+             , #{BIRTH_DATE}
+        )
+         WHEN MATCHED THEN
+       UPDATE SET
+               MOD_DATE = SYSDATE
+             , MOD_USER_ID = UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+             , USER_NM = <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+            <if test="GENDER != null and GENDER != ''">
+             , GENDER = #{GENDER}
+            </if>
+            <if test="PASSWORD != null and PASSWORD != ''">
+             , PASSWORD = #{PASSWORD}
+             , PW_RESET_DATE = SYSDATE
+            </if>
+             , CELL_NUM = <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+             , EMAIL = <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+             , ZIP_CD = <include refid="common.sql.strEncStart"/>#{ZIP_CD}<include refid="common.sql.strEncEnd"/>
+             , ADDR_1 = <include refid="common.sql.strEncStart"/>#{ADDR}<include refid="common.sql.strEncEnd"/>
+             , ADDR_2 = <include refid="common.sql.strEncStart"/>#{ADDR_ETC}<include refid="common.sql.strEncEnd"/>
+             , BIRTH_DATE = #{BIRTH_DATE}
+             , SITE_USER_ID = #{SITE_USER_ID}
+             , PROGRESS_CD = CASE WHEN PROGRESS_CD = 'E' THEN PROGRESS_CD ELSE 'P' END
+             , USE_FLAG = '1'
+             , USER_TYPE = 'P'
+    </insert>
+
+    <insert id="MIDPW_010_InsertPW">
+        INSERT INTO STOCUSPW (
+                GATE_CD
+              , USER_ID
+              , REG_DATE
+              , REG_USER_ID
+              , PASSWORD
+              , REG_IP_ADDR
+        ) VALUES (
+                #{ses.gateCd}
+              , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+              , SYSDATE
+              , #{USER_ID}
+              , #{PASSWORD}
+              , #{REG_IP_ADDR}
+        )
+    </insert>
+
+    <insert id="mobile_doOath">
+        INSERT INTO STOCLEGL (
+                GATE_CD
+              , LEGL_NUM
+              , REG_DATE
+              , REG_USER_ID
+              , DEL_FLAG
+              , ATT_FILE_NUM
+              , REG_TYPE
+              , PLEDGE_DOCU_CD
+              , EFORM_KEY
+              , SIGN_DATE
+        ) VALUES (
+                #{ses.gateCd}
+              , #{LEGL_NUM}
+              , SYSDATE
+              , #{USER_ID}
+              , '0'
+              , #{UUID}
+              , 'P'
+              , '2'
+              , #{eformKey}
+              , SYSDATE
+        )
+    </insert>
+
+    <insert id="insertSMS">
+        INSERT INTO EM_SMT_TRAN (
+               MT_PR
+             , DATE_CLIENT_REQ
+             , SERVICE_TYPE
+             , BROADCAST_YN
+             , MSG_STATUS
+             , CALLBACK      -- 발신자 전화번호
+             , RECIPIENT_NUM -- 받는사람
+             , CONTENT       -- 메세지
+        ) VALUES (
+               #{KEY}
+             , SYSDATE
+             , '0' --SERVICE_TYPE
+             , 'N'
+             , '1'
+             , #{SEND_TEL_NUM}
+             , #{RECV_TEL_NUM}
+             , #{CERTIFIED_NUMBER}
+        )
+    </insert>
+
+    <update id="certified_confirm_Update">
+        UPDATE STOCSMSC SET
+                SMS_CONFIRM_DATE = SYSDATE
+              , SMS_CONFIRM_FLAG = #{CONFIRM_FLAG}
+         WHERE SMS_SEND_NUM = (SELECT MAX(SMS_SEND_NUM)
+                                  FROM STOCSMSC
+                                 WHERE <include refid="common.sql.strDecStart"/>CELL_PHONE_NUM<include refid="common.sql.strDecEnd"/> = #{CELL_NUM}
+                                   AND SMS_SEND_STRING = #{CERTIFIED_NUMBER})
+           AND <include refid="common.sql.strDecStart"/>CELL_PHONE_NUM<include refid="common.sql.strDecEnd"/> = #{CELL_NUM}
+           AND SMS_SEND_STRING = #{CERTIFIED_NUMBER}
+    </update>
+
+    <update id="MIDPW_040_resetPassword">
+        UPDATE STOCCVUR SET
+                MOD_DATE = SYSDATE
+              , MOD_USER_ID = #{USER_ID}
+              , PASSWORD = #{PASSWORD}
+              , PW_RESET_FLAG = <include refid="common.sql.nvl"/>(#{PW_RESET_FLAG}, '0')
+              , PW_RESET_DATE = SYSDATE
+              , PW_WRONG_CNT = 0
+              , LAST_LOGIN_DATE = SYSDATE
+              , BLOCK_FLAG = '0'
+              , BLOCK_DATE = NULL
+         WHERE UPPER(USER_ID) = UPPER(#{USER_ID})
+        <if test="EMAIL != null and EMAIL != ''">
+           AND UPPER(<include refid="common.sql.strDecStart"/>EMAIL<include refid="common.sql.strDecEnd"/>) = UPPER(#{EMAIL})
+        </if>
+           AND GATE_CD = #{ses.gateCd}
+    </update>
+
+    <update id="mobile_doContract">
+        UPDATE STOCPCWU SET
+                MOD_DATE = SYSDATE
+              , MOD_USER_ID = #{ses.userId}
+              , PROGRESS_CD = '200'
+              , ATT_FILE_NUM = #{UUID}
+              , SIGN_DATE = SYSDATE
+              , EFORM_KEY = #{UUID}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+           AND WORKER_USER_ID = #{ses.userId}
+    </update>
+	
+	<!-- 2020.11.25 : 개인근로자 계약완료 후 계약 고객사 사용수수료 부과 추가 -->
+	<!-- 사용자 유효성 체크 : CORP_NO, BRC, USER_ID -->
+	<select id="getPrepaymentCust" resultType="java.util.Map">
+		SELECT CUST.IRS_NUM        AS CORP_NO
+			 ,(SELECT DEPT_CD FROM STOCCVUR
+			 	WHERE GATE_CD  = PCCT.GATE_CD
+			 	  AND USER_ID  = PCCT.CONT_USER_ID) AS BRC
+			 , <include refid="common.sql.toChar"/>(<include refid="common.sql.nvl"/>(PCWU.SIGN_DATE, SYSDATE), 'yyyyMMdd') AS APLY_DT
+			 , PCCT.CONT_USER_ID   AS USER_ID
+			 , 'PCCT'           <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+			   PCWU.GATE_CD     <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+			   PCWU.BUYER_CD    <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+			   PCWU.CONT_NUM    <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+			   PCWU.CONT_CNT    <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+			   PCWU.WORKER_USER_ID AS CONT_TBL_PK
+			 , NULL                AS FILE_SIZE
+		  FROM STOCPCWU PCWU
+		  JOIN STOCPCCT PCCT
+		  	   ON (PCCT.GATE_CD  = PCWU.GATE_CD
+		  	   AND PCCT.BUYER_CD = PCWU.BUYER_CD
+		  	   AND PCCT.CONT_NUM = PCWU.CONT_NUM
+		  	   AND PCCT.CONT_CNT = PCWU.CONT_CNT
+		  	   AND PCWU.DEL_FLAG = '0')
+		  JOIN STOCCUST CUST
+			   ON (CUST.GATE_CD  = PCCT.GATE_CD
+		   	   AND CUST.CUST_CD  = PCCT.BUYER_CD)
+         WHERE PCWU.GATE_CD  = #{ses.gateCd}
+           AND PCWU.BUYER_CD = #{BUYER_CD}
+           AND PCWU.CONT_NUM = #{CONT_NUM}
+           AND PCWU.CONT_CNT = #{CONT_CNT}
+           AND PCWU.WORKER_USER_ID = #{ses.userId}
+	</select>
+	
+    <update id="updateNoticeView">
+        UPDATE STOCNOTC
+           SET VIEW_CNT = VIEW_CNT + 1
+         WHERE GATE_CD = #{ses.gateCd}
+           AND NOTICE_NUM = #{noticeNo}
+    </update>
+
+    <select id="userIdCheck" resultType="java.util.Map">
+        SELECT USER_ID
+              , <include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+              , GENDER
+              , SUBSTR(<include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/>, 1, 3) AS CELL_NUM1
+              , SUBSTR(<include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/>, 5, 4) AS CELL_NUM2
+              , SUBSTR(<include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/>, 10, 4) AS CELL_NUM3
+              , <include refid="common.sql.strDecStart"/>EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+              , <include refid="common.sql.strDecStart"/>ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+              , <include refid="common.sql.strDecStart"/>ADDR_1<include refid="common.sql.strDecEnd"/> AS ADDR
+              , <include refid="common.sql.strDecStart"/>ADDR_2<include refid="common.sql.strDecEnd"/> AS ADDR_ETC
+              , SUBSTR(<include refid="common.sql.toChar"/>(BIRTH_DATE, 'YYYYMMDD'), 1, 4) AS BIRTH_DATE1
+              , SUBSTR(<include refid="common.sql.toChar"/>(BIRTH_DATE, 'YYYYMMDD'), 5, 2) AS BIRTH_DATE2
+              , SUBSTR(<include refid="common.sql.toChar"/>(BIRTH_DATE, 'YYYYMMDD'), 7, 2) AS BIRTH_DATE3
+              , SITE_USER_ID
+              , <include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, SITE_USER_ID, <include refid="common.sql.nvl"/>(#{LANG_CD}, #{ses.langCd})) AS SITE_USER_NM
+              , PROGRESS_CD
+          FROM STOCCVUR
+		 WHERE UPPER(USER_ID) = UPPER(<include refid="common.sql.nvl"/>(#{USER_ID}, #{ses.userId}))
+		   AND GATE_CD = #{ses.gateCd}
+    </select>
+
+    <select id="certified_confirm" resultType="java.lang.Integer">
+        SELECT COUNT(*) AS CONFIRM_FLAG
+          FROM STOCSMSC
+         WHERE SMS_SEND_NUM = (SELECT MAX(SMS_SEND_NUM)
+                                  FROM STOCSMSC
+                                 WHERE <include refid="common.sql.strDecStart"/>CELL_PHONE_NUM<include refid="common.sql.strDecEnd"/> = #{CELL_NUM}
+                                   AND SMS_SEND_STRING = #{CERTIFIED_NUMBER})
+           AND <include refid="common.sql.strDecStart"/>CELL_PHONE_NUM<include refid="common.sql.strDecEnd"/> = #{CELL_NUM}
+           AND SMS_SEND_STRING = #{CERTIFIED_NUMBER}
+           AND TO_CHAR(SMS_SEND_DATE, 'YYYYMMDDHH24MISS') + 120 <![CDATA[ > ]]> TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+    </select>
+
+    <select id="emailCheck" resultType="java.util.Map">
+        SELECT MAX(EMAIL_CNT) AS EMAIL_CNT
+	         , MAX(USR_EMAIL_CNT) AS USR_EMAIL_CNT
+          FROM (
+	            SELECT COUNT(USR.EMAIL) AS EMAIL_CNT
+	                  , 0 AS USR_EMAIL_CNT
+                  FROM STOCCVUR USR
+                 WHERE USR.GATE_CD = #{ses.gateCd}
+                   AND UPPER(<include refid="common.sql.strDecStart"/>USR.EMAIL<include refid="common.sql.strDecEnd"/>) = UPPER(#{EMAIL})
+                   AND USR.DEL_FLAG = '0'
+                   AND USR.USER_TYPE = 'P'
+
+                 UNION ALL
+
+                SELECT 0 AS EMAIL_CNT
+                      , COUNT(USR.EMAIL) AS USR_EMAIL_CNT
+                  FROM STOCCVUR USR
+                 WHERE USR.GATE_CD = #{ses.gateCd}
+                   AND UPPER(USER_ID) = UPPER(#{USER_ID})
+                   AND UPPER(<include refid="common.sql.strDecStart"/>USR.EMAIL<include refid="common.sql.strDecEnd"/>) = UPPER(#{EMAIL})
+                   AND USR.USER_TYPE = 'P'
+                   AND USR.DEL_FLAG = '0'
+                ) A
+    </select>
+
+    <select id="MAGG_030_doSearch" resultType="java.util.Map">
+        SELECT USR.USER_ID
+             , <include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+             , USR.DEPT_CD
+             , <include refid="common.sql.dbo"/>GETDEPTNAME(USR.GATE_CD, USR.COMPANY_CD, USR.DEPT_CD, 'KO') AS DEPT_NM
+             , <include refid="common.sql.nvl"/>(USR.DUTY_NM, ' ') as DUTY_NM
+             , <include refid="common.sql.dbo"/>GETCUSTNAME(USR.GATE_CD, USR.COMPANY_CD) AS COMPANY_NM
+          FROM STOCCVUR USR
+         WHERE USR.USE_FLAG = '1'
+         <if test="USER_NM != null and USER_NM != ''" >
+           AND UPPER(<include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/>) LIKE UPPER('%' <include refid="common.sql.stringMerge"/> #{USER_NM} <include refid="common.sql.stringMerge"/> '%')
+         </if>
+        <if test="DEPT_NM != null and DEPT_NM != ''" >
+           AND UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(USR.GATE_CD, USR.COMPANY_CD, USR.DEPT_CD, #{ses.langCd})) LIKE UPPER('%' <include refid="common.sql.stringMerge"/> #{DEPT_NM} <include refid="common.sql.stringMerge"/> '%')
+        </if>
+           AND USR.PROGRESS_CD = 'E'
+           AND USR.USER_TYPE = 'B'
+           AND USR.DEL_FLAG = '0'
+           AND USR.GATE_CD = #{ses.gateCd}
+           ORDER BY USR.USER_NM
+    </select>
+
+    <select id="MIDPW_010_doSearch" resultType="java.util.Map">
+        SELECT USER_ID
+             , <include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+             , <include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+          FROM STOCCVUR
+         WHERE 1 = 1
+         <if test="USER_NM != null and USER_NM != ''">
+           AND UPPER(<include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/>) = UPPER((#{USER_NM}))
+         </if>
+        <if test="USER_ID != null and USER_ID != ''">
+            AND UPPER(USER_ID) = UPPER(#{USER_ID})
+        </if>
+           AND UPPER(<include refid="common.sql.strDecStart"/>EMAIL<include refid="common.sql.strDecEnd"/>) = UPPER((#{EMAIL}))
+           AND PROGRESS_CD = 'E'
+           AND USE_FLAG = '1'
+           AND DEL_FLAG = '0'
+           AND USER_TYPE = 'P'
+           AND GATE_CD = #{ses.gateCd}
+    </select>
+
+    <select id="MIDPW_040_doSearchUSPW" resultType="java.util.Map">
+        SELECT A.*
+        FROM (
+            SELECT PASSWORD
+              FROM STOCUSPW
+             WHERE 1 = 1
+               AND USER_ID = #{USER_ID}
+               AND GATE_CD = #{ses.gateCd}
+             ORDER BY REG_DATE DESC
+        ) A
+        WHERE ROWNUM <![CDATA[ <= ]]> 2
+    </select>
+
+    <select id="mobileHome_contract_list" resultType="java.util.Map">
+        SELECT <include refid="common.sql.dbo"/>GETCODENAME(PCWU.GATE_CD, 'M153', PCWU.PROGRESS_CD, #{ses.langCd}) AS CODE_DESC
+              , PCCT.CONT_DESC
+              , <include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(PCWU.SIGN_DATE, 'YYYY-MM-DD'), ' ') AS SIGN_DATE
+              , PCWU.ATT_FILE_NUM AS UUID
+              , ATCH.UUID_SQ
+              , <include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/> AS CONT_USER_NM
+              , <include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/> AS CONT_USER_ID
+              , <include refid="common.sql.strDecStart"/>USR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS CONT_TEL_NUM
+              , <include refid="common.sql.strDecStart"/>USR.EMAIL<include refid="common.sql.strDecEnd"/> AS CONT_EMAIL
+              , PCWU.WORKER_DEPT_NM
+              , PCWU.WORKER_JOB_NM
+              , PCWU.WORKER_USER_ID
+              , <include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_DATE, 'YYYY-MM-DD') AS WORKER_CONT_DATE
+              , <include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_START_DATE, 'YYYY-MM-DD') AS WORKER_CONT_START_DATE
+              , <include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_END_DATE, 'YYYY-MM-DD') AS WORKER_CONT_END_DATE
+              , <include refid="common.sql.dbo"/>GETUSERNAME(PCWU.GATE_CD, PCWU.WORKER_USER_ID, #{ses.langCd}) AS WORKER_USER_NM
+              , PCWU.WORKER_CONT_TYPE
+              , TO_CHAR(PCWU.WORKER_PAY_AMT, 'FM999,999,999,999,999,999') AS WORKER_PAY_AMT
+              , <include refid="common.sql.toChar"/>(WUSR.BIRTH_DATE, 'YYYY"년"MM"월"DD"일"') AS WORKER_BIRTH_DATE
+		      , <include refid="common.sql.strDecStart"/>WUSR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS WORKER_CELL_NUM
+		      , <include refid="common.sql.strDecStart"/>WUSR.ADDR_1<include refid="common.sql.strDecEnd"/><include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/><include refid="common.sql.strDecStart"/>WUSR.ADDR_2<include refid="common.sql.strDecEnd"/> AS WORKER_ADDR
+              , PCWU.CONT_NUM
+		      , PCWU.CONT_CNT
+		      , PCWU.EFORM_KEY
+		      , ATCH.FILE_PATH
+		      , CUST.CUST_NM
+		      , CUST.CUST_CD
+		      , <include refid="common.sql.strDecStart"/>CUST.ADDR1<include refid="common.sql.strDecEnd"/>
+		        <include refid="common.sql.stringMerge"/> '' <include refid="common.sql.stringMerge"/>
+		        <include refid="common.sql.strDecStart"/>CUST.ADDR2<include refid="common.sql.strDecEnd"/> AS BUYER_ADDR
+		      , <include refid="common.sql.strDecStart"/>CUST.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+		      , <include refid="common.sql.toChar"/>(PCCT.SIGN_DATE, 'YYYY-MM-DD HH24:MI') AS SIGN_DATE2
+              , PCCT.BUYER_CD
+          FROM STOCPCWU PCWU
+          JOIN STOCPCCT PCCT
+            ON(PCWU.GATE_CD = PCCT.GATE_CD
+           AND PCWU.BUYER_CD = PCCT.BUYER_CD
+           AND PCWU.CONT_NUM = PCCT.CONT_NUM
+           AND PCWU.CONT_CNT = PCCT.CONT_CNT
+           AND PCCT.SIGN_STATUS = 'E'
+           AND PCCT.DEL_FLAG = '0')
+          JOIN STOCCUST CUST
+		    ON(PCCT.GATE_CD = CUST.GATE_CD
+	       AND PCCT.BUYER_CD = CUST.CUST_CD
+	       AND CUST.DEL_FLAG = '0')
+          LEFT JOIN STOCATCH ATCH
+            ON(PCWU.GATE_CD = ATCH.GATE_CD
+           AND PCWU.ATT_FILE_NUM = ATCH.UUID
+           AND ATCH.DEL_FLAG = '0')
+          LEFT OUTER JOIN STOCCVUR USR
+	        ON(PCCT.GATE_CD  = USR.GATE_CD
+		   AND PCCT.CONT_USER_ID = USR.USER_ID)
+		  LEFT OUTER JOIN STOCCVUR WUSR
+		    ON(PCWU.GATE_CD = WUSR.GATE_CD
+	       AND PCWU.WORKER_USER_ID = WUSR.USER_ID)
+         WHERE PCWU.GATE_CD = #{ses.gateCd}
+           AND UPPER(PCWU.WORKER_USER_ID) = UPPER(#{ses.userId})
+           AND PCWU.DEL_FLAG = '0'
+         ORDER BY PCWU.PROGRESS_CD, PCWU.WORKER_CONT_DATE DESC
+    </select>
+
+    <select id="mobileHome_doPledge_list" resultType="java.util.Map">
+        SELECT CODD.CODE_DESC
+             , <include refid="common.sql.toChar"/>(LEGL.SIGN_DATE, 'YYYY-MM-DD') AS SIGN_DATE
+             , LEGL.ATT_FILE_NUM AS UUID
+             , ATCH.UUID_SQ
+             , CODD.CODE
+             , LEGL.EFORM_KEY
+		     , ATCH.FILE_PATH
+          FROM STOCLEGL LEGL
+          JOIN STOCCODD CODD
+            ON(LEGL.GATE_CD = CODD.GATE_CD
+           AND LEGL.PLEDGE_DOCU_CD = CODD.CODE
+           AND CODD.CODE_TYPE = 'M145'
+           AND CODD.DEL_FLAG = '0')
+          LEFT JOIN STOCATCH ATCH
+            ON(LEGL.GATE_CD = ATCH.GATE_CD
+           AND LEGL.ATT_FILE_NUM = ATCH.UUID
+           AND ATCH.DEL_FLAG = '0')
+         WHERE LEGL.GATE_CD = #{ses.gateCd}
+           AND UPPER(LEGL.REG_USER_ID) = UPPER(#{ses.userId})
+           AND LEGL.DEL_FLAG = '0'
+         ORDER BY LEGL.SIGN_DATE DESC
+    </select>
+
+    <select id="mobileHome_doNotice_list" resultType="java.util.Map">
+        SELECT NOTC.SUBJECT
+             , <include refid="common.sql.toChar"/>(NOTC.START_DATE, 'YYYY-MM-DD') AS START_DATE
+             , CODD.CODE_DESC
+             , NOTC.NOTICE_NUM
+          FROM STOCNOTC NOTC
+          JOIN STOCCODD CODD
+            ON(NOTC.GATE_CD = CODD.GATE_CD
+           AND NOTC.NOTICE_TYPE = CODD.CODE
+           AND CODD.CODE_TYPE = 'M011'
+           AND CODD.DEL_FLAG = '0')
+         WHERE NOTC.GATE_CD = #{ses.gateCd}
+           AND NOTC.VIEW_TYPE IN ('USNA', 'USNP')
+           AND NOTC.NOTICE_TYPE NOT IN ('PCP')
+           AND NOTC.DEL_FLAG = '0'
+           AND <include refid="common.sql.toChar"/>(NOTC.START_DATE, 'YYYYMMDD') <![CDATA[<=]]> <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD')
+           AND <include refid="common.sql.toChar"/>(NOTC.END_DATE, 'YYYYMMDD') <![CDATA[>=]]> <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD')
+        ORDER BY NOTC.FIXED_TOP_FLAG, NOTC.START_DATE DESC
+    </select>
+
+    <select id="mobileHome_checkLeglAgree2" resultType="java.util.Map">
+        SELECT MAX(A.OATH_CNT) AS OATH_CNT
+              , MAX(A.OATH_NM) AS OATH_NM
+              , MAX(A.WORKER_DEPT_NM) AS DEPT_NM
+          FROM (
+                SELECT COUNT(*) AS OATH_CNT
+                     , '보안서약서' AS OATH_NM
+                     , '' AS WORKER_DEPT_NM
+                  FROM STOCLEGL
+                 WHERE GATE_CD = #{ses.gateCd}
+                   AND UPPER(REG_USER_ID) = UPPER(#{userId})
+                   AND REG_TYPE = 'P'
+                   AND PLEDGE_DOCU_CD = '2'
+                   AND DEL_FLAG = '0'
+
+                 UNION ALL
+
+                SELECT 0 AS OATH_CNT
+                      , '' AS OATH_NM
+                      , WORKER_DEPT_NM
+                  FROM STOCPCWU
+                 WHERE GATE_CD = #{ses.gateCd}
+                   AND UPPER(WORKER_USER_ID) = UPPER(#{userId})
+                   AND PROGRESS_CD IN ('100', '200')
+                   AND REG_DATE = (SELECT MAX(REG_DATE)
+                                      FROM STOCPCWU
+                                     WHERE GATE_CD = #{ses.gateCd}
+                                       AND UPPER(WORKER_USER_ID) = UPPER(#{userId})
+                                       AND PROGRESS_CD IN ('100', '200')
+                                       AND DEL_FLAG = '0')
+                   AND DEL_FLAG = '0'
+                ) A
+
+    </select>
+
+    <select id="fileUserCheck" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+          FROM STOCATCH
+         WHERE GATE_CD = #{ses.gateCd}
+           AND UUID = #{UUID}
+           AND UUID_SQ = #{UUID_SQ}
+           AND REG_USER_ID = #{ses.userId}
+           AND DEL_FLAG = '0'
+    </select>
+
+    <select id="selectNotice" resultType="java.util.Map">
+        SELECT NOTICE_NUM
+             , NOTICE_NUM AS NOTICE_NUM_ORI
+             , SUBJECT
+             , NOTICE_TYPE
+             , <include refid="common.sql.toDate"/>(START_DATE, 'YYYY-MM-DD') AS START_DATE
+             , <include refid="common.sql.toDate"/>(END_DATE, 'YYYY-MM-DD') AS END_DATE
+             , VIEW_CNT
+             , ATT_FILE_NUM
+             , NOTICE_TEXT_NUM
+             , GATE_CD
+             , REG_USER_ID
+             , FIXED_TOP_FLAG
+          FROM STOCNOTC
+         WHERE GATE_CD = #{ses.gateCd}
+           AND NOTICE_NUM = #{noticeNo}
+           AND DEL_FLAG = '0'
+    </select>
+
+</mapper>

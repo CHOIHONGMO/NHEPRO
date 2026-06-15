@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.OETR.OETR0030_Mapper">
+
+    <select id="oetr0030_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT
+            ROW_NUMBER() OVER( ORDER BY NOTC.REG_DATE, NOTC.NOTICE_NUM) AS ROW_NUM
+            , <include refid="common.sql.dbo"/>GETUSERNAME(NOTC.GATE_CD,  NOTC.REG_USER_ID , #{ses.langCd}) AS REG_USER_NM
+            , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(NOTC.GATE_CD, NOTC.ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(NOTC.GATE_CD, NOTC.ATT_FILE_NUM)
+              END AS ATT_FILE_NUM_ICON
+            , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'YYYY-MM-DD') as REG_DATE
+            , <include refid="common.sql.toChar"/>(NOTC.START_DATE, 'YYYY-MM-DD') <include refid="common.sql.stringMerge"/> ' ~ ' <include refid="common.sql.stringMerge"/> TO_CHAR(NOTC.END_DATE, 'YYYY-MM-DD') AS NOTICE_DATE
+            , NOTC.BUYER_CD
+            , NOTC.SUBJECT
+            , NOTC.START_DATE
+            , NOTC.END_DATE
+            , NOTC.REG_USER_ID  REG_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERINFO(NOTC.GATE_CD, NOTC.REG_USER_ID, 'USER_TYPE') AS REG_USER_TYPE
+            , NOTC.ATT_FILE_NUM AS ATT_FILE_NUM
+            , CASE WHEN NOTC.ATT_FILE_NUM IS NOT NULL AND ( SELECT COUNT(*)
+                                                            FROM STOCATCH
+                                                            WHERE GATE_CD = #{ses.gateCd}
+                                                            AND UUID = NOTC.ATT_FILE_NUM
+                                                            AND DEL_FLAG = '0') <![CDATA[>]]> 0
+              THEN '0' ELSE '1'
+              END AS ATT_FILE_NUM_ICON_IMAGE
+            , <include refid="common.sql.nvl"/>(NOTC.VIEW_CNT, 0) AS VIEW_CNT
+            , NOTC.NOTICE_NUM
+            , NOTC.VIEW_TYPE
+        FROM STOCNOTC NOTC
+        WHERE NOTC.GATE_CD = #{ses.gateCd}
+        AND NOTC.NOTICE_TYPE = 'PCI' -- 납품게시판
+        AND NOTC.DEL_FLAG = '0'
+        AND NOTC.BUYER_CD = #{ses.companyCd}
+        <choose>
+            <when test="ADD_FROM_DATE != '' and ADD_FROM_DATE != null and ADD_TO_DATE != '' and ADD_TO_DATE != null">
+                AND (   (NOTC.START_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_FROM_DATE}) AND NOTC.START_DATE <![CDATA[<=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_TO_DATE}))
+                    OR  (NOTC.END_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_FROM_DATE}) AND NOTC.END_DATE <![CDATA[<=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_TO_DATE}))
+                    OR  (NOTC.START_DATE <![CDATA[<=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_FROM_DATE}) AND NOTC.END_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_TO_DATE}))
+                    )
+            </when>
+            <when test="ADD_FROM_DATE != '' and ADD_FROM_DATE != null">
+                AND (NOTC.START_DATE <![CDATA[<=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_FROM_DATE}) AND NOTC.END_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_FROM_DATE}))
+            </when>
+            <when test="ADD_TO_DATE != '' and ADD_TO_DATE != null">
+                AND (NOTC.START_DATE <![CDATA[<=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_TO_DATE}) AND NOTC.END_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{ADD_TO_DATE}))
+            </when>
+        </choose>
+        <if test="REG_USER_NM != '' and REG_USER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(NOTC.GATE_CD, NOTC.REG_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{REG_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VIEW_TYPE != '' and VIEW_TYPE != null">
+            AND NOTC.VIEW_TYPE = #{VIEW_TYPE}
+        </if>
+         ORDER BY ROW_NUM DESC
+    </select>
+
+    <select id="oetr0031_doSearchNoticeInfo" parameterType="hashMap" resultType="hashMap">
+        SELECT NOTC.SUBJECT
+            , NOTC.NOTICE_NUM
+            , NOTC.NOTICE_TEXT_NUM
+            , NOTC.VIEW_TYPE
+            , <include refid="common.sql.nvl"/>(NOTC.VIEW_CNT, 0) AS VIEW_CNT
+            , <include refid="common.sql.toChar"/>(NOTC.START_DATE, 'YYYYMMDD') AS START_DATE
+            , <include refid="common.sql.toChar"/>(NOTC.END_DATE, 'YYYYMMDD') AS END_DATE
+            , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'YYYY-MM-DD') REG_DATE
+            , <include refid="common.sql.dbo"/>GETUSERNAME(NOTC.GATE_CD,  NOTC.REG_USER_ID , #{ses.langCd}) AS REG_USER_NM
+            , NOTC.REG_USER_ID
+            , NOTC.ATT_FILE_NUM
+            , NOTC.BUYER_CD
+            , NOTV.VENDOR_CD
+            , NOTV.VENDOR_NM
+        FROM STOCNOTC NOTC
+        LEFT JOIN ( SELECT NOTV.GATE_CD
+                        , NOTV.BUYER_CD
+                        , NOTV.DEPT_CD
+                        , NOTV.NOTICE_NUM
+                        , LISTAGG(NOTV.COMPANY_CD, ',') WITHIN GROUP (ORDER BY NOTV.COMPANY_CD) AS VENDOR_CD
+                        , LISTAGG(GETCOMPANYNAME(NOTV.GATE_CD, NOTV.COMPANY_CD, 'KO'), ',') WITHIN GROUP (ORDER BY GETCOMPANYNAME(NOTV.GATE_CD, NOTV.COMPANY_CD, 'KO')) AS VENDOR_NM
+                    FROM STOCNOTV NOTV
+                    WHERE NOTV.GATE_CD = #{ses.gateCd}
+                    AND NOTV.DEL_FLAG = '0'
+                    GROUP BY NOTV.GATE_CD, NOTV.BUYER_CD, NOTV.DEPT_CD, NOTV.NOTICE_NUM) NOTV
+            ON (NOTV.GATE_CD = NOTC.GATE_CD
+            AND NOTV.BUYER_CD = NOTC.BUYER_CD
+            AND NOTV.DEPT_CD = NOTC.DEPT_CD
+            AND NOTV.NOTICE_NUM = NOTC.NOTICE_NUM)
+        WHERE NOTC.GATE_CD = #{ses.gateCd}
+        AND NOTC.BUYER_CD = #{BUYER_CD}
+        AND NOTC.NOTICE_NUM = #{NOTICE_NUM}
+    </select>
+
+    <update id="oetr0031_doSaveCount" parameterType="hashMap">
+        UPDATE STOCNOTC SET
+            VIEW_CNT = #{VIEW_CNT}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND NOTICE_NUM = #{NOTICE_NUM}
+    </update>
+
+    <insert id="oetr0031_doInsert" parameterType="hashMap">
+        INSERT INTO STOCNOTC (
+              GATE_CD
+            , BUYER_CD
+            , DEPT_CD
+            , NOTICE_NUM
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+
+            , SUBJECT
+            , NOTICE_TYPE
+            , VIEW_TYPE
+            , POPUP_FLAG
+            , FIXED_TOP_FLAG
+            , START_DATE
+            , END_DATE
+            , NOTICE_TEXT_NUM
+            , ATT_FILE_NUM
+            , VIEW_CNT
+        ) VALUES (
+              #{ses.gateCd}
+            , #{ses.companyCd}
+            ,<include refid="common.sql.nvl"/>(#{ses.deptCd}, 'XXXX')
+            , #{NOTICE_NUM}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+
+            , #{SUBJECT}
+            , 'PCI'
+            , #{VIEW_TYPE}
+            , '0'
+            , '0'
+            , #{START_DATE}
+            , #{END_DATE}
+            , #{NOTICE_TEXT_NUM}
+            , #{ATT_FILE_NUM}
+            , 0
+        )
+    </insert>
+
+    <update id="oetr0031_doUpdate" parameterType="hashMap">
+        UPDATE STOCNOTC SET
+              MOD_DATE = SYSDATE
+            , MOD_USER_ID =  #{ses.userId}
+            , SUBJECT = #{SUBJECT}
+            , VIEW_TYPE = #{VIEW_TYPE}
+            , START_DATE = #{START_DATE}
+            , END_DATE = #{END_DATE}
+            , NOTICE_TEXT_NUM = #{NOTICE_TEXT_NUM}
+            , ATT_FILE_NUM = #{ATT_FILE_NUM}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND NOTICE_NUM = #{NOTICE_NUM}
+    </update>
+
+    <update id="oetr0031_doDelete" parameterType="hashMap">
+        UPDATE STOCNOTC SET
+            DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID =  #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND NOTICE_NUM = #{NOTICE_NUM}
+    </update>
+
+    <insert id="oetr0031_doInsertSTOCNOTV" parameterType="hashMap">
+        INSERT INTO STOCNOTV (
+            GATE_CD
+            , BUYER_CD
+            , DEPT_CD
+            , NOTICE_NUM
+            , COMPANY_CD
+            , COMPANY_DEPT_CD
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+        ) VALUES (
+            #{ses.gateCd}
+            , #{ses.companyCd}
+            ,<include refid="common.sql.nvl"/>(#{ses.deptCd}, 'XXXX')
+            , #{NOTICE_NUM}
+            , #{COMPANY_CD}
+            , #{COMPANY_DEPT_CD}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+        )
+     </insert>
+
+    <delete id="oetr0031_doDeleteSTOCNOTV" parameterType="hashMap">
+        DELETE FROM STOCNOTV
+        WHERE GATE_CD = #{ses.gateCd}
+        AND NOTICE_NUM = #{NOTICE_NUM}
+    </delete>
+
+</mapper>

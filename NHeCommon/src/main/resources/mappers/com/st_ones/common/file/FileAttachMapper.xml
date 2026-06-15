@@ -1,0 +1,586 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:36 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.st_ones.common.file.FileAttachMapper">
+
+	<resultMap id="result"  type="hashMap">
+
+		<result column="FILE_CONTENTS" property="FILE_CONTENTS" jdbcType="BLOB" javaType="[B" ></result>
+
+	</resultMap>
+
+	<insert id="insertFileInfo" parameterType="hashMap">
+
+        <selectKey keyProperty="fileSeq" resultType="java.lang.Integer" order="BEFORE">
+            SELECT <include refid="common.sql.nvl"/>(MAX(FILE_SQ) + 1, 0) FILESQ FROM STOCATCH
+            WHERE GATE_CD = #{ses.gateCd} AND UUID = #{UUID}
+        </selectKey>
+
+        INSERT INTO STOCATCH (
+            GATE_CD,
+			UUID,
+			UUID_SQ,
+            FILE_SQ,
+			FILE_NM,
+			FILE_PATH,
+            FILE_SIZE,
+			FILE_EXTENSION,
+			REAL_FILE_NM,
+            BIZ_TYPE,
+			REG_DATE,
+            REG_USER_ID,
+			MOD_DATE,
+            MOD_USER_ID,
+			DEL_FLAG,
+			ENC_FLAG,
+			COMPANY_CD,
+			PR_BUYER_CD,
+			COMPANY_DEPT,
+			PR_DEPT_CD,
+			UP_DATE,
+            HASH_NUM
+        ) VALUES (
+            #{ses.gateCd},
+			#{UUID},
+			#{UUID_SQ},
+            #{fileSeq},
+			#{fileName},
+			#{FILE_PATH},
+            #{FILE_SIZE},
+			#{EXTENSION},
+			#{REAL_FILE_NM},
+            #{BIZ_TYPE},
+			SYSDATE,
+            #{ses.userId},
+			SYSDATE,
+			#{ses.userId},
+			'0',
+			#{ENC_FLAG},
+			#{ses.companyCd},
+			#{PR_BUYER_CD},
+			#{ses.deptCd},
+			#{PR_DEPT_CD},
+			TO_CHAR(SYSDATE,'YYYYMMDD'),
+            #{HASH_NUM}
+        )
+
+    </insert>
+
+    <sql id="getFileInfoCommon">
+
+		SELECT
+			  UUID
+		    , UUID_SQ
+		    , FILE_NM
+		    , FILE_PATH
+		    , MAX(FILE_SIZE) AS FILE_SIZE
+		    , MAX(FILE_SQ) AS FILE_SQ
+		    , FILE_EXTENSION
+		    , REAL_FILE_NM
+		    , FILE_COUNT
+		    , BIZ_TYPE
+		    , DEL_FLAG
+			, ENC_FLAG
+		  FROM (
+		 		(SELECT
+		            UUID UUID,
+		            UUID_SQ,
+		            FILE_NM,
+		            FILE_PATH,
+					FILE_SQ,
+					FILE_EXTENSION,
+					REAL_FILE_NM,
+					(SELECT COUNT(*) FROM STOCATCH
+					  WHERE GATE_CD = GATE_CD
+						AND UUID = #{UUID}
+						AND DEL_FLAG = 0) AS FILE_COUNT,
+					BIZ_TYPE,
+					DEL_FLAG,
+					ENC_FLAG,
+				<if test="_databaseId == 'oracle'">
+					TO_CHAR(FILE_SIZE) AS FILE_SIZE
+				</if>
+				<if test="_databaseId == 'mssql'">
+					CONVERT(NVARCHAR(MAX), FILE_SIZE) AS FILE_SIZE
+				</if>
+		         FROM STOCATCH
+		        WHERE GATE_CD = (CASE WHEN #{ses.gateCd} IS NULL OR #{ses.gateCd} = '' THEN '100' ELSE #{ses.gateCd} END)
+		          AND UUID = #{UUID}
+		          AND DEL_FLAG = 0)
+		  ) T
+		 WHERE 1 = 1
+
+    </sql>
+
+    <select id="getFileInfoOne" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			  UUID
+		    , UUID_SQ
+		    , FILE_NM
+		    , FILE_PATH
+		    , FILE_SIZE
+		    , FILE_SQ
+		    , FILE_EXTENSION
+		    , REAL_FILE_NM
+		    , FILE_COUNT
+		    , BIZ_TYPE
+		    , DEL_FLAG
+			, ENC_FLAG
+		  FROM (
+		 		(SELECT
+		            UUID UUID,
+		            UUID_SQ,
+		            FILE_NM,
+		            FILE_PATH,
+		            FILE_SQ,
+		            FILE_EXTENSION,
+		            REAL_FILE_NM,
+		            (SELECT COUNT(*)
+			           FROM STOCATCH
+			          WHERE GATE_CD = GATE_CD
+			            AND UUID = #{UUID}
+			            AND DEL_FLAG = 0) AS FILE_COUNT,
+		            BIZ_TYPE,
+      				DEL_FLAG,
+					ENC_FLAG,
+				<if test="_databaseId == 'oracle'">
+					TO_CHAR(FILE_SIZE) AS FILE_SIZE
+				</if>
+				<if test="_databaseId == 'mssql'">
+					CONVERT(NVARCHAR(MAX), FILE_SIZE) AS FILE_SIZE
+				</if>
+		         FROM STOCATCH
+		        WHERE GATE_CD = CASE WHEN #{ses.gateCd} IS NULL THEN #{ses.gateCd} ELSE #{ses.gateCd} END
+		          AND UUID = #{UUID}
+		          AND DEL_FLAG = 0)
+		  ) T
+		 WHERE 1 = 1
+		   AND T.DEL_FLAG = 0
+		   AND UPPER(T.FILE_EXTENSION) = UPPER('xls')
+		   AND ROWNUM = 1
+
+    </select>
+    
+    <select id="getFileInfos" resultType="hashMap">
+
+       <include refid="getFileInfoCommon"/>
+
+           AND T.DEL_FLAG = 0
+		 GROUP BY UUID, UUID_SQ, FILE_NM, FILE_PATH,
+				  FILE_EXTENSION, REAL_FILE_NM, FILE_COUNT,
+				  BIZ_TYPE, DEL_FLAG, ENC_FLAG
+		 ORDER BY MAX(T.FILE_SQ) ASC
+
+    </select>
+
+    <select id="getFileCount" resultType="java.lang.Integer">
+
+         SELECT COUNT(*)
+           FROM STOCATCH
+          WHERE GATE_CD = #{ses.gateCd}
+            AND UUID = #{UUID}
+            AND DEL_FLAG = 0
+
+    </select>
+    
+    <select id="getFileInfo" parameterType="hashMap" resultType="hashMap">
+
+       <include refid="getFileInfoCommon"/>
+		<if test="UUID_SQ != null and UUID_SQ != ''">
+           AND T.UUID_SQ = #{UUID_SQ}
+		</if>
+           AND T.DEL_FLAG = 0
+		 GROUP BY UUID, UUID_SQ, FILE_NM, FILE_PATH,
+			      FILE_EXTENSION, REAL_FILE_NM, FILE_COUNT,
+			      BIZ_TYPE, DEL_FLAG, ENC_FLAG
+		 ORDER BY MAX(T.FILE_SQ) ASC
+
+    </select>
+    
+    <select id="getContInfo" parameterType="hashMap" resultType="hashMap">
+		SELECT ECCT.BUYER_CD
+			 , ECCT.CONT_NUM
+			 , ECCT.CONT_CNT
+			 , ECCT.CONT_DESC
+			 , <include refid="common.sql.toChar"/>(ECCT.CONT_DATE, 'YYYYMMDD') AS CONT_DATE
+			 , <include refid="common.sql.dbo"/>GETVENDORNAME(ECCT.GATE_CD, ECCT.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+		  FROM STOCECCT ECCT
+		 WHERE ECCT.GATE_CD  = #{ses.gateCd}
+		   AND ECCT.CONT_NUM = #{CONT_NUM}
+		   AND ECCT.CONT_CNT = #{CONT_CNT}
+    </select>
+    
+    <select id="getApInfo" parameterType="hashMap" resultType="hashMap">
+		SELECT IVAP.AP_NUM
+			 , IVAP.AP_REQ_SUBJECT
+			 , <include refid="common.sql.toChar"/>(IVAP.AP_REQ_DATE, 'YYYYMMDD') AS AP_REQ_DATE
+			 , <include refid="common.sql.dbo"/>GETVENDORNAME(IVAP.GATE_CD, IVAP.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+		  FROM STOCIVAP IVAP
+		 WHERE IVAP.GATE_CD  = #{ses.gateCd}
+		   AND IVAP.AP_NUM = #{AP_NUM}
+		   AND IVAP.DEL_FLAG = '0'
+    </select>
+
+    <update id="deleteFile" parameterType="hashmap">
+
+        UPDATE STOCATCH SET
+           DEL_FLAG = '1',
+           MOD_USER_ID =  #{ses.userId} ,
+           MOD_DATE = SYSDATE
+         WHERE GATE_CD = #{ses.gateCd}
+           AND UUID = #{UUID}
+           AND UUID_SQ = #{UUID_SQ}
+
+    </update>
+
+    <update id="setBinaryFileInfo" parameterType="hashMap">
+
+		UPDATE STOCFILE SET
+			FILE_CONTENTS = #{BINARY_FILE_INFO, typeHandler=org.apache.ibatis.type.ByteArrayTypeHandler}
+    	 WHERE GATE_CD = #{ses.gateCd}
+           AND UUID = #{UUID}
+           AND UUID_SQ = #{UUID_SQ}
+
+    </update>
+	
+	<!-- 2021.04.26 변경 -->
+	<!-- 파일이 존재하는 경우 HASH 값 및 경로, file_size를 함께 변경한다. -->
+	<update id="updateFileInfo">
+		UPDATE STOCATCH
+		   SET MOD_DATE    = SYSDATE
+		   	 , MOD_USER_ID = #{ses.userId}
+		<if test="FILE_PATH != '' and FILE_PATH != null">
+		   	 , FILE_PATH   = #{FILE_PATH}
+		</if>
+		<if test="FILE_SIZE != '' and FILE_SIZE != null">
+		   	 , FILE_SIZE   = #{FILE_SIZE}
+		</if>
+		<if test="EXTENSION != '' and EXTENSION != null">
+		   	 , FILE_EXTENSION = #{EXTENSION}
+		</if>
+		<if test="REAL_FILE_NM != '' and REAL_FILE_NM != null">
+		   	 , REAL_FILE_NM = #{REAL_FILE_NM}
+		</if>
+		<if test="PR_BUYER_CD != '' and PR_BUYER_CD != null">
+		   	 , PR_BUYER_CD = #{PR_BUYER_CD}
+		</if>
+		<if test="PR_DEPT_CD != '' and PR_DEPT_CD != null">
+		   	 , PR_DEPT_CD = #{PR_DEPT_CD}
+		</if>
+		   	 , HASH_NUM    = #{HASH_NUM}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND UUID    = #{UUID}
+		   AND UUID_SQ = #{UUID_SQ}
+	</update>
+
+	<select id="getBinaryFileInfo" parameterType="hashmap" resultMap="result">
+
+		SELECT FILE_CONTENTS
+    	  FROM STOCFILE
+    	 WHERE GATE_CD = #{ses.gateCd}
+           AND UUID = #{UUID}
+           AND UUID_SQ = #{UUID_SQ}
+
+	</select>
+
+	<select id="getECCMList" resultType="java.util.Map">
+		SELECT BUYER_CD
+			 , PR_BUYER_CD
+			 , PR_DEPT_CD
+		  FROM STOCECCM
+	     WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{ses.companyCd}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND DEL_FLAG = '0'
+	</select>
+
+	<select id="getDecUUID" resultType="java.lang.String">
+		SELECT <include refid="common.sql.strDecStart"/>#{UUID}<include refid="common.sql.strDecEnd"/> AS UUID FROM DUAL
+	</select>
+	
+    <select id="getTagrgetFile" parameterType="hashMap" resultType="hashMap">
+		SELECT
+		FNM.EPRO_PS_DSC
+		,FNM.CORP_NO
+		,FNM.BRC
+		,FNM.APLY_DT
+		,FNM.USER_ID
+		,FNM.CONT_TBL_PK
+		,FNM.FILE_SIZE
+		,FNM.UUID
+		,FNM.UUID_SQ             
+		,FNM.FILE_PATH
+		,FNM.FILE_NM
+		,FNM.FILE_EXTENSION
+		,FNM.BIZ_TYPE           
+		,FNM.REAL_FILE_NM  
+		,FNM.VENDOR_CD
+		,TO_CHAR(FNM.FINAL_DATE,'YYYY/MM/DD') AS FINAL_DATE 
+		,TO_CHAR((CASE WHEN FNM.FILE_SIZE <![CDATA[<]]> 10 THEN 1000
+		       ELSE 
+		           (CASE WHEN (FNM.FILE_SIZE - 10) <![CDATA[<=]]> 100 THEN 1000 + ((FNM.FILE_SIZE - 10)  * 100 )
+		                 ELSE 1000 + ( 100 * 100 )
+		            END)
+		END),'999,999') AS COST
+		FROM (       
+		       SELECT '2'				AS EPRO_PS_DSC
+				     ,VNGL.IRS_NO	 	AS CORP_NO
+					 ,'000000'  		AS BRC
+					 ,TO_CHAR(SYSDATE,'YYYYMMDD') AS APLY_DT
+					 ,ATCH.REG_USER_ID AS USER_ID
+					 ,'FILE'        || '@@' ||
+					  ATCH.UUID     || '@@' ||
+					  ATCH.UUID_SQ  	AS CONT_TBL_PK
+					 ,(CASE WHEN ROUND(ATCH.FILE_SIZE/1048576) = 0 THEN 1
+					        ELSE ROUND(ATCH.FILE_SIZE/1048576)
+					   END) AS FILE_SIZE
+					 ,ATCH.UUID		AS UUID
+					 ,ATCH.UUID_SQ		AS UUID_SQ             
+		             ,ATCH.FILE_PATH 	AS FILE_PATH
+		             ,ATCH.FILE_NM 	AS FILE_NM
+		             ,ATCH.FILE_EXTENSION 	AS FILE_EXTENSION
+		             ,ATCH.BIZ_TYPE 	AS BIZ_TYPE
+		             ,ATCH.REAL_FILE_NM 	AS REAL_FILE_NM
+		             ,VNGL.VENDOR_CD
+					 ,(CASE WHEN NVL(ATCH.IF_YN,'0') = '0' THEN ATCH.REG_DATE
+					        ELSE ATCH.FEE_DATE
+					   END) AS FINAL_DATE
+				 FROM STOCATCH ATCH
+				 JOIN STOCVNGL VNGL
+				   ON (ATCH.GATE_CD     = VNGL.GATE_CD
+		          AND ATCH.PR_BUYER_CD = VNGL.VENDOR_CD)
+				 JOIN STOCCODD CODD
+				   ON (ATCH.BIZ_TYPE = CODD.CODE)              		          
+				WHERE ATCH.GATE_CD  = '100'
+		          AND ATCH.UUID = #{UUID}
+		          AND ATCH.UUID_SQ = #{UUID_SQ}
+		          AND ATCH.FILE_SIZE > 0
+		          AND ATCH.DEL_FLAG  = '0'
+		          AND ATCH.PR_BUYER_CD  != 'S00254'
+	              AND CODD.CODE_TYPE = 'MP091'
+	              AND CODD.USE_FLAG  = '1'		          
+				  AND ((NVL(ATCH.IF_YN,'0') = '0' AND ATCH.REG_DATE  BETWEEN TO_DATE('20210301') AND TO_DATE(TO_CHAR(ADD_MONTHS(SYSDATE, -12),'YYYYMM')||'01'))
+				    OR (NVL(ATCH.IF_YN,'0') = '1' AND ATCH.FEE_DATE  BETWEEN TO_DATE('20210301') AND TO_DATE(TO_CHAR(ADD_MONTHS(SYSDATE, -12),'YYYYMM')||'01'))                       
+		              )
+		     ) FNM      
+
+    </select>	
+    
+    <update id="upsComplete" parameterType="hashMap">
+		UPDATE STOCATCH 
+		   SET
+               FEE_ETC  = #{FEE_ETC} 
+		<choose>
+			<when test='FEE_ETC == "0"'>
+		      ,IF_YN   = '1'
+		      ,FEE_DATE = SYSDATE
+		    </when>
+		</choose>    
+		 WHERE GATE_CD = '100'
+		   AND UUID    = #{UUID}
+		   AND UUID_SQ = #{UUID_SQ}
+	</update>    
+	
+	<select id="getIVAPFilesInfo" resultType="hashMap">
+		SELECT A.UUID
+		  FROM (
+			SELECT
+				  IVAP.VENDOR_ATT_FILE_NUM AS UUID
+			FROM STOCIVAP IVAP
+			JOIN STOCIVGH IVGH
+				ON (IVGH.GATE_CD  = IVAP.GATE_CD
+				AND IVGH.BUYER_CD = IVAP.BUYER_CD
+				AND IVGH.INV_NUM  = IVAP.INV_NUM
+				AND IVGH.DEL_FLAG = '0')
+			JOIN STOCIVHD IVHD
+				ON (IVHD.GATE_CD  = IVGH.GATE_CD
+				AND IVHD.BUYER_CD = IVGH.BUYER_CD
+				AND IVHD.INV_NUM  = IVGH.INV_NUM
+				AND IVHD.DEL_FLAG = '0')
+			JOIN STOCPOHD POHD
+				ON (POHD.GATE_CD  = IVHD.GATE_CD
+				AND POHD.BUYER_CD = IVHD.BUYER_CD
+				AND POHD.PO_NUM   = IVGH.PO_NUM
+				AND POHD.DEL_FLAG = '0')
+			JOIN STOCPOPY POPY
+				ON (POPY.GATE_CD  = IVAP.GATE_CD
+				AND POPY.BUYER_CD = IVAP.BUYER_CD
+				AND POPY.PO_NUM   = IVAP.PO_NUM
+				AND POPY.PAY_CNT  = IVAP.PAY_CNT
+				AND POPY.DEL_FLAG = '0')
+			LEFT JOIN STOCIVPC IVPC
+				ON (IVPC.GATE_CD  = POPY.GATE_CD
+				AND IVPC.BUYER_CD = POPY.BUYER_CD
+				AND IVPC.INV_NUM  = IVHD.INV_NUM
+				AND IVPC.PO_NUM   = POPY.PO_NUM
+				AND IVPC.DEPT_CD  = POPY.DEPT_CD
+				AND IVPC.PAY_CNT  = POPY.PAY_CNT
+				AND IVPC.PY_BUYER_CD = IVAP.PY_BUYER_CD
+				AND IVPC.PY_DEPT_CD  = IVAP.PY_DEPT_CD
+				AND IVPC.DEL_FLAG = '0')
+			WHERE IVAP.GATE_CD  = #{ses.gateCd}
+			  AND IVAP.BUYER_CD = #{BUYER_CD} 
+			  AND IVAP.AP_NUM = #{AP_NUM}
+			  AND IVAP.DEL_FLAG = '0'
+		UNION
+			SELECT
+				  IVHD.ATT_FILE_NUM2 AS UUID
+			FROM STOCIVAP IVAP
+			JOIN STOCIVGH IVGH
+				ON (IVGH.GATE_CD  = IVAP.GATE_CD
+				AND IVGH.BUYER_CD = IVAP.BUYER_CD
+				AND IVGH.INV_NUM  = IVAP.INV_NUM
+				AND IVGH.DEL_FLAG = '0')
+			JOIN STOCIVHD IVHD
+				ON (IVHD.GATE_CD  = IVGH.GATE_CD
+				AND IVHD.BUYER_CD = IVGH.BUYER_CD
+				AND IVHD.INV_NUM  = IVGH.INV_NUM
+				AND IVHD.DEL_FLAG = '0')
+			JOIN STOCPOHD POHD
+				ON (POHD.GATE_CD  = IVHD.GATE_CD
+				AND POHD.BUYER_CD = IVHD.BUYER_CD
+				AND POHD.PO_NUM   = IVGH.PO_NUM
+				AND POHD.DEL_FLAG = '0')
+			JOIN STOCPOPY POPY
+				ON (POPY.GATE_CD  = IVAP.GATE_CD
+				AND POPY.BUYER_CD = IVAP.BUYER_CD
+				AND POPY.PO_NUM   = IVAP.PO_NUM
+				AND POPY.PAY_CNT  = IVAP.PAY_CNT
+				AND POPY.DEL_FLAG = '0')
+			LEFT JOIN STOCIVPC IVPC
+				ON (IVPC.GATE_CD  = POPY.GATE_CD
+				AND IVPC.BUYER_CD = POPY.BUYER_CD
+				AND IVPC.INV_NUM  = IVHD.INV_NUM
+				AND IVPC.PO_NUM   = POPY.PO_NUM
+				AND IVPC.DEPT_CD  = POPY.DEPT_CD
+				AND IVPC.PAY_CNT  = POPY.PAY_CNT
+				AND IVPC.PY_BUYER_CD = IVAP.PY_BUYER_CD
+				AND IVPC.PY_DEPT_CD  = IVAP.PY_DEPT_CD
+				AND IVPC.DEL_FLAG = '0')
+			WHERE IVAP.GATE_CD  = #{ses.gateCd}
+			  AND IVAP.BUYER_CD = #{BUYER_CD} 
+			  AND IVAP.AP_NUM = #{AP_NUM}
+			  AND IVAP.DEL_FLAG = '0'
+		UNION
+			SELECT
+				  IVAP.PAY_ATT_FILE_NUM AS UUID
+			FROM STOCIVAP IVAP
+			JOIN STOCIVGH IVGH
+				ON (IVGH.GATE_CD  = IVAP.GATE_CD
+				AND IVGH.BUYER_CD = IVAP.BUYER_CD
+				AND IVGH.INV_NUM  = IVAP.INV_NUM
+				AND IVGH.DEL_FLAG = '0')
+			JOIN STOCIVHD IVHD
+				ON (IVHD.GATE_CD  = IVGH.GATE_CD
+				AND IVHD.BUYER_CD = IVGH.BUYER_CD
+				AND IVHD.INV_NUM  = IVGH.INV_NUM
+				AND IVHD.DEL_FLAG = '0')
+			JOIN STOCPOHD POHD
+				ON (POHD.GATE_CD  = IVHD.GATE_CD
+				AND POHD.BUYER_CD = IVHD.BUYER_CD
+				AND POHD.PO_NUM   = IVGH.PO_NUM
+				AND POHD.DEL_FLAG = '0')
+			JOIN STOCPOPY POPY
+				ON (POPY.GATE_CD  = IVAP.GATE_CD
+				AND POPY.BUYER_CD = IVAP.BUYER_CD
+				AND POPY.PO_NUM   = IVAP.PO_NUM
+				AND POPY.PAY_CNT  = IVAP.PAY_CNT
+				AND POPY.DEL_FLAG = '0')
+			LEFT JOIN STOCIVPC IVPC
+				ON (IVPC.GATE_CD  = POPY.GATE_CD
+				AND IVPC.BUYER_CD = POPY.BUYER_CD
+				AND IVPC.INV_NUM  = IVHD.INV_NUM
+				AND IVPC.PO_NUM   = POPY.PO_NUM
+				AND IVPC.DEPT_CD  = POPY.DEPT_CD
+				AND IVPC.PAY_CNT  = POPY.PAY_CNT
+				AND IVPC.PY_BUYER_CD = IVAP.PY_BUYER_CD
+				AND IVPC.PY_DEPT_CD  = IVAP.PY_DEPT_CD
+				AND IVPC.DEL_FLAG = '0')
+			WHERE IVAP.GATE_CD  = #{ses.gateCd}
+			  AND IVAP.BUYER_CD = #{BUYER_CD} 
+			  AND IVAP.AP_NUM = #{AP_NUM}
+			  AND IVAP.DEL_FLAG = '0'
+		UNION	  
+			SELECT
+				  IVAP.BILL_ATT_FILE_NUM AS UUID
+			FROM STOCIVAP IVAP
+			JOIN STOCIVGH IVGH
+				ON (IVGH.GATE_CD  = IVAP.GATE_CD
+				AND IVGH.BUYER_CD = IVAP.BUYER_CD
+				AND IVGH.INV_NUM  = IVAP.INV_NUM
+				AND IVGH.DEL_FLAG = '0')
+			JOIN STOCIVHD IVHD
+				ON (IVHD.GATE_CD  = IVGH.GATE_CD
+				AND IVHD.BUYER_CD = IVGH.BUYER_CD
+				AND IVHD.INV_NUM  = IVGH.INV_NUM
+				AND IVHD.DEL_FLAG = '0')
+			JOIN STOCPOHD POHD
+				ON (POHD.GATE_CD  = IVHD.GATE_CD
+				AND POHD.BUYER_CD = IVHD.BUYER_CD
+				AND POHD.PO_NUM   = IVGH.PO_NUM
+				AND POHD.DEL_FLAG = '0')
+			JOIN STOCPOPY POPY
+				ON (POPY.GATE_CD  = IVAP.GATE_CD
+				AND POPY.BUYER_CD = IVAP.BUYER_CD
+				AND POPY.PO_NUM   = IVAP.PO_NUM
+				AND POPY.PAY_CNT  = IVAP.PAY_CNT
+				AND POPY.DEL_FLAG = '0')
+			LEFT JOIN STOCIVPC IVPC
+				ON (IVPC.GATE_CD  = POPY.GATE_CD
+				AND IVPC.BUYER_CD = POPY.BUYER_CD
+				AND IVPC.INV_NUM  = IVHD.INV_NUM
+				AND IVPC.PO_NUM   = POPY.PO_NUM
+				AND IVPC.DEPT_CD  = POPY.DEPT_CD
+				AND IVPC.PAY_CNT  = POPY.PAY_CNT
+				AND IVPC.PY_BUYER_CD = IVAP.PY_BUYER_CD
+				AND IVPC.PY_DEPT_CD  = IVAP.PY_DEPT_CD
+				AND IVPC.DEL_FLAG = '0')
+			WHERE IVAP.GATE_CD  = #{ses.gateCd}
+			  AND IVAP.BUYER_CD = #{BUYER_CD} 
+			  AND IVAP.AP_NUM = #{AP_NUM}
+			  AND IVAP.DEL_FLAG = '0'
+		UNION
+			SELECT
+				  (SELECT ATT_FILE_NUM FROM STOCATTS WHERE VENDOR_CD = IVHD.VENDOR_CD AND BUYER_CD = '1000' AND GATE_CD = '100' AND DEL_FLAG = '0' AND TMPL_SQ = '1') AS UUID	
+			FROM STOCIVAP IVAP
+			JOIN STOCIVGH IVGH
+				ON (IVGH.GATE_CD  = IVAP.GATE_CD
+				AND IVGH.BUYER_CD = IVAP.BUYER_CD
+				AND IVGH.INV_NUM  = IVAP.INV_NUM
+				AND IVGH.DEL_FLAG = '0')
+			JOIN STOCIVHD IVHD
+				ON (IVHD.GATE_CD  = IVGH.GATE_CD
+				AND IVHD.BUYER_CD = IVGH.BUYER_CD
+				AND IVHD.INV_NUM  = IVGH.INV_NUM
+				AND IVHD.DEL_FLAG = '0')
+			JOIN STOCPOHD POHD
+				ON (POHD.GATE_CD  = IVHD.GATE_CD
+				AND POHD.BUYER_CD = IVHD.BUYER_CD
+				AND POHD.PO_NUM   = IVGH.PO_NUM
+				AND POHD.DEL_FLAG = '0')
+			JOIN STOCPOPY POPY
+				ON (POPY.GATE_CD  = IVAP.GATE_CD
+				AND POPY.BUYER_CD = IVAP.BUYER_CD
+				AND POPY.PO_NUM   = IVAP.PO_NUM
+				AND POPY.PAY_CNT  = IVAP.PAY_CNT
+				AND POPY.DEL_FLAG = '0')
+			LEFT JOIN STOCIVPC IVPC
+				ON (IVPC.GATE_CD  = POPY.GATE_CD
+				AND IVPC.BUYER_CD = POPY.BUYER_CD
+				AND IVPC.INV_NUM  = IVHD.INV_NUM
+				AND IVPC.PO_NUM   = POPY.PO_NUM
+				AND IVPC.DEPT_CD  = POPY.DEPT_CD
+				AND IVPC.PAY_CNT  = POPY.PAY_CNT
+				AND IVPC.PY_BUYER_CD = IVAP.PY_BUYER_CD
+				AND IVPC.PY_DEPT_CD  = IVAP.PY_DEPT_CD
+				AND IVPC.DEL_FLAG = '0')
+			WHERE IVAP.GATE_CD  = #{ses.gateCd}
+			  AND IVAP.BUYER_CD = #{BUYER_CD} 
+			  AND IVAP.AP_NUM = #{AP_NUM}
+			  AND IVAP.DEL_FLAG = '0'
+    	) A  
+    </select>
+
+</mapper>

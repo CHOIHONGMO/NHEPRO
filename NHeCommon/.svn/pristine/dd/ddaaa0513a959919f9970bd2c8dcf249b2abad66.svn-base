@@ -1,0 +1,2106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.common.login.LoginMapper">
+
+    <resultMap id="baseInfoResult" type="baseInfo">
+        <result property="gateCd" column="GATE_CD"/>
+        <result property="manageCd" column="MANAGE_CD"/>
+        <result property="userId" column="USER_ID"/>
+        <result property="userNm" column="USER_NM" typeHandler="com.st_ones.common.mybatis.EverStringTypeHandler" />
+        <result property="userNmEng" column="USER_NM_ENG" typeHandler="com.st_ones.common.mybatis.EverStringTypeHandler"/>
+        <result property="companyCd" column="COMPANY_CD"/>
+        <result property="companyNm" column="COMPANY_NM" typeHandler="com.st_ones.common.mybatis.EverStringTypeHandler" />
+        <result property="relatYn" column="RELAT_YN"/>
+        <result property="companyNmEng" column="COMPANY_NM_ENG" typeHandler="com.st_ones.common.mybatis.EverStringTypeHandler" />
+        <result property="deptCd" column="DEPT_CD"/>
+        <result property="deptNm" column="DEPT_NM" typeHandler="com.st_ones.common.mybatis.EverStringTypeHandler" />
+        <result property="deptNmEng" column="DEPT_NM_ENG" typeHandler="com.st_ones.common.mybatis.EverStringTypeHandler"/>
+        <result property="dutyCd" column="DUTY_CD" />
+        <result property="dutyNm" column="DUTY_NM" typeHandler="com.st_ones.common.mybatis.EverStringTypeHandler" />
+        <result property="email" column="EMAIL"/>
+        <result property="telNum" column="TEL_NUM"/>
+        <result property="cellNum" column="CELL_NUM"/>
+        <result property="faxNum" column="FAX_NUM"/>
+        <result property="userType" column="USER_TYPE"/>
+        <result property="langCd" column="LANG_CD"/>
+        <result property="workType" column="WORK_TYPE"/>
+        <result property="databaseCd" column="DATABASE_CD"/>
+        <result property="grantedAuthCd" column="GRANTED_AUTH_CD"/>
+        <result property="actionAuthCd" column="ACTION_AUTH_CD"/>
+        <result property="ctrlCd" column="CTRL_CD"/>
+        <result property="finCtrlCd" column="FIN_CTRL_CD"/>
+        <result property="countryCd" column="COUNTRY_CD"/>
+        <result property="userGmt" column="GMT_CD"/>
+        <result property="dateFormat" column="USER_DATE_FORMAT_CD"/>
+        <result property="lastLoginDate" column="VALID_LAST_LOGIN_DATE"/>
+        <result property="irsNum" column="IRS_NUM"/>
+        <result property="dateValueFormat" column="USER_DATE_VAULE_FORMAT"/>
+        <result property="numberFormat" column="USER_NUMBER_FORMAT_CD"/>
+        <result property="validUserProfile" column="VALID_USER_PROFILE"/>
+        <result property="superUserFlag" column="SUPER_USER_FLAG"/>
+        <result property="mngYn" column="MNG_YN"/>
+        <result property="accCd" column="ACC_CODE"/>
+        <result property="autoPoFlag" column="AUTO_PO_FLAG"/>
+        <result property="blockFlag" column="BLOCK_FLAG"/>
+        <result property="budgetDeptCode" column="BUDGET_DEPT_CD"/>
+        <result property="budgetFlag" column="BUDGET_FLAG"/>
+        <result property="buyerApproveUseFlag" column="APPROVE_USE_FLAG"/>
+        <result property="buyerBudgetUseFlag" column="BUDGET_USE_FLAG"/>
+        <result property="buyerMySiteFlag" column="BUYER_MY_SITE_FLAG"/>
+        <result property="buyerTierCode" column="TIER_CD"/>
+        <result property="buyerWmsFlag" column="WMS_FLAG"/>
+        <result property="financialFlag" column="FINANCIAL_FLAG"/>
+        <result property="grFlag" column="GR_FLAG"/>
+        <result property="mailFlag" column="MAIL_FLAG"/>
+        <result property="mySiteFlag" column="MY_SITE_FLAG"/>
+        <result property="selectFlag" column="SELECT_FLAG"/>
+        <result property="smsFlag" column="SMS_FLAG"/>
+        <result property="wmsFlag" column="WMS_FLAG"/>
+        <result property="zipCd" column="ZIP_CD"/>
+        <result property="addr1" column="ADDR1"/>
+        <result property="addr2" column="ADDR2"/>
+        <result property="employeeNum" column="EMPLOYEE_NUM" typeHandler="com.st_ones.common.mybatis.EverStringTypeHandler" />
+        <result property="positionNm" column="POSITION_NM" typeHandler="com.st_ones.common.mybatis.EverStringTypeHandler" />
+        <result property="gwUseFlag" column="GW_USE_FLAG" />
+        <result property="progressCd" column="PROGRESS_CD" />
+
+        <result property="corpType" column="CORP_TYPE" />
+        <result property="useFlag" column="USE_FLAG" />
+        <result property="pwdValid" column="PWD_VALID" javaType="java.lang.Boolean" />
+        <result property="pwResetFlag" column="PW_RESET_FLAG" />
+
+    </resultMap>
+
+    <select id="getNoticeList" parameterType="hashMap" resultType="hashMap">
+        SELECT A.SUBJECT, A.REG_DATE, A.NOTICE_NUM, A.GATE_CD, A.NOTICE_TEXT_NUM
+		FROM (
+		    SELECT
+		          NOTC.SUBJECT
+		        , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'yyyyMMdd') AS REG_DATE
+		        , NOTC.NOTICE_NUM
+		        , NOTC.GATE_CD
+		        , NOTC.NOTICE_TEXT_NUM
+	    		, ROW_NUMBER() OVER(ORDER BY <include refid="common.sql.nvl"/>(NOTC.FIXED_TOP_FLAG, '0') DESC, NOTC.REG_DATE DESC) AS ROW_NUM
+		    FROM STOCNOTC NOTC
+		    WHERE NOTC.GATE_CD = #{ses.gateCd}
+		      AND NOTC.DEL_FLAG = '0'
+		      AND NOTC.NOTICE_TYPE IN ('PCN', 'PCP')
+		      AND NOTC.USER_TYPE IN ('USNA', 'USNE', 'USXX')
+	          AND NOTC.START_DATE <![CDATA[<=]]> SYSDATE
+	          AND NOTC.END_DATE <![CDATA[>=]]> SYSDATE
+		) A
+		WHERE A.ROW_NUM <![CDATA[<=]]> 7
+    </select>
+
+    <select id="getNoticeListSubStr" parameterType="hashMap" resultType="hashMap">
+
+        <if test="_databaseId == 'oracle'">
+
+            SELECT A.SUBJECT, A.REG_DATE, A.NOTICE_NUM, A.GATE_CD, A.NOTICE_TEXT_NUM
+            FROM (
+                SELECT
+                      (CASE WHEN <include refid="common.sql.length"/>(NOTC.SUBJECT) <![CDATA[>]]> 15 THEN (SELECT SUBSTR(NOTC.SUBJECT, 0, 15 -
+                                                                            MOD(SUM(CASE WHEN ASCII(SUBSTR(NOTC.SUBJECT, ROWNUM, 1)) <![CDATA[>=]]> 128
+                                                                                         THEN 1 ELSE 0
+                                                                                         END), 2))
+                                                                   FROM STOCCODD -- 데이터가 충분히 많은 임의의 테이블
+                                                                  WHERE ROWNUM <![CDATA[<=]]> 15)
+                            ELSE NOTC.SUBJECT END) AS SUBJECT
+                    , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'yyyy/MM/dd') AS REG_DATE
+                    , NOTC.NOTICE_NUM
+                    , NOTC.GATE_CD
+                    , NOTC.NOTICE_TEXT_NUM
+                    , ROW_NUMBER() OVER(ORDER BY <include refid="common.sql.nvl"/>(NOTC.FIXED_TOP_FLAG, '0') DESC, NOTC.REG_DATE DESC) AS ROW_NUM
+                FROM STOCNOTC NOTC
+                WHERE NOTC.GATE_CD = #{ses.gateCd}
+                  AND NOTC.DEL_FLAG = '0'
+                  AND NOTC.NOTICE_TYPE IN ('PCN', 'PCP')
+                  AND NOTC.USER_TYPE IN ('USNA', 'USNE', 'USXX')
+                  AND NOTC.START_DATE <![CDATA[<=]]> SYSDATE
+                  AND NOTC.END_DATE <![CDATA[>=]]> SYSDATE
+            ) A
+            WHERE A.ROW_NUM <![CDATA[<=]]> 7
+
+        </if>
+        <if test="_databaseId == 'mssql'">
+
+            SELECT A.SUBJECT, A.REG_DATE, A.NOTICE_NUM, A.GATE_CD, A.NOTICE_TEXT_NUM
+            FROM (
+                SELECT
+                      (CASE WHEN <include refid="common.sql.length"/>(NOTC.SUBJECT) <![CDATA[>]]> 15 THEN (SELECT SUBSTR(NOTC.SUBJECT, 0, 15 -
+                                                                            MOD(SUM(CASE WHEN ASCII(SUBSTR(NOTC.SUBJECT, ROWNUM, 1)) <![CDATA[>=]]> 128
+                                                                                         THEN 1 ELSE 0
+                                                                                         END), 2))
+                                                                   FROM STOCCODD -- 데이터가 충분히 많은 임의의 테이블
+                                                                  WHERE ROWNUM <![CDATA[<=]]> 15)
+                            ELSE NOTC.SUBJECT END) AS SUBJECT
+                    , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'yyyy/MM/dd') AS REG_DATE
+                    , NOTC.NOTICE_NUM
+                    , NOTC.GATE_CD
+                    , NOTC.NOTICE_TEXT_NUM
+                    , ROW_NUMBER() OVER(ORDER BY <include refid="common.sql.nvl"/>(NOTC.FIXED_TOP_FLAG, '0') DESC, NOTC.REG_DATE DESC) AS ROW_NUM
+                FROM STOCNOTC NOTC
+                WHERE NOTC.GATE_CD = #{ses.gateCd}
+                  AND NOTC.DEL_FLAG = '0'
+                  AND NOTC.NOTICE_TYPE IN ('PCN', 'PCP')
+                  AND NOTC.USER_TYPE IN ('USNA', 'USNE', 'USXX')
+                  AND NOTC.START_DATE <![CDATA[<=]]> SYSDATE
+                  AND NOTC.END_DATE <![CDATA[>=]]> SYSDATE
+            ) A
+            WHERE A.ROW_NUM <![CDATA[<=]]> 7
+
+        </if>
+    </select>
+
+    <select id="getNoticeListPopup" parameterType="hashmap" resultType="java.util.Map">
+
+        SELECT A.*
+		FROM (
+		    SELECT
+		          NOTC.NOTICE_NUM
+		        , NOTC.NOTICE_TEXT_NUM
+		        , NOTC.GATE_CD
+                , NOTC.FIXED_TOP_FLAG
+                , NOTC.REG_DATE
+                , NOTC.SUBJECT
+		     FROM STOCNOTC NOTC
+		    WHERE NOTC.GATE_CD = #{ses.gateCd}
+		      AND NOTC.DEL_FLAG = '0'
+		      AND NOTC.NOTICE_TYPE IN (#{NOTICE_TYPE})
+		      AND NOTC.USER_TYPE IN ('USNA', #{USER_TYPE})
+		      AND <include refid="common.sql.toChar"/>(NOTC.START_DATE, 'YYYYMMDD') <![CDATA[<=]]> <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD')
+		      AND <include refid="common.sql.toChar"/>(NOTC.END_DATE, 'YYYYMMDD') <![CDATA[>=]]> <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD')
+		) A
+        ORDER BY <include refid="common.sql.nvl"/>(A.FIXED_TOP_FLAG, '0') DESC, A.REG_DATE DESC, A.NOTICE_NUM DESC, A.SUBJECT
+
+    </select>
+
+    <select id="getUserAllColumns" parameterType="hashMap" resultType="hashMap">
+
+    	SELECT A.*
+            ,<include refid="common.sql.dbo"/>getDeptName(A.GATE_CD, A.COMPANY_CD, A.DEPT_CD, A.LANG_CD) AS DEPT_NM
+    	FROM (
+	    	SELECT *
+	    	FROM STOCUSER
+	    	WHERE GATE_CD = #{GATE_CD}
+	    	  AND UPPER(USER_ID) = UPPER(#{USER_ID})
+	    	  AND DEL_FLAG = '0'
+	    	  AND USE_FLAG = '1'
+	    ) A
+
+	</select>
+
+    <select id="getVendorUserList" parameterType="hashMap" resultType="hashMap">
+
+    	SELECT
+    		USER_ID
+    	FROM STOCUSER
+    	WHERE USER_TYPE = 'S'
+    	  AND USER_ID = '2208860712'
+
+	</select>
+
+    <select id="getFaqList" parameterType="hashMap" resultType="hashMap">
+
+        SELECT A.SUBJECT, A.REG_DATE, A.NOTICE_NUM, A.GATE_CD, A.NOTICE_TEXT_NUM
+		FROM (
+		    SELECT
+		          NOTC.SUBJECT
+		        , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'yyyy/MM/dd') AS REG_DATE
+		        , NOTC.NOTICE_NUM
+		        , NOTC.GATE_CD
+		        , NOTC.NOTICE_TEXT_NUM
+	    		, ROW_NUMBER() OVER(ORDER BY <include refid="common.sql.nvl"/>(NOTC.FIXED_TOP_FLAG, '0') DESC, NOTC.REG_DATE DESC) AS ROW_NUM
+		    FROM STOCNOTC NOTC
+		    WHERE NOTC.GATE_CD = #{ses.gateCd}
+		      AND NOTC.DEL_FLAG = '0'
+		      AND NOTC.NOTICE_TYPE = UPPER(<include refid="common.sql.dbo"/>SF_TRIM('PCF'))
+		      AND NOTC.USER_TYPE IN ('USNA', 'USNE', 'USXX')
+	          AND NOTC.START_DATE <![CDATA[<=]]> SYSDATE
+	          AND NOTC.END_DATE <![CDATA[>=]]> SYSDATE
+		) A
+		<![CDATA[ WHERE A.ROW_NUM <= 7]]>
+    </select>
+
+    <select id="getFaqListSubStr" parameterType="hashMap" resultType="hashMap">
+
+        <if test="_databaseId == 'oracle'">
+
+            SELECT A.SUBJECT, A.REG_DATE, A.NOTICE_NUM, A.GATE_CD, A.NOTICE_TEXT_NUM
+            FROM (
+                SELECT
+                      (CASE WHEN <include refid="common.sql.length"/>(NOTC.SUBJECT) <![CDATA[>]]> 15 THEN (SELECT SUBSTR(NOTC.SUBJECT, 0, 15 -
+                                                                        MOD(SUM(CASE WHEN ASCII(SUBSTR(NOTC.SUBJECT, ROWNUM, 1)) <![CDATA[>=]]> 128
+                                                                                     THEN 1 ELSE 0
+                                                                                     END), 2))
+                                                                   FROM STOCCODD -- 데이터가 충분히 많은 임의의 테이블
+                                                                  WHERE ROWNUM <![CDATA[<=]]> 15)
+                           ELSE NOTC.SUBJECT END) AS SUBJECT
+                    , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'yyyy/MM/dd') AS REG_DATE
+                    , NOTC.NOTICE_NUM
+                    , NOTC.GATE_CD
+                    , NOTC.NOTICE_TEXT_NUM
+                    , ROW_NUMBER() OVER(ORDER BY <include refid="common.sql.nvl"/>(NOTC.FIXED_TOP_FLAG, '0') DESC, NOTC.REG_DATE DESC) AS ROW_NUM
+                FROM STOCNOTC NOTC
+                WHERE NOTC.GATE_CD = #{ses.gateCd}
+                  AND NOTC.DEL_FLAG = '0'
+                  AND NOTC.NOTICE_TYPE = UPPER(<include refid="common.sql.dbo"/>SF_TRIM('PCF'))
+                  AND NOTC.USER_TYPE IN ('USNA', 'USNE', 'USXX')
+                  AND NOTC.START_DATE <![CDATA[<=]]> SYSDATE
+                  AND NOTC.END_DATE <![CDATA[>=]]> SYSDATE
+            ) A
+            WHERE A.ROW_NUM <![CDATA[<=]]> 7
+
+        </if>
+        <if test="_databaseId == 'mssql'">
+
+            SELECT A.SUBJECT, A.REG_DATE, A.NOTICE_NUM, A.GATE_CD, A.NOTICE_TEXT_NUM
+            FROM (
+                SELECT
+                      (CASE WHEN <include refid="common.sql.length"/>(NOTC.SUBJECT) <![CDATA[>]]> 15 THEN (SELECT SUBSTR(NOTC.SUBJECT, 0, 15 -
+                                                                        MOD(SUM(CASE WHEN ASCII(SUBSTR(NOTC.SUBJECT, ROWNUM, 1)) <![CDATA[>=]]> 128
+                                                                                     THEN 1 ELSE 0
+                                                                                     END), 2))
+                                                                   FROM STOCCODD -- 데이터가 충분히 많은 임의의 테이블
+                                                                  WHERE ROWNUM <![CDATA[<=]]> 15)
+                           ELSE NOTC.SUBJECT END) AS SUBJECT
+                    , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'yyyy/MM/dd') AS REG_DATE
+                    , NOTC.NOTICE_NUM
+                    , NOTC.GATE_CD
+                    , NOTC.NOTICE_TEXT_NUM
+                    , ROW_NUMBER() OVER(ORDER BY <include refid="common.sql.nvl"/>(NOTC.FIXED_TOP_FLAG, '0') DESC, NOTC.REG_DATE DESC) AS ROW_NUM
+                FROM STOCNOTC NOTC
+                WHERE NOTC.GATE_CD = #{ses.gateCd}
+                  AND NOTC.DEL_FLAG = '0'
+                  AND NOTC.NOTICE_TYPE = UPPER(<include refid="common.sql.dbo"/>SF_TRIM('PCF'))
+                  AND NOTC.USER_TYPE IN ('USNA', 'USNE', 'USXX')
+                  AND NOTC.START_DATE <![CDATA[<=]]> SYSDATE
+                  AND NOTC.END_DATE <![CDATA[>=]]> SYSDATE
+            ) A
+            WHERE A.ROW_NUM <![CDATA[<=]]> 7
+
+        </if>
+    </select>
+
+	<!-- 로그인한 사용자의 아이디 검증 -->
+	<select id="findUserId" parameterType="loginSearch" resultType="java.lang.String">
+
+        SELECT <include refid="common.sql.nvl"/>(A.USER_TYPE, '999') AS USER_TYPE
+        FROM (
+            SELECT USER_TYPE
+              FROM STOCUSER
+             WHERE GATE_CD = #{gateCd}
+               AND UPPER(USER_ID) = UPPER(#{userId})
+            UNION ALL
+            SELECT USER_TYPE
+              FROM STOCCVUR
+             WHERE GATE_CD = #{gateCd}
+               AND UPPER(USER_ID) = UPPER(#{userId})
+        ) A
+
+    </select>
+
+
+	<select id="getDecUserId" parameterType="loginSearch" resultType="java.lang.String">
+		SELECT <include refid="common.sql.strDecStart"/>#{userId}<include refid="common.sql.strDecEnd"/> FROM DUAL
+		WHERE NOT EXISTS (
+		        SELECT '1' AS USER_TYPE
+		        FROM (
+		            SELECT USER_TYPE
+		              FROM STOCUSER
+		             WHERE GATE_CD = #{gateCd}
+		               AND UPPER(USER_ID) = UPPER(#{userId})
+		            UNION ALL
+		            SELECT USER_TYPE
+		              FROM STOCCVUR
+		             WHERE GATE_CD = #{gateCd}
+		               AND UPPER(USER_ID) = UPPER(#{userId})
+		        ) A
+		)
+
+    </select>
+
+	<!-- 로그인한 사용자의 비밀번호 검증 -->
+    <select id="findUserIdPW" parameterType="loginSearch" resultType="java.lang.String">
+
+        SELECT COUNT(*)
+          FROM (
+            SELECT USER_ID
+              FROM STOCUSER
+             WHERE GATE_CD = #{gateCd}
+               AND UPPER(USER_ID) = UPPER(#{userId})
+            <if test="sessionChange != 'true' and ssoFlag != 'true' and !(password eq 'MjJjZjBlYjEzNTYwOTYyM2E5NTU5YTM2MjU3YTA5NGMxNzA2ZDA4ZTE1ZWE0YzQwNjMyOWY1ZmFkOGU2ZDZlMA==')">
+               AND PASSWORD = #{password}
+            </if>
+
+            UNION ALL
+
+            SELECT USER_ID
+              FROM STOCCVUR
+             WHERE GATE_CD = #{gateCd}
+               AND UPPER(USER_ID) = UPPER(#{userId})
+			<if test="sessionChange != 'true' and ssoFlag != 'true' and !(password eq 'MjJjZjBlYjEzNTYwOTYyM2E5NTU5YTM2MjU3YTA5NGMxNzA2ZDA4ZTE1ZWE0YzQwNjMyOWY1ZmFkOGU2ZDZlMA==')">
+               AND PASSWORD = #{password}
+            </if>
+        ) A
+    </select>
+
+	<!-- 로그인한 사용자의 유형 검증 -->
+	<select id="findUserType" parameterType="loginSearch" resultType="hashMap">
+
+		SELECT A.USER_TYPE
+			 , A.RELAT_YN
+			 , A.COMPANY_CD
+		  FROM (
+			SELECT U.USER_TYPE
+				 , '' AS RELAT_YN
+				 , U.COMPANY_CD
+		      FROM STOCUSER U
+		     WHERE U.GATE_CD = #{GATE_CD}
+		       AND UPPER(U.USER_ID) = UPPER(#{USER_ID})
+
+		    UNION ALL
+			
+		    SELECT USER_TYPE
+		    	 ,(CASE WHEN USER_TYPE = 'B' THEN (SELECT <include refid="common.sql.nvl"/>(RELAT_YN, '0')
+		    	 									 FROM STOCCUST
+		    	 								    WHERE GATE_CD = R.GATE_CD
+		    	 								      AND CUST_CD = R.COMPANY_CD)
+		    	 		ELSE (SELECT <include refid="common.sql.nvl"/>(RELAT_YN, '1')
+		    	 				FROM STOCVNGL
+		    	 			   WHERE GATE_CD   = R.GATE_CD
+		    	 			     AND VENDOR_CD = R.COMPANY_CD)
+		    	   END) AS RELAT_YN	-- 선불(비농협=1)/후불(농협=0) 구분
+		    	 ,R.COMPANY_CD  
+		      FROM STOCCVUR R
+		     WHERE R.GATE_CD = #{GATE_CD}
+		       AND UPPER(R.USER_ID) = UPPER(#{USER_ID})
+		  ) A
+		 WHERE ROWNUM = 1
+    </select>
+	
+	<!-- 2021.02.17 기능 추가 -->
+	<!-- 사용자 이용약관 동의여부 가져오기 -->
+	<!-- 시스템이용동의서 : 선불 => 사용자별 이용동의서 체크, 후불 => 고객별 이용동의서 체크 -->
+	<!-- ASP계약 대상 : "0", 이용동의대상 : "2" -->
+	<!-- 2022.05.16 추가 ajk 부서별 ASP이용 대상 확인 -->		
+    <select id="checkAgree" parameterType="hashMap" resultType="java.lang.String">
+
+        SELECT (CASE WHEN #{RELAT_YN} = '0' -- 농협
+						  THEN (CASE WHEN TO_NUMBER(A.COMP_AGREE_COUNT) > 0 
+						  				  THEN (CASE WHEN A.USER_AGREE_COUNT > 0 THEN '1' ELSE '2' END)
+						  			 ELSE '0'
+						  		END)
+        			 ELSE (CASE WHEN A.USER_AGREE_COUNT > 0 THEN '1' ELSE '2' END)
+        		END) AS AGREE_YN
+          FROM (
+            SELECT
+            	  U.USER_ID
+                , U.PASSWORD
+                ,<include refid="common.sql.nvl"/>(U.AGREE_YN,'0') AS AGREE_YN
+                , 1 AS USER_AGREE_COUNT		-- 운영사 : 시스템 이용동의서 체크에서 제외
+                , 1 AS COMP_AGREE_COUNT
+              FROM STOCUSER U
+             WHERE U.GATE_CD  = #{GATE_CD}
+               AND UPPER(U.USER_ID) = UPPER(#{USER_ID})
+               AND U.PASSWORD = #{PPDD}
+               AND U.DEL_FLAG = '0'
+            
+            UNION ALL
+            
+            SELECT
+            	  R.USER_ID
+                , R.PASSWORD
+                ,<include refid="common.sql.nvl"/>(R.AGREE_YN,'0') AS AGREE_YN
+                ,(SELECT COUNT(*) FROM STOCCMSV A
+   				    JOIN STOCNOTC B
+   						 ON (A.GATE_CD  = B.GATE_CD
+   						 AND A.FORM_NUM = B.NOTICE_NUM
+   						 AND TO_CHAR(B.START_DATE, 'yyyyMMdd') <![CDATA[<=]]> TO_CHAR(SYSDATE, 'yyyyMMdd')
+						 AND TO_CHAR(B.END_DATE, 'yyyyMMdd')   <![CDATA[>=]]> TO_CHAR(SYSDATE, 'yyyyMMdd')
+						 AND B.FIXED_TOP_FLAG = '1'	-- 최종여부
+						 AND B.POPUP_FLAG     = '1'	-- 확정여부(확정=1)
+   						 AND B.DEL_FLAG = '0') 
+   				   WHERE A.GATE_CD    = R.GATE_CD 
+   				     AND A.COMPANY_CD = R.COMPANY_CD 
+   				     AND A.SIGN_ID    = R.USER_ID
+   				     AND A.PROGRESS_CD= 'E') AS USER_AGREE_COUNT	-- 사용자 이용동의여부
+                ,(SELECT COUNT(*) FROM STOCCMSV A
+  				    JOIN STOCNOTC B
+  						 ON (A.GATE_CD  = B.GATE_CD
+  						 AND A.FORM_NUM = B.NOTICE_NUM	        				   				       						   						 
+  						 AND TO_CHAR(B.START_DATE, 'yyyyMMdd') <![CDATA[<=]]> TO_CHAR(SYSDATE, 'yyyyMMdd')
+						 AND TO_CHAR(B.END_DATE, 'yyyyMMdd')   <![CDATA[>=]]> TO_CHAR(SYSDATE, 'yyyyMMdd')
+						 AND B.FIXED_TOP_FLAG = '1'	-- 최종여부
+						 AND B.POPUP_FLAG     = '1'	-- 확정여부(확정=1)
+						 AND B.NOTICE_NUM = #{ASP_NOTICE_NUM}
+    					 AND B.DEL_FLAG = '0') 
+   				   WHERE A.GATE_CD    = R.GATE_CD 
+   				     AND A.COMPANY_CD = R.COMPANY_CD
+   				     AND A.COMPANY_CD != 'C00007'
+   				     AND A.SIGN_VALUE IS NOT NULL					-- 전자서명완료
+   				     AND A.PROGRESS_CD= 'E') AS COMP_AGREE_COUNT	-- 사업자 전자계약여부
+              FROM STOCCVUR R
+             WHERE R.GATE_CD  = #{GATE_CD}
+               AND UPPER(R.USER_ID) = UPPER(#{USER_ID})
+               AND R.PASSWORD = #{PPDD}
+               AND R.DEL_FLAG = '0'
+          ) A
+         WHERE 1 = 1
+    </select>
+    
+    <!-- 사용자 이용약관 동의여부 가져오기 -->
+    <select id="checkAgree_BACK_20210217" parameterType="hashMap" resultType="java.lang.String">
+
+        SELECT A.AGREE_YN
+          FROM (
+            SELECT
+            	 <include refid="common.sql.nvl"/>(U.AGREE_YN,'0') AS AGREE_YN
+                , U.USER_ID
+                , U.PASSWORD
+              FROM STOCUSER U
+             WHERE U.GATE_CD  = #{GATE_CD}
+               AND UPPER(U.USER_ID) = UPPER(#{USER_ID})
+               AND U.PASSWORD = #{PPDD}
+               AND U.DEL_FLAG = '0'
+            
+            UNION ALL
+            
+            SELECT
+            	 <include refid="common.sql.nvl"/>(R.AGREE_YN,'0') AS AGREE_YN
+                , R.USER_ID
+                , R.PASSWORD
+              FROM STOCCVUR R
+             WHERE R.GATE_CD  = #{GATE_CD}
+               AND UPPER(R.USER_ID) = UPPER(#{USER_ID})
+               AND R.PASSWORD = #{PPDD}
+               AND R.DEL_FLAG = '0'
+          ) A
+         WHERE 1 = 1
+    </select>
+
+    <select id="checkAgree_BS" parameterType="hashMap" resultType="java.lang.String">
+
+        SELECT <include refid="common.sql.nvl"/>(AGREE_YN,'0') AS  AGREE_YN
+          FROM STOCCVUR
+         WHERE UPPER(USER_ID) = upper(#{USER_ID})
+           AND GATE_CD = #{GATE_CD}
+
+    </select>
+	
+	<!-- 운영사 개인정보처리방침 동의여부 -->
+    <update id="ConfirmAgree" parameterType="hashMap">
+
+        UPDATE STOCUSER SET
+               AGREE_YN  = #{checkYN}
+             , AGREE_YN_DATE = SYSDATE
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID}
+    </update>
+
+	<!-- 고객 및 협력사 개인정보처리방침 동의여부 -->
+    <update id="ConfirmAgree_BS" parameterType="hashMap">
+
+        UPDATE STOCCVUR SET
+               AGREE_YN  = #{checkYN}
+             , AGREE_YN_DATE = SYSDATE
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID}
+    </update>
+    
+    <!-- 2021.02.17 추가 -->
+    <!-- 개인정보 및 이용약관, ASP 이용계약 등록 -->
+    <insert id="ConfirmAgreeSV" parameterType="hashMap">
+
+        INSERT INTO STOCCMSV (
+	        GATE_CD
+			, COMPANY_CD
+			, SIGN_ID
+			, SIGN_SQ
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, FORM_NUM
+			, PROGRESS_CD
+			, CONT_START_DATE
+			, CONT_END_DATE
+			, CONT_TEXT_NUM
+			, SIGN_DATE
+			, SIGN_VALUE
+			, VID_RANDOM
+			, USER_TYPE
+			, IRS_NUM
+			, COMPANY_NM
+			, CEO_USER_NM
+			, ZIP_CD
+			, ADDR1
+			, ADDR2
+			, VENDOR_IRS_NUM
+			, VENDOR_NM
+			, VENDOR_CEO_NM
+			, VENDOR_ZIP_CD
+			, VENDOR_ADDR1
+			, VENDOR_ADDR2
+        )
+        SELECT
+	          NOTC.GATE_CD			AS GATE_CD
+			, CVUR.COMPANY_CD		AS COMPANY_CD
+			, CVUR.USER_ID			AS SIGN_ID
+			,<include refid="common.sql.nvl"/>((SELECT MAX(SIGN_SQ) + 1 FROM STOCCMSV 
+												 WHERE GATE_CD = #{GATE_CD}
+												   AND USER_ID = #{USER_ID}), 1) AS SIGN_SQ
+			, SYSDATE				AS REG_DATE
+			, CVUR.USER_ID			AS REG_USER_ID
+			, SYSDATE				AS MOD_DATE
+			, CVUR.USER_ID			AS MOD_USER_ID
+			, NOTC.NOTICE_NUM		AS FORM_NUM
+			, 'E'					AS PROGRESS_CD
+			, NOTC.START_DATE		AS CONT_START_DATE
+			, NOTC.END_DATE			AS CONT_END_DATE
+			, NOTC.NOTICE_TEXT_NUM	AS CONT_TEXT_NUM
+			, SYSDATE				AS SIGN_DATE
+			, #{SIGN_VALUE}			AS SIGN_VALUE
+			, #{VID_RANDOM}			AS VID_RANDOM
+			, CVUR.USER_TYPE		AS USER_TYPE
+			, OGCM.IRS_NUM			AS IRS_NUM
+			, OGCM.BUYER_NM			AS COMPANY_NM
+			, OGCM.CEO_USER_NM		AS CEO_USER_NM
+			, OGCM.ZIP_CD			AS ZIP_CD
+			, OGCM.ADDR				AS ADDR1
+			, NULL					AS ADDR2
+			
+		<choose>
+			<when test='USER_TYPE != "" and USER_TYPE != null and USER_TYPE == "B"'>
+				, CUST.IRS_NUM			AS VENDOR_IRS_NUM
+				, CUST.CUST_NM			AS VENDOR_NM
+				, CUST.CEO_USER_NM		AS VENDOR_CEO_NM
+				, CUST.ZIP_CD			AS VENDOR_ZIP_CD
+				, CUST.ADDR1			AS VENDOR_ADDR1
+				, CUST.ADDR2			AS VENDOR_ADDR2
+	        </when>
+	        <otherwise>
+				, VNGL.IRS_NO			AS VENDOR_IRS_NUM
+				, VNGL.VENDOR_NM		AS VENDOR_NM
+				, VNGL.CEO_USER_NM		AS VENDOR_CEO_NM
+				, VNGL.HQ_ZIP_CD		AS VENDOR_ZIP_CD
+				, VNGL.HQ_ADDR_1		AS VENDOR_ADDR1
+				, VNGL.HQ_ADDR_2		AS VENDOR_ADDR2
+	        </otherwise>
+		</choose>
+		  
+          FROM STOCNOTC NOTC
+          LEFT JOIN STOCOGCM OGCM
+          	   ON (NOTC.GATE_CD  = OGCM.GATE_CD
+          	   AND OGCM.BUYER_CD = #{OPERATOR_CD}
+          	   AND OGCM.DEL_FLAG = '0')
+          LEFT JOIN STOCCVUR CVUR
+          	   ON (NOTC.GATE_CD  = CVUR.GATE_CD
+          	   AND UPPER(CVUR.USER_ID) = UPPER(#{USER_ID})
+          	   AND CVUR.DEL_FLAG = '0')
+          	   
+		<choose>
+			<when test='USER_TYPE != "" and USER_TYPE != null and USER_TYPE == "B"'>
+	      LEFT JOIN STOCCUST CUST
+	      	   ON (CVUR.GATE_CD    = CUST.GATE_CD
+	      	   AND CVUR.COMPANY_CD = CUST.CUST_CD)
+	        </when>
+	        <otherwise>
+	      LEFT JOIN STOCVNGL VNGL
+	      	   ON (CVUR.GATE_CD    = VNGL.GATE_CD
+	      	   AND CVUR.COMPANY_CD = VNGL.VENDOR_CD)
+	        </otherwise>
+		</choose>
+		
+         WHERE NOTC.GATE_CD = #{GATE_CD}
+           AND NOTC.NOTICE_NUM = #{NOTICE_NUM}
+    </insert>
+
+    <select id="getUserAOLogin" parameterType="loginSearch" resultType="hashmap">
+
+    </select>
+
+	<!-- LoginService : 운영사 사용자정보 -->
+    <select id="getUserInfoC" parameterType="loginSearch" resultMap="baseInfoResult">
+
+        SELECT
+               UR.GATE_CD
+              ,UR.COMPANY_CD AS MANAGE_CD
+              ,UR.USER_ID AS USER_ID
+              ,<include refid="common.sql.strDecStart"/>(CASE WHEN UR.LANG_CD = 'KO' THEN UR.USER_NM ELSE UR.USER_NM_ENG END) <include refid="common.sql.strDecEnd"/> AS USER_NM
+              ,UR.USER_NM_ENG AS USER_NM_ENG
+              ,UR.COMPANY_CD
+              ,(SELECT BUYER_NM FROM STOCOGCM WHERE GATE_CD = UR.GATE_CD AND BUYER_CD = UR.COMPANY_CD AND LANG_CD='KO') AS COMPANY_NM
+              ,'' AS RELAT_YN
+              ,(SELECT <include refid="common.sql.nvl"/>(BUYER_NM_ENG, BUYER_NM) FROM STOCOGCM WHERE GATE_CD = UR.GATE_CD AND BUYER_CD = UR.COMPANY_CD) AS COMPANY_NM_ENG
+              ,UR.DEPT_CD
+              ,DP.DEPT_NM
+              ,'' AS DEPT_NM_ENG
+              ,(SELECT OGDP.ACC_CODE FROM STOCOGDP OGDP
+		         WHERE OGDP.GATE_CD = DP.GATE_CD
+		           AND OGDP.BUYER_CD = DP.BUYER_CD
+		           AND OGDP.DEPT_CD = DP.DEPT_CD) AS ACC_CODE
+              ,<include refid="common.sql.strDecStart"/>UR.EMAIL <include refid="common.sql.strDecEnd"/> AS EMAIL
+              ,<include refid="common.sql.strDecStart"/>UR.TEL_NUM  <include refid="common.sql.strDecEnd"/> AS TEL_NUM
+              ,<include refid="common.sql.strDecStart"/>UR.CELL_NUM <include refid="common.sql.strDecEnd"/>  AS CELL_NUM
+              ,UR.USER_TYPE
+              ,UR.LANG_CD
+              ,UR.WORK_TYPE
+              ,UR.COUNTRY_CD
+              ,UR.GMT_CD
+              ,UR.PW_WRONG_CNT
+              ,UR.DUTY_CD
+              ,UR.EMPLOYEE_NUM AS EMPLOYEE_NUM
+              ,UR.DUTY_NM
+              ,(SELECT CD.CODE_DESC
+                  FROM STOCCODD CD
+                 WHERE CD.GATE_CD   = UR.GATE_CD
+                   AND CD.LANG_CD   = UR.LANG_CD
+                   AND CD.CODE_TYPE = 'M054'
+                   AND CD.CODE      = UR.USER_DATE_FORMAT_CD) AS USER_DATE_FORMAT_CD
+              ,(SELECT REPLACE(CD.CODE_DESC, '/', '')
+                  FROM STOCCODD CD
+                 WHERE CD.GATE_CD   = UR.GATE_CD
+                   AND CD.LANG_CD   = UR.LANG_CD
+                   AND CD.CODE_TYPE = 'M054'
+                   AND CD.CODE      = UR.USER_DATE_FORMAT_CD) AS USER_DATE_VAULE_FORMAT
+              ,(SELECT CD.CODE_DESC
+                  FROM STOCCODD CD
+                 WHERE CD.GATE_CD   = UR.GATE_CD
+                   AND CD.LANG_CD   = UR.LANG_CD
+                   AND CD.CODE_TYPE = 'M055'
+                   AND CD.CODE      = UR.USER_NUMBER_FORMAT_CD) AS USER_NUMBER_FORMAT_CD
+              ,'OR' AS DATABASE_CD
+            <choose>
+                <when test="aoLonginYN != '' and aoLonginYN != null and aoLonginYN eq 'Y'.toString()">
+                    , 'PF0123' AS GRANTED_AUTH_CD
+                </when>
+                <otherwise>
+                    ,(SELECT MAX(USAP.AUTH_CD)
+                    FROM STOCUSAP USAP
+                    WHERE USAP.GATE_CD  = UR.GATE_CD
+                    AND USAP.USER_ID  = UR.USER_ID
+                    AND USAP.DEL_FLAG = '0') AS GRANTED_AUTH_CD
+                </otherwise>
+            </choose>
+              ,(SELECT MAX(USAC.ACTION_PROFILE_CD)
+                  FROM STOCUSAC USAC
+                 WHERE USAC.GATE_CD  = UR.GATE_CD
+                   AND USAC.USER_ID  = UR.USER_ID
+                   AND USAC.DEL_FLAG = '0') AS ACTION_AUTH_CD
+            <if test='_databaseId=="oracle"'>
+              , CASE WHEN (SELECT SUBSTR(XMLAGG(XMLELEMENT(A, ',' <include refid="common.sql.stringMerge"/> BACP.CTRL_CD) ORDER BY BACP.CTRL_CD).EXTRACT('//text()'), 2)
+                             FROM STOCBACP BACP JOIN STOCBACO BACO ON (BACP.GATE_CD = BACO.GATE_CD AND BACP.BUYER_CD = BACO.BUYER_CD
+                                                                       AND BACP.CTRL_CD = BACO.CTRL_CD AND BACO.DEL_FLAG = '0')
+                             WHERE BACP.GATE_CD      = UR.GATE_CD
+                               AND BACP.BUYER_CD     = UR.COMPANY_CD
+                               AND BACP.CTRL_USER_ID = UR.USER_ID
+                               AND BACP.DEL_FLAG     = '0') IS NULL
+                     THEN 'BASIC'
+                     ELSE (SELECT SUBSTR(XMLAGG(XMLELEMENT(A, ',' <include refid="common.sql.stringMerge"/> BACP.CTRL_CD) ORDER BY BACP.CTRL_CD).EXTRACT('//text()'), 2)
+                            FROM STOCBACP BACP JOIN STOCBACO BACO ON (BACP.GATE_CD = BACO.GATE_CD AND BACP.BUYER_CD = BACO.BUYER_CD
+                                                                      AND BACP.CTRL_CD = BACO.CTRL_CD AND BACO.DEL_FLAG = '0')
+                            WHERE BACP.GATE_CD      = UR.GATE_CD
+                            AND BACP.BUYER_CD     = UR.COMPANY_CD
+                            AND BACP.CTRL_USER_ID = UR.USER_ID
+                            AND BACP.DEL_FLAG     = '0')
+                     END AS CTRL_CD
+            </if>
+            <if test='_databaseId=="mssql"'>
+              ,(SELECT
+                  STUFF((SELECT ',' <include refid="common.sql.stringMerge"/> INNER_BACP.CTRL_CD
+                           FROM STOCBACP INNER_BACP
+                          WHERE INNER_BACP.GATE_CD = BACP.GATE_CD
+                            AND INNER_BACP.BUYER_CD = BACP.BUYER_CD
+                            AND INNER_BACP.CTRL_USER_ID = BACP.CTRL_USER_ID
+                            AND INNER_BACP.DEL_FLAG = '0'
+                            FOR XML PATH ('')), 1, 1, '')
+                FROM STOCBACP BACP JOIN STOCBACO BACO
+                 ON (BACP.GATE_CD = BACO.GATE_CD
+                 AND BACP.BUYER_CD = BACO.BUYER_CD
+                 AND BACP.CTRL_CD = BACO.CTRL_CD
+                 AND BACO.DEL_FLAG = '0')
+               WHERE BACP.GATE_CD = UR.GATE_CD
+                 AND BACP.BUYER_CD = UR.COMPANY_CD
+                 AND BACP.CTRL_USER_ID = UR.USER_ID
+                 AND BACP.DEL_FLAG = '0'
+               GROUP BY BACP.GATE_CD, BACP.BUYER_CD, BACP.CTRL_USER_ID) AS CTRL_CD
+            </if>
+              ,(SELECT MAX(BACP.CTRL_CD)
+                  FROM STOCBACO BACO
+                  JOIN STOCBACP BACP
+                    ON (BACP.GATE_CD  = BACO.GATE_CD
+                   AND  BACP.BUYER_CD = BACO.BUYER_CD
+                   AND  BACP.CTRL_CD  = BACO.CTRL_CD
+                   AND  BACP.DEL_FLAG = '0')
+                 WHERE BACO.GATE_CD   = UR.GATE_CD
+                   AND BACO.BUYER_CD  = UR.COMPANY_CD
+                   AND BACP.CTRL_USER_ID = UR.USER_ID
+                   AND BACO.CTRL_TYPE = 'INVT'
+                   AND BACO.USE_FLAG  = '1'
+                   AND BACO.DEL_FLAG  = '0') AS FIN_CTRL_CD
+              ,(SELECT CASE WHEN COUNT(USAC.GATE_CD) = 1 THEN 'true' ELSE 'false' END
+                  FROM STOCUSAC USAC
+                 WHERE USAC.GATE_CD  = UR.GATE_CD
+                   AND USAC.USER_ID  = UR.USER_ID
+                   AND USAC.DEL_FLAG = '0'
+                   AND SYSDATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(<include refid="common.sql.toChar"/>(<include refid="common.sql.nvl"/>(USAC.VALID_FROM_DATE, SYSDATE), 'YYYYMMDD'))
+	               AND SYSDATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(<include refid="common.sql.toChar"/>(<include refid="common.sql.nvl"/>(USAC.VALID_TO_DATE, SYSDATE), 'YYYYMMDD'))
+                  ) AS VALID_USER_PROFILE
+              ,SUPER_USER_FLAG
+              ,UR.POSITION_NM
+              ,'0' as MNG_YN
+              ,'0' AS AUTO_PO_FLAG
+              ,'0' AS BLOCK_FLAG
+              ,'' AS BUDGET_DEPT_CD
+              ,'0' AS BUDGET_FLAG
+              ,'0' AS APPROVE_USE_FLAG
+              ,'0' AS BUDGET_USE_FLAG
+              ,'0' AS BUYER_MY_SITE_FLAG
+              ,'' AS TIER_CD
+              ,'0' AS WMS_FLAG
+              ,'0' AS FINANCIAL_FLAG
+              ,'0' AS GR_FLAG
+              ,'0' AS MAIL_FLAG
+              ,'0' AS MY_SITE_FLAG
+              ,'0' AS SELECT_FLAG
+              ,'0' AS SMS_FLAG
+              ,'0' AS WMS_FLAG
+              ,'' AS ZIP_CD
+              ,'' AS ADDR1
+              ,'' AS ADDR2
+              , UR.PROGRESS_CD
+              , CM.IRS_NUM
+         FROM STOCUSER UR
+         LEFT OUTER JOIN STOCOGCM CM
+         	  ON (CM.GATE_CD  = UR.GATE_CD
+         	  AND CM.BUYER_CD = UR.COMPANY_CD
+         	  AND CM.DEL_FLAG = '0')
+         LEFT OUTER JOIN STOCOGDP DP
+         	  ON (DP.GATE_CD  = UR.GATE_CD
+         	  AND DP.BUYER_CD = UR.COMPANY_CD
+         	  AND DP.DEPT_CD  = UR.DEPT_CD
+         	  AND DP.DEL_FLAG = '0')
+        WHERE UR.GATE_CD     = #{gateCd}
+          AND UR.DEL_FLAG    = '0'
+          AND UPPER(UR.USER_ID) = UPPER(#{userId})
+          AND UR.PROGRESS_CD = 'E'
+          AND UR.USE_FLAG    = '1'
+		<if test="sessionChange != 'true' and ssoFlag != 'true' and !(userId eq 'MASTER' and password eq 'MjJjZjBlYjEzNTYwOTYyM2E5NTU5YTM2MjU3YTA5NGMxNzA2ZDA4ZTE1ZWE0YzQwNjMyOWY1ZmFkOGU2ZDZlMA==')">
+          AND UR.PASSWORD    = #{password}
+        </if>
+	</select>
+
+	<!-- LoginService : 고객사 사용자정보 -->
+	<select id="getUserInfoB" parameterType="loginSearch" resultMap="baseInfoResult">
+
+        SELECT CV.GATE_CD
+              ,'1000' AS MANAGE_CD
+              ,CV.USER_ID
+              ,<include refid="common.sql.strDecStart"/>CV.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+              ,CV.USER_NM AS USER_NM_ENG
+              ,CV.COMPANY_CD
+              ,CUST.CUST_NM AS COMPANY_NM
+              ,CUST.CUST_ENG_NM AS COMPANY_NM_ENG
+              ,CUST.RELAT_YN
+              ,CV.DEPT_CD
+              ,CV.DEPT_NM
+              ,CV.DEPT_NM AS DEPT_NM_ENG
+              ,<include refid="common.sql.strDecStart"/>CV.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+              ,<include refid="common.sql.strDecStart"/>CV.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+              ,<include refid="common.sql.strDecStart"/>CV.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+              ,CV.USER_TYPE
+              ,#{langCd} AS LANG_CD
+              ,CV.WORK_TYPE AS WORK_TYPE
+              ,'KR' AS COUNTRY_CD
+              ,#{gmtDefault} AS GMT_CD
+              ,CV.PW_WRONG_CNT
+              ,null AS DUTY_CD
+              ,null AS EMPLOYEE_NUM
+              ,(SELECT CD.CODE_DESC
+                  FROM STOCCODD CD
+                 WHERE CD.GATE_CD   = CV.GATE_CD
+                   AND CD.LANG_CD   = 'KO'
+                   AND CD.CODE_TYPE = 'M054'
+                   AND CD.CODE      = '01') AS USER_DATE_FORMAT_CD
+              ,(SELECT REPLACE(CD.CODE_DESC, '/', '')
+                  FROM STOCCODD CD
+                 WHERE CD.GATE_CD   = CV.GATE_CD
+                   AND CD.LANG_CD   = 'KO'
+                   AND CD.CODE_TYPE = 'M054'
+                   AND CD.CODE      = '01') AS USER_DATE_VAULE_FORMAT
+              ,(SELECT CD.CODE_DESC
+                  FROM STOCCODD CD
+                 WHERE CD.GATE_CD   = CV.GATE_CD
+                   AND CD.LANG_CD   = 'KO'
+                   AND CD.CODE_TYPE = 'M055'
+                   AND CD.CODE      = '01') AS USER_NUMBER_FORMAT_CD
+              ,#{databaseCd} AS DATABASE_CD
+              ,(SELECT MAX(USAP.AUTH_CD)
+	          	  FROM STOCUSAP USAP
+	          	 WHERE USAP.GATE_CD  = CV.GATE_CD
+	          	   AND USAP.USER_ID  = CV.USER_ID
+	          	   AND USAP.DEL_FLAG = '0') AS GRANTED_AUTH_CD
+              ,(SELECT MAX(USAC.ACTION_PROFILE_CD)
+                  FROM STOCUSAC USAC
+                 WHERE USAC.GATE_CD  = CV.GATE_CD
+                   AND USAC.USER_ID  = CV.USER_ID
+                   AND USAC.DEL_FLAG = '0') AS ACTION_AUTH_CD
+             <if test='_databaseId=="oracle"'>
+              ,(SELECT LISTAGG(BACP.CTRL_CD,',') WITHIN GROUP(ORDER BY BACP.CTRL_CD) FROM STOCBACP BACP
+                 WHERE BACP.GATE_CD = CV.GATE_CD
+                   AND BACP.BUYER_CD = CV.COMPANY_CD
+                   AND BACP.CTRL_USER_ID = CV.USER_ID
+                   AND BACP.DEL_FLAG = '0'
+                   AND BACP.USE_FLAG = '1') AS CTRL_CD
+            </if>
+            <if test='_databaseId=="mssql"'>
+              ,(SELECT SUBSTR(XMLAGG(XMLELEMENT(A, ',' <include refid="common.sql.stringMerge"/> BACP.CTRL_CD) ORDER BY BACP.CTRL_CD).EXTRACT('//text()'), 2)
+                  FROM STOCBACP BACP JOIN STOCBACO BACO ON
+                  (BACP.GATE_CD = BACO.GATE_CD AND
+                   BACP.BUYER_CD = BACO.BUYER_CD AND
+                   BACP.CTRL_CD = BACO.CTRL_CD AND
+                   BACO.DEL_FLAG = '0')
+                 WHERE BACP.GATE_CD = CV.GATE_CD
+                   AND BACP.BUYER_CD = CV.COMPANY_CD
+                   AND BACP.CTRL_USER_ID = CV.USER_ID
+                   AND BACP.DEL_FLAG = '0') AS CTRL_CD
+            </if>
+              ,(SELECT MAX(BACP.CTRL_CD)
+                  FROM STOCBACO BACO
+                  JOIN STOCBACP BACP
+                    ON (BACP.GATE_CD      = BACO.GATE_CD
+                   AND  BACP.BUYER_CD     = BACO.BUYER_CD
+                   AND  BACP.CTRL_CD      = BACO.CTRL_CD
+                   AND  BACP.DEL_FLAG     = '0')
+                 WHERE BACO.GATE_CD   = CV.GATE_CD
+                   AND BACO.BUYER_CD  = CV.COMPANY_CD
+                   AND BACP.CTRL_USER_ID = CV.USER_ID
+                   AND BACO.CTRL_TYPE = 'INVT'
+                   AND BACO.USE_FLAG  = '1'
+                   AND BACO.DEL_FLAG  = '0') AS FIN_CTRL_CD
+              ,(SELECT CASE WHEN COUNT(USAC.GATE_CD) = 1 THEN 'true' ELSE 'false' END
+                  FROM STOCUSAC USAC
+                 WHERE USAC.GATE_CD  = CV.GATE_CD
+                   AND USAC.USER_ID  = CV.USER_ID
+                   AND USAC.DEL_FLAG = '0'
+                   AND SYSDATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(<include refid="common.sql.toChar"/>(<include refid="common.sql.nvl"/>(USAC.VALID_FROM_DATE, SYSDATE), 'YYYYMMDD'))
+	               AND SYSDATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(<include refid="common.sql.toChar"/>(<include refid="common.sql.nvl"/>(USAC.VALID_TO_DATE, SYSDATE), 'YYYYMMDD'))
+                  ) AS VALID_USER_PROFILE
+              ,CV.POSITION_NM
+              ,CV.MNG_YN AS MNG_YN
+              ,CUST.IRS_NUM
+              ,'' AS ACC_CODE
+              ,'' AS AUTO_PO_FLAG
+              ,<include refid="common.sql.nvl"/>(CV.BLOCK_FLAG, '0') AS BLOCK_FLAG
+              ,'' AS BUDGET_DEPT_CD
+              ,'' AS BUDGET_FLAG
+              ,CUST.APPROVE_USE_FLAG
+              ,'' AS BUDGET_USE_FLAG
+              ,'' AS BUYER_MY_SITE_FLAG
+              ,'' AS TIER_CD
+              ,'' AS WMS_FLAG
+              ,'' AS FINANCIAL_FLAG
+              ,'' AS GR_FLAG
+              ,CV.MAIL_FLAG
+              ,'' AS MY_SITE_FLAG
+              ,'' AS SELECT_FLAG
+              ,CV.SMS_FLAG
+              ,'' AS WMS_FLAG
+              ,<include refid="common.sql.strDecStart"/>CV.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+              ,<include refid="common.sql.strDecStart"/>CV.ADDR_1<include refid="common.sql.strDecEnd"/> AS ADDR1
+              ,<include refid="common.sql.strDecStart"/>CV.ADDR_2<include refid="common.sql.strDecEnd"/> AS ADDR2
+              ,CV.DUTY_NM
+              ,(SELECT CORP_TYPE FROM STOCCUST WHERE GATE_CD=CV.GATE_CD AND CUST_CD=CV.COMPANY_CD) CORP_TYPE
+              ,CV.PROGRESS_CD
+              ,CUST.IRS_NUM
+        FROM STOCCVUR CV
+        LEFT OUTER JOIN STOCCUST CUST
+             ON (CV.GATE_CD    = CUST.GATE_CD
+             AND CV.COMPANY_CD = CUST.CUST_CD
+             AND CUST.DEL_FLAG = '0')
+         WHERE CV.GATE_CD  = #{gateCd}
+           AND CV.DEL_FLAG = '0'
+           AND UPPER(CV.USER_ID) = UPPER(#{userId})
+           AND CV.USE_FLAG = '1'
+           AND NVL(CUST.STOP_FLAG,'0') !='1'
+		<if test="sessionChange != 'true' and !(password eq 'MjJjZjBlYjEzNTYwOTYyM2E5NTU5YTM2MjU3YTA5NGMxNzA2ZDA4ZTE1ZWE0YzQwNjMyOWY1ZmFkOGU2ZDZlMA==')">
+           AND CV.PASSWORD = #{password}
+        </if>
+    </select>
+
+	<!-- LoginService : 협력사 사용자정보 -->
+	<select id="getUserInfoS" parameterType="loginSearch" resultMap="baseInfoResult">
+
+        SELECT CV.GATE_CD
+              ,'1000' AS MANAGE_CD
+              ,CV.USER_ID
+              ,<include refid="common.sql.strDecStart"/>CV.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+              ,<include refid="common.sql.strDecStart"/>CV.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM_ENG
+              ,CV.COMPANY_CD
+              ,VNGL.VENDOR_NM AS COMPANY_NM
+              ,VNGL.VENDOR_NM AS COMPANY_NM_ENG
+              ,'' AS RELAT_YN
+              ,CV.DEPT_CD
+              ,CV.DEPT_NM
+              ,CV.DEPT_NM AS DEPT_NM_ENG
+              ,<include refid="common.sql.strDecStart"/>CV.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+              ,<include refid="common.sql.strDecStart"/>CV.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+              ,<include refid="common.sql.strDecStart"/>CV.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+              ,CV.USER_TYPE
+              ,#{langCd} AS LANG_CD
+              ,CV.WORK_TYPE AS WORK_TYPE
+              ,'KR' AS COUNTRY_CD
+              ,#{gmtDefault} AS GMT_CD
+              ,CV.PW_WRONG_CNT
+              ,null AS DUTY_CD
+              ,null AS EMPLOYEE_NUM
+              ,CV.DUTY_NM
+              ,(SELECT CD.CODE_DESC
+                  FROM STOCCODD CD
+                 WHERE CD.GATE_CD   = CV.GATE_CD
+                   AND CD.LANG_CD   = 'KO'
+                   AND CD.CODE_TYPE = 'M054'
+                   AND CD.CODE      = '01') AS USER_DATE_FORMAT_CD
+              ,(SELECT REPLACE(CD.CODE_DESC, '/', '')
+                  FROM STOCCODD CD
+                 WHERE CD.GATE_CD   = CV.GATE_CD
+                   AND CD.LANG_CD   = 'KO'
+                   AND CD.CODE_TYPE = 'M054'
+                   AND CD.CODE      = '01') AS USER_DATE_VAULE_FORMAT
+              ,(SELECT CD.CODE_DESC
+                  FROM STOCCODD CD
+                 WHERE CD.GATE_CD   = CV.GATE_CD
+                   AND CD.LANG_CD   = 'KO'
+                   AND CD.CODE_TYPE = 'M055'
+                   AND CD.CODE      = '01') AS USER_NUMBER_FORMAT_CD
+              ,#{databaseCd} AS DATABASE_CD
+              ,(SELECT MAX(USAP.AUTH_CD)
+	          	  FROM STOCUSAP USAP
+	          	 WHERE USAP.GATE_CD  = CV.GATE_CD
+	          	   AND USAP.USER_ID  = CV.USER_ID
+	          	   AND USAP.DEL_FLAG = '0') AS GRANTED_AUTH_CD
+              ,(SELECT MAX(USAC.ACTION_PROFILE_CD)
+                  FROM STOCUSAC USAC
+                 WHERE USAC.GATE_CD  = CV.GATE_CD
+                   AND USAC.USER_ID  = CV.USER_ID
+                   AND USAC.DEL_FLAG = '0') AS ACTION_AUTH_CD
+              ,(SELECT MAX(BACP.CTRL_CD)
+                  FROM STOCBACO BACO
+                  JOIN STOCBACP BACP
+                    ON (BACP.GATE_CD      = BACO.GATE_CD
+                   AND  BACP.BUYER_CD     = BACO.BUYER_CD
+                   AND  BACP.CTRL_CD      = BACO.CTRL_CD
+                   AND  BACP.DEL_FLAG     = '0')
+                 WHERE BACO.GATE_CD   = CV.GATE_CD
+                   AND BACO.BUYER_CD  = CV.COMPANY_CD
+                   AND BACP.CTRL_USER_ID = CV.USER_ID
+                   AND BACO.CTRL_TYPE = 'INVT'
+                   AND BACO.USE_FLAG  = '1'
+                   AND BACO.DEL_FLAG  = '0') AS FIN_CTRL_CD
+              ,(SELECT CASE WHEN COUNT(USAC.GATE_CD) = 1 THEN 'true' ELSE 'false' END
+                  FROM STOCUSAC USAC
+                 WHERE USAC.GATE_CD  = CV.GATE_CD
+                   AND USAC.USER_ID  = CV.USER_ID
+                   AND USAC.DEL_FLAG = '0'
+                   AND SYSDATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(<include refid="common.sql.toChar"/>(<include refid="common.sql.nvl"/>(USAC.VALID_FROM_DATE, SYSDATE), 'YYYYMMDD'))
+	               AND SYSDATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(<include refid="common.sql.toChar"/>(<include refid="common.sql.nvl"/>(USAC.VALID_TO_DATE, SYSDATE), 'YYYYMMDD'))
+                  ) AS VALID_USER_PROFILE
+              ,CV.POSITION_NM
+              ,CV.MNG_YN AS MNG_YN
+              ,VNGL.IRS_NO AS IRS_NUM
+              ,'0' AS ACC_CODE
+              ,'0' AS AUTO_PO_FLAG
+              ,<include refid="common.sql.nvl"/>(CV.BLOCK_FLAG, '0') AS BLOCK_FLAG
+              ,'' AS BUDGET_DEPT_CD
+              ,'' AS BUDGET_FLAG
+              ,'0' AS APPROVE_USE_FLAG
+              ,'0' AS BUDGET_USE_FLAG
+              ,'0' AS BUYER_MY_SITE_FLAG
+              ,'' AS TIER_CD
+              ,'0' AS WMS_FLAG
+              ,'' AS FINANCIAL_FLAG
+              ,'' AS GR_FLAG
+              ,CV.MAIL_FLAG
+              ,'' AS MY_SITE_FLAG
+              ,'0' AS SELECT_FLAG
+              ,CV.SMS_FLAG
+              ,'0' AS WMS_FLAG
+              ,<include refid="common.sql.strDecStart"/>CV.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+              ,<include refid="common.sql.strDecStart"/>CV.ADDR_1<include refid="common.sql.strDecEnd"/> AS ADDR1
+              ,<include refid="common.sql.strDecStart"/>CV.ADDR_2<include refid="common.sql.strDecEnd"/> AS ADDR2
+              ,CV.PROGRESS_CD
+          <if test="_databaseId == 'oracle'">
+              ,(SELECT LISTAGG(BACP.CTRL_CD,',') WITHIN GROUP(ORDER BY BACP.CTRL_CD) FROM STOCBACP BACP
+                 WHERE BACP.GATE_CD = CV.GATE_CD
+                   AND BACP.BUYER_CD = CV.COMPANY_CD
+                   AND BACP.CTRL_USER_ID = CV.USER_ID
+                   AND BACP.DEL_FLAG = '0'
+                   AND BACP.USE_FLAG = '1') AS CTRL_CD
+              ,CASE WHEN TRUNC(MOD(MONTHS_BETWEEN(SYSDATE, cv.LAST_LOGIN_DATE),12)) <![CDATA[>]]> 2 THEN null ELSE 'Y' END AS VALID_LAST_LOGIN_DATE
+          </if>
+          <if test="_databaseId == 'mssql'">
+              ,(SELECT SUBSTR(XMLAGG(XMLELEMENT(A, ',' <include refid="common.sql.stringMerge"/> BACP.CTRL_CD) ORDER BY BACP.CTRL_CD).EXTRACT('//text()'), 2)
+                  FROM STOCBACP BACP JOIN STOCBACO BACO
+                   ON (BACP.GATE_CD = BACO.GATE_CD
+                   AND BACP.BUYER_CD = BACO.BUYER_CD
+                   AND BACP.CTRL_CD = BACO.CTRL_CD
+                   AND BACO.DEL_FLAG = '0')
+                 WHERE BACP.GATE_CD = CV.GATE_CD
+                   AND BACP.BUYER_CD = CV.COMPANY_CD
+                   AND BACP.CTRL_USER_ID = CV.USER_ID
+                   AND BACP.DEL_FLAG = '0') AS CTRL_CD
+              ,CASE WHEN <include refid="common.sql.dbo"/>DATEDIFF(MONTH, CV.LAST_LOGIN_DATE, SYSDATE) > 2 THEN null ELSE 'Y' END AS VALID_LAST_LOGIN_DATE
+          </if>
+          	  ,VNGL.IRS_NO AS IRS_NUM
+          FROM STOCCVUR CV
+          LEFT OUTER JOIN STOCVNGL VNGL
+	           ON (CV.GATE_CD    = VNGL.GATE_CD
+	           AND CV.COMPANY_CD = VNGL.VENDOR_CD
+	           AND VNGL.DEL_FLAG = '0')
+         WHERE CV.GATE_CD  = #{gateCd}
+           AND CV.DEL_FLAG = '0'
+           AND UPPER(CV.USER_ID) = UPPER(#{userId})
+           AND CV.USE_FLAG = '1'
+		<if test="sessionChange != 'true' and !(password eq 'MjJjZjBlYjEzNTYwOTYyM2E5NTU5YTM2MjU3YTA5NGMxNzA2ZDA4ZTE1ZWE0YzQwNjMyOWY1ZmFkOGU2ZDZlMA==')">
+           AND CV.PASSWORD = #{password}
+		</if>
+    </select>
+
+	<select id="getCompulsionPassWord" resultType="string">
+
+		SELECT
+			COMPULSION_PW_RESET_FLAG
+		FROM STOCUSER
+		WHERE GATE_CD = #{GATE_CD}
+		  AND UPPER(USER_ID) = UPPER( #{userId} )
+	</select>
+
+    <update id="setLastLoginDate" parameterType="hashMap">
+
+        UPDATE ${USER_TABLE} SET
+        	  LAST_LOGIN_DATE = SYSDATE
+        	, IP_ADDR = #{IP_ADDR}
+        WHERE GATE_CD = #{GATE_CD}
+          AND UPPER(USER_ID) = UPPER(#{USER_ID})
+
+    </update>
+
+	<update id="resetPasswordWrongCount" parameterType="hashMap">
+
+		UPDATE ${USER_TABLE} SET
+			PW_WRONG_CNT  = 0
+		WHERE GATE_CD = #{GATE_CD}
+          AND UPPER(USER_ID) = UPPER(#{USER_ID})
+
+	</update>
+
+	<!-- 사용자 로그인 비밀번호 오류 횟수 저장 -->
+	<update id="updateWrongPasswordCount" parameterType="hashMap">
+
+		UPDATE ${USER_TABLE} SET
+			PW_WRONG_CNT = <include refid="common.sql.nvl"/>(PW_WRONG_CNT,0) + 1
+		 WHERE GATE_CD = #{GATE_CD}
+	       AND UPPER(USER_ID) = UPPER(#{USER_ID})
+
+	</update>
+
+	<select id="getPasswordWrongCount" parameterType="hashMap" resultType="java.lang.Integer">
+
+      SELECT <include refid="common.sql.nvl"/>(MAX(Z.PW_WRONG_CNT), 0) AS CNT
+        FROM
+          (SELECT <include refid="common.sql.nvl"/>(PW_WRONG_CNT, 0) AS PW_WRONG_CNT
+             FROM STOCUSER
+            WHERE GATE_CD = #{GATE_CD}
+              AND UPPER(USER_ID) = UPPER(#{USER_ID})
+
+            UNION ALL
+
+           SELECT <include refid="common.sql.nvl"/>(PW_WRONG_CNT, 0) AS PW_WRONG_CNT
+             FROM STOCCVUR
+            WHERE GATE_CD = #{GATE_CD}
+              AND UPPER(USER_ID) = UPPER(#{USER_ID})
+        ) Z
+	</select>
+	
+	<select id="getPasswordWrongCountPT" parameterType="hashMap" resultType="java.lang.Integer">
+
+      SELECT <include refid="common.sql.nvl"/>(PW_WRONG_CNT, 0) AS CNT
+        FROM STOCTVUR
+       WHERE GATE_CD = #{GATE_CD}
+         AND UPPER(USER_ID) = UPPER(#{USER_ID})
+	</select>
+
+	<update id="setCompulsionPassWord" parameterType="hashMap">
+
+		UPDATE STOCUSER SET
+			COMPULSION_PW_RESET_FLAG  = '1'
+		WHERE GATE_CD = #{GATE_CD}
+		  AND UPPER(USER_ID) = UPPER(#{userId})
+
+	</update>
+
+
+    <select id="getUserType" parameterType="hashmap" resultType="string">
+          SELECT USER_TYPE
+            FROM STOCUSER
+           WHERE GATE_CD = #{GATE_CD}
+             AND UPPER(USER_ID) = UPPER(#{USER_ID})
+             AND DEL_FLAG = '0'
+          UNION
+          SELECT USER_TYPE
+            FROM STOCCVUR
+           WHERE GATE_CD = #{GATE_CD}
+             AND UPPER(USER_ID) = UPPER(#{USER_ID})
+             AND DEL_FLAG = '0'
+          UNION
+          SELECT USER_TYPE
+            FROM STOCTVUR
+           WHERE GATE_CD = #{GATE_CD}
+             AND UPPER(USER_ID) = UPPER(#{USER_ID})
+             AND DEL_FLAG = '0'   
+    </select>
+
+    <select id="getSupplierNewYN" resultType="String" parameterType="hashMap">
+
+         SELECT
+            (CASE WHEN DATA_CREATION_TYPE = 'M'
+                 THEN(CASE WHEN REG_DATE = MOD_DATE THEN 'Y' ELSE '' END)
+                 ELSE '' END ) AS SUPPLIER_NEW_YN
+         FROM(
+             SELECT
+                 DATA_CREATION_TYPE
+                ,<include refid="common.sql.toChar"/>(REG_DATE, 'YYYYMMDDHH24MI') AS REG_DATE
+                ,<include refid="common.sql.toChar"/>(MOD_DATE, 'YYYYMMDDHH24MI') AS MOD_DATE
+              FROM STOCVNGL
+             WHERE GATE_CD = #{ses.gateCd}
+               AND VENDOR_CD = #{COMPANY_CD}
+         ) A
+
+    </select>
+
+    <select id="getSupplierChagePWYN" resultType="String" parameterType="hashMap">
+
+        SELECT
+            CASE WHEN PASSWORD = #{PASSWORD} THEN 'Y' ELSE 'N' END AS SUPPLIER_CHAGEPW_YN
+          FROM STOCCVUR
+         WHERE GATE_CD = #{ses.gateCd}
+           AND UPPER(USER_ID) = UPPER(#{USER_ID})
+    </select>
+
+    <select id="getSupplierIrsSameIdYN" resultType="String" parameterType="hashMap">
+
+        SELECT
+          CASE WHEN IRS_NUM = #{USER_ID} THEN 'Y' ELSE 'N' END AS SUPPLIER_IRS_ID_SAME_YN
+         FROM STOCVNGL WHERE GATE_CD=#{ses.gateCd} AND VENDOR_CD = (SELECT COMPANY_CD FROM STOCCVUR WHERE GATE_CD=#{ses.gateCd} AND USER_ID=#{USER_ID})
+    </select>
+
+    <select id="chkTbCoUser" parameterType="hashMap" resultType="hashMap">
+		SELECT * FROM TB_CO_USER
+		WHERE USER_ID = #{USER_ID}
+	</select>
+
+    <select id="chkTbCoBrc" parameterType="hashMap" resultType="hashMap">
+		SELECT * FROM TB_CO_DEPT
+		WHERE CORP_NO = #{CORP_NO}
+		AND DEPT_C= #{DEPT_C}
+	</select>
+
+    <select id="chkTbCoCorp" parameterType="hashMap" resultType="hashMap">
+		SELECT * FROM TB_CO_CORP
+		WHERE CORP_NO = #{CORP_NO}
+	</select>
+
+    <select id="chkCvur" parameterType="hashMap" resultType="hashMap">
+		SELECT * FROM STOCCVUR
+		WHERE USER_ID = #{USER_ID}
+		AND COMPANY_CD = #{CUST_CD}
+	</select>
+
+    <select id="chkOgdp" parameterType="hashMap" resultType="hashMap">
+		SELECT * FROM STOCOGDP
+		WHERE DEPT_CD = #{DEPT_C}
+		AND BUYER_CD = #{CUST_CD}
+	</select>
+
+    <select id="chkCust" parameterType="hashMap" resultType="hashMap">
+		SELECT * FROM STOCCUST
+		WHERE IRS_NUM = #{CORP_NO}
+	</select>
+
+    <update id="upsCust" parameterType="hashMap">
+		UPDATE STOCCUST SET
+				 CUST_NM     = #{CORP_NM} -- CUST_NM
+				,CUST_ENG_NM = #{CORP_NM} -- CUST_ENG_NM
+				,CORP_TYPE   = #{NH_CORP_CODE} -- CORP_TYPE
+				,IRS_NUM     = #{CORP_NO} -- IRS_NUM
+				,COMPANY_REG_NUM = #{CORP_ROW_NO} -- COMPANY_REG_NUM
+				,ZIP_CD = #{ZIP} -- ZIP_CD
+				,ADDR1 = #{ADDR}   -- ADDR1
+				,ADDR2 = #{DTL_ADDR} -- ADDR2
+				,BUSINESS_TYPE = #{BIZTP} -- BUSINESS_TYPE
+				,INDUSTRY_TYPE = #{BZC} -- INDUSTRY_TYPE
+				,CEO_USER_NM = #{REP_NM} -- CEO_USER_NM
+				,TEL_NUM = #{REP_TEL} -- TEL_NUM
+				,#{FAX} -- FAX_NUM
+		WHERE GATE_CD='100'
+		AND CUST_CD = #{CUST_CD}
+
+	</update>
+
+    <update id="insCust" parameterType="hashMap">
+			INSERT INTO STOCCUST (
+				 GATE_CD
+				,CUST_CD
+				,REG_DATE
+				,REG_USER_ID
+				,MOD_DATE
+				,MOD_USER_ID
+				,DEL_FLAG
+				,PROGRESS_CD
+				,CUST_NM
+				,CUST_ENG_NM
+				,COMPANY_TYPE
+				,CORP_TYPE
+				,SCALE_TYPE
+				,SHIN_YN
+				,IRS_NUM
+				,IRS_SUB_NUM
+				,IRS_SUB_NM
+				,COMPANY_REG_NUM
+				,ZIP_CD
+				,ADDR1
+				,ADDR2
+				,BUSINESS_TYPE
+				,INDUSTRY_TYPE
+				,CEO_USER_NM
+				,TEL_NUM
+				,FAX_NUM
+				,EMAIL
+				,FOUNDATION_DATE
+				,DEAL_APRV_DATE
+				,EMPLOYEE_CNT
+				,PAY_CD
+				,PAY_DEPT_NM
+				,PAY_USER_TEL_NUM
+				,DELY_TYPE
+				,IPO_FLAG
+				,IPO_DATE
+				,CREDIT_AGENCY_NM
+				,CREDIT_CD
+				,CREDIT_AMT
+				,ATTACH_FILE_NUM
+				,REMARK
+				,ERP_IF_ID
+				,ERP_CUST_CD
+				,ERP_IF_FLAG
+				,APPROVE_USE_FLAG
+				,APP_DOC_NUM
+				,APP_DOC_CNT
+				,SIGN_STATUS
+				,SIGN_DATE
+				,STD_YYYY
+				,DATA_REF_CD
+				,TOT_ASSET
+				,TOT_SDEPT
+				,TOT_FUND
+				,TOT_SALES
+				,NET_INCOM
+				,BUSINESS_PROFIT
+				,DEAL_TRADE_CD
+				,ACC_NUM
+				,STOP_FLAG
+				,CLOSE_TYPE
+				,CLOSE_DATE
+				,AM_USER_ID
+				,STOP_REMARK
+				,RELAT_YN
+				,MNG_COM_TAX_YN
+				,TAX_ASP_NM
+				,TAX_SEND_TYPE
+				,E_BILL_ASP_TYPE
+				,TAX_TYPE
+				,ABOUT_US
+				,CURR_ASSET
+				,CURR_SDEPT
+				,RATE_SDEPT
+				,RATE_CURR
+				,ASSET_FILE_NUM
+				,BUSINESS_SIZE
+				,HOMEPAGE_URL
+				,PAY_PUBLIC_TYPE
+				,PAY_CONDITION
+				,PAY_TYPE
+				,CREDIT_EVAL_COMPANY
+				,EV_ATT_FILE_NUM
+				,ITP_CUST_CD
+				,SMS_CELL_NUM
+			) VALUES (
+				 '100' -- GATE_CD
+				,#{CUST_CD} -- CUST_CD
+				,SYSDATE -- REG_DATE
+				,'ARO_BATCH' -- REG_USER_ID
+				,SYSDATE -- MOD_DATE
+				,'ARO_BATCH' -- MOD_USER_ID
+				,'0' -- DEL_FLAG
+				,'E' -- PROGRESS_CD
+				,#{CORP_NM} -- CUST_NM
+				,#{CORP_NM} -- CUST_ENG_NM
+				,'C' -- COMPANY_TYPE
+				,#{NH_CORP_CODE} -- CORP_TYPE
+				,'L' -- SCALE_TYPE
+				,null -- SHIN_YN
+				,#{CORP_NO} -- IRS_NUM
+				,null -- IRS_SUB_NUM
+				,null -- IRS_SUB_NM
+				,#{CORP_ROW_NO} -- COMPANY_REG_NUM
+				,#{ZIP} -- ZIP_CD
+				,#{ADDR} -- ADDR1
+				,#{DTL_ADDR} -- ADDR2
+				,#{BIZTP} -- BUSINESS_TYPE
+				,#{BZC} -- INDUSTRY_TYPE
+				,#{REP_NM} -- CEO_USER_NM
+				,#{REP_TEL} -- TEL_NUM
+				,#{FAX} -- FAX_NUM
+				,null -- EMAIL
+				,null -- FOUNDATION_DATE
+				,null -- DEAL_APRV_DATE
+				,null -- EMPLOYEE_CNT
+				,null -- PAY_CD
+				,null -- PAY_DEPT_NM
+				,null -- PAY_USER_TEL_NUM
+				,null -- DELY_TYPE
+				,null -- IPO_FLAG
+				,null -- IPO_DATE
+				,null -- CREDIT_AGENCY_NM
+				,null -- CREDIT_CD
+				,null -- CREDIT_AMT
+				,null -- ATTACH_FILE_NUM
+				,null -- REMARK
+				,null -- ERP_IF_ID
+				,null -- ERP_CUST_CD
+				,null -- ERP_IF_FLAG
+				,'1' -- APPROVE_USE_FLAG
+				,null -- APP_DOC_NUM
+				,null -- APP_DOC_CNT
+				,null -- SIGN_STATUS
+				,null -- SIGN_DATE
+				,null -- STD_YYYY
+				,null -- DATA_REF_CD
+				,null -- TOT_ASSET
+				,null -- TOT_SDEPT
+				,null -- TOT_FUND
+				,null -- TOT_SALES
+				,null -- NET_INCOM
+				,null -- BUSINESS_PROFIT
+				,null -- DEAL_TRADE_CD
+				,null -- ACC_NUM
+				,'0' -- STOP_FLAG
+				,null -- CLOSE_TYPE
+				,null -- CLOSE_DATE
+				,null -- AM_USER_ID
+				,null -- STOP_REMARK
+
+
+				,'0'--{NC_COMP_DS_C} -- RELAT_YN 농협,비농협 구분
+
+
+
+				,null -- MNG_COM_TAX_YN
+				,null -- TAX_ASP_NM
+				,null -- TAX_SEND_TYPE
+				,null -- E_BILL_ASP_TYPE
+				,null -- TAX_TYPE
+				,null -- ABOUT_US
+				,null -- CURR_ASSET
+				,null -- CURR_SDEPT
+				,null -- RATE_SDEPT
+				,null -- RATE_CURR
+				,null -- ASSET_FILE_NUM
+				,null -- BUSINESS_SIZE
+				,null -- HOMEPAGE_URL
+				,null -- PAY_PUBLIC_TYPE
+				,null -- PAY_CONDITION
+				,null -- PAY_TYPE
+				,null -- CREDIT_EVAL_COMPANY
+				,null -- EV_ATT_FILE_NUM
+				,null -- ITP_CUST_CD
+				,#{REP_TEL}
+			)
+	</update>
+
+    <update id="insOgdp" parameterType="hashMap">
+		INSERT INTO STOCOGDP (
+			GATE_CD
+			,BUYER_CD
+			,DEPT_CD
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,DEPT_NM
+			,PARENT_DEPT_CD
+			,ZIP_CD
+			,ADDR1
+			,ADDR2
+			,TEL_NUM
+			,FAX_NUM
+			,ZONE_CD
+			,DEPT_TYPE
+			,DEPT_STATUS
+			,SEQ
+			,USE_FLAG
+			,DEPT_CHIEF_NM
+			,ACC_CODE
+			,LVL
+			,DATA_CREATE_TYPE
+		)
+			SELECT * FROM (
+			SELECT DISTINCT
+			 '100' -- GATE_CD
+			,#{CUST_CD} -- BUYER_CD
+			,A.DEPT_C -- DEPT_CD
+			,SYSDATE -- REG_DATE
+			,'ARO_BATCH' -- REG_USER_ID
+			,SYSDATE -- MOD_DATE
+			,'ARO_BATCH' -- MOD_USER_ID
+			,'0' -- DEL_FLAG
+			,A.DEPT_NM -- DEPT_NM
+			,A.UP_DEPT_C -- PARENT_DEPT_CD
+			,A.ZIP -- ZIP_CD
+			,A.ADDR -- ADDR1
+			,null -- ADDR2
+			,A.REP_TEL -- TEL_NUM
+			,A.FAX -- FAX_NUM
+			,A.PROV_C -- ZONE_CD
+			,CASE WHEN LEVEL = 1 THEN '100'
+			      WHEN LEVEL = 2 THEN '200'
+			      WHEN LEVEL = 3 THEN '300'
+			      ELSE '400' END
+			  -- DEPT_TYPE
+			,null -- DEPT_STATUS
+			,null -- SEQ
+			,'1' -- USE_FLAG
+			,null -- DEPT_CHIEF_NM
+			,null -- ACC_CODE
+			,LEVEL -- LVL
+			,'I' -- DATA_CREATE_TYPE
+			FROM TB_CO_DEPT A
+			WHERE CORP_NO = #{CORP_NO}
+			START WITH DEPT_C=#{DEPT_C}
+			CONNECT BY NOCYCLE PRIOR DEPT_C = UP_DEPT_C
+		) B
+		WHERE NOT EXISTS (
+			SELECT '1' FROM STOCOGDP
+			WHERE GATE_CD='100'
+			AND BUYER_CD= #{CUST_CD}
+			AND DEPT_CD = B.DEPT_C
+		)
+	</update>
+
+    <update id="insCvur" parameterType="hashMap">
+		INSERT INTO STOCCVUR (
+			 GATE_CD
+			,USER_ID
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,COMPANY_CD
+			,MNG_YN
+			,USER_TYPE
+			,WORK_TYPE
+			,USER_NM
+			,PASSWORD
+			,EMPLOYEE_NO
+			,DEPT_CD
+			,DEPT_NM
+			,POSITION_NM
+			,TEL_NUM
+			,FAX_NUM
+			,CELL_NUM
+			,EMAIL
+			,ZIP_CD
+			,ADDR_1
+			,ADDR_2
+			,SMS_FLAG
+			,MAIL_FLAG
+			,BLOCK_FLAG
+			,BLOCK_REASON
+			,PW_WRONG_CNT
+			,PW_RESET_FLAG
+			,PW_RESET_DATE
+			,LAST_LOGIN_DATE
+			,IP_ADDR
+			,USE_FLAG
+			,PROGRESS_CD
+			,CONFIRM_USER_ID
+			,CONFIRM_DATE
+			,DATA_CREATION_TYPE
+			,ERP_IF_ID
+			,ERP_IF_SEND_FLAG
+			,VNGL_ROLE
+			,AGREE_ATT_FILE_NUM
+			,AGREE_YN
+			,AGREE_YN_DATE
+			,DUTY_NM
+			,CHIEF_USER_ID
+			,ROLE_TEXT
+			,ROLE_TEXT_DETAIL
+			,ONES_DUTY_NM
+			,PARENT_DEPT_CD
+			,PARENT_DEPT_NM
+			,EMPLOYEE_NUM
+		) VALUES (
+			 '100' -- GATE_CD
+			,#{USER_ID} -- USER_ID
+			,SYSDATE -- REG_DATE
+			,'ARO_BATCH' -- REG_USER_ID
+			,SYSDATE -- MOD_DATE
+			,'ARO_BATCH' -- MOD_USER_ID
+			,0 -- DEL_FLAG
+			,#{CUST_CD} -- COMPANY_CD
+			,'0' -- MNG_YN
+			,'B' -- USER_TYPE
+			,#{GNAF_DSC} -- WORK_TYPE
+			,#{USER_NM} -- USER_NM
+			,#{PASSWORD} -- PASSWORD
+			,null -- EMPLOYEE_NO
+			,#{DEPT_C} -- DEPT_CD
+			,(SELECT DEPT_NM FROM TB_CO_DEPT WHERE CORP_NO = #{CORP_NO} AND DEPT_C=#{DEPT_C}) -- DEPT_NM
+			,#{PZC_NM} -- POSITION_NM
+			,#{REP_TEL} -- TEL_NUM
+			,null -- FAX_NUM
+			,#{HP_NO} -- CELL_NUM
+			,#{EMAIL} -- EMAIL
+			,null -- ZIP_CD
+			,null -- ADDR_1
+			,null -- ADDR_2
+			,'1' -- SMS_FLAG
+			,'1' -- MAIL_FLAG
+			,'0' -- BLOCK_FLAG
+			,null -- BLOCK_REASON
+			,'0' -- PW_WRONG_CNT
+			,'1' -- PW_RESET_FLAG
+			,SYSDATE -- PW_RESET_DATE
+			,null -- LAST_LOGIN_DATE
+			,null -- IP_ADDR
+			,'1' -- USE_FLAG
+			,'E' -- PROGRESS_CD
+			,'ARO_BATCH' -- CONFIRM_USER_ID
+			,SYSDATE -- CONFIRM_DATE
+			,'E' -- DATA_CREATION_TYPE
+			,null -- ERP_IF_ID
+			,null -- ERP_IF_SEND_FLAG
+			,null -- VNGL_ROLE
+			,null -- AGREE_ATT_FILE_NUM
+			,null -- AGREE_YN
+			,null -- AGREE_YN_DATE
+			,#{OFT_NM} -- DUTY_NM
+			,null -- CHIEF_USER_ID
+			,#{CHRG_BSN_NM} -- ROLE_TEXT
+			,#{DTI_CHRG_BSN_NM} -- ROLE_TEXT_DETAIL
+			,#{CHRG_BSN_NM} -- ONES_DUTY_NM
+			,null -- PARENT_DEPT_CD
+			,null -- PARENT_DEPT_NM
+			,null -- EMPLOYEE_NUM
+		)
+	</update>
+
+
+    <update id="insUsap" parameterType="hashMap">
+		INSERT INTO STOCUSAP (
+			 GATE_CD
+			,USER_ID
+			,AUTH_CD
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,VALID_FROM_DATE
+			,VALID_TO_DATE
+		) VALUES (
+			 '100'  --GATE_CD
+			,#{USER_ID}   --USER_ID
+			,'PF0131'   --AUTH_CD
+			,SYSDATE --REG_DATE
+			,'ARO_BATCH' --REG_USER_ID
+			,SYSDATE     --MOD_DATE
+			,'ARO_BATCH' --MOD_USER_ID
+			,'0'  --DEL_FLAG
+			,null --VALID_FROM_DATE
+			,null --VALID_TO_DATE
+		)
+	</update>
+
+    <update id="insBacp" parameterType="hashMap">
+		INSERT INTO STOCBACP (
+			 GATE_CD
+			,BUYER_CD
+			,CTRL_CD
+			,CTRL_USER_ID
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,USE_FLAG
+		) VALUES (
+			 '100'--GATE_CD
+			,#{CUST_CD}--BUYER_CD
+			,CASE WHEN #{CORP_TYPE} = '2' AND #{GNAF_DSC} = '1' THEN 'BR100' ELSE 'BR020' END
+			,#{USER_ID}--CTRL_USER_ID
+			,SYSDATE--REG_DATE
+			,'ARO_BATCH'--REG_USER_ID
+			,SYSDATE--MOD_DATE
+			,'ARO_BATCH'--MOD_USER_ID
+			,'0' --DEL_FLAG
+			,'1' --USE_FLAG
+		)
+	</update>
+
+    <select id="getMobile_UserInfo" resultType="com.st_ones.common.login.domain.UserInfo">
+		SELECT UR.GATE_CD
+             , UR.USER_ID
+             , <include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+             , UR.COMPANY_CD
+             , <include refid="common.sql.strDecStart"/>UR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+	         , <include refid="common.sql.strDecStart"/>UR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+	         , <include refid="common.sql.strDecStart"/>UR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+	         , UR.USER_TYPE
+             , UR.WORK_TYPE
+             , UR.POSITION_NM
+             , UR.DUTY_NM
+             , (CASE WHEN UR.PASSWORD != #{password} THEN 0 ELSE 1 END) AS PWD_VALID
+             , UR.PROGRESS_CD
+             , UR.USE_FLAG
+          FROM STOCCVUR UR
+         WHERE UR.GATE_CD = #{gateCd}
+           AND UPPER(UR.USER_ID) = UPPER(#{userId})
+           AND UR.USER_TYPE = 'P'
+           AND UR.DEL_FLAG = '0'
+	</select>
+	
+	<!-- 2022.10.26 개인근로자 파트너스 추가  -->
+	<select id="getMobile_UserInfoPT" resultType="com.st_ones.common.login.domain.UserInfo">
+		SELECT UR.GATE_CD
+             , UR.USER_ID
+             , <include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+             , UR.COMPANY_CD
+             , <include refid="common.sql.strDecStart"/>UR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+	         , <include refid="common.sql.strDecStart"/>UR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+	         , <include refid="common.sql.strDecStart"/>UR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+	         , UR.USER_TYPE
+             , UR.WORK_TYPE
+             , UR.POSITION_NM
+             , UR.DUTY_NM
+             , (CASE WHEN UR.PASSWORD != #{password} THEN 0 ELSE 1 END) AS PWD_VALID
+             , UR.PROGRESS_CD
+             , UR.USE_FLAG
+          FROM STOCTVUR UR
+         WHERE UR.GATE_CD = #{gateCd}
+           AND UPPER(UR.USER_ID) = UPPER(#{userId})
+           AND UR.USER_TYPE = 'T'
+           AND UR.DEL_FLAG = '0'
+	</select>
+
+     <select id="get90DaysCount" resultType="java.lang.Integer">
+		SELECT COUNT(*)
+          FROM STOCCVUR
+         WHERE GATE_CD = <include refid="common.sql.nvl"/>(#{GATE_CD}, #{ses.gateCd})
+           AND UPPER(USER_ID) = UPPER(<include refid="common.sql.nvl"/>(#{USER_ID}, #{userId}))
+           AND TO_CHAR(<include refid="common.sql.nvl"/>(LAST_LOGIN_DATE, SYSDATE) + 90, 'YYYYMMDD') > TO_CHAR(SYSDATE, 'YYYYMMDD')
+           AND DEL_FLAG = '0'
+	</select>
+
+	<select id="getPwResetFlag" resultType="java.lang.Integer">
+        SELECT 0
+          FROM STOCUSER
+         WHERE GATE_CD = <include refid="common.sql.nvl"/>(#{GATE_CD}, #{ses.gateCd})
+           AND UPPER(USER_ID) = UPPER(<include refid="common.sql.nvl"/>(#{USER_ID}, #{userId}))
+
+         UNION ALL
+
+		SELECT 0
+          FROM STOCCVUR
+         WHERE GATE_CD = <include refid="common.sql.nvl"/>(#{GATE_CD}, #{ses.gateCd})
+           AND UPPER(USER_ID) = UPPER(<include refid="common.sql.nvl"/>(#{USER_ID}, #{userId}))
+	</select>
+
+	<select id="getPwResetDate" resultType="java.lang.Integer">
+        SELECT CASE WHEN TO_CHAR(ADD_MONTHS(<include refid="common.sql.nvl"/>(PW_RESET_DATE, SYSDATE), 6), 'YYYYMMDD') <![CDATA[<=]]> TO_CHAR(SYSDATE, 'YYYYMMDD') THEN 0
+                    ELSE 1
+                     END AS PW_RESET_DATE_EXCEED_FLAG
+          FROM STOCUSER
+         WHERE GATE_CD = <include refid="common.sql.nvl"/>(#{GATE_CD}, #{ses.gateCd})
+           AND UPPER(USER_ID) = UPPER(<include refid="common.sql.nvl"/>(#{USER_ID}, #{userId}))
+
+         UNION ALL
+
+		SELECT CASE WHEN TO_CHAR(ADD_MONTHS(<include refid="common.sql.nvl"/>(PW_RESET_DATE, SYSDATE), 6), 'YYYYMMDD') <![CDATA[<=]]> TO_CHAR(SYSDATE, 'YYYYMMDD') THEN 0
+                    ELSE 1
+                     END AS PW_RESET_DATE_EXCEED_FLAG
+          FROM STOCCVUR
+         WHERE GATE_CD = <include refid="common.sql.nvl"/>(#{GATE_CD}, #{ses.gateCd})
+           AND UPPER(USER_ID) = UPPER(<include refid="common.sql.nvl"/>(#{USER_ID}, #{userId}))
+	</select>
+
+	<select id="getPwResetFlagPT" resultType="java.lang.Integer">
+		SELECT 0
+          FROM STOCTVUR
+         WHERE GATE_CD = <include refid="common.sql.nvl"/>(#{GATE_CD}, #{ses.gateCd})
+           AND UPPER(USER_ID) = UPPER(<include refid="common.sql.nvl"/>(#{USER_ID}, #{userId}))
+	</select>
+	
+	<select id="getPwResetDatePT" resultType="java.lang.Integer">
+		SELECT CASE WHEN TO_CHAR(ADD_MONTHS(<include refid="common.sql.nvl"/>(PW_RESET_DATE, SYSDATE), 6), 'YYYYMMDD') <![CDATA[<=]]> TO_CHAR(SYSDATE, 'YYYYMMDD') THEN 0
+                    ELSE 1
+                    END AS PW_RESET_DATE_EXCEED_FLAG
+          FROM STOCTVUR
+         WHERE GATE_CD = <include refid="common.sql.nvl"/>(#{GATE_CD}, #{ses.gateCd})
+           AND UPPER(USER_ID) = UPPER(<include refid="common.sql.nvl"/>(#{USER_ID}, #{userId}))
+	</select>
+	
+    <select id="findNonUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+          FROM STOHCVUR
+         WHERE GATE_CD = #{gateCd}
+           AND USER_ID = #{userId}
+    </select>
+    
+    <select id="findNonUserIdPT" resultType="java.lang.Integer">
+        SELECT NVL(SLEEP_ACC,'0') AS SLEEP_ACC
+          FROM STOCTVUR
+         WHERE GATE_CD = #{gateCd}
+           AND USER_ID = #{userId}
+    </select>
+
+    <insert id="changeLongTermNonUser">
+        INSERT INTO STOCCVUR (
+                    GATE_CD
+                  , USER_ID
+                  , REG_DATE
+                  , REG_USER_ID
+                  , MOD_DATE
+                  , MOD_USER_ID
+                  , DEL_FLAG
+                  , COMPANY_CD
+                  , MNG_YN
+                  , USER_TYPE
+                  , WORK_TYPE
+                  , USER_NM
+                  , PASSWORD
+                  , EMPLOYEE_NO
+                  , DEPT_CD
+                  , DEPT_NM
+                  , POSITION_NM
+                  , TEL_NUM
+                  , FAX_NUM
+                  , CELL_NUM
+                  , EMAIL
+                  , ZIP_CD
+                  , ADDR_1
+                  , ADDR_2
+                  , SMS_FLAG
+                  , MAIL_FLAG
+                  , BLOCK_FLAG
+                  , BLOCK_REASON
+                  , PW_WRONG_CNT
+                  , PW_RESET_FLAG
+                  , PW_RESET_DATE
+                  , LAST_LOGIN_DATE
+                  , IP_ADDR
+                  , USE_FLAG
+                  , PROGRESS_CD
+                  , CONFIRM_USER_ID
+                  , CONFIRM_DATE
+                  , DATA_CREATION_TYPE
+                  , ERP_IF_ID
+                  , ERP_IF_SEND_FLAG
+                  , VNGL_ROLE
+                  , AGREE_ATT_FILE_NUM
+                  , AGREE_YN
+                  , AGREE_YN_DATE
+                  , DUTY_NM
+                  , CHIEF_USER_ID
+                  , ROLE_TEXT
+                  , ROLE_TEXT_DETAIL
+                  , ONES_DUTY_NM
+                  , PARENT_DEPT_CD
+                  , PARENT_DEPT_NM
+                  , EMPLOYEE_NUM
+                  , BLOCK_DATE
+                  , SITE_USER_ID
+                  , GENDER
+                  , BIRTH_DATE
+        )
+        SELECT GATE_CD
+             , USER_ID
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , '0' AS DEL_FLAG
+             , COMPANY_CD
+             , MNG_YN
+             , USER_TYPE
+             , WORK_TYPE
+             , USER_NM
+             , PASSWORD
+             , EMPLOYEE_NO
+             , DEPT_CD
+             , DEPT_NM
+             , POSITION_NM
+             , TEL_NUM
+             , FAX_NUM
+             , CELL_NUM
+             , EMAIL
+             , ZIP_CD
+             , ADDR_1
+             , ADDR_2
+             , SMS_FLAG
+             , MAIL_FLAG
+             , BLOCK_FLAG
+             , BLOCK_REASON
+             , PW_WRONG_CNT
+             , PW_RESET_FLAG
+             , PW_RESET_DATE
+             , SYSDATE
+             , IP_ADDR
+             , USE_FLAG
+             , PROGRESS_CD
+             , CONFIRM_USER_ID
+             , CONFIRM_DATE
+             , DATA_CREATION_TYPE
+             , ERP_IF_ID
+             , ERP_IF_SEND_FLAG
+             , VNGL_ROLE
+             , AGREE_ATT_FILE_NUM
+             , AGREE_YN
+             , AGREE_YN_DATE
+             , DUTY_NM
+             , CHIEF_USER_ID
+             , ROLE_TEXT
+             , ROLE_TEXT_DETAIL
+             , ONES_DUTY_NM
+             , PARENT_DEPT_CD
+             , PARENT_DEPT_NM
+             , EMPLOYEE_NUM
+             , BLOCK_DATE
+             , SITE_USER_ID
+             , GENDER
+             , BIRTH_DATE
+          FROM STOHCVUR
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID}
+    </insert>
+    
+    <update id="changeLongTermNonUserUsap" parameterType="hashMap">
+		UPDATE STOCUSAP SET
+			  MOD_DATE = SYSDATE -- MOD_DATE
+			, MOD_USER_ID = #{USER_ID} -- MOD_USER_ID
+			, DEL_FLAG = '0' -- DEL_FLAG
+		WHERE GATE_CD = #{GATE_CD}
+		  AND USER_ID = #{USER_ID}
+	</update>
+	
+	<update id="changeLongTermNonUserBacp" parameterType="hashMap">
+		UPDATE STOCBACP SET
+			  MOD_DATE = SYSDATE -- MOD_DATE
+			, MOD_USER_ID = #{USER_ID} -- MOD_USER_ID
+			, DEL_FLAG = '0' -- DEL_FLAG
+		WHERE GATE_CD = #{GATE_CD}
+		  AND CTRL_USER_ID = #{USER_ID}
+	</update>
+
+    <delete id="deleteChangeLongTermNonUser">
+        DELETE FROM STOHCVUR
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID}
+    </delete>
+
+    <select id="getPossibleIP" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+            CODE_DESC AS IPS
+          FROM STOCCODD
+         WHERE GATE_CD = #{GATE_CD}
+           AND CODE_TYPE = #{CODE_TYPE}
+           AND DEL_FLAG = '0'
+           AND USE_FLAG = '1'
+
+    </select>
+    
+    <!-- 2021.04.05 로그인 후 ID, PASSWORD가 동일한 경우 기존 휴대번호, 이메일 정보가 존재하지 않는 경우 개인정보 변경 팝업 오픈하는 경우에 추가  -->
+    <select id="passSameCheck" resultType="java.lang.Integer">
+		SELECT COUNT(*)
+		  FROM STOCCVUR 
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND UPPER(USER_ID) = #{USER_ID}
+		   AND (PASSWORD  = #{PASSWORD} OR PASSWORD = #{PASSWORD2})
+		   AND DEL_FLAG = '0'
+	</select>
+
+ 	<!-- 2021.05.28 최초로그인 확인 -> 최초 로그인시 휴대폰 본인인증 진행해야함-->
+    <select id="isFirstLogin" resultType="hashMap">
+    	SELECT A.LAST_LOGIN_DATE
+    			, A.USER_TYPE
+    	FROM (
+			SELECT 
+			CASE 
+				WHEN LAST_LOGIN_DATE IS NULL 
+				THEN 1 --true 
+				ELSE 0 -- false
+			END AS LAST_LOGIN_DATE
+			, USER_TYPE
+			FROM STOCCVUR
+			WHERE
+				GATE_CD  = #{ses.gateCd}
+			    AND UPPER(USER_ID) = #{USER_ID}
+			    AND DEL_FLAG='0'
+			
+			UNION ALL
+			
+			SELECT 
+			CASE 
+				WHEN LAST_LOGIN_DATE IS NULL 
+				THEN 1 --true 
+				ELSE 0 -- false
+			END AS LAST_LOGIN_DATE
+			, USER_TYPE
+			FROM STOCUSER
+			WHERE
+				GATE_CD  = #{ses.gateCd}
+			    AND UPPER(USER_ID) = #{USER_ID}
+			    AND DEL_FLAG='0'
+		) A
+		WHERE 1 = 1        
+	</select>
+	
+	<!-- 2021.06.11 최초로그인 휴대폰 본인인증 시 비교할 이름, 휴대폰번호 -->
+    <select id="getNameAndPhoneNum" resultType="hashMap">
+        SELECT <include refid="common.sql.strDecStart"/> A.USER_NM <include refid="common.sql.strDecEnd"/> AS USER_NM
+    		 , REPLACE(<include refid="common.sql.strDecStart"/>A.CELL_NUM<include refid="common.sql.strDecEnd"/>,'-','') AS CELL_NUM
+    		 , A.USER_TYPE
+    	FROM (
+			SELECT USER_NM
+				 , CELL_NUM
+				 , USER_TYPE
+			  FROM STOCCVUR
+			 WHERE GATE_CD  = #{ses.gateCd}
+			   AND UPPER(USER_ID) = #{USER_ID}
+			   AND DEL_FLAG = '0'
+			
+			UNION ALL
+			
+			SELECT USER_NM
+				 , CELL_NUM
+				 , USER_TYPE
+			  FROM STOCUSER
+			 WHERE GATE_CD  = #{ses.gateCd}
+			   AND UPPER(USER_ID) = #{USER_ID}
+			   AND DEL_FLAG = '0'
+		) A
+		WHERE 1 = 1   
+    </select>	
+	
+	<!-- 2021.06.07 퇴사자계정 체크 추가-->
+    <select id="findDelUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+          FROM STOCCVUR
+         WHERE GATE_CD = #{gateCd}
+           AND USER_ID = #{userId}
+           AND DEL_FLAG = '1' 
+    </select>	
+	
+	<!-- 2021.06.15 반려사용자 로그인 시 반려사유 조회 및 재가입-->
+    <select id="getConfirmReason" resultType="hashMap">
+        SELECT CONFIRM_REASON
+          FROM STOCVNCM VNCM
+          LEFT OUTER JOIN STOCVNGL VNGL
+          	ON (VNGL.GATE_CD   = VNCM.GATE_CD
+	               AND VNGL.VENDOR_CD = VNCM.VENDOR_CD
+	               AND VNCM.CONFIRM_FLAG = 'R'
+	               AND VNCM.DEL_FLAG  = '0')
+         WHERE VNGL.GATE_CD = #{ses.gateCd}
+           AND VNGL.IRS_NO = #{irsNum}
+           AND VNGL.DEL_FLAG = '0' 
+    </select>	
+	
+	<!-- 2021.12.13 : 관리자모드 키값 저장 -->
+	<update id="doSaveVerCode" parameterType="hashMap">
+
+        UPDATE STOCCVUR SET
+        	  SITE_USER_ID = #{VERCODE}
+        WHERE GATE_CD   = #{GATE_CD}
+          AND USER_ID   = UPPER(#{USER_ID})
+          AND USER_TYPE = 'B'
+    </update>
+    
+    <!-- 2021.12.13 : 관리자모드 키값 가져오기 -->
+    <select id="findManagerKey" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM STOCCVUR
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = UPPER(#{USER_ID})
+           AND SITE_USER_ID = #{MANAGER_KEY}
+           AND USER_TYPE    = 'B'
+    </select>
+    
+	<!-- 2022.05.16 추가 ajk 부서별 ASP이용 대상 확인 -->
+	<select id="findUserDeptAsp" parameterType="loginSearch" resultType="hashMap">
+		SELECT A.CODE AS ASP_DEPT_CD
+		       ,A.TEXT2 AS ASP_NOTICE_NUM
+			   ,(SELECT DECODE(COUNT(*),0,'N','Y') FROM STOCCMSV C
+  				                 JOIN STOCNOTC D
+  						              ON (C.GATE_CD  = D.GATE_CD
+  						              AND C.FORM_NUM = D.NOTICE_NUM
+				   				      AND D.NOTICE_NUM = A.TEXT2				
+			  						  AND TO_CHAR(D.START_DATE, 'yyyyMMdd') <![CDATA[<=]]> TO_CHAR(SYSDATE, 'yyyyMMdd')
+									  AND TO_CHAR(D.END_DATE, 'yyyyMMdd')   <![CDATA[>=]]> TO_CHAR(SYSDATE, 'yyyyMMdd')
+									  AND D.FIXED_TOP_FLAG = '1'
+									  AND D.POPUP_FLAG     = '1'
+			    					  AND D.DEL_FLAG = '0') 
+			   				        WHERE C.GATE_CD    = #{GATE_CD} 
+			   				          AND C.COMPANY_CD = B.COMPANY_CD
+			   				          AND C.COMPANY_CD != 'C00007'
+			   				          AND C.SIGN_VALUE IS NOT NULL
+			   				          AND C.PROGRESS_CD= 'E') AS DEPT_AGREE_YN		       
+		  FROM STOCCODD A
+		  JOIN STOCCVUR B
+		       ON (A.CODE = B.DEPT_CD
+		       AND B.GATE_CD = #{GATE_CD}
+		       AND UPPER(B.USER_ID) = UPPER(#{USER_ID})
+		       )
+		 WHERE A.CODE_TYPE = 'M406'
+    </select> 
+    
+    <select id="findCompanyAsp" parameterType="loginSearch" resultType="hashMap">
+		SELECT A.TEXT1 AS ASP_NOTICE_NUM	       
+		  FROM STOCCODD A
+		 WHERE A.GATE_CD = #{GATE_CD}
+		   AND A.CODE_TYPE = 'M410'
+		 <choose>
+		 	<when test='COMPANY_CD == "C00009"'>
+	   			AND A.CODE = 'C00009'				
+		 	</when>
+		 	<when test='COMPANY_CD == "C00066"'>
+	   			AND A.CODE = 'C00066'				
+		 	</when>
+		 	<otherwise>
+		 		AND A.CODE = 'C00000'	
+		 	</otherwise>
+		 </choose>	
+    </select>         
+    
+    <!-- 2023.01.10 휴면계정 ->일반계정 전환 로직 추가 -->
+    <update id="changeLongTermNonUserPT">
+       UPDATE STOCTVUR
+       SET SLEEP_ACC = '0'
+	   WHERE GATE_CD = #{ses.gateCd}
+	   AND USER_ID = #{USER_ID}
+    </update>
+</mapper>

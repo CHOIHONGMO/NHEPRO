@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+
+   http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+   
+    <aop:aspectj-autoproxy />
+    
+    <bean id="authCheckAndLogging" class="com.st_ones.common.util.clazz.AuthCheckAndLogging" />
+    <aop:config proxy-target-class="true">
+        <aop:pointcut id="servicePointcut" expression="execution(* com.st_ones.nhepro..*Service.*(..)))"/>
+        <aop:aspect id="checkAspect" ref="authCheckAndLogging">
+            <aop:before method="beforeMethod" pointcut-ref="servicePointcut"/>
+            <aop:after-returning method="afterMethod" pointcut-ref="servicePointcut" returning="retVal" />
+        </aop:aspect>
+    </aop:config>
+
+    <bean id="maskingProcessor" class="com.st_ones.common.util.clazz.MaskingProcessor" />
+    <aop:config proxy-target-class="true">
+        <aop:pointcut id="maskingPointcut" expression="execution(* com.st_ones..*Controller.*(..)))"/>
+        <aop:aspect id="MaskingProcess" ref="maskingProcessor">
+            <aop:before method="beforeMethod" pointcut-ref="maskingPointcut" />
+        </aop:aspect>
+    </aop:config>
+</beans>

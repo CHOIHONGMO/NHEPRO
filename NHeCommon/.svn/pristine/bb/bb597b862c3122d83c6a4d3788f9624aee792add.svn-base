@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:37 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.st_ones.common.sms.EverSmsMapper">
+
+	<!-- SMS 보낼 대상자 가져오기 -->
+	<select id="getReceiverPhoneNo" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 <include refid="common.sql.strDecStart"/>A.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+			,<include refid="common.sql.strDecStart"/>A.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+		  FROM (
+			 	<!-- 운영사 사용자 -->
+				SELECT CVUR.CELL_NUM
+					 , CVUR.USER_NM
+				  FROM STOCUSER CVUR
+				 WHERE CVUR.GATE_CD = #{ses.gateCd}
+				   AND CVUR.USER_ID = UPPER(#{RECV_USER_ID})
+				
+				UNION ALL
+				
+				<!-- 고객사, 협력사 사용자 -->
+				SELECT CVUR.CELL_NUM
+					 , CVUR.USER_NM
+				  FROM STOCCVUR CVUR
+				 WHERE CVUR.GATE_CD   = #{ses.gateCd}
+				   AND CVUR.USER_ID   = UPPER(#{RECV_USER_ID})
+				   AND CVUR.SMS_FLAG  = '1'				-- SMS수신여부
+				
+				UNION ALL
+				
+				<!-- 협력사 제외 -->
+				SELECT CVUR.CELL_NUM
+					 , CVUR.USER_NM
+				  FROM STOCCVUR CVUR
+				 WHERE CVUR.GATE_CD    = #{ses.gateCd}
+				   AND CVUR.COMPANY_CD = #{RECV_USER_ID}
+				   AND CVUR.USER_TYPE != 'S'			-- 고객사
+				   AND CVUR.MNG_YN     = '1'			-- 고객사 관리자
+				   AND CVUR.SMS_FLAG   = '1'			-- SMS수신여부
+				   AND ROWNUM <![CDATA[<=]]> 3			-- 3명까지만
+				
+				UNION ALL
+				
+				<!-- 협력사 : 협력사 관리자 직무(SR020) -->
+				SELECT CVUR.CELL_NUM
+					 , CVUR.USER_NM
+				  FROM STOCCVUR CVUR
+				  JOIN STOCBACP BACP
+				  	   ON( CVUR.GATE_CD    = BACP.GATE_CD
+				  	   AND CVUR.COMPANY_CD = BACP.BUYER_CD
+				  	   AND CVUR.USER_ID    = BACP.CTRL_USER_ID
+				  	   AND BACP.CTRL_CD    = 'SR020'	-- 협력사 관리자 권한
+				  	   AND BACP.USE_FLAG   = '1'
+				  	   AND BACP.DEL_FLAG   = '0')
+				 WHERE CVUR.GATE_CD    = #{ses.gateCd}
+				   AND CVUR.COMPANY_CD = #{RECV_USER_ID}
+				   AND CVUR.USER_TYPE  = 'S'			-- 협력사
+				   AND CVUR.MNG_YN     = '1'			-- 협력사 관리자
+				   AND CVUR.SMS_FLAG   = '1'			-- SMS수신여부
+				   AND ROWNUM <![CDATA[<=]]> 3			-- 3명까지만
+				
+				UNION ALL
+				
+				<!-- 직접 SMS 를 보낸다 -->
+				SELECT #{DIRECT_TARGET} AS CELL_NUM
+					 ,<include refid="common.sql.strEncStart"/>#{DIRECT_USER_NM}<include refid="common.sql.strEncEnd"/> AS USER_NM
+				  FROM DUAL
+		  ) A
+		 WHERE A.CELL_NUM IS NOT NULL
+    </select>
+
+    <select id="getBuyerContact" resultType="hashMap">
+
+        SELECT GATE_CD
+              ,USER_ID AS RECV_USER_ID
+              ,<include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, USER_ID, #{ses.langCd}) AS RECV_NM
+              ,<include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/> AS RECV_TEL_NUM
+              ,'1' AS SMS_FLAG
+          FROM STOCUSER
+         WHERE GATE_CD  = #{GATE_CD}
+           AND USER_ID  = #{USER_ID}
+           AND DEL_FLAG = '0'
+    </select>
+
+    <select id="getKey" resultType="string">
+		SELECT SQ_EM_SMT_TRAN_01.NEXTVAL <include refid="common.sql.dual"/>
+    </select>
+
+    <select id="getCustSendTelNum" resultType="string">
+		SELECT SMS_CELL_NUM FROM STOCCUST
+		WHERE GATE_CD = #{ses.gateCd}
+		AND CUST_CD = #{ses.companyCd}
+    </select>
+
+    <select id="getVendorSendTelNum" resultType="string">
+		SELECT
+			<include refid="common.sql.strDecStart"/>
+			<include refid="common.sql.nvl"/>(CELL_NUM,TEL_NUM)
+			<include refid="common.sql.strDecEnd"/> CELL_NUM
+		FROM STOCCVUR
+		WHERE GATE_CD = #{ses.gateCd}
+		AND USER_ID = #{ses.userId}
+    </select>
+	
+	<!-- 2021.07.08 : APPLY_KEY (구매(1)/공급(2)^사업자번호^부서코드^테이블명^테이블PK) 추가 -->
+    <insert id="sendSms" parameterType="hashMap">
+        INSERT INTO STOCSMSH <if test="_databaseId == 'mssql'">with (ROWLOCK)</if> (
+            GATE_CD,
+            SMS_SQ,
+            SEND_USER_NM,
+            RECV_USER_NM,
+            SEND_TEL_NUM,
+            RECV_TEL_NUM,
+            CONTENTS,
+            VENDOR_CD,
+            SEND_USER_ID,
+            RECV_USER_ID,
+            SEND_DATE,
+            REF_NUM,
+            REF_MODULE_CD,
+            BUYER_CD,
+            SEND_TYPE,
+            APPLY_KEY
+        ) VALUES (
+        <choose>
+            <when test="ses.gateCd == null or ses.gateCd == ''">'100',</when>
+            <otherwise>#{ses.gateCd},</otherwise>
+        </choose>
+            #{KEY},
+            <include refid="common.sql.strEncStart"/>#{SEND_USER_NM}<include refid="common.sql.strEncEnd"/>,
+			<include refid="common.sql.strEncStart"/>#{RECV_USER_NM}<include refid="common.sql.strEncEnd"/>,
+			<include refid="common.sql.strEncStart"/>#{SEND_TEL_NUM}<include refid="common.sql.strEncEnd"/>,
+			<include refid="common.sql.strEncStart"/><include refid="common.sql.nvl"/>(#{RECV_TEL_NUM}, '00000000000')<include refid="common.sql.strEncEnd"/>,
+            #{CONTENTS},
+            #{VENDOR_CD},
+			#{SEND_USER_ID},
+			#{RECV_USER_ID},
+            SYSDATE,
+            #{REF_NUM},
+            #{REF_MODULE_CD},
+            #{BUYER_CD},
+            #{SEND_TYPE},
+            #{EPRO_PS_DSC} || '^' || #{CORP_NO} || '^' || #{BRC} || '^' || #{CONT_TBL_ID} || '^' || #{CONT_TBL_PK} -- 구매(1)^사업자번호^부서코드^테이블명^테이블PK
+        )
+    </insert>
+
+    <insert id="emSmtTran" parameterType="hashMap">
+		INSERT INTO EM_SMT_TRAN (
+			  MT_PR
+			, DATE_CLIENT_REQ
+			, SERVICE_TYPE
+			, BROADCAST_YN
+			, MSG_STATUS
+			, CALLBACK      -- 발신자 전화번호
+			, RECIPIENT_NUM -- 받는사람
+			, CONTENT       -- 메세지
+		)
+		VALUES (
+			  #{KEY}
+			, SYSDATE
+			, '0' --SERVICE_TYPE
+			, 'N'
+			, '1'
+			, #{SEND_TEL_NUM}
+			, #{RECV_TEL_NUM}
+			, #{CONTENTS}
+		)
+    </insert>
+
+    <insert id="emMmtTran" parameterType="hashMap">
+		INSERT INTO EM_MMT_TRAN (
+			  MT_PR
+			, DATE_CLIENT_REQ
+			, SERVICE_TYPE
+			, BROADCAST_YN
+			, MSG_STATUS
+			, CALLBACK-- 발신자 전화번호
+			, RECIPIENT_NUM-- 받는사람
+			, SUBJECT-- 제목
+			, CONTENT-- 메세지
+		)
+		VALUES (
+		      #{KEY} --SQ_EM_MMT_TRAN_01.NEXTVAL
+			, SYSDATE
+			, '3' -- SERVICE_TYPE
+			, 'N'
+			, '1'
+			, #{SEND_TEL_NUM}
+			, #{RECV_TEL_NUM}
+			, #{SUBJECT}
+			, #{CONTENTS}
+		)
+    </insert>
+
+</mapper>
+

@@ -1,0 +1,3 @@
+set SGSGIxLinkerHOME=J:/product/2048/SG_SGIxLinker/
+
+set CLASSPATH=.:%SGSGIxLinkerHOME%lib/activation.jar:%SGSGIxLinkerHOME%/lib/exms.jar:%SGSGIxLinkerHOME%/lib/KICASGIxLinker.jar:%SGSGIxLinkerHOME%/lib/ldapjdk.jar:%SGSGIxLinkerHOME%/lib/libgpkiapi_jni.jar:%SGSGIxLinkerHOME%/lib/mail.jar:%SGSGIxLinkerHOME%/lib/servlet.jar:%SGSGIxLinkerHOME%/lib/xalan.jar:%SGSGIxLinkerHOME%/lib/xercesImpl.jar:%SGSGIxLinkerHOME%/lib/xmlParserAPIs.jar:%SGSGIxLinkerHOME%/lib/sggpki.jar:%SGSGIxLinkerHOME%/lib/sgkm.jar:%SGSGIxLinkerHOME%/lib/sgsecukit.jar:%SGSGIxLinkerHOME%/lib/signgate_common.jar:%SGSGIxLinkerHOME%/lib/signgateCrypto.jar

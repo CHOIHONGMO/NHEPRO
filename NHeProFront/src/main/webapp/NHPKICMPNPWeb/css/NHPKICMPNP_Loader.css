@@ -1,0 +1,47 @@
+#loading {
+    background-color: black;
+    background-color: rgba(95, 95, 95,.8);
+    bottom: 0;
+    left: 0;
+    position: fixed;
+    right: 0;
+    text-align: center;
+    top: 0;
+}
+
+#loading * {
+    vertical-align: middle;
+}
+
+#loading_box {
+    display: inline-block;
+    height: 100%;
+}
+#loading_txt {
+    color: #49a0dc;
+    font-weight: bold;
+/*    margin-left: 0.5em;*/
+    font-family: "Arial Black", Gadget, sans-serif;
+}
+ <style type="text/css"> 
+.LockOff { 
+	display: none; 
+	visibility: hidden; 
+} 
+
+.LockOn { 
+	display: block; 
+	visibility: visible; 
+	position: absolute; 
+	z-index: 999; 
+	top: 0px; 
+	left: 0px; 
+	width: 105%; 
+	height: 105%; 
+	background-color: #ccc; 
+	text-align: center; 
+	padding-top: 20%; 
+	filter: alpha(opacity=75); 
+	opacity: 0.75; 
+}
+</style> 

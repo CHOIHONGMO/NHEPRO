@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:38 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.common.generator.QueryGenMapper">
+
+    <select id="generateSearchCondition" parameterType="hashMap" resultType="java.lang.String">
+
+        <if test="_databaseId == 'oracle'">
+            SELECT
+            	replace('(' <include refid="common.sql.stringMerge"/> (
+            		SELECT LISTAGG(' ' <include refid="common.sql.stringMerge"/> A.GEN_STR,',') WITHIN GROUP(ORDER BY A.SORT) FROM (
+            			SELECT #{COL_NM} <include refid="common.sql.stringMerge"/> ' LIKE ''%'' <include refid="common.sql.stringMerge"/> ''' <include refid="common.sql.stringMerge"/> UPPER(#{COL_VAL}) <include refid="common.sql.stringMerge"/> ''' <include refid="common.sql.stringMerge"/> ''%'' ' AS GEN_STR, 1 AS SORT FROM DUAL
+
+            			UNION ALL
+
+            			SELECT
+            				'OR ' <include refid="common.sql.stringMerge"/> #{COL_NM} <include refid="common.sql.stringMerge"/> ' LIKE ''%'' <include refid="common.sql.stringMerge"/> ''' <include refid="common.sql.stringMerge"/> STD_WORD <include refid="common.sql.stringMerge"/> ''' <include refid="common.sql.stringMerge"/> ''%''' AS GEN_STR, 2 AS SORT
+            			  FROM STOCMTDU
+            			 WHERE GATE_CD = #{ses.gateCd}
+            			   AND DEL_FLAG = '0'
+            			   AND UPPER(DUP_WORD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COL_VAL}) <include refid="common.sql.stringMerge"/> '%'
+            			 GROUP BY STD_WORD
+            		) A
+            	) <include refid="common.sql.stringMerge"/> ')',',','')
+            	FROM DUAL
+        </if>
+        <if test="_databaseId == 'mssql'">
+            SELECT
+            	'(' <include refid="common.sql.stringMerge"/> STUFF((
+            		SELECT ' ' <include refid="common.sql.stringMerge"/> A.GEN_STR FROM (
+            			SELECT #{COL_NM} <include refid="common.sql.stringMerge"/> ' LIKE ''%'' <include refid="common.sql.stringMerge"/> ''' <include refid="common.sql.stringMerge"/> #{COL_VAL} + ''' <include refid="common.sql.stringMerge"/> ''%'' ' AS GEN_STR, 1 AS SORT
+
+            			UNION ALL
+
+            			SELECT
+            				'OR ' <include refid="common.sql.stringMerge"/> #{COL_NM} <include refid="common.sql.stringMerge"/> ' LIKE ''%'' <include refid="common.sql.stringMerge"/> ''' <include refid="common.sql.stringMerge"/> STD_WORD <include refid="common.sql.stringMerge"/> ''' <include refid="common.sql.stringMerge"/> ''%''' AS GEN_STR, 2 AS SORT
+            			  FROM STOCMTDU
+            			 WHERE GATE_CD = #{ses.gateCd}
+            			   AND DEL_FLAG = '0'
+            			   AND UPPER(DUP_WORD) LIKE '%' + UPPER(#{COL_VAL}) <include refid="common.sql.stringMerge"/> '%'
+            			 GROUP BY STD_WORD
+            		) A
+            	GROUP BY A.GEN_STR, A.SORT
+            	ORDER BY A.SORT
+            	FOR XML PATH ('')) ,1,1,'') <include refid="common.sql.stringMerge"/> ')'
+        </if>
+
+    </select>
+
+</mapper>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.SETR.SETR0020_Mapper">
+
+    <select id="setr0020_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT
+            <if test="_databaseId == 'oracle'">
+            ROWNUM AS ROW_NUM
+            </if>
+            <if test="_databaseId == 'mssql'">
+            ROW_NUMBER() OVER( ORDER BY NOTC.REG_DATE DESC, NOTC.NOTICE_NUM DESC) AS ROW_NUM
+            </if>
+            , <include refid="common.sql.dbo"/>GETUSERNAME(NOTC.GATE_CD,  NOTC.REG_USER_ID , #{ses.langCd}) AS REG_USER_NAME
+            , CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(NOTC.GATE_CD, NOTC.ATT_FILE_NUM) = 0
+              THEN NULL
+              ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(NOTC.GATE_CD, NOTC.ATT_FILE_NUM)
+              END AS ATTACH_FILE_NO_DISPLAY
+            , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'YYYY-MM-DD') AS REG_DATE
+            , <include refid="common.sql.toChar"/>(NOTC.START_DATE, 'YYYY-MM-DD') <include refid="common.sql.stringMerge"/> ' ~ ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.toChar"/>(NOTC.END_DATE, 'YYYY-MM-DD') AS NOTICE_DATE
+            , NOTC.VIEW_TYPE
+            , NOTC.SUBJECT
+            , NOTC.REG_USER_ID  AS REG_USER_ID
+            , NOTC.ATT_FILE_NUM AS ATTACH_FILE_NO
+            , CASE WHEN NOTC.ATT_FILE_NUM IS NOT NULL AND ( SELECT COUNT(*)
+                                                            FROM STOCATCH
+                                                            WHERE GATE_CD = #{ses.gateCd}
+                                                            AND UUID = NOTC.ATT_FILE_NUM
+                                                            AND DEL_FLAG = '0') <![CDATA[>]]> 0
+              THEN '0'
+              ELSE '1'
+              END AS ATTACH_FILE_NO_DISPLAY_IMAGE
+            , <include refid="common.sql.nvl"/>(NOTC.VIEW_CNT, 0) AS VIEW_CNT
+            , NOTC.GATE_CD
+            , NOTC.NOTICE_NUM
+            , <include refid="common.sql.nvl"/>(NOTC.POPUP_FLAG, '0') AS POPUP_FLAG
+        FROM STOCNOTC NOTC
+        WHERE NOTC.GATE_CD = #{ses.gateCd}
+        AND NOTC.DEL_FLAG = '0'
+        AND NOTC.NOTICE_TYPE = 'PCN'
+        AND NOTC.VIEW_TYPE IN ('USNA', 'USNE')
+        <choose>
+            <when test="ADD_FROM_DATE != '' and ADD_FROM_DATE != null and ADD_TO_DATE != '' and ADD_TO_DATE != null">
+                AND ((NOTC.START_DATE <![CDATA[>=]]> #{ADD_FROM_DATE} AND NOTC.START_DATE <![CDATA[<=]]> #{ADD_TO_DATE})
+                    OR (NOTC.END_DATE <![CDATA[>=]]> #{ADD_FROM_DATE} AND NOTC.END_DATE <![CDATA[<=]]> #{ADD_TO_DATE}))
+            </when>
+            <otherwise>
+                <if test="ADD_FROM_DATE != '' and ADD_FROM_DATE != null">
+                    AND NOTC.START_DATE <![CDATA[>=]]> #{ADD_FROM_DATE}
+                </if>
+                <if test="ADD_TO_DATE != '' and ADD_TO_DATE != null">
+                    AND NOTC.END_DATE <![CDATA[<=]]> #{ADD_TO_DATE}
+                </if>
+            </otherwise>
+        </choose>
+        <if test="ADD_USER_NAME != '' and ADD_USER_NAME != null ">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(NOTC.GATE_CD, NOTC.REG_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ADD_USER_NAME}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="SUBJECT != '' and SUBJECT != null ">
+            AND UPPER(NOTC.SUBJECT) like '%' <include refid="common.sql.stringMerge"/> UPPER(#{SUBJECT}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+         ORDER BY NOTC.REG_DATE DESC, NOTC.NOTICE_NUM DESC
+    </select>
+
+    <update id="setr0020_doDelete" parameterType="hashMap">
+        UPDATE STOCNOTC SET
+            DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+          AND NOTICE_NUM = #{NOTICE_NUM}
+    </update>
+
+    <select id="setr0021_doSearchNoticeInfo" parameterType="hashMap" resultType="hashMap">
+        SELECT NOTC.SUBJECT
+            , NOTC.NOTICE_NUM
+            , NOTC.NOTICE_TEXT_NUM
+            , NOTC.VIEW_TYPE
+            , <include refid="common.sql.nvl"/>(NOTC.VIEW_CNT, 0) AS VIEW_CNT
+            , <include refid="common.sql.toChar"/>(NOTC.START_DATE, 'YYYYMMDD') as START_DATE
+            , <include refid="common.sql.toChar"/>(NOTC.END_DATE, 'YYYYMMDD') as END_DATE
+            , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, ' YYYY-MM-DD') REG_DATE
+            , <include refid="common.sql.dbo"/>GETUSERNAME(NOTC.GATE_CD,  NOTC.REG_USER_ID , #{ses.langCd}) AS REG_USER_NM
+            , NOTC.REG_USER_ID  REG_USER_ID
+            , NOTC.ATT_FILE_NUM
+            , <include refid="common.sql.nvl"/>(NOTC.POPUP_FLAG, '0') AS POPUP_FLAG
+        FROM STOCNOTC NOTC
+        WHERE NOTC.GATE_CD = #{ses.gateCd}
+        AND NOTC.NOTICE_NUM = #{NOTICE_NUM}
+    </select>
+
+    <update id="setr0021_doSaveCount" parameterType="hashMap">
+        UPDATE STOCNOTC SET
+            VIEW_CNT = #{VIEW_CNT}
+        WHERE GATE_CD = #{ses.gateCd}
+          AND NOTICE_NUM = #{NOTICE_NUM}
+    </update>
+
+</mapper>

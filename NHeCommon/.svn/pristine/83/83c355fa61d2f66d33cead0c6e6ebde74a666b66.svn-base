@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.master.user.OSYR0130_Mapper">
+
+	<select id="osyr0130_doSearch" parameterType="hashmap" resultType="hashmap">
+
+		SELECT
+			  <include refid="common.sql.dbo"/>GETUSERNAME(MASK.GATE_CD, MASK.USER_ID, #{ses.langCd}) AS USER_NM
+			, MASK.USER_ID
+			, SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID AND SCREEN_CRUD = 'S')) AS DO_APPROVAL
+		    , SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID AND SCREEN_CRUD = 'T' AND MASK_APPROVAL IS NULL AND DEL_FLAG = '0')) AS DO_NOT_APPROVAL
+		    , SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID AND SCREEN_CRUD = 'T' AND MASK_APPROVAL = 'R')) AS DO_APPROVAL_RETURN
+		    , SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID AND SCREEN_CRUD = 'T' AND MASK_APPROVAL IS NULL AND DEL_FLAG = '1')) AS DO_APPROVAL_CANCEL
+			, SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID AND SCREEN_CRUD = 'C')) AS DO_SEARCH
+			, SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID AND SCREEN_CRUD = 'I')) AS DO_INSERT
+			, SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID AND SCREEN_CRUD = 'U')) AS DO_UPDATE
+			, SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID AND SCREEN_CRUD = 'M')) AS DO_SAVE
+			, SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID AND SCREEN_CRUD = 'D')) AS DO_DELETE
+			, SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID AND SCREEN_CRUD = 'E')) AS DO_EXCEL
+			, SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID AND SCREEN_CRUD = 'P')) AS DO_PRINT
+			, SUM((SELECT COUNT(*) FROM STOCMASK WHERE GATE_CD = MASK.GATE_CD AND MASK_SQ = MASK.MASK_SQ AND ACCESS_DATE = MASK.ACCESS_DATE AND USER_ID = MASK.USER_ID)) AS SUMMARY
+		  FROM STOCMASK MASK
+	     WHERE MASK.GATE_CD = #{ses.gateCd}
+	    <if test="FROM_DATE != null and FROM_DATE != ''">
+		   AND MASK.ACCESS_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{FROM_DATE})
+		</if>
+		<if test="TO_DATE != null and TO_DATE != ''">
+		   AND MASK.ACCESS_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{TO_DATE})
+		</if>
+		<if test="USER_ID != null and USER_ID != ''">
+		   AND UPPER(MASK.USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="USER_NM != null and USER_NM != ''">
+		   AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(MASK.GATE_CD, MASK.USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="MASK_APPROVAL != null and MASK_APPROVAL != ''">
+		   AND MASK.MASK_APPROVAL = #{MASK_APPROVAL}
+		</if>
+		 GROUP BY MASK.GATE_CD, MASK.USER_ID
+
+	</select>
+
+	<select id="osyr0130_doSearchSub" parameterType="hashmap" resultType="hashmap">
+
+		SELECT
+			  MASK_SQ
+		    , <include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, USER_ID, #{ses.langCd}) AS USER_NM
+			, USER_ID
+			, ACCESS_DATE
+			, SCREEN_ID
+			, <include refid="common.sql.dbo"/>GETMULTINAME(GATE_CD, 'SC', #{ses.langCd}, '', SCREEN_ID) AS SCREEN_NM
+			, SCREEN_CRUD
+			, MASK_RMK
+		    , APPROVAL_TYPE
+			, MASK_APPROVAL
+			, MASK_APPROVAL_USER_ID
+			, <include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, MASK_APPROVAL_USER_ID, #{ses.langCd}) AS MASK_APPROVAL_USER_NM
+		    , MASK_APPROVAL_RETURN
+			, RMK
+			, IP_ADDR
+		  FROM STOCMASK
+		 WHERE GATE_CD = #{ses.gateCd}
+		<if test="FROM_DATE != null and FROM_DATE != ''">
+		   AND ACCESS_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{FROM_DATE})
+		</if>
+		<if test="TO_DATE != null and TO_DATE != ''">
+		   AND ACCESS_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{TO_DATE})
+		</if>
+		<if test="USER_ID != null and USER_ID != ''">
+		   AND UPPER(USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="USER_NM != null and USER_NM != ''">
+		   AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="MASK_APPROVAL != null and MASK_APPROVAL != ''">
+		   AND MASK_APPROVAL = #{MASK_APPROVAL}
+		</if>
+		<if test="SCREEN_CRUD != null and SCREEN_CRUD != ''">
+			<choose>
+				<when test="SCREEN_CRUD eq 'T'.toString()">
+					AND SCREEN_CRUD = 'T'
+		            AND MASK_APPROVAL IS NULL
+		 	   		AND DEL_FLAG = '0'
+				</when>
+		 		<when test="SCREEN_CRUD eq 'R'.toString()">
+					AND SCREEN_CRUD = 'T'
+		 	   		AND MASK_APPROVAL = 'R'
+				</when>
+				<when test="SCREEN_CRUD eq 'CANCEL'.toString()">
+					AND SCREEN_CRUD = 'T'
+					AND MASK_APPROVAL IS NULL
+					AND DEL_FLAG = '1'
+				</when>
+				<otherwise>
+					AND SCREEN_CRUD = #{SCREEN_CRUD}
+				</otherwise>
+			</choose>
+		</if>
+
+	</select>
+
+</mapper>

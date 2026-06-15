@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.master.user.OSYR0131_Mapper">
+
+	<select id="osyr0131_doSearech" parameterType="hashmap" resultType="java.util.Map">
+
+		SELECT MASK_SQ
+			 , ACCESS_DATE
+			 , USER_ID
+			 , GETUSERNAME(GATE_CD, USER_ID, #{ses.langCd}) AS USER_NM
+		     , SCREEN_ID
+		     , GETMULTINAME(GATE_CD, 'SC', #{ses.langCd}, '', SCREEN_ID) AS SCREEN_NM
+			 , MASK_RMK
+			 , IP_ADDR
+		  FROM STOCMASK
+		 WHERE GATE_CD = #{ses.gateCd}
+		<if test="detailView == 'true'">
+		   -- 개인정보요청처리현황에서 조회
+		   AND MASK_SQ = #{MASK_SQ}
+		</if>
+		   AND ACCESS_DATE = #{ACCESS_DATE}
+		   AND USER_ID = #{ses.userId}
+		   AND SCREEN_ID = #{PARAM_SCREEN_ID}
+		   AND SCREEN_CRUD = 'T'
+	    <if test="detailView != 'true'">
+		   -- 개인정보해제요청팝업에서 조회
+		   AND DEL_FLAG = '0'
+	    </if>
+
+ 	</select>
+
+	<update id="osyr0131_doMaskApproval" parameterType="hashmap">
+
+		MERGE INTO STOCMASK A
+		USING (SELECT #{ses.gateCd} AS GATE_CD,
+				#{MASK_SQ} AS MASK_SQ,
+				#{ACCESS_DATE} AS ACCESS_DATE,
+				#{ses.userId} AS USER_ID
+				<include refid="common.sql.dual"/>
+		) B
+		ON (A.GATE_CD = B.GATE_CD
+		AND A.MASK_SQ = B.MASK_SQ
+		AND A.ACCESS_DATE = B.ACCESS_DATE
+		AND A.USER_ID = B.USER_ID
+		AND A.SCREEN_ID = #{SCREEN_ID}
+		AND A.SCREEN_CRUD = 'T'
+		AND A.DEL_FLAG = '0')
+		WHEN MATCHED THEN
+		UPDATE SET
+			  MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, MASK_RMK = #{MASK_RMK}
+		WHEN NOT MATCHED THEN
+		INSERT (
+			  GATE_CD
+			, MASK_SQ
+			, ACCESS_DATE
+			, USER_ID
+			, SCREEN_ID
+			, REG_DATE
+			, REG_USER_ID
+			, DEL_FLAG
+			, IP_ADDR
+			, MASK_RMK
+			, SCREEN_CRUD
+		<if test="APPROVAL_TYPE eq 'B'.toString">
+			, MASK_APPROVAL
+			, MASK_APPROVAL_USER_ID
+		</if>
+			, APPROVAL_TYPE
+		) VALUES (
+			  #{ses.gateCd}
+			, (SELECT NVL(MAX(MASK_SQ), 0) + 1
+				 FROM STOCMASK
+				WHERE GATE_CD = #{ses.gateCd}
+				  AND ACCESS_DATE = #{ACCESS_DATE}
+				  AND USER_ID = #{USER_ID})
+			, #{ACCESS_DATE}
+			, #{USER_ID}
+			, #{SCREEN_ID}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, #{IP_ADDR}
+			, #{MASK_RMK}
+			, CASE WHEN #{APPROVAL_TYPE} = 'A' THEN 'T' ELSE 'S' END
+		<if test="APPROVAL_TYPE eq 'B'.toString">
+			, 'E'
+			, #{ses.userId}
+		</if>
+			, #{APPROVAL_TYPE}
+		)<include refid="common.sql.comma"/>
+
+	</update>
+
+	<select id="osyr0131_doSearchMaskSq" parameterType="hashmap" resultType="java.lang.String">
+
+		SELECT MAX(MASK_SQ) AS MASK_SQ
+		  FROM STOCMASK
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND ACCESS_DATE = #{ACCESS_DATE}
+		   AND USER_ID = #{ses.userId}
+		   AND SCREEN_CRUD IN ('S', 'T')
+		   AND DEL_FLAG = '0'
+
+ 	</select>
+
+	<update id="osyr0131_doMaskApprovalCancel" parameterType="hashmap">
+
+		UPDATE STOCMASK SET
+			  MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, DEL_FLAG = '1'
+		<if test="MASK_FLAG eq 'C'.toString()">
+			, RMK = #{RMK}
+		</if>
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND MASK_SQ = #{MASK_SQ}
+		   AND ACCESS_DATE = #{ACCESS_DATE}
+		   AND USER_ID = #{USER_ID}
+
+	</update>
+
+	<select id="osyr0131_doMaskView" parameterType="hashmap" resultType="java.util.Map">
+
+		SELECT MASK_APPROVAL
+			 , MASK_APPROVAL_RETURN
+		  FROM STOCMASK
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND MASK_SQ = #{MASK_SQ}
+		   AND ACCESS_DATE = #{ACCESS_DATE}
+		   AND USER_ID = #{USER_ID}
+		   AND SCREEN_ID = #{SCREEN_ID}
+		   AND DEL_FLAG = '0'
+
+ 	</select>
+
+	<update id="osyr0131_doUpdate" parameterType="hashmap">
+
+		UPDATE STOCMASK SET
+			  MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, SCREEN_CRUD = 'S'
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND MASK_SQ = #{MASK_SQ}
+		   AND ACCESS_DATE = #{ACCESS_DATE}
+		   AND USER_ID = #{USER_ID}
+
+ 	</update>
+
+</mapper>

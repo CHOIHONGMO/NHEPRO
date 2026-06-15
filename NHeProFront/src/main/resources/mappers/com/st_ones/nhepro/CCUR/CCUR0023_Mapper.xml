@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCUR.CCUR0023_Mapper">
+
+	<select id="ccur0023_doSearch_ItemClassPopup_TREE" resultType="java.util.Map">
+		SELECT A.CORP_NO || A.DOC_DEPT_C || lvl AS "tree"
+			 , A.*
+		  FROM (
+			   SELECT LEVEL AS lvl
+					, LPAD('', (level-1)*2, '')||ORG.DEPT_C AS DEPT_C
+					, LPAD('', (level-1)*2, '')||ORG.DEPT_NM AS DEPT_NM
+					, ORG.UP_DEPT_C
+					, (SELECT A.BRC FROM TB_CO_BRC A WHERE A.CORP_NO = REPLACE(ORG.CORP_NO,'-','') AND A.BRC = DECODE(ORG.NH_CORP_CODE,'2',ORG.DEPT_C,ORG.ONL_C)) AS BRC
+					, (SELECT A.BRNM FROM TB_CO_BRC A WHERE A.CORP_NO = REPLACE(ORG.CORP_NO,'-','') AND A.BRC = DECODE(ORG.NH_CORP_CODE,'2',ORG.DEPT_C,ORG.ONL_C)) AS BRNM
+					, ORG.NH_CORP_CODE
+					, REPLACE(REPLACE(ORG.CORP_NO,'-',''),' ','') AS CORP_NO
+			   		, DOC_DEPT_C
+				 FROM NHEBILL.TB_CO_ORGZ ORG
+				WHERE ORG.STSC = '1'
+--				  AND CORP_NO='1048207072'
+				  AND REPLACE(REPLACE(ORG.CORP_NO,'-',''),' ','') IS NOT NULL
+				  AND REPLACE(REPLACE(ORG.ONL_C,'-',''),' ','') IS NOT NULL
+				START WITH ORG.DEPT_C = '0'
+			  CONNECT BY ORG.UP_DEPT_C = PRIOR ORG.DEPT_C
+		  	   ) A
+		 WHERE 1=1
+		<if test="DEPT_NM_LT != null and DEPT_NM_LT != ''">
+		   AND A.DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/> #{DEPT_NM_LT} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+ 	</select>
+
+	<select id="ccur0023_doSearch" resultType="java.util.Map">
+		SELECT B.CORP_NM                                                                              --법인명
+			 , B.CORP_NO                                                                              --법인번호
+			 , A.DEPT_C                                                                               --부서코드
+			 , A.DEPT_NM                                                                              --부서명
+			 , A.BRC                                                                                  --사무소코드
+			 , (SELECT C.BRNM FROM TB_CO_BRC C WHERE C.CORP_NO = A.CORP_NO AND C.BRC = A.BRC) AS BRNM --사무소명
+			 , A.USER_ID                                                                              --사용자ID
+			 , DAMO.DECRYPT_VAR_B64('EBILL_AES_256', A.USER_NM, '') AS USER_NM                        --사용자명
+			 , A.OFT_NM                                                                               --직명
+			 , A.PZC_NM                                                                               --직급
+			 , A.CHRG_BSN_NM                                                                          --담당업무
+			 , DAMO.DECRYPT_VAR_B64('EBILL_AES_256', A.DWIN_TEL, '') AS DWIN_TEL                      --내선번호
+			 , DAMO.DECRYPT_VAR_B64('EBILL_AES_256', A.HP_NO, '') AS HP_NO                            --휴대전화
+			 , DAMO.DECRYPT_VAR_B64('EBILL_AES_256', A.EMAIL, '') AS EMAIL                            --이메일
+		  FROM TB_CO_USER A
+			 , TB_CO_CORP B
+		 WHERE 1=1
+		   AND A.CORP_NO = B.CORP_NO
+		<if test="DEPT_C != null and DEPT_C != '' and UP_DEPT_C == null or UP_DEPT_C == ''">
+		   AND A.DEPT_C = #{DEPT_C}
+		</if>
+		<if test="DEPT_C != null and DEPT_C != '' and UP_DEPT_C != null and UP_DEPT_C != ''">
+		   AND (A.DEPT_C = #{DEPT_C} OR A.UP_DEPT_C = #{DEPT_C})
+		</if>
+		<if test="DEPT_NM != null and DEPT_NM != ''">
+		   AND A.DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/> #{DEPT_NM} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="USER_NM != null and USER_NM != ''">
+		   AND DAMO.DECRYPT_VAR_B64('EBILL_AES_256', A.USER_NM, '') LIKE '%' <include refid="common.sql.stringMerge"/> #{USER_NM} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="USER_ID != null and USER_ID != ''">
+		   AND A.USER_ID LIKE '%' <include refid="common.sql.stringMerge"/> #{USER_ID} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		   AND A.EMP_STSC = '1'
+		 ORDER BY A.PZC_C ASC
+ 	</select>
+
+</mapper>

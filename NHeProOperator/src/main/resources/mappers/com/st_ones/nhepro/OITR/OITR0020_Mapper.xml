@@ -1,0 +1,1722 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.OITR.OITR0020_Mapper">
+	<select id="oitr0020_doSearch" parameterType="hashmap" resultType="hashmap">
+
+		SELECT B.*
+		  FROM (
+				SELECT A.*
+				  FROM (
+						SELECT MTGL.GATE_CD
+							 , MTGL.ITEM_CD
+							 , MTGL.STD_FLAG
+							 , MTGL.ITEM_DESC
+							 , MTGL.ITEM_SPEC
+							 , MTGL.MAKER_CD
+							 , <include refid="common.sql.dbo"/>GETMKBRNAME(MTGL.GATE_CD, MTGL.BUYER_CD, 'MK', MTGL.MAKER_CD) AS MAKER_NM
+							 , MTGL.MAKER_PART_NO
+							 , MTGL.BRAND_CD
+							 , <include refid="common.sql.dbo"/>GETMKBRNAME(MTGL.GATE_CD, MTGL.BUYER_CD, 'BR', MTGL.BRAND_CD) AS BRAND_NM
+							 , MTGL.ORIGIN_CD
+							 , MTGL.ITEM_STATUS
+							 , <include refid="common.sql.toChar"/>(MTGL.MOD_DATE, 'YYYY-MM-DD') MOD_DATE
+							 , MTGL.MOD_USER_ID
+							 , <include refid="common.sql.dbo"/>GETUSERNAME(MTGL.GATE_CD, MTGL.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+							 , <include refid="common.sql.dbo"/>GETITEMCLASSPATH(MTGL.GATE_CD, #{ses.manageCd}, MTGL.ITEM_CD) AS ITEM_CLS_NM
+							 , MTGL.BUYER_CD
+							 , MTGL.STD_ITEM_CD
+							 , MTGC.ITEM_CLS1
+							 , MTGC.ITEM_CLS2
+							 , MTGC.ITEM_CLS3
+							 , MTGC.ITEM_CLS4
+						  FROM STOCMTGL MTGL
+						  LEFT JOIN STOCMTGC MTGC
+						   ON (MTGL.GATE_CD = MTGC.GATE_CD
+						   AND MTGL.BUYER_CD = MTGC.BUYER_CD
+						   AND MTGL.ITEM_CD = MTGC.ITEM_CD
+						   AND MTGC.DEL_FLAG = '0')
+						 WHERE MTGL.GATE_CD = #{ses.gateCd}
+						   AND MTGL.DEL_FLAG  = '0'
+						) A
+				 WHERE 1=1
+				<if test="ITEM_CLS1 != null and ITEM_CLS1 != ''">
+				   AND A.ITEM_CLS1 = #{ITEM_CLS1}
+				</if>
+				<if test="ITEM_CLS2 != null and ITEM_CLS2 != ''">
+				   AND A.ITEM_CLS2 = #{ITEM_CLS2}
+				</if>
+				<if test="ITEM_CLS3 != null and ITEM_CLS3 != ''">
+				   AND A.ITEM_CLS3 = #{ITEM_CLS3}
+				</if>
+				<if test="ITEM_CLS4 != null and ITEM_CLS4 != ''">
+				   AND A.ITEM_CLS4 = #{ITEM_CLS4}
+				</if>
+				<if test="ITEM_CD != null and ITEM_CD != ''">
+				   AND UPPER(A.ITEM_CD) LIKE '%'<include refid="common.sql.stringMerge"/>UPPER(#{ITEM_CD})<include refid="common.sql.stringMerge"/>'%'
+				</if>
+				<if test="STD_FLAG != null and STD_FLAG != ''">
+				   AND A.STD_FLAG LIKE '%'<include refid="common.sql.stringMerge"/>#{STD_FLAG}<include refid="common.sql.stringMerge"/>'%'
+				</if>
+				<if test="ITEM_STATUS != null and ITEM_STATUS != ''">
+				   AND A.ITEM_STATUS LIKE '%'<include refid="common.sql.stringMerge"/>#{ITEM_STATUS}<include refid="common.sql.stringMerge"/>'%'
+				</if>
+				<if test="ITEM_DESC != null and ITEM_DESC != ''">
+				   AND (${ITEM_DESC})
+				</if>
+				<if test="ITEM_SPEC != null and ITEM_SPEC != ''">
+				   AND (${ITEM_SPEC})
+				</if>
+                <if test="MOD_USER_NM != null and MOD_USER_NM != ''">
+				   AND <include refid="common.sql.dbo"/>GETUSERNAME(A.GATE_CD, A.MOD_USER_ID, #{ses.langCd}) LIKE '%'<include refid="common.sql.stringMerge"/>#{MOD_USER_NM}<include refid="common.sql.stringMerge"/>'%'
+				</if>
+				<if test="MAKER_CD != null and MAKER_CD != ''">
+				   AND UPPER(A.MAKER_CD) LIKE '%'<include refid="common.sql.stringMerge"/>UPPER(#{MAKER_CD})<include refid="common.sql.stringMerge"/>'%'
+				</if>
+				<if test="MAKER_NM != null and MAKER_NM != ''">
+				   AND (${MAKER_NM})
+				</if>
+				<if test="MAKER_PART_NO != null and MAKER_PART_NO != ''">
+				   AND UPPER(A.MAKER_PART_NO) LIKE '%'<include refid="common.sql.stringMerge"/>UPPER(#{MAKER_PART_NO})<include refid="common.sql.stringMerge"/>'%'
+				</if>
+				<if test="BRAND_CD != null and BRAND_CD != ''">
+				   AND UPPER(A.BRAND_CD) LIKE '%'<include refid="common.sql.stringMerge"/>UPPER(#{BRAND_CD})<include refid="common.sql.stringMerge"/>'%'
+				</if>
+				<if test="BRAND_NM != null and BRAND_NM != ''">
+				   AND (${BRAND_NM})
+				</if>
+				) B
+		 WHERE 1 = 1
+		 ORDER BY B.ITEM_CD
+	</select>
+
+	<select id="oitr0021_doSearch" parameterType="hashmap" resultType="hashmap">
+		<if test='_databaseId=="oracle"'>
+			SELECT DISTINCT
+	          CASE WHEN A.ITEM_CLS_TYPE = 'C1' THEN ITEM_CLS1
+	               WHEN A.ITEM_CLS_TYPE = 'C2' THEN ITEM_CLS2
+	               WHEN A.ITEM_CLS_TYPE = 'C3' THEN ITEM_CLS3
+	               ELSE A.ITEM_CLS4 END "tree"
+	           	 , A.SORT_SQ
+	           	 , A.ITEM_CLS_NM
+	           	 , A.ITEM_CLS1
+	           	 , A.ITEM_CLS2
+	           	 , A.ITEM_CLS3
+	           	 , A.ITEM_CLS4
+	           	 , CASE WHEN A.ITEM_CLS_TYPE = 'C1' THEN null
+	                 	WHEN A.ITEM_CLS_TYPE = 'C2' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'1')
+	                 	WHEN A.ITEM_CLS_TYPE = 'C3' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'2')
+	                 	WHEN A.ITEM_CLS_TYPE = 'C4' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'3')
+	                 	ELSE null END PARENT_PATH_NM
+	           	 , CASE WHEN A.ITEM_CLS_TYPE = 'C1' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'1')
+	               		WHEN A.ITEM_CLS_TYPE = 'C2' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'1')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'2')
+	                 	WHEN A.ITEM_CLS_TYPE = 'C3' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'1')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'2')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'3')
+	                 	WHEN A.ITEM_CLS_TYPE = 'C4' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'1')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'2')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'3')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> ITEM_CLS_NM
+	                 	ELSE '' END ITEM_CLS_PATH_NM
+	           	 , ITEM_CLS
+	             , UP_ITEM_CLS
+	          FROM (
+	           		SELECT GATE_CD
+	               		 , DECODE(ITEM_CLS2,'*',ITEM_CLS1
+	               		 , DECODE(ITEM_CLS3,'*',ITEM_CLS2
+	               		 , DECODE(ITEM_CLS4,'*',ITEM_CLS3,ITEM_CLS4))) AS ITEM_CLS
+	               		 , DECODE(ITEM_CLS2,'*',''
+	               		 , DECODE(ITEM_CLS3,'*',ITEM_CLS1
+	               		 , DECODE(ITEM_CLS4,'*',ITEM_CLS2,ITEM_CLS3))) AS UP_ITEM_CLS
+	               		 , A.SORT_SQ
+	               		 , A.ITEM_CLS_NM
+	               		 , A.ITEM_CLS1
+	               		 , A.ITEM_CLS2
+	               		 , A.ITEM_CLS3
+	               		 , A.ITEM_CLS4
+	               		 , A.ITEM_CLS_TYPE
+	             	  FROM STOCMTCA A
+	            	 WHERE A.GATE_CD = #{ses.gateCd}
+	              	   AND A.DEL_FLAG = '0'
+	              	   AND A.USE_FLAG = '1'
+	       			) A -- 대분류
+			<if test='ITEM_CLS_NM != "" and ITEM_CLS_NM != null'>
+	          START WITH UPPER(ITEM_CLS_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%'
+	       	</if>
+	       	CONNECT BY ITEM_CLS = PRIOR UP_ITEM_CLS
+	       	  ORDER BY A.ITEM_CLS1,A.ITEM_CLS2,A.ITEM_CLS3,A.ITEM_CLS4,A.SORT_SQ
+		</if>
+		<if test='_databaseId=="mssql"'>
+			WITH CTE_TABLE(GATE_CD, BUYER_CD, SORT_SQ, ITEM_CLS_NM, ITEM_CLS1, ITEM_CLS2, ITEM_CLS3, ITEM_CLS4, ITEM_CLS_TYPE, ITEM_CLS, UP_ITEM_CLS)
+			  AS (
+				  SELECT A.GATE_CD
+				  	   , A.BUYER_CD
+				  	   , A.SORT_SQ
+				  	   , A.ITEM_CLS_NM
+				  	   , A.ITEM_CLS1
+				  	   , A.ITEM_CLS2
+				  	   , A.ITEM_CLS3
+				  	   , A.ITEM_CLS4
+				  	   , A.ITEM_CLS_TYPE
+				  	   , A.ITEM_CLS
+				  	   , A.UP_ITEM_CLS
+				    FROM STOCMTCA A
+				   WHERE A.GATE_CD = #{ses.gateCd}
+					 AND A.BUYER_CD = #{CUST_CD}
+				<if test='ITEM_CLS_NM != "" and ITEM_CLS_NM != null'>
+				     AND UPPER( A.ITEM_CLS_NM ) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%'
+				</if>
+				     AND A.DEL_FLAG = '0'
+				     AND A.USE_FLAG = '1'
+
+				   UNION ALL
+
+				  SELECT T.GATE_CD
+				  	   , T.BUYER_CD
+				  	   , T.SORT_SQ
+				  	   , T.ITEM_CLS_NM
+				  	   , T.ITEM_CLS1
+				  	   , T.ITEM_CLS2
+				  	   , T.ITEM_CLS3
+				  	   , T.ITEM_CLS4
+				  	   , T.ITEM_CLS_TYPE
+				  	   , T.ITEM_CLS
+				  	   , T.UP_ITEM_CLS
+				    FROM (
+				   	  	  SELECT M.GATE_CD
+				   	  	  	   , M.BUYER_CD
+				   	  	  	   , M.SORT_SQ
+				   	  	  	   , M.ITEM_CLS_NM
+				   	  	  	   , M.ITEM_CLS1
+				   	  	  	   , M.ITEM_CLS2
+				   	  	  	   , M.ITEM_CLS3
+				   	  	  	   , M.ITEM_CLS4
+				   	  	  	   , M.ITEM_CLS_TYPE
+				   	  	  	   , M.ITEM_CLS
+				   	  	  	   , M.UP_ITEM_CLS
+							FROM STOCMTCA M
+					   	   WHERE M.GATE_CD = #{ses.gateCd}
+ 						 	 AND M.BUYER_CD = #{CUST_CD}
+					     	 AND M.DEL_FLAG = '0'
+						 	 AND M.USE_FLAG = '1'
+						  ) T
+					JOIN CTE_TABLE N
+				   	 ON (T.GATE_CD = N.GATE_CD
+			         AND T.BUYER_CD = N.BUYER_CD
+				     AND T.ITEM_CLS = N.UP_ITEM_CLS)
+				  )
+		  SELECT DISTINCT
+				 (CASE WHEN C.ITEM_CLS_TYPE = 'C1' THEN C.ITEM_CLS1
+					   WHEN C.ITEM_CLS_TYPE = 'C2' THEN C.ITEM_CLS2
+					   WHEN C.ITEM_CLS_TYPE = 'C3' THEN C.ITEM_CLS3
+					   ELSE C.ITEM_CLS4 END) "tree"
+			   , C.SORT_SQ
+			   , C.ITEM_CLS_NM
+			   , C.ITEM_CLS1
+			   , C.ITEM_CLS2
+			   , C.ITEM_CLS3
+			   , C.ITEM_CLS4
+			   , C.ITEM_CLS
+			   , C.UP_ITEM_CLS
+			   , P.ITEM_CLS_PATH_NM
+			   , (SELECT MAX(GATE_CD) FROM STOCMTCA WHERE GATE_CD =#{ses.gateCd} AND BUYER_CD=#{CUST_CD} AND UP_ITEM_CLS=C.ITEM_CLS) AS UPYN
+			   , <include refid="common.sql.nvl"/>((SELECT MAX(SG_NUM) FROM STOCSGMC WHERE  M_CATE_YN='1' AND ITEM_CLS1=C.ITEM_CLS1 and ITEM_CLS2=C.ITEM_CLS2 and ITEM_CLS3 =C.ITEM_CLS3 and ITEM_CLS4 = C.ITEM_CLS4),'') AS SG_YN
+			   , <include refid="common.sql.nvl"/>((SELECT CTRL_USER_ID FROM STOCSGMT WHERE SG_NUM = (SELECT MAX(SG_NUM) FROM STOCSGMC WHERE  M_CATE_YN='1' AND ITEM_CLS1=C.ITEM_CLS1 and ITEM_CLS2=C.ITEM_CLS2 and ITEM_CLS3 =C.ITEM_CLS3 and ITEM_CLS4 = C.ITEM_CLS4)),'') AS SG_CTRL_USER_ID
+			   , <include refid="common.sql.nvl"/>((SELECT <include refid="common.sql.dbo"/>getUserName(GATE_CD, CTRL_USER_ID, #{ses.langCd}) FROM STOCSGMT WHERE SG_NUM = (SELECT MAX(SG_NUM) FROM STOCSGMC WHERE  M_CATE_YN='1' AND ITEM_CLS1=C.ITEM_CLS1 and ITEM_CLS2=C.ITEM_CLS2 and ITEM_CLS3 =C.ITEM_CLS3 and ITEM_CLS4 = C.ITEM_CLS4)),'') AS SG_CTRL_USER_NM
+			FROM CTE_TABLE C
+			JOIN (
+			      SELECT MTCA.GATE_CD
+			           , MTCA.BUYER_CD
+			           , MTCA.ITEM_CLS1
+                       , MTCA.ITEM_CLS2
+                       , MTCA.ITEM_CLS3
+                       , MTCA.ITEM_CLS4
+                       , MTC1.ITEM_CLS_NM
+                         <include refid="common.sql.stringMerge"/> CASE WHEN MTC2.ITEM_CLS_NM IS NOT NULL THEN ' > ' <include refid="common.sql.stringMerge"/> MTC2.ITEM_CLS_NM ELSE '' END
+                         <include refid="common.sql.stringMerge"/> CASE WHEN MTC3.ITEM_CLS_NM IS NOT NULL THEN ' > ' <include refid="common.sql.stringMerge"/> MTC3.ITEM_CLS_NM ELSE '' END
+                         <include refid="common.sql.stringMerge"/> CASE WHEN MTC4.ITEM_CLS_NM IS NOT NULL THEN ' > ' <include refid="common.sql.stringMerge"/> MTC4.ITEM_CLS_NM ELSE '' END AS ITEM_CLS_PATH_NM
+                    FROM STOCMTCA MTCA
+                    LEFT OUTER JOIN STOCMTCA MTC1
+                  	 ON (MTCA.GATE_CD = MTC1.GATE_CD
+                     AND MTCA.BUYER_CD = MTC1.BUYER_CD
+                  	 AND MTCA.ITEM_CLS1 = MTC1.ITEM_CLS1
+                  	 AND MTC1.ITEM_CLS_TYPE = 'C1'
+                  	 AND MTC1.DEL_FLAG = '0')
+                    LEFT OUTER JOIN STOCMTCA MTC2
+                  	 ON (MTCA.GATE_CD = MTC2.GATE_CD
+                  	 AND MTCA.BUYER_CD = MTC2.BUYER_CD
+                  	 AND MTCA.ITEM_CLS1 = MTC2.ITEM_CLS1
+                  	 AND MTCA.ITEM_CLS2 = MTC2.ITEM_CLS2
+                  	 AND MTC2.ITEM_CLS_TYPE = 'C2'
+                  	 AND MTC2.DEL_FLAG = '0')
+                  	LEFT OUTER JOIN STOCMTCA MTC3
+                  	 ON (MTCA.GATE_CD = MTC3.GATE_CD
+                  	 AND MTCA.BUYER_CD = MTC3.BUYER_CD
+                  	 AND MTCA.ITEM_CLS1 = MTC3.ITEM_CLS1
+                  	 AND MTCA.ITEM_CLS2 = MTC3.ITEM_CLS2
+                  	 AND MTCA.ITEM_CLS3 = MTC3.ITEM_CLS3
+                  	 AND MTC3.ITEM_CLS_TYPE = 'C3'
+                  	 AND MTC3.DEL_FLAG = '0')
+                  	LEFT OUTER JOIN STOCMTCA MTC4
+                  	 ON (MTCA.GATE_CD = MTC4.GATE_CD
+                  	 AND MTCA.BUYER_CD = MTC4.BUYER_CD
+                  	 AND MTCA.ITEM_CLS1 = MTC4.ITEM_CLS1
+                  	 AND MTCA.ITEM_CLS2 = MTC4.ITEM_CLS2
+                  	 AND MTCA.ITEM_CLS3 = MTC4.ITEM_CLS3
+                  	 AND MTCA.ITEM_CLS4 = MTC4.ITEM_CLS4
+                  	 AND MTC4.ITEM_CLS_TYPE = 'C4'
+                  	 AND MTC4.DEL_FLAG = '0')
+                   WHERE MTCA.GATE_CD = #{ses.gateCd}
+				   	 AND MTCA.BUYER_CD = #{CUST_CD}
+                   	 AND MTCA.USE_FLAG = '1'
+                   	 AND MTCA.DEL_FLAG = '0'
+			  	  ) P
+			  ON (C.GATE_CD = P.GATE_CD
+			  AND C.BUYER_CD = P.BUYER_CD
+			  AND C.ITEM_CLS1 = P.ITEM_CLS1
+			  AND C.ITEM_CLS2 = P.ITEM_CLS2
+			  AND C.ITEM_CLS3 = P.ITEM_CLS3
+			  AND C.ITEM_CLS4 = P.ITEM_CLS4)
+			WHERE 1 = 1
+			<if test='ITEM_CLS_NM != "" and ITEM_CLS_NM != null'>
+		 	  OR UPPER(P.ITEM_CLS_PATH_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+		   ORDER BY C.ITEM_CLS1, C.ITEM_CLS2, C.ITEM_CLS3, C.ITEM_CLS4, C.SORT_SQ
+		</if>
+	</select>
+
+	<select id="oitr0021_doSearch_ItemClassPopup_TREE" resultType="java.util.Map">
+		<if test='_databaseId=="oracle"'>
+			SELECT DISTINCT
+	           	   CASE WHEN A.ITEM_CLS_TYPE = 'C1' THEN ITEM_CLS1
+	               		WHEN A.ITEM_CLS_TYPE = 'C2' THEN ITEM_CLS2
+	                	WHEN A.ITEM_CLS_TYPE = 'C3' THEN ITEM_CLS3
+	                	ELSE A.ITEM_CLS4 END "tree"
+	             , A.SORT_SQ
+	             , A.ITEM_CLS_NM
+	             , A.ITEM_CLS1
+	             , A.ITEM_CLS2
+	             , A.ITEM_CLS3
+	             , A.ITEM_CLS4
+	             , CASE WHEN A.ITEM_CLS_TYPE = 'C1' THEN null
+	                 	WHEN A.ITEM_CLS_TYPE = 'C2' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'1')
+	                 	WHEN A.ITEM_CLS_TYPE = 'C3' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'2')
+	                 	WHEN A.ITEM_CLS_TYPE = 'C4' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'3')
+	                 	ELSE null END PARENT_PATH_NM
+	           	 , CASE WHEN A.ITEM_CLS_TYPE = 'C1' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'1')
+	                 	WHEN A.ITEM_CLS_TYPE = 'C2' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'1')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'2')
+	                 	WHEN A.ITEM_CLS_TYPE = 'C3' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'1')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'2')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'3')
+	                 	WHEN A.ITEM_CLS_TYPE = 'C4' THEN <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'1')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'2')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> <include refid="common.sql.dbo"/>GETITEMCLASS2(#{ses.gateCd}, #{ses.manageCd}, A.ITEM_CLS1, A.ITEM_CLS2, A.ITEM_CLS3, A.ITEM_CLS4,'3')
+	                 	<include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> ITEM_CLS_NM
+	                 	ELSE '' END ITEM_CLS_PATH_NM
+	           	 , ITEM_CLS
+	           	 , UP_ITEM_CLS
+	           	 ,(SELECT MAX(GATE_CD)
+			   	     FROM STOCMTCA
+			        WHERE GATE_CD = A.GATE_CD
+			          AND BUYER_CD = A.BUYER_CD
+			          AND UP_ITEM_CLS= A.ITEM_CLS) AS UPYN
+	          FROM (
+	           		SELECT A.GATE_CD
+	           			 , A.BUYER_CD
+	               		 , DECODE(A.ITEM_CLS2,'*',A.ITEM_CLS1
+	               		 , DECODE(A.ITEM_CLS3,'*',A.ITEM_CLS2
+	               		 , DECODE(A.ITEM_CLS4,'*',A.ITEM_CLS3,A.ITEM_CLS4))) AS ITEM_CLS
+	               		 , DECODE(A.ITEM_CLS2,'*',''
+	               		 , DECODE(A.ITEM_CLS3,'*',A.ITEM_CLS1
+	               		 , DECODE(A.ITEM_CLS4,'*',A.ITEM_CLS2,A.ITEM_CLS3))) AS UP_ITEM_CLS
+	               		 , A.SORT_SQ
+	               		 , A.ITEM_CLS_NM
+	               		 , A.ITEM_CLS1
+	               		 , A.ITEM_CLS2
+	               		 , A.ITEM_CLS3
+	               		 , A.ITEM_CLS4
+	               		 , A.ITEM_CLS_TYPE
+	             	  FROM STOCMTCA A
+	            	 WHERE A.GATE_CD = #{ses.gateCd}
+	            	   AND A.BUYER_CD = #{ses.manageCd}
+	              	   AND A.DEL_FLAG = '0'
+	              	   AND A.USE_FLAG = '1'
+					<if test="businessType != ''">
+	               		<choose>
+	                   		<when test="businessType == '100'">
+	                   AND A.ITEM_CLS1 = 'S1'
+	                   		</when>
+	                   		<when test="businessType == '200'">
+	                   AND A.ITEM_CLS1 = 'S2'
+	                   		</when>
+	               		</choose>
+	           		</if> -- 대분류
+	       			) A
+	       <if test='ITEM_CLS_NM != "" and ITEM_CLS_NM != null'>
+	         START WITH UPPER(ITEM_CLS_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%'
+	       </if>
+	       CONNECT BY ITEM_CLS = PRIOR UP_ITEM_CLS
+	       	 ORDER BY A.ITEM_CLS1,A.ITEM_CLS2,A.ITEM_CLS3,A.ITEM_CLS4
+		</if>
+		<if test='_databaseId=="mssql"'>
+			WITH CTE_TABLE(GATE_CD, BUYER_CD, SORT_SQ, ITEM_CLS_NM, ITEM_CLS1, ITEM_CLS2, ITEM_CLS3, ITEM_CLS4, ITEM_CLS_TYPE, ITEM_CLS, UP_ITEM_CLS)
+			  AS (
+				  SELECT A.GATE_CD
+				  	   , A.BUYER_CD
+				  	   , A.SORT_SQ
+				  	   , A.ITEM_CLS_NM
+				  	   , A.ITEM_CLS1
+				  	   , A.ITEM_CLS2
+				  	   , A.ITEM_CLS3
+				  	   , A.ITEM_CLS4
+				  	   , A.ITEM_CLS_TYPE
+				  	   , A.ITEM_CLS
+				  	   , A.UP_ITEM_CLS
+				    FROM STOCMTCA A
+				   WHERE A.GATE_CD = #{ses.gateCd}
+					 AND A.BUYER_CD = #{CUST_CD}
+				<if test='ITEM_CLS_NM != "" and ITEM_CLS_NM != null'>
+				     AND UPPER( A.ITEM_CLS_NM ) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%'
+				</if>
+				     AND A.DEL_FLAG = '0'
+				     AND A.USE_FLAG = '1'
+
+				   UNION ALL
+
+				  SELECT T.GATE_CD
+				  	   , T.BUYER_CD
+				  	   , T.SORT_SQ
+				  	   , T.ITEM_CLS_NM
+				  	   , T.ITEM_CLS1
+				  	   , T.ITEM_CLS2
+				  	   , T.ITEM_CLS3
+				  	   , T.ITEM_CLS4
+				  	   , T.ITEM_CLS_TYPE
+				  	   , T.ITEM_CLS
+				  	   , T.UP_ITEM_CLS
+				    FROM (
+				   	  	  SELECT M.GATE_CD
+				   	  	  	   , M.BUYER_CD
+				   	  	  	   , M.SORT_SQ
+				   	  	  	   , M.ITEM_CLS_NM
+				   	  	  	   , M.ITEM_CLS1
+				   	  	  	   , M.ITEM_CLS2
+				   	  	  	   , M.ITEM_CLS3
+				   	  	  	   , M.ITEM_CLS4
+				   	  	  	   , M.ITEM_CLS_TYPE
+				   	  	  	   , M.ITEM_CLS
+				   	  	  	   , M.UP_ITEM_CLS
+							FROM STOCMTCA M
+					   	   WHERE M.GATE_CD = #{ses.gateCd}
+ 						 	 AND M.BUYER_CD = #{CUST_CD}
+					     	 AND M.DEL_FLAG = '0'
+						 	 AND M.USE_FLAG = '1'
+						  ) T
+					JOIN CTE_TABLE N
+				   	 ON (T.GATE_CD = N.GATE_CD
+			         AND T.BUYER_CD = N.BUYER_CD
+				     AND T.ITEM_CLS = N.UP_ITEM_CLS)
+				  )
+		  SELECT DISTINCT
+				 (CASE WHEN C.ITEM_CLS_TYPE = 'C1' THEN C.ITEM_CLS1
+					   WHEN C.ITEM_CLS_TYPE = 'C2' THEN C.ITEM_CLS2
+					   WHEN C.ITEM_CLS_TYPE = 'C3' THEN C.ITEM_CLS3
+					   ELSE C.ITEM_CLS4 END) "tree"
+			   , C.SORT_SQ
+			   , C.ITEM_CLS_NM
+			   , C.ITEM_CLS1
+			   , C.ITEM_CLS2
+			   , C.ITEM_CLS3
+			   , C.ITEM_CLS4
+			   , C.ITEM_CLS
+			   , C.UP_ITEM_CLS
+			   , P.ITEM_CLS_PATH_NM
+			   , (SELECT MAX(GATE_CD) FROM STOCMTCA WHERE GATE_CD =#{ses.gateCd} AND BUYER_CD=#{CUST_CD} AND UP_ITEM_CLS=C.ITEM_CLS) AS UPYN
+			   , <include refid="common.sql.nvl"/>((SELECT MAX(SG_NUM) FROM STOCSGMC WHERE  M_CATE_YN='1' AND ITEM_CLS1=C.ITEM_CLS1 and ITEM_CLS2=C.ITEM_CLS2 and ITEM_CLS3 =C.ITEM_CLS3 and ITEM_CLS4 = C.ITEM_CLS4),'') AS SG_YN
+			   , <include refid="common.sql.nvl"/>((SELECT CTRL_USER_ID FROM STOCSGMT WHERE SG_NUM = (SELECT MAX(SG_NUM) FROM STOCSGMC WHERE  M_CATE_YN='1' AND ITEM_CLS1=C.ITEM_CLS1 and ITEM_CLS2=C.ITEM_CLS2 and ITEM_CLS3 =C.ITEM_CLS3 and ITEM_CLS4 = C.ITEM_CLS4)),'') AS SG_CTRL_USER_ID
+			   , <include refid="common.sql.nvl"/>((SELECT <include refid="common.sql.dbo"/>getUserName(GATE_CD, CTRL_USER_ID, #{ses.langCd}) FROM STOCSGMT WHERE SG_NUM = (SELECT MAX(SG_NUM) FROM STOCSGMC WHERE  M_CATE_YN='1' AND ITEM_CLS1=C.ITEM_CLS1 and ITEM_CLS2=C.ITEM_CLS2 and ITEM_CLS3 =C.ITEM_CLS3 and ITEM_CLS4 = C.ITEM_CLS4)),'') AS SG_CTRL_USER_NM
+			FROM CTE_TABLE C
+			JOIN (
+			      SELECT MTCA.GATE_CD
+			           , MTCA.BUYER_CD
+			           , MTCA.ITEM_CLS1
+                       , MTCA.ITEM_CLS2
+                       , MTCA.ITEM_CLS3
+                       , MTCA.ITEM_CLS4
+                       , MTC1.ITEM_CLS_NM
+                         <include refid="common.sql.stringMerge"/> CASE WHEN MTC2.ITEM_CLS_NM IS NOT NULL THEN ' > ' <include refid="common.sql.stringMerge"/> MTC2.ITEM_CLS_NM ELSE '' END
+                         <include refid="common.sql.stringMerge"/> CASE WHEN MTC3.ITEM_CLS_NM IS NOT NULL THEN ' > ' <include refid="common.sql.stringMerge"/> MTC3.ITEM_CLS_NM ELSE '' END
+                         <include refid="common.sql.stringMerge"/> CASE WHEN MTC4.ITEM_CLS_NM IS NOT NULL THEN ' > ' <include refid="common.sql.stringMerge"/> MTC4.ITEM_CLS_NM ELSE '' END AS ITEM_CLS_PATH_NM
+                    FROM STOCMTCA MTCA
+                    LEFT OUTER JOIN STOCMTCA MTC1
+                  	 ON (MTCA.GATE_CD = MTC1.GATE_CD
+                     AND MTCA.BUYER_CD = MTC1.BUYER_CD
+                  	 AND MTCA.ITEM_CLS1 = MTC1.ITEM_CLS1
+                  	 AND MTC1.ITEM_CLS_TYPE = 'C1'
+                  	 AND MTC1.DEL_FLAG = '0')
+                    LEFT OUTER JOIN STOCMTCA MTC2
+                  	 ON (MTCA.GATE_CD = MTC2.GATE_CD
+                  	 AND MTCA.BUYER_CD = MTC2.BUYER_CD
+                  	 AND MTCA.ITEM_CLS1 = MTC2.ITEM_CLS1
+                  	 AND MTCA.ITEM_CLS2 = MTC2.ITEM_CLS2
+                  	 AND MTC2.ITEM_CLS_TYPE = 'C2'
+                  	 AND MTC2.DEL_FLAG = '0')
+                  	LEFT OUTER JOIN STOCMTCA MTC3
+                  	 ON (MTCA.GATE_CD = MTC3.GATE_CD
+                  	 AND MTCA.BUYER_CD = MTC3.BUYER_CD
+                  	 AND MTCA.ITEM_CLS1 = MTC3.ITEM_CLS1
+                  	 AND MTCA.ITEM_CLS2 = MTC3.ITEM_CLS2
+                  	 AND MTCA.ITEM_CLS3 = MTC3.ITEM_CLS3
+                  	 AND MTC3.ITEM_CLS_TYPE = 'C3'
+                  	 AND MTC3.DEL_FLAG = '0')
+                  	LEFT OUTER JOIN STOCMTCA MTC4
+                  	 ON (MTCA.GATE_CD = MTC4.GATE_CD
+                  	 AND MTCA.BUYER_CD = MTC4.BUYER_CD
+                  	 AND MTCA.ITEM_CLS1 = MTC4.ITEM_CLS1
+                  	 AND MTCA.ITEM_CLS2 = MTC4.ITEM_CLS2
+                  	 AND MTCA.ITEM_CLS3 = MTC4.ITEM_CLS3
+                  	 AND MTCA.ITEM_CLS4 = MTC4.ITEM_CLS4
+                  	 AND MTC4.ITEM_CLS_TYPE = 'C4'
+                  	 AND MTC4.DEL_FLAG = '0')
+                   WHERE MTCA.GATE_CD = #{ses.gateCd}
+				   	 AND MTCA.BUYER_CD = #{CUST_CD}
+                   	 AND MTCA.USE_FLAG = '1'
+                   	 AND MTCA.DEL_FLAG = '0'
+			  	  ) P
+			  ON (C.GATE_CD = P.GATE_CD
+			  AND C.BUYER_CD = P.BUYER_CD
+			  AND C.ITEM_CLS1 = P.ITEM_CLS1
+			  AND C.ITEM_CLS2 = P.ITEM_CLS2
+			  AND C.ITEM_CLS3 = P.ITEM_CLS3
+			  AND C.ITEM_CLS4 = P.ITEM_CLS4)
+			WHERE 1 = 1
+			<if test='ITEM_CLS_NM != "" and ITEM_CLS_NM != null'>
+		 	  OR UPPER(P.ITEM_CLS_PATH_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+		   ORDER BY C.SORT_SQ, C.ITEM_CLS1, C.ITEM_CLS2, C.ITEM_CLS3, C.ITEM_CLS4
+		</if>
+ 	</select>
+	
+	<update id="oitr0020_doSave" parameterType="hashmap">
+		 UPDATE STOCMTGL
+		    SET ITEM_STATUS = #{ITEM_STATUS}
+		      , MOD_DATE = SYSDATE
+		      , MOD_USER_ID = #{ses.userId}
+		  WHERE GATE_CD = #{ses.gateCd}
+		    AND BUYER_CD = #{BUYER_CD}
+		    AND ITEM_CD = #{ITEM_CD}
+		    AND STD_ITEM_CD = #{STD_ITEM_CD}
+	</update>
+	
+	<select id="oita0024_doSearchInfo" parameterType="hashmap" resultType="hashmap">
+
+        SELECT MTGL.BUYER_CD
+            , MTGL.ITEM_CD
+            , MTGL.STD_ITEM_CD
+            , MTGL.ITEM_DESC
+            , MTGL.ITEM_SPEC
+            , MTGL.ITEM_KIND_CD
+            , <include refid="common.sql.dbo"/>getComCode(MTGL.GATE_CD, 'MP058', MTGL.ITEM_KIND_CD, 0, #{ses.langCd}) AS ITEM_KIND_NM
+            , <include refid="common.sql.dbo"/>GETMKBRNAME(MTGL.GATE_CD, MTGL.BUYER_CD, 'MK', MTGL.MAKER_CD) AS MAKER_NM
+            , <include refid="common.sql.dbo"/>GETMKBRNAME(MTGL.GATE_CD, MTGL.BUYER_CD, 'BR', MTGL.BRAND_CD) AS BRAND_NM
+            , <include refid="common.sql.dbo"/>getComCode(MTGL.GATE_CD, 'M004', MTGL.ORIGIN_CD, 0, #{ses.langCd}) AS ORIGIN_NM
+            , <include refid="common.sql.dbo"/>getComCode(MTGL.GATE_CD, 'M037', MTGL.UNIT_CD, 0, #{ses.langCd}) AS UNIT_NM
+            , <include refid="common.sql.dbo"/>getItemClassPath(MTGL.GATE_CD, #{ses.manageCd}, MTGL.ITEM_CD)  AS ITEM_CLS_NM
+            , <include refid="common.sql.dbo"/>getComCode(MTGL.GATE_CD, 'M036', MTGL.VAT_CD, 0, #{ses.langCd}) AS VAT_NM
+            , <include refid="common.sql.dbo"/>getComCode(MTGL.GATE_CD, 'MP009', MTGL.ITEM_STATUS, 0, #{ses.langCd}) AS ITEM_STATUS_NM
+            , <include refid="common.sql.dbo"/>getComCode(MTGL.GATE_CD, 'M044', MTGL.STD_FLAG, 0, #{ses.langCd}) AS STD_FLAG_NM
+            , <include refid="common.sql.dbo"/>getComCode(MTGL.GATE_CD, 'MP011', MTGL.NOT_STD_TYPE, 0, #{ses.langCd}) AS NOT_STD_TYPE_NM
+            , <include refid="common.sql.dbo"/>GETMASK(<include refid="common.sql.dbo"/>GETUSERNAME(MTGL.GATE_CD, MTGL.MOD_USER_ID, #{ses.langCd}), 'N') <include refid="common.sql.stringMerge"/>' / '
+              <include refid="common.sql.stringMerge"/> <include refid="common.sql.toChar"/>(MTGL.MOD_DATE, 'YYYY-MM-DD HH24:MI') AS MOD_INFO
+            , MTGL.MAKER_CD
+            , MTGL.BRAND_CD
+            , MTGL.MAKER_PART_NO
+            , MTGL.ORIGIN_CD
+            , MTGL.UNIT_CD
+            , MTGC.ITEM_CLS1
+            , MTGC.ITEM_CLS2
+            , MTGC.ITEM_CLS3
+            , MTGC.ITEM_CLS4
+            , MTGL.VAT_CD
+            , MTGL.ITEM_STATUS
+            , MTGL.STD_FLAG
+            , MTGL.NOT_STD_TYPE
+            , MTGL.ITEM_RMK
+            , MTGL.ATT_FILE_NUM
+            , (SELECT MAX(UUID) AS UUID
+               FROM STOCMTIM
+               WHERE GATE_CD = MTGL.GATE_CD
+                 AND BUYER_CD = MTGL.BUYER_CD
+                 AND ITEM_CD = MTGL.ITEM_CD
+                 AND DEL_FLAG = '0') AS IMG_ATT_FILE_NUM
+            , (SELECT MAX(UUID_SQ) AS UUID
+               FROM STOCMTIM
+               WHERE GATE_CD = MTGL.GATE_CD
+                 AND BUYER_CD = MTGL.BUYER_CD
+                 AND ITEM_CD = MTGL.ITEM_CD
+                 AND MAIN_IMG_FLAG = '1'
+                 AND DEL_FLAG = '0') AS MAIN_IMG_SQ
+        FROM STOCMTGL MTGL
+        JOIN STOCMTGC MTGC
+            ON (MTGL.GATE_CD = MTGC.GATE_CD
+            AND MTGL.BUYER_CD = MTGC.BUYER_CD
+            AND MTGL.ITEM_CD = MTGC.ITEM_CD
+            AND MTGC.DEL_FLAG = '0'
+            AND MTGC.M_CATE_YN='1')
+        WHERE MTGL.GATE_CD = #{ses.gateCd}
+        AND MTGL.BUYER_CD = #{BUYER_CD}
+        AND MTGL.STD_ITEM_CD = #{STD_ITEM_CD}
+        AND MTGL.ITEM_CD = #{ITEM_CD}
+        AND MTGL.DEL_FLAG = '0'
+    </select>
+
+    <select id="oita0024_doSearch_AT" parameterType="hashmap" resultType="hashmap">
+        SELECT AT.ATTR_CD
+             , AT.ATTR_VALUE
+         FROM STOCMTAT AT
+        WHERE AT.GATE_CD = #{ses.gateCd}
+          AND AT.BUYER_CD =#{ses.manageCd}
+          AND AT.ITEM_CD = #{ITEM_CD}
+          AND AT.DEL_FLAG = '0'
+    </select>
+
+    <insert id="oita0024_MTGL_Insert" parameterType="hashmap">
+        INSERT INTO STOCMTGL (
+            GATE_CD
+            ,BUYER_CD
+            ,ITEM_CD
+            ,STD_ITEM_CD
+            ,REG_DATE
+            ,REG_USER_ID
+            ,MOD_DATE
+            ,MOD_USER_ID
+            ,DEL_FLAG
+            ,PROGRESS_CD
+            ,ITEM_DESC
+            ,ITEM_SPEC
+            ,ITEM_KIND_CD
+            ,MAKER_CD
+            ,MAKER_PART_NO
+            ,ORIGIN_CD
+            ,UNIT_CD
+            ,VAT_CD
+            ,ITEM_STATUS
+            ,DATA_CREATE_TYPE
+            ,STD_FLAG
+            ,NOT_STD_TYPE
+            ,ITEM_RMK
+            ,ATT_FILE_NUM
+            ,BRAND_CD
+        ) VALUES (
+            #{ses.gateCd}
+            ,#{ses.manageCd}
+            ,#{ITEM_CD}
+            ,#{ITEM_CD}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,'0'
+            ,#{PROGRESS_CD}
+            ,#{ITEM_DESC}
+            ,#{ITEM_SPEC}
+            ,#{ITEM_KIND_CD}
+            ,#{MAKER_CD}
+            ,#{MAKER_PART_NO}
+            ,#{ORIGIN_CD}
+            ,#{UNIT_CD}
+            ,#{VAT_CD}
+            ,#{ITEM_STATUS}
+            ,'S'
+            ,#{STD_FLAG}
+            ,#{NOT_STD_TYPE}
+            ,#{ITEM_RMK}
+            ,#{ATT_FILE_NUM}
+            ,#{BRAND_CD}
+        )
+    </insert>
+
+    <update id="oita0024_MTGL_Update" parameterType="hashmap">
+
+        UPDATE STOCMTGL
+        SET   MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            ,PROGRESS_CD = #{PROGRESS_CD}
+            ,ITEM_DESC = #{ITEM_DESC}
+            ,ITEM_SPEC = #{ITEM_SPEC}
+            ,ITEM_KIND_CD = #{ITEM_KIND_CD}
+            ,MAKER_CD = #{MAKER_CD}
+            ,MAKER_PART_NO = #{MAKER_PART_NO}
+            ,ORIGIN_CD = #{ORIGIN_CD}
+            ,UNIT_CD = #{UNIT_CD}
+            ,VAT_CD = #{VAT_CD}
+            ,ITEM_STATUS = #{ITEM_STATUS}
+            ,DATA_CREATE_TYPE = #{DATA_CREATE_TYPE}
+            ,STD_FLAG = #{STD_FLAG}
+            ,NOT_STD_TYPE = #{NOT_STD_TYPE}
+            ,ITEM_RMK = #{ITEM_RMK}
+            ,ATT_FILE_NUM = #{ATT_FILE_NUM}
+            ,BRAND_CD = #{BRAND_CD}
+        WHERE GATE_CD = #{ses.gateCd}
+          AND BUYER_CD = #{ses.manageCd}
+          AND ITEM_CD = #{ITEM_CD}
+
+    </update>
+
+    <delete id="oita0024_doDeleteMTAT" parameterType="hashmap">
+        DELETE FROM STOCMTAT
+        WHERE GATE_CD = #{ses.gateCd}
+          AND BUYER_CD = #{ses.manageCd}
+          AND ITEM_CD = #{ITEM_CD}
+    </delete>
+
+    <insert id="oita0024_doSaveMTAT" parameterType="hashmap">
+        INSERT INTO STOCMTAT
+        (
+            GATE_CD
+            ,BUYER_CD
+            ,ITEM_CD
+            ,ITEM_CLS1
+            ,ITEM_CLS2
+            ,ITEM_CLS3
+            ,ITEM_CLS4
+            ,ATTR_CD
+            ,REG_DATE
+            ,REG_USER_ID
+            ,MOD_DATE
+            ,MOD_USER_ID
+            ,DEL_FLAG
+            ,ATTR_VALUE
+        )
+        VALUES(
+             #{ses.gateCd}
+            ,#{ses.manageCd}
+            ,#{ITEM_CD}
+            ,#{ITEM_CLS1}
+            ,#{ITEM_CLS2}
+            ,#{ITEM_CLS3}
+            ,#{ITEM_CLS4}
+            ,#{ATTR_CD}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,'0'
+            ,#{ATTR_VALUE}
+        )
+    </insert>
+
+    <delete id="oita0024_doDeleteMTIM" parameterType="hashmap">
+        DELETE FROM STOCMTIM
+         WHERE GATE_CD = #{ses.gateCd}
+          AND BUYER_CD = #{ses.manageCd}
+          AND ITEM_CD = #{ITEM_CD}
+          AND UUID = #{IMG_ATT_FILE_NUM}
+          AND DEL_FLAG = '0'
+    </delete>
+
+    <insert id="oita0024_doSaveMTIM" parameterType="hashmap">
+        INSERT INTO STOCMTIM (
+            GATE_CD,
+            BUYER_CD,
+            ITEM_CD,
+            UUID,
+            UUID_SQ,
+            REG_DATE,
+            REG_USER_ID,
+            MOD_DATE,
+            MOD_USER_ID,
+            DEL_FLAG,
+            MAIN_IMG_FLAG
+        ) VALUES (
+            #{ses.gateCd},
+            #{ses.manageCd},
+            #{ITEM_CD},
+            #{IMG_ATT_FILE_NUM},
+            #{MAIN_IMG_SQ},
+            SYSDATE,
+             #{ses.userId} ,
+            SYSDATE,
+             #{ses.userId} ,
+            '0',
+            '1'
+        )
+    </insert>
+
+	<update id="oitr0024_doSaveMTGC" parameterType="hashmap">
+
+        MERGE <include refid="common.sql.mergeInto"/> STOCMTGC MTGC
+        USING (SELECT #{ses.gateCd}  AS GATE_CD
+                     ,#{ses.manageCd} AS BUYER_CD
+                     ,#{ITEM_CD} AS ITEM_CD
+                     ,(CASE WHEN <include refid="common.sql.dbo"/>SF_SUBSTR(#{ITEM_CLS1},1,1) = 'P' THEN '0' ELSE '1' END) AS M_CATE_YN
+                     ,(CASE WHEN <include refid="common.sql.dbo"/>SF_SUBSTR(#{ITEM_CLS1},1,1) = 'P' THEN '1' ELSE '0' END) AS P_CATE_YN from dual
+              ) T
+        ON (MTGC.GATE_CD = T.GATE_CD
+         AND MTGC.BUYER_CD = T.BUYER_CD
+         AND MTGC.ITEM_CD = T.ITEM_CD
+         AND MTGC.M_CATE_YN = T.M_CATE_YN
+         AND MTGC.P_CATE_YN = T.P_CATE_YN)
+
+        WHEN MATCHED THEN UPDATE SET
+              MOD_DATE = SYSDATE
+             ,MOD_USER_ID = #{ses.userId}
+             ,ITEM_CLS1 = #{ITEM_CLS1}
+             ,ITEM_CLS2 = #{ITEM_CLS2}
+             ,ITEM_CLS3 = #{ITEM_CLS3}
+             ,ITEM_CLS4 = #{ITEM_CLS4}
+        WHEN NOT MATCHED THEN INSERT (
+             GATE_CD
+            ,BUYER_CD
+            ,ITEM_CD
+            ,M_CATE_YN
+            ,P_CATE_YN
+            ,ITEM_CLS1
+            ,ITEM_CLS2
+            ,ITEM_CLS3
+            ,ITEM_CLS4
+            ,REG_DATE
+            ,REG_USER_ID
+            ,MOD_DATE
+            ,MOD_USER_ID
+            ,DEL_FLAG
+        ) VALUES (
+             #{ses.gateCd}
+            ,#{ses.manageCd}
+            ,#{ITEM_CD}
+            ,'1'
+            ,'0'
+            ,#{ITEM_CLS1}
+            ,#{ITEM_CLS2}
+            ,#{ITEM_CLS3}
+            ,#{ITEM_CLS4}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,'0'
+        )<include refid="common.sql.comma"/>
+
+    </update>
+
+	<select id="oita0025_doSearch" parameterType="hashmap" resultType="hashMap">
+		SELECT MTCR.GATE_CD
+             , MTCR.BUYER_CD
+       		 , MTCR.ITEM_CLS1
+       		 ,(SELECT ITEM_CLS_NM FROM STOCMTCA
+       		    WHERE GATE_CD   = MTCR.GATE_CD
+       		      AND BUYER_CD  = MTCR.BUYER_CD
+       		      AND ITEM_CLS_TYPE = 'C1'
+       		      AND ITEM_CLS1 = #{ITEM_CLS1}
+       		      AND DEL_FLAG  = '0') AS ITEM_CLS1_NM
+       		 , MTCR.ITEM_CLS2
+       		 ,(SELECT ITEM_CLS_NM FROM STOCMTCA
+       		    WHERE GATE_CD   = MTCR.GATE_CD
+       		      AND BUYER_CD  = MTCR.BUYER_CD
+       		      AND ITEM_CLS_TYPE = 'C2'
+       		      AND ITEM_CLS1 = #{ITEM_CLS1}
+       		      AND ITEM_CLS2 = #{ITEM_CLS2}
+       		      AND DEL_FLAG  = '0') AS ITEM_CLS2_NM
+       		 , MTCR.ITEM_CLS3
+       		 ,(SELECT ITEM_CLS_NM FROM STOCMTCA
+       		    WHERE GATE_CD   = MTCR.GATE_CD
+       		      AND BUYER_CD  = MTCR.BUYER_CD
+       		      AND ITEM_CLS_TYPE = 'C3'
+       		      AND ITEM_CLS1 = #{ITEM_CLS1}
+       		      AND ITEM_CLS2 = #{ITEM_CLS2}
+       		      AND ITEM_CLS3 = #{ITEM_CLS3}
+       		      AND DEL_FLAG  = '0') AS ITEM_CLS3_NM
+       		 , MTCR.ITEM_CLS4
+       		 ,(SELECT ITEM_CLS_NM FROM STOCMTCA
+       		    WHERE GATE_CD   = MTCR.GATE_CD
+       		      AND BUYER_CD  = MTCR.BUYER_CD
+       		      AND ITEM_CLS_TYPE = 'C4'
+       		      AND ITEM_CLS1 = #{ITEM_CLS1}
+       		      AND ITEM_CLS2 = #{ITEM_CLS2}
+       		      AND ITEM_CLS3 = #{ITEM_CLS3}
+       		      AND ITEM_CLS4 = #{ITEM_CLS4}
+       		      AND DEL_FLAG  = '0') AS ITEM_CLS4_NM
+       		 , MTCR.ATTR_CD AS CODE
+			 , MTCR.ATTR_CD
+       		 , MTCR.ATTR_NM AS CODE_NM
+       		 , MTCR.MDT_FLAG
+       		 , <include refid="common.sql.nvl"/>(MTCR.SORT_SQ, 1) AS SORT_SQ
+       		 , MTCR.ATTR_RMK
+       		 , 'U' AS INSERT_FLAG
+       	  FROM STOCMTCR MTCR
+         WHERE MTCR.GATE_CD   = #{ses.gateCd}
+           AND MTCR.BUYER_CD  = #{ses.manageCd}
+    	   AND MTCR.ITEM_CLS1 = #{ITEM_CLS1}
+    	   AND MTCR.ITEM_CLS2 = #{ITEM_CLS2}
+    	   AND MTCR.ITEM_CLS3 = #{ITEM_CLS3}
+    	   AND MTCR.ITEM_CLS4 = #{ITEM_CLS4}
+       	   AND MTCR.DEL_FLAG  = '0'
+    	 ORDER BY MTCR.SORT_SQ
+    </select>
+
+	<!-- 제조사/브랜드 현황 -->
+	<select id="oitr0080_doSearch" parameterType="hashmap" resultType="hashMap">
+        SELECT MKBR.MKBR_TYPE
+             , MKBR.MKBR_CD
+             , MKBR.MKBR_NM
+             , MKBR.USE_FLAG
+             , MKBR.MAJOR_ITEM_TEXT
+             , MKBR.ADD_TEXT
+	    	 , MKBR.REG_USER_ID AS REG_USER_ID
+             , <include refid="common.sql.dbo"/>getUserName(#{ses.gateCd}, MKBR.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+             , <include refid="common.sql.dbo"/>getUserName(#{ses.gateCd}, MKBR.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+             , <include refid="common.sql.toChar"/>( MKBR.REG_DATE , 'YYYY-MM-DD HH24:MI') AS REG_DATE
+             , <include refid="common.sql.toChar"/>( MKBR.MOD_DATE , 'YYYY-MM-DD HH24:MI') AS MOD_DATE
+	    	 , MKBR.MOD_USER_ID
+          FROM STOCMKBR MKBR
+         WHERE MKBR.GATE_CD = #{ses.gateCd}
+           AND MKBR.BUYER_CD = #{ses.manageCd}
+		<if test="MKBR_TYPE != null and MKBR_TYPE != ''">
+           AND MKBR.MKBR_TYPE = #{MKBR_TYPE}
+        </if>
+        <if test="MKBR_NM != null and MKBR_NM != ''">
+           AND UPPER(MKBR.MKBR_NM) LIKE '%'<include refid="common.sql.stringMerge"/>UPPER(#{MKBR_NM})<include refid="common.sql.stringMerge"/>'%'
+        </if>
+        <if test="USE_FLAG != null and USE_FLAG != ''">
+           AND MKBR.USE_FLAG = #{USE_FLAG}
+        </if>
+           AND MKBR.DEL_FLAG = '0'
+         ORDER BY MKBR.MKBR_TYPE DESC, MKBR.MKBR_CD
+    </select>
+
+    <update id="oitr0080_doSave" parameterType="hashmap">
+        MERGE <include refid="common.sql.mergeInto"/> STOCMKBR MKBR
+        USING (SELECT #{ses.gateCd} AS GATE_CD
+        			 ,#{ses.manageCd} AS BUYER_CD
+                     ,#{MKBR_TYPE} AS MKBR_TYPE
+                     ,#{MKBR_CD} AS MKBR_CD<include refid="common.sql.dual"/>
+        ) DATA
+        ON (MKBR.GATE_CD = DATA.GATE_CD
+        AND MKBR.BUYER_CD = DATA.BUYER_CD
+        AND MKBR.MKBR_TYPE = DATA.MKBR_TYPE
+        AND MKBR.MKBR_CD = DATA.MKBR_CD)
+
+        WHEN MATCHED THEN
+        UPDATE SET
+             MKBR_NM = #{MKBR_NM}
+            ,USE_FLAG = #{USE_FLAG}
+            ,MAJOR_ITEM_TEXT = #{MAJOR_ITEM_TEXT}
+            ,ADD_TEXT = #{ADD_TEXT}
+            ,MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+        WHEN NOT MATCHED THEN
+        INSERT (
+             GATE_CD
+            ,BUYER_CD
+            ,MKBR_TYPE
+            ,MKBR_CD
+            ,REG_DATE
+            ,REG_USER_ID
+            ,MOD_DATE
+            ,MOD_USER_ID
+            ,DEL_FLAG
+            ,MKBR_NM
+            ,USE_FLAG
+            ,MAJOR_ITEM_TEXT
+            ,ADD_TEXT
+        ) VALUES (
+            #{ses.gateCd}
+            ,#{ses.manageCd}
+            ,#{MKBR_TYPE}
+            ,(SELECT #{MKBR_TYPE}<include refid="common.sql.stringMerge"/><include refid="common.sql.dbo"/>SF_LPAD(<include refid="common.sql.nvl"/>(MAX(<include refid="common.sql.dbo"/>SF_SUBSTR(MK.MKBR_CD, 3, 5)), 0) + 1, 4, '0') FROM STOCMKBR MK WHERE MK.GATE_CD = #{ses.gateCd} AND MK.BUYER_CD = #{ses.manageCd} AND MK.MKBR_TYPE = #{MKBR_TYPE})
+            ,SYSDATE
+            ,#{ses.userId}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,'0'
+            ,#{MKBR_NM}
+            ,#{USE_FLAG}
+            ,#{MAJOR_ITEM_TEXT}
+            ,#{ADD_TEXT}
+        )<include refid="common.sql.comma"/>
+    </update>
+
+    <select id="oitr0070_doSearchMTCR" parameterType="hashmap" resultType="hashmap">
+
+        SELECT MTCR.GATE_CD
+             , MTCR.BUYER_CD
+       		 , MTCR.ITEM_CLS1
+       		 ,(SELECT ITEM_CLS_NM FROM STOCMTCA
+       		    WHERE GATE_CD   = MTCR.GATE_CD
+       		      AND BUYER_CD  = MTCR.BUYER_CD
+       		      AND ITEM_CLS_TYPE = 'C1'
+       		      AND ITEM_CLS1 = #{ITEM_CLS1}
+       		      AND DEL_FLAG  = '0') AS ITEM_CLS1_NM
+       		 , MTCR.ITEM_CLS2
+       		 ,(SELECT ITEM_CLS_NM FROM STOCMTCA
+       		    WHERE GATE_CD   = MTCR.GATE_CD
+       		      AND BUYER_CD  = MTCR.BUYER_CD
+       		      AND ITEM_CLS_TYPE = 'C2'
+       		      AND ITEM_CLS1 = #{ITEM_CLS1}
+       		      AND ITEM_CLS2 = #{ITEM_CLS2}
+       		      AND DEL_FLAG  = '0') AS ITEM_CLS2_NM
+       		 , MTCR.ITEM_CLS3
+       		 ,(SELECT ITEM_CLS_NM FROM STOCMTCA
+       		    WHERE GATE_CD   = MTCR.GATE_CD
+       		      AND BUYER_CD  = MTCR.BUYER_CD
+       		      AND ITEM_CLS_TYPE = 'C3'
+       		      AND ITEM_CLS1 = #{ITEM_CLS1}
+       		      AND ITEM_CLS2 = #{ITEM_CLS2}
+       		      AND ITEM_CLS3 = #{ITEM_CLS3}
+       		      AND DEL_FLAG  = '0') AS ITEM_CLS3_NM
+       		 , MTCR.ITEM_CLS4
+       		 ,(SELECT ITEM_CLS_NM FROM STOCMTCA
+       		    WHERE GATE_CD   = MTCR.GATE_CD
+       		      AND BUYER_CD  = MTCR.BUYER_CD
+       		      AND ITEM_CLS_TYPE = 'C4'
+       		      AND ITEM_CLS1 = #{ITEM_CLS1}
+       		      AND ITEM_CLS2 = #{ITEM_CLS2}
+       		      AND ITEM_CLS3 = #{ITEM_CLS3}
+       		      AND ITEM_CLS4 = #{ITEM_CLS4}
+       		      AND DEL_FLAG  = '0') AS ITEM_CLS4_NM
+       		 , MTCR.ATTR_CD AS CODE
+			 , MTCR.ATTR_CD
+       		 , MTCR.ATTR_NM AS CODE_NM
+       		 , MTCR.MDT_FLAG
+       		 , <include refid="common.sql.nvl"/>(MTCR.SORT_SQ, 1) AS SORT_SQ
+       		 , MTCR.ATTR_RMK
+       		 , 'U' AS INSERT_FLAG
+       	  FROM STOCMTCR MTCR
+         WHERE MTCR.GATE_CD   = #{ses.gateCd}
+           AND MTCR.BUYER_CD  = #{ses.manageCd}
+    	   AND MTCR.ITEM_CLS1 = #{ITEM_CLS1}
+    	   AND MTCR.ITEM_CLS2 = #{ITEM_CLS2}
+    	   AND MTCR.ITEM_CLS3 = #{ITEM_CLS3}
+    	   AND MTCR.ITEM_CLS4 = #{ITEM_CLS4}
+       	   AND MTCR.DEL_FLAG  = '0'
+    	 ORDER BY MTCR.SORT_SQ
+
+    </select>
+
+    <!-- 분류별 속성 등록 -->
+    <insert id="oitr0070_doInsertMTCR" parameterType="hashMap">
+
+        INSERT INTO STOCMTCR (
+              GATE_CD
+            , BUYER_CD
+            , ITEM_CLS1
+            , ITEM_CLS2
+            , ITEM_CLS3
+            , ITEM_CLS4
+            , ATTR_CD
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , ATTR_NM
+            , MDT_FLAG
+            , SORT_SQ
+            , ATTR_RMK
+        ) VALUES (
+              #{ses.gateCd}
+            , #{ses.manageCd}
+            , #{ITEM_CLS1}
+			, #{ITEM_CLS2}
+			, #{ITEM_CLS3}
+			, #{ITEM_CLS4}
+		    , #{CODE}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{CODE_NM}
+            , #{MDT_FLAG}
+            , #{SORT_SQ}
+            , #{ATTR_RMK}
+        )
+
+    </insert>
+
+	<!-- 분류별 속성 삭제 -->
+    <delete id="oitr0070_doDeleteMTCR" parameterType="hashmap">
+
+        DELETE FROM STOCMTCR
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND BUYER_CD  = #{ses.manageCd}
+		   AND ITEM_CLS1 = #{ITEM_CLS1}
+		   AND ITEM_CLS2 = #{ITEM_CLS2}
+		   AND ITEM_CLS3 = #{ITEM_CLS3}
+		   AND ITEM_CLS4 = #{ITEM_CLS4}
+		   AND ATTR_CD   = #{CODE}
+
+    </delete>
+
+    <!-- 속성코드 조회하기 -->
+    <select id="oitr0071_doSearchCommonCode" parameterType="hashmap" resultType="hashmap">
+
+        SELECT ATTR_CD AS CODE
+             , ATTR_NM AS CODE_NM
+       	  FROM STOCMTAM
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND BUYER_CD = #{ses.manageCd}
+		<if test="CODE != null and CODE != ''">
+		   AND ATTR_CD LIKE '%' <include refid="common.sql.stringMerge"/> #{CODE} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="CODE_NM != null and CODE_NM != ''">
+		   AND UPPER(ATTR_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CODE_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+       	   AND DEL_FLAG  = '0'
+       	   AND USE_FLAG  = '1'
+
+    </select>
+
+	<select id="oitr0060_doSearch" resultType="java.util.Map">
+		SELECT BUYER_CD
+     		 , ATTR_CD
+			 , ATTR_NM
+			 , USE_FLAG
+			 , MDT_FLAG
+			 , ATTR_RMK
+  		  FROM STOCMTAM
+ 		 WHERE GATE_CD = #{ses.gateCd}
+   		   AND BUYER_CD = #{ses.manageCd}
+   		   AND DEL_FLAG = '0'
+		<if test="ATTR_NM != null and ATTR_NM != ''">
+		   AND UPPER(ATTR_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ATTR_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="ATTR_CD != null and ATTR_CD != ''">
+		   AND UPPER(ATTR_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ATTR_CD}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+ 	</select>
+
+	<insert id="oitr0060_doInsert">
+		INSERT INTO STOCMTAM (
+			   GATE_CD
+			 , BUYER_CD
+			 , ATTR_CD
+			 , REG_DATE
+			 , REG_USER_ID
+			 , MOD_DATE
+			 , MOD_USER_ID
+			 , DEL_FLAG
+			 , ATTR_NM
+			 , USE_FLAG
+			 , MDT_FLAG
+			 , ATTR_RMK
+		) VALUES (
+			   #{ses.gateCd}
+			 , #{ses.manageCd}
+			 , #{ATTR_CD}
+			 , SYSDATE
+			 , #{ses.userId}
+			 , SYSDATE
+			 , #{ses.userId}
+			 , '0'
+			 , #{ATTR_NM}
+			 , #{USE_FLAG}
+			 , #{MDT_FLAG}
+			 , #{ATTR_RMK}
+		)
+ 	</insert>
+
+	<update id="oitr0060_doUpdate">
+		UPDATE STOCMTAM SET
+			   ATTR_NM = #{ATTR_NM}
+			 , MDT_FLAG = #{MDT_FLAG}
+			 , USE_FLAG = #{USE_FLAG}
+			 , MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND ATTR_CD = #{ATTR_CD}
+ 	</update>
+
+	<delete id="oitr0060_doDelete">
+		UPDATE STOCMTAM SET
+			   DEL_FLAG = '1'
+			 , MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND ATTR_CD = #{ATTR_CD}
+ 	</delete>
+
+	<select id="oitr0040_doSearchItemClass" parameterType="hashmap" resultType="hashmap">
+
+        SELECT DISTINCT *
+          FROM (SELECT GATE_CD
+             		 , ITEM_CLS1
+        		     , ITEM_CLS2
+        		     , ITEM_CLS3
+        		     , ITEM_CLS4
+        		     , ITEM_CLS_NM
+        		     , ITEM_CLS_TYPE
+        		     , CASE WHEN ITEM_CLS_TYPE = 'C1' THEN ITEM_CLS1
+        		            WHEN ITEM_CLS_TYPE = 'C2' THEN ITEM_CLS2
+        		            WHEN ITEM_CLS_TYPE = 'C3' THEN ITEM_CLS3
+        		            WHEN ITEM_CLS_TYPE = 'C4' THEN ITEM_CLS4
+        		       END AS ITEM_CLS_ORI
+        		     , USE_FLAG
+        		     , SORT_SQ
+        		     , BUYER_CD
+        		  FROM STOCMTCA
+        		 WHERE GATE_CD = #{ses.gateCd}
+        		   AND BUYER_CD = #{BUYER_CD}
+        		   AND DEL_FLAG = '0'
+        		  <if test="USE_FLAG != '' and USE_FLAG != null"> AND USE_FLAG = #{USE_FLAG} </if>
+        		  <if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null"> AND ITEM_CLS_TYPE = #{ITEM_CLS} </if>
+        		  <if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null"> AND ITEM_CLS_NM LIKE '%'<include refid="common.sql.stringMerge"/>#{ITEM_CLS_NM}<include refid="common.sql.stringMerge"/>'%' </if>
+
+         		 UNION ALL
+
+         	   (SELECT T1.GATE_CD
+                 	 , T1.ITEM_CLS1
+                 	 , T1.ITEM_CLS2
+                 	 , T1.ITEM_CLS3
+                 	 , T1.ITEM_CLS4
+                 	 , T1.ITEM_CLS_NM
+                 	 , T1.ITEM_CLS_TYPE
+                 	 , CASE WHEN T1.ITEM_CLS_TYPE = 'C1' THEN T1.ITEM_CLS1
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C2' THEN T1.ITEM_CLS2
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C3' THEN T1.ITEM_CLS3
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C4' THEN T1.ITEM_CLS4
+                 	   END AS ITEM_CLS_ORI
+                 	 , T1.USE_FLAG
+                 	 , T1.SORT_SQ
+                 	 , T1.BUYER_CD
+            	  FROM STOCMTCA T1
+            	  JOIN STOCMTCA T2
+              	   ON (T1.ITEM_CLS1 = T2.ITEM_CLS1
+              	   AND T1.GATE_CD = T2.GATE_CD
+              	   AND T1.BUYER_CD = T2.BUYER_CD
+              	   AND T2.DEL_FLAG='0')
+            	 WHERE T1.GATE_CD = #{ses.gateCd}
+              	   AND T1.BUYER_CD = #{BUYER_CD}
+              	   AND T1.DEL_FLAG = '0'
+              	   AND T1.ITEM_CLS_TYPE = 'C1'
+				<if test="USE_FLAG != '' and USE_FLAG != null"> AND T2.USE_FLAG = #{USE_FLAG} </if>
+              	<if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null"> AND T2.ITEM_CLS_TYPE = #{ITEM_CLS} </if>
+              	<if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null"> AND UPPER( T2.ITEM_CLS_NM ) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%' </if>
+         	   )
+
+         		 UNION ALL
+
+         	   (SELECT T1.GATE_CD
+                 	 , T1.ITEM_CLS1
+                 	 , T1.ITEM_CLS2
+                 	 , T1.ITEM_CLS3
+                 	 , T1.ITEM_CLS4
+                 	 , T1.ITEM_CLS_NM
+                 	 , T1.ITEM_CLS_TYPE
+                 	 , CASE WHEN T1.ITEM_CLS_TYPE = 'C1' THEN T1.ITEM_CLS1
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C2' THEN T1.ITEM_CLS2
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C3' THEN T1.ITEM_CLS3
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C4' THEN T1.ITEM_CLS4
+                 	   END AS ITEM_CLS_ORI
+                 	 , T1.USE_FLAG
+                 	 , T1.SORT_SQ
+                 	 , T1.BUYER_CD
+            	  FROM STOCMTCA T1
+            	  JOIN STOCMTCA T2
+            	   ON (T1.ITEM_CLS1=T2.ITEM_CLS1
+            	   AND T1.ITEM_CLS2=T2.ITEM_CLS2
+            	   AND T1.GATE_CD=T2.GATE_CD
+            	   AND T1.BUYER_CD=T2.BUYER_CD
+            	   AND T2.DEL_FLAG='0')
+            	 WHERE T1.GATE_CD = #{ses.gateCd}
+              	   AND T1.BUYER_CD = #{BUYER_CD}
+              	   AND T1.DEL_FLAG = '0'
+              	   AND T1.ITEM_CLS_TYPE = 'C2'
+              	<if test="USE_FLAG != '' and USE_FLAG != null"> AND T2.USE_FLAG = #{USE_FLAG} </if>
+              	<if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null"> AND T2.ITEM_CLS_TYPE = #{ITEM_CLS} </if>
+              	<if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null"> AND UPPER( T2.ITEM_CLS_NM ) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%' </if>
+         	   )
+
+         		 UNION ALL
+
+         	   (SELECT T1.GATE_CD
+                 	 , T1.ITEM_CLS1
+                 	 , T1.ITEM_CLS2
+                 	 , T1.ITEM_CLS3
+                 	 , T1.ITEM_CLS4
+                 	 , T1.ITEM_CLS_NM
+                 	 , T1.ITEM_CLS_TYPE
+                 	 , CASE WHEN T1.ITEM_CLS_TYPE = 'C1' THEN T1.ITEM_CLS1
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C2' THEN T1.ITEM_CLS2
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C3' THEN T1.ITEM_CLS3
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C4' THEN T1.ITEM_CLS4
+                 	   END AS ITEM_CLS_ORI
+                 	 , T1.USE_FLAG
+                 	 , T1.SORT_SQ
+                 	 , T1.BUYER_CD
+            	  FROM STOCMTCA T1
+            	  JOIN STOCMTCA T2
+            	   ON (T1.ITEM_CLS1=T2.ITEM_CLS1
+            	   AND T1.ITEM_CLS2=T2.ITEM_CLS2
+            	   AND T1.ITEM_CLS3=T2.ITEM_CLS3
+            	   AND T1.GATE_CD=T2.GATE_CD
+            	   AND T1.BUYER_CD=T2.BUYER_CD
+            	   AND T2.DEL_FLAG='0')
+            	 WHERE T1.GATE_CD = #{ses.gateCd}
+              	   AND T1.BUYER_CD = #{BUYER_CD}
+              	   AND T1.DEL_FLAG = '0'
+              	   AND T1.ITEM_CLS_TYPE = 'C3'
+              	<if test="USE_FLAG != '' and USE_FLAG != null"> AND T2.USE_FLAG = #{USE_FLAG} </if>
+              	<if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null"> AND T2.ITEM_CLS_TYPE = #{ITEM_CLS} </if>
+              	<if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null"> AND UPPER( T2.ITEM_CLS_NM ) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%' </if>
+         	   )
+
+         		 UNION ALL
+
+         	   (SELECT T1.GATE_CD
+                 	 , T1.ITEM_CLS1
+                 	 , T1.ITEM_CLS2
+                 	 , T1.ITEM_CLS3
+                 	 , T1.ITEM_CLS4
+                 	 , T1.ITEM_CLS_NM
+                 	 , T1.ITEM_CLS_TYPE
+                 	 , CASE WHEN T1.ITEM_CLS_TYPE = 'C1' THEN T1.ITEM_CLS1
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C2' THEN T1.ITEM_CLS2
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C3' THEN T1.ITEM_CLS3
+                 	        WHEN T1.ITEM_CLS_TYPE = 'C4' THEN T1.ITEM_CLS4
+                 	   END AS ITEM_CLS_ORI
+                 	 , T1.USE_FLAG
+                 	 , T1.SORT_SQ
+                 	 , T1.BUYER_CD
+            	  FROM STOCMTCA T1
+            	  JOIN STOCMTCA T2
+            	   ON (T1.ITEM_CLS1=T2.ITEM_CLS1
+            	   AND T1.ITEM_CLS2=T2.ITEM_CLS2
+            	   AND T1.ITEM_CLS3=T2.ITEM_CLS3
+            	   AND T1.ITEM_CLS4=T2.ITEM_CLS4
+            	   AND T1.GATE_CD=T2.GATE_CD
+            	   AND T1.BUYER_CD=T2.BUYER_CD
+            	   AND T2.DEL_FLAG='0')
+                 WHERE T1.GATE_CD = #{ses.gateCd}
+                   AND T1.BUYER_CD = #{BUYER_CD}
+                   AND T1.DEL_FLAG = '0'
+                   AND T1.ITEM_CLS_TYPE = 'C4'
+              	<if test="USE_FLAG != '' and USE_FLAG != null"> AND T2.USE_FLAG = #{USE_FLAG} </if>
+              	<if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null"> AND T2.ITEM_CLS_TYPE = #{ITEM_CLS} </if>
+              	<if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null"> AND UPPER( T2.ITEM_CLS_NM ) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%' </if>
+         	   )
+     		   ) A
+      ORDER BY SORT_SQ, ITEM_CLS1, ITEM_CLS2, ITEM_CLS3, ITEM_CLS4
+
+    </select>
+
+	<select id="oitr0040_doSearchItemClassSearchNm" parameterType="hashmap" resultType="hashmap">
+        SELECT DISTINCT * FROM
+            (
+              SELECT GATE_CD
+                    , ITEM_CLS1
+                    , ITEM_CLS2
+                    , ITEM_CLS3
+                    , ITEM_CLS4
+                    , ITEM_CLS_NM
+                    , ITEM_CLS_TYPE
+                    , CASE WHEN ITEM_CLS_TYPE = 'C1' THEN ITEM_CLS1
+                            WHEN ITEM_CLS_TYPE = 'C2' THEN ITEM_CLS2
+                            WHEN ITEM_CLS_TYPE = 'C3' THEN ITEM_CLS3
+                            WHEN ITEM_CLS_TYPE = 'C4' THEN ITEM_CLS4
+                            END AS ITEM_CLS_ORI
+                    , USE_FLAG
+                    , SORT_SQ
+                    , BUYER_CD
+                FROM STOCMTCA
+                WHERE GATE_CD = #{ses.gateCd}
+                AND BUYER_CD = #{BUYER_CD}
+                AND DEL_FLAG = '0'
+                <if test="USE_FLAG != '' and USE_FLAG != null">
+                    AND( USE_FLAG = #{USE_FLAG}
+                      OR ITEM_CLS1 IN (SELECT T.ITEM_CLS1 FROM STOCMTCA T WHERE T.GATE_CD = #{ses.gateCd} AND T.BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C4' AND T.USE_FLAG = #{USE_FLAG})
+                      OR ITEM_CLS1 IN (SELECT T.ITEM_CLS1 FROM STOCMTCA T WHERE T.GATE_CD = #{ses.gateCd} AND T.BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C3' AND T.USE_FLAG = #{USE_FLAG})
+                      OR ITEM_CLS1 IN (SELECT T.ITEM_CLS1 FROM STOCMTCA T WHERE T.GATE_CD = #{ses.gateCd} AND T.BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C2' AND T.USE_FLAG = #{USE_FLAG})
+                    )
+                </if>
+                <if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null">
+                    AND( ITEM_CLS_NM LIKE '%'<include refid="common.sql.stringMerge"/>#{ITEM_CLS_NM}<include refid="common.sql.stringMerge"/>'%'
+                      OR ITEM_CLS1 IN (SELECT T.ITEM_CLS1 FROM STOCMTCA T  WHERE  T.GATE_CD = #{ses.gateCd} AND T.BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C4'  AND ITEM_CLS_NM LIKE '%'<include refid="common.sql.stringMerge"/>#{ITEM_CLS_NM}<include refid="common.sql.stringMerge"/>'%')
+                      OR ITEM_CLS1 IN (SELECT T.ITEM_CLS1 FROM STOCMTCA T  WHERE  T.GATE_CD = #{ses.gateCd} AND T.BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C3'  AND ITEM_CLS_NM LIKE '%'<include refid="common.sql.stringMerge"/>#{ITEM_CLS_NM}<include refid="common.sql.stringMerge"/>'%')
+                      OR ITEM_CLS1 IN (SELECT T.ITEM_CLS1 FROM STOCMTCA T  WHERE  T.GATE_CD = #{ses.gateCd} AND T.BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C2'  AND ITEM_CLS_NM LIKE '%'<include refid="common.sql.stringMerge"/>#{ITEM_CLS_NM}<include refid="common.sql.stringMerge"/>'%')
+                    )
+
+                </if>
+                AND  ITEM_CLS_TYPE = 'C1'
+
+            UNION ALL(
+                SELECT T1.GATE_CD
+                    , T1.ITEM_CLS1
+                    , T1.ITEM_CLS2
+                    , T1.ITEM_CLS3
+                    , T1.ITEM_CLS4
+                    , T1.ITEM_CLS_NM
+                    , T1.ITEM_CLS_TYPE
+                    , CASE WHEN T1.ITEM_CLS_TYPE = 'C1' THEN T1.ITEM_CLS1
+                            WHEN T1.ITEM_CLS_TYPE = 'C2' THEN T1.ITEM_CLS2
+                            WHEN T1.ITEM_CLS_TYPE = 'C3' THEN T1.ITEM_CLS3
+                            WHEN T1.ITEM_CLS_TYPE = 'C4' THEN T1.ITEM_CLS4
+                            END AS ITEM_CLS_ORI
+                    , T1.USE_FLAG
+                    , T1.SORT_SQ
+                    , T1.BUYER_CD
+                FROM  STOCMTCA T1
+                WHERE T1.GATE_CD = #{ses.gateCd}
+                  AND T1.BUYER_CD = #{BUYER_CD}
+                  AND T1.DEL_FLAG = '0'
+                <if test="USE_FLAG != '' and USE_FLAG != null">
+                    AND( T1.USE_FLAG = #{USE_FLAG}
+                      OR T1.ITEM_CLS2 IN (SELECT T.ITEM_CLS2 FROM STOCMTCA T WHERE T.GATE_CD = #{ses.gateCd} AND T.BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C4' AND T.USE_FLAG = #{USE_FLAG})
+                      OR T1.ITEM_CLS2 IN (SELECT T.ITEM_CLS2 FROM STOCMTCA T WHERE T.GATE_CD = #{ses.gateCd} AND T.BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C3' AND T.USE_FLAG = #{USE_FLAG})
+                    )
+                </if>
+                <if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null">
+                    AND( T1.ITEM_CLS_NM LIKE '%'<include refid="common.sql.stringMerge"/>#{ITEM_CLS_NM}<include refid="common.sql.stringMerge"/>'%'
+                      OR T1.ITEM_CLS2 IN (SELECT T.ITEM_CLS2 FROM STOCMTCA T WHERE T.GATE_CD = #{ses.gateCd} AND T.BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C4'  AND T.ITEM_CLS_NM LIKE '%'<include refid="common.sql.stringMerge"/>#{ITEM_CLS_NM}<include refid="common.sql.stringMerge"/>'%')
+                      OR T1.ITEM_CLS2 IN (SELECT T.ITEM_CLS2 FROM STOCMTCA T WHERE T.GATE_CD = #{ses.gateCd} AND T.BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C3'  AND T.ITEM_CLS_NM LIKE '%'<include refid="common.sql.stringMerge"/>#{ITEM_CLS_NM}<include refid="common.sql.stringMerge"/>'%')
+                    )
+                </if>
+                AND  T1.ITEM_CLS_TYPE = 'C2'
+            )
+
+            UNION ALL(
+                SELECT T1.GATE_CD
+                    , T1.ITEM_CLS1
+                    , T1.ITEM_CLS2
+                    , T1.ITEM_CLS3
+                    , T1.ITEM_CLS4
+                    , T1.ITEM_CLS_NM
+                    , T1.ITEM_CLS_TYPE
+                    , CASE WHEN T1.ITEM_CLS_TYPE = 'C1' THEN T1.ITEM_CLS1
+                            WHEN T1.ITEM_CLS_TYPE = 'C2' THEN T1.ITEM_CLS2
+                            WHEN T1.ITEM_CLS_TYPE = 'C3' THEN T1.ITEM_CLS3
+                            WHEN T1.ITEM_CLS_TYPE = 'C4' THEN T1.ITEM_CLS4
+                            END AS ITEM_CLS_ORI
+                    , T1.USE_FLAG
+                    , T1.SORT_SQ
+                    , T1.BUYER_CD
+                FROM   STOCMTCA T1
+                WHERE T1.GATE_CD = #{ses.gateCd}
+                  AND T1.BUYER_CD = #{BUYER_CD}
+                  AND T1.DEL_FLAG = '0'
+                <if test="USE_FLAG != '' and USE_FLAG != null">
+                    AND( T1.USE_FLAG = #{USE_FLAG}
+                       OR ITEM_CLS3 IN (SELECT T.ITEM_CLS3 FROM STOCMTCA T WHERE T.GATE_CD = #{ses.gateCd} AND BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C4' AND T.USE_FLAG = #{USE_FLAG})
+                    )
+                </if>
+                <if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null">
+                  AND( UPPER( T1.ITEM_CLS_NM ) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%'
+                      OR ITEM_CLS3 IN (SELECT T.ITEM_CLS3 FROM STOCMTCA T  WHERE  T.GATE_CD = #{ses.gateCd} AND BUYER_CD = #{BUYER_CD} AND T.DEL_FLAG = '0' AND T.ITEM_CLS_TYPE = 'C4'  AND T.ITEM_CLS_NM LIKE '%'<include refid="common.sql.stringMerge"/>#{ITEM_CLS_NM}<include refid="common.sql.stringMerge"/>'%')
+                    )
+                </if>
+                AND  T1.ITEM_CLS_TYPE = 'C3'
+            )
+            UNION ALL(
+                SELECT T1.GATE_CD
+                    , T1.ITEM_CLS1
+                    , T1.ITEM_CLS2
+                    , T1.ITEM_CLS3
+                    , T1.ITEM_CLS4
+                    , T1.ITEM_CLS_NM
+                    , T1.ITEM_CLS_TYPE
+                    , CASE WHEN T1.ITEM_CLS_TYPE = 'C1' THEN T1.ITEM_CLS1
+                            WHEN T1.ITEM_CLS_TYPE = 'C2' THEN T1.ITEM_CLS2
+                            WHEN T1.ITEM_CLS_TYPE = 'C3' THEN T1.ITEM_CLS3
+                            WHEN T1.ITEM_CLS_TYPE = 'C4' THEN T1.ITEM_CLS4
+                            END AS ITEM_CLS_ORI
+                    , T1.USE_FLAG
+                    , T1.SORT_SQ
+                    , T1.BUYER_CD
+                FROM  STOCMTCA T1
+                WHERE T1.GATE_CD = #{ses.gateCd}
+                  AND T1.BUYER_CD = #{BUYER_CD}
+                  AND T1.DEL_FLAG = '0'
+                <if test="USE_FLAG != '' and USE_FLAG != null">
+                    AND T1.USE_FLAG = #{USE_FLAG}
+                </if>
+                <if test="ITEM_CLS_NM != '' and ITEM_CLS_NM != null">
+                    AND UPPER( T1.ITEM_CLS_NM ) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CLS_NM}) <include refid="common.sql.stringMerge"/> '%'
+                </if>
+                  AND T1.ITEM_CLS_TYPE = 'C4'
+            )
+        ) A
+        ORDER BY SORT_SQ
+
+    </select>
+
+	<select id="oitr0040_doSearchChild" parameterType="hashMap" resultType="hashMap">
+
+        SELECT GATE_CD
+             , ITEM_CLS1
+             , ITEM_CLS2
+             , ITEM_CLS3
+             , ITEM_CLS4
+             , ITEM_CLS_NM
+             , ITEM_CLS_TYPE
+             , USE_FLAG
+             , 'U' AS INSERT_FLAG
+             , CASE WHEN ITEM_CLS_TYPE = 'C1' THEN ITEM_CLS1
+                    WHEN ITEM_CLS_TYPE = 'C2' THEN ITEM_CLS2
+                    WHEN ITEM_CLS_TYPE = 'C3' THEN ITEM_CLS3
+                    WHEN ITEM_CLS_TYPE = 'C4' THEN ITEM_CLS4
+               		 END AS ITEM_CLS_ORI
+             , BUYER_CD
+             , SORT_SQ
+             <if test="ITEM_CLS_TYPE_CLICKED != '' and ITEM_CLS_TYPE_CLICKED != null and ITEM_CLS_TYPE_CLICKED == 'C3'">
+		     ,(SELECT D.ITEM_CLS_NM <include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> C.ITEM_CLS_NM <include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> B.ITEM_CLS_NM <include refid="common.sql.stringMerge"/> ' > ' <include refid="common.sql.stringMerge"/> A.ITEM_CLS_NM AS ITEM_PATH
+		         FROM STOCMTCA A
+		         JOIN STOCMTCA B
+		              ON  A.GATE_CD = B.GATE_CD
+		              AND A.UP_ITEM_CLS = B.ITEM_CLS
+                      AND A.BUYER_CD = B.BUYER_CD
+		              AND B.DEL_FLAG = '0'
+		         JOIN STOCMTCA C
+		              ON  B.GATE_CD = C.GATE_CD
+		              AND B.UP_ITEM_CLS = C.ITEM_CLS
+                      AND B.BUYER_CD = C.BUYER_CD
+		              AND C.DEL_FLAG = '0'
+		         JOIN STOCMTCA D
+		              ON  C.GATE_CD = D.GATE_CD
+		              AND C.UP_ITEM_CLS = D.ITEM_CLS
+                      AND C.BUYER_CD = D.BUYER_CD
+		              AND D.DEL_FLAG = '0'
+		        WHERE A.GATE_CD = MTCA.GATE_CD
+		          AND A.ITEM_CLS = MTCA.ITEM_CLS
+                  AND A.BUYER_CD = MTCA.BUYER_CD
+		          AND A.DEL_FLAG = '0') AS ITEM_PATH_NM
+             </if>
+         FROM STOCMTCA MTCA
+        WHERE 1 = 1
+          AND GATE_CD = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+          AND DEL_FLAG = '0'
+          <if test="USE_FLAG != '' and USE_FLAG != null"> AND USE_FLAG = #{USE_FLAG} </if>
+        <choose>
+            <when test="ITEM_CLS_TYPE_CLICKED == 'C1'">
+              AND ITEM_CLS_TYPE = 'C2'
+              AND ITEM_CLS1 IN
+                  ( SELECT ITEM_CLS1
+                    FROM STOCMTCA
+                    WHERE GATE_CD = #{ses.gateCd}
+                      AND DEL_FLAG = '0'
+                      AND ITEM_CLS_TYPE = 'C2'
+                      AND ITEM_CLS1 = #{ITEM_CLS_CLICKED}
+                      AND BUYER_CD = #{BUYER_CD}
+                  )
+            ORDER BY SORT_SQ
+            </when>
+            <when test="ITEM_CLS_TYPE_CLICKED == 'C2'">
+              AND ITEM_CLS_TYPE = 'C3'
+              AND ITEM_CLS2 IN
+                  ( SELECT ITEM_CLS2
+                    FROM STOCMTCA
+                    WHERE GATE_CD = #{ses.gateCd}
+                      AND DEL_FLAG = '0'
+                      AND ITEM_CLS_TYPE = 'C3'
+                      AND ITEM_CLS2 = #{ITEM_CLS_CLICKED}
+                      AND BUYER_CD = #{BUYER_CD}
+                  )
+            ORDER BY SORT_SQ
+            </when>
+            <when test="ITEM_CLS_TYPE_CLICKED == 'C3'">
+              AND ITEM_CLS_TYPE = 'C4'
+              AND ITEM_CLS3 IN
+                  ( SELECT ITEM_CLS3
+                    FROM STOCMTCA
+                    WHERE GATE_CD = #{ses.gateCd}
+                      AND DEL_FLAG = '0'
+                      AND ITEM_CLS_TYPE = 'C4'
+                      AND ITEM_CLS3 = #{ITEM_CLS_CLICKED}
+                      AND BUYER_CD = #{BUYER_CD}
+                  )
+            ORDER BY SORT_SQ
+            </when>
+        </choose>
+
+    </select>
+
+	<select id="oitr0040_newSortSeq" parameterType="hashMap" resultType="java.lang.String">
+
+        SELECT
+              CASE WHEN #{ITEM_CLS_TYPE} = 'C1' THEN (SELECT <include refid="common.sql.nvl"/>(MAX(B.SORT_SQ), 0) + 1 FROM STOCMTCA B WHERE B.GATE_CD = #{ses.gateCd} AND B.BUYER_CD = #{BUYER_CD} AND B.ITEM_CLS2 = #{ITEM_CLS2} AND B.ITEM_CLS3 = #{ITEM_CLS3} AND B.ITEM_CLS4 = #{ITEM_CLS4})
+                   WHEN #{ITEM_CLS_TYPE} = 'C2' THEN (SELECT <include refid="common.sql.nvl"/>(MAX(B.SORT_SQ), 0) + 1 FROM STOCMTCA B WHERE B.GATE_CD = #{ses.gateCd} AND B.BUYER_CD = #{BUYER_CD} AND B.ITEM_CLS1 = #{ITEM_CLS1} AND B.ITEM_CLS2 LIKE #{ITEM_CLS1}<include refid="common.sql.stringMerge"/>'%')
+                   WHEN #{ITEM_CLS_TYPE} = 'C3' THEN (SELECT <include refid="common.sql.nvl"/>(MAX(B.SORT_SQ), 0) + 1 FROM STOCMTCA B WHERE B.GATE_CD = #{ses.gateCd} AND B.BUYER_CD = #{BUYER_CD} AND B.ITEM_CLS1 = #{ITEM_CLS1} AND B.ITEM_CLS2 = #{ITEM_CLS2} AND B.ITEM_CLS3 LIKE #{ITEM_CLS2}<include refid="common.sql.stringMerge"/>'%')
+                   WHEN #{ITEM_CLS_TYPE} = 'C4' THEN (SELECT <include refid="common.sql.nvl"/>(MAX(B.SORT_SQ), 0) + 1 FROM STOCMTCA B WHERE B.GATE_CD = #{ses.gateCd} AND B.BUYER_CD = #{BUYER_CD} AND B.ITEM_CLS1 = #{ITEM_CLS1} AND B.ITEM_CLS2 = #{ITEM_CLS2} AND B.ITEM_CLS3 = #{ITEM_CLS3} AND B.ITEM_CLS4 LIKE #{ITEM_CLS3}<include refid="common.sql.stringMerge"/>'%')
+              END AS VALUE
+          <include refid="common.sql.dual"/>
+
+    </select>
+
+    <select id="oitr0040_newItemClassKey" parameterType="hashMap" resultType="java.lang.String">
+
+        SELECT
+        	<if test="_databaseId == 'oracle'">
+		       CASE WHEN #{ITEM_CLS_TYPE} = 'C2' THEN #{ITEM_CLS1} <include refid="common.sql.stringMerge"/> <include refid="common.sql.nvl"/>(LPAD(TO_NUMBER(MAX(SUBSTR(ITEM_CLS2, <include refid="common.sql.length"/>(#{ITEM_CLS1})+1, 2)))+1, 2, '0'), '01')
+                    WHEN #{ITEM_CLS_TYPE} = 'C3' THEN #{ITEM_CLS2} <include refid="common.sql.stringMerge"/> <include refid="common.sql.nvl"/>(LPAD(TO_NUMBER(MAX(SUBSTR(ITEM_CLS3, <include refid="common.sql.length"/>(#{ITEM_CLS2})+1, 2)))+1, 2, '0'), '01')
+                    WHEN #{ITEM_CLS_TYPE} = 'C4' THEN #{ITEM_CLS3} <include refid="common.sql.stringMerge"/> <include refid="common.sql.nvl"/>(LPAD(TO_NUMBER(MAX(SUBSTR(ITEM_CLS4, <include refid="common.sql.length"/>(#{ITEM_CLS3})+1, 2)))+1, 2, '0'), '01')
+                    END AS VALUE
+		   </if>
+		   <if test="_databaseId == 'mssql'">
+		       CASE WHEN #{ITEM_CLS_TYPE} = 'C2' THEN #{ITEM_CLS1} <include refid="common.sql.stringMerge"/> <include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>SF_LPAD(CONVERT(INT,MAX(substring(ITEM_CLS2,len(#{ITEM_CLS1})+1, 2)))+1, 2, '0'), '01')
+                    WHEN #{ITEM_CLS_TYPE} = 'C3' THEN CASE WHEN #{ITEM_CLS2} IS NULL THEN '' ELSE #{ITEM_CLS2} END <include refid="common.sql.stringMerge"/> <include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>SF_LPAD(CONVERT(INT,MAX(substring(ITEM_CLS3,len(#{ITEM_CLS2})+1, 2)))+1, 2, '0'), '01')
+                    WHEN #{ITEM_CLS_TYPE} = 'C4' THEN CASE WHEN #{ITEM_CLS3} IS NULL THEN '' ELSE #{ITEM_CLS3} END <include refid="common.sql.stringMerge"/> <include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>SF_LPAD(CONVERT(INT,MAX(substring(ITEM_CLS4,len(#{ITEM_CLS3})+1, 2)))+1, 2, '0'), '01')
+                    END AS VALUE
+		   </if>
+         FROM STOCMTCA
+        WHERE GATE_CD = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+          AND DEL_FLAG = '0'
+        <choose>
+            <when test="ITEM_CLS_TYPE == 'C2'"> AND ITEM_CLS1 = #{ITEM_CLS1}</when>
+            <when test="ITEM_CLS_TYPE == 'C3'"> AND ITEM_CLS2 = #{ITEM_CLS2}</when>
+            <when test="ITEM_CLS_TYPE == 'C4'"> AND ITEM_CLS3 = #{ITEM_CLS3}</when>
+        </choose>
+    </select>
+
+    <select id="oitr0040_existsItemClass" parameterType="hashMap" resultType="java.lang.Integer">
+        SELECT <include refid="common.sql.mtop1"/>
+               COUNT(DEL_FLAG)
+          FROM STOCMTCA
+         WHERE GATE_CD= #{ses.gateCd}
+         <include refid="common.sql.otop1"/>
+           AND BUYER_CD = #{BUYER_CD}
+        <if test="ITEM_CLS1 != '' and ITEM_CLS1 != null"> AND ITEM_CLS1 = #{ITEM_CLS1}</if>
+        <if test="ITEM_CLS2 != '' and ITEM_CLS2 != null"> AND ITEM_CLS2 = #{ITEM_CLS2}</if>
+        <if test="ITEM_CLS3 != '' and ITEM_CLS3 != null"> AND ITEM_CLS3 = #{ITEM_CLS3}</if>
+        <if test="ITEM_CLS4 != '' and ITEM_CLS4 != null"> AND ITEM_CLS4 = #{ITEM_CLS4}</if>
+    </select>
+
+	<update id="oitr0040_updateItemClass" parameterType="hashMap">
+
+        UPDATE STOCMTCA
+        SET    MOD_USER_ID          =  #{ses.userId}
+             , MOD_DATE             = SYSDATE
+             , ITEM_CLS_NM          = #{ITEM_CLS_NM}
+             , USE_FLAG             = #{USE_FLAG}
+             , DEL_FLAG             = '0'
+             , ITEM_CLS             = (CASE WHEN ITEM_CLS2 = '*' THEN ITEM_CLS1
+                                            ELSE (CASE WHEN ITEM_CLS3 = '*' THEN ITEM_CLS2
+                                            ELSE (CASE WHEN ITEM_CLS4 = '*' THEN ITEM_CLS3 ELSE ITEM_CLS4 END) END) END)
+             , UP_ITEM_CLS          = (CASE WHEN ITEM_CLS2 = '*' THEN ''
+                                            ELSE (CASE WHEN ITEM_CLS3 = '*' THEN ITEM_CLS1
+                                            ELSE (CASE WHEN ITEM_CLS4 = '*' THEN ITEM_CLS2 ELSE ITEM_CLS3 END) END) END)
+			 , SORT_SQ 				= #{SORT_SQ}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+        <if test="ITEM_CLS1 != '' and ITEM_CLS1 != null"> AND ITEM_CLS1 = #{ITEM_CLS1}</if>
+        <if test="ITEM_CLS2 != '' and ITEM_CLS2 != null"> AND ITEM_CLS2 = #{ITEM_CLS2}</if>
+        <if test="ITEM_CLS3 != '' and ITEM_CLS3 != null"> AND ITEM_CLS3 = #{ITEM_CLS3}</if>
+        <if test="ITEM_CLS4 != '' and ITEM_CLS4 != null"> AND ITEM_CLS4 = #{ITEM_CLS4}</if>
+    </update>
+
+    <select id="oitr0040_notDeleteItemClass" parameterType="hashMap" resultType="java.lang.Integer">
+
+    	SELECT (SELECT COUNT(GATE_CD)
+                  FROM STOCMTCA
+                 WHERE GATE_CD  = #{ses.gateCd}
+                   AND BUYER_CD = #{BUYER_CD}
+                   AND DEL_FLAG = '0'
+				<if test='ITEM_CLS1 != "*" and ITEM_CLS1 != null'> AND ITEM_CLS1 = #{ITEM_CLS1}</if>
+				<if test='ITEM_CLS2 != "*" and ITEM_CLS1 != null'> AND ITEM_CLS2 = #{ITEM_CLS2}</if>
+				<if test='ITEM_CLS3 != "*" and ITEM_CLS1 != null'> AND ITEM_CLS3 = #{ITEM_CLS3}</if>
+				<if test='ITEM_CLS4 != "*" and ITEM_CLS1 != null'> AND ITEM_CLS4 = #{ITEM_CLS4}</if>
+    	       ) +
+    	       (SELECT COUNT(GATE_CD)
+                  FROM STOCMTGC
+                 WHERE GATE_CD  = #{ses.gateCd}
+                   AND BUYER_CD = #{BUYER_CD}
+                   AND DEL_FLAG = '0'
+				<if test='ITEM_CLS1 != "*" and ITEM_CLS1 != null'> AND ITEM_CLS1 = #{ITEM_CLS1}</if>
+				<if test='ITEM_CLS2 != "*" and ITEM_CLS1 != null'> AND ITEM_CLS2 = #{ITEM_CLS2}</if>
+				<if test='ITEM_CLS3 != "*" and ITEM_CLS1 != null'> AND ITEM_CLS3 = #{ITEM_CLS3}</if>
+				<if test='ITEM_CLS4 != "*" and ITEM_CLS1 != null'> AND ITEM_CLS4 = #{ITEM_CLS4}</if>
+    	       ) as CNT
+        <include refid="common.sql.dual"/>
+
+    </select>
+
+    <insert id="oitr0040_insertItemClass" parameterType="hashMap">
+
+        INSERT
+        INTO   STOCMTCA ( GATE_CD
+             , BUYER_CD
+             , ITEM_CLS1
+             , ITEM_CLS2
+             , ITEM_CLS3
+             , ITEM_CLS4
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , USE_FLAG
+             , ITEM_CLS_NM
+             , ITEM_CLS_TYPE
+             , SORT_SQ
+             , ITEM_CLS
+             , UP_ITEM_CLS
+        )
+        VALUES  (#{ses.gateCd}
+             , #{BUYER_CD}
+             , #{ITEM_CLS1}
+             , #{ITEM_CLS2}
+             , #{ITEM_CLS3}
+             , #{ITEM_CLS4}
+             , SYSDATE
+             ,  #{ses.userId}
+             , SYSDATE
+             ,  #{ses.userId}
+             , '0'
+             , #{USE_FLAG}
+             , #{ITEM_CLS_NM}
+             , #{ITEM_CLS_TYPE}
+             , #{SORT_SQ}
+             ,(CASE WHEN #{ITEM_CLS2} = '*' THEN #{ITEM_CLS1}
+                    ELSE (CASE WHEN #{ITEM_CLS3} = '*' THEN #{ITEM_CLS2}
+                    ELSE (CASE WHEN #{ITEM_CLS4} = '*' THEN #{ITEM_CLS3} ELSE #{ITEM_CLS4} END) END) END)
+             ,(CASE WHEN #{ITEM_CLS2} = '*' THEN ''
+                    ELSE (CASE WHEN #{ITEM_CLS3} = '*' THEN #{ITEM_CLS1}
+                    ELSE (CASE WHEN #{ITEM_CLS4} = '*' THEN #{ITEM_CLS2} ELSE #{ITEM_CLS3} END) END) END)
+        )
+
+    </insert>
+
+    <delete id="oitr0040_deleteItemClass_r" parameterType="hashMap">
+
+        DELETE FROM STOCMTCA
+        WHERE GATE_CD = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+        <choose>
+            <when test="ITEM_CLS_TYPE == 'C1'"> AND ITEM_CLS1 = #{ITEM_CLS1}</when>
+            <when test="ITEM_CLS_TYPE == 'C2'"> AND ITEM_CLS2 = #{ITEM_CLS2}</when>
+            <when test="ITEM_CLS_TYPE == 'C3'"> AND ITEM_CLS3 = #{ITEM_CLS3}</when>
+            <when test="ITEM_CLS_TYPE == 'C4'"> AND ITEM_CLS4 = #{ITEM_CLS4}</when>
+        </choose>
+    </delete>
+
+	<select id="oitr0023_doSearch" parameterType="hashmap" resultType="hashMap">
+		SELECT MTCR.ATTR_CD AS CODE
+			 , MTCR.ATTR_NM AS CODE_NM
+       		 , MTAT.ATTR_VALUE
+       		 , MTCR.MDT_FLAG
+       	  FROM STOCMTCR MTCR
+		  JOIN STOCMTAT MTAT
+		    ON(MTCR.GATE_CD = MTAT.GATE_CD
+		   AND MTCR.BUYER_CD = MTAT.BUYER_CD
+		   AND MTCR.ITEM_CLS1 = MTAT.ITEM_CLS1
+		   AND MTCR.ITEM_CLS2 = MTAT.ITEM_CLS2
+		   AND MTCR.ITEM_CLS3 = MTAT.ITEM_CLS3
+		   AND MTCR.ITEM_CLS4 = MTAT.ITEM_CLS4
+		   AND MTCR.ATTR_CD = MTAT.ATTR_CD
+		   AND MTAT.ITEM_CD = #{ITEM_CD}
+		   AND MTAT.DEL_FLAG = '0')
+         WHERE MTCR.GATE_CD   = #{ses.gateCd}
+           AND MTCR.BUYER_CD  = #{BUYER_CD}
+    	   AND MTCR.ITEM_CLS1 = #{ITEM_CLS1}
+    	   AND MTCR.ITEM_CLS2 = #{ITEM_CLS2}
+    	   AND MTCR.ITEM_CLS3 = #{ITEM_CLS3}
+    	   AND MTCR.ITEM_CLS4 = #{ITEM_CLS4}
+       	   AND MTCR.DEL_FLAG  = '0'
+    	 ORDER BY MTCR.SORT_SQ
+    </select>
+
+</mapper>

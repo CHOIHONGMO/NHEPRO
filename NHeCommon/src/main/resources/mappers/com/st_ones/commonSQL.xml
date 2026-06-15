@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="common.sql">
+
+	<sql id="nvl">NVL</sql>        				<!-- <include refid="common.sql.nvl"/> -->
+
+	<sql id="stringMerge"> || </sql>        	<!-- <include refid="common.sql.stringMerge"/> -->
+
+	<sql id="dbo"> </sql>                   	<!-- <include refid="common.sql.dbo"/>         -->
+
+	<sql id="toChar">GETTOCHAR</sql>      	    <!-- <include refid="common.sql.toChar"/>      -->
+
+	<sql id="toDate">GETTODATE</sql>      	    <!-- <include refid="common.sql.toDate"/>      -->
+
+	<sql id="toDateFrom">GETTODATEFROM</sql>	<!-- <include refid="common.sql.toDateFrom"/>  -->
+
+	<sql id="toDateTo">GETTODATETO</sql>		<!-- <include refid="common.sql.toDateTo"/>    -->
+
+	<sql id="dual"> FROM DUAL</sql>        		<!-- <include refid="common.sql.dual"/>        -->
+
+	<sql id="mtop1">  </sql>                	<!-- <include refid="common.sql.mtop1"/>       -->
+
+	<sql id="otop1"> AND ROWNUM = 1 </sql>  	<!-- <include refid="common.sql.otop1"/>       -->
+
+	<sql id="mergeInto"> INTO </sql>			<!-- <include refid="common.sql.mergeInto"/>   -->
+
+	<sql id="mergeAs"> </sql>					<!-- <include refid="common.sql.mergeAs"/>     -->
+
+	<sql id="length">LENGTH</sql>				<!-- <include refid="common.sql.length"/>      -->
+
+	<sql id="comma">  </sql>					<!-- <include refid="common.sql.comma"/>       -->
+
+	<sql id="clobToChar">TO_CHAR</sql>		    <!-- <include refid="common.sql.clobToChar"/>  -->
+
+
+	<sql id="strDecStart">GETDECPERSONALINFO(</sql>	<!-- <include refid="common.sql.strDecStart"/>  -->
+	<sql id="strDecEnd">)</sql>		    			<!-- <include refid="common.sql.strDecEnd"/>  -->
+
+	<sql id="strEncStart">GETENCPERSONALINFO(</sql>	<!-- <include refid="common.sql.strEncStart"/>  -->
+	<sql id="strEncEnd">)</sql>		    			<!-- <include refid="common.sql.strEncEnd"/>  -->
+
+
+	<!-- 120 - TO_CHAR(A.REQUEST_DATE, 'YYYY-MM-DD HH:MM:SS') -->
+	<!-- 112 - TO_CHAR(A.REQUEST_DATE, 'YYYYMMDD'),  CONVERT(CHAR(8), UINFO.MOD_DATE, 112) -->
+	<!-- 111 - TO_CHAR(A.REQUEST_DATE, 'YYYY/MM/DD'),  CONVERT(CHAR(10), UINFO.MOD_DATE, 111) -->
+	<!--  21 - TO_CHAR(A.REQUEST_DATE, 'YYYY-MM-DD HH24:MI'),  CONVERT(CHAR(16), UINFO.MOD_DATE, 21) -->
+	<!--  21 - TO_CHAR(A.REQUEST_DATE, 'YYYY-MM-DD HH24:MI:SS'),  CONVERT(CHAR(19), UINFO.MOD_DATE, 21) -->
+	<!--  20 - TO_CHAR(A.REQUEST_DATE, 'YYYY-MM-DD HH24:MI:SS'),  CONVERT(CHAR(19), UINFO.MOD_DATE, 20) -->
+	<!--  23 - TO_CHAR(A.REQUEST_DATE, 'YYYY-MM-DD') -->
+
+	<!--
+    <![CDATA[ ]]>
+    -->
+
+	<!--
+    AND UPPER(CUST_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CUST_CD}) <include refid="common.sql.stringMerge"/> '%'
+    -->
+
+</mapper>

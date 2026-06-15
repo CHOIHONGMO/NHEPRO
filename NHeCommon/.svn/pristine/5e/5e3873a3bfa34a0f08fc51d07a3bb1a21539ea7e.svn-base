@@ -1,0 +1,159 @@
+package com.st_ones.common.sms.service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.st_ones.common.sms.EverSmsMapper;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.eversrm.eApproval.eApprovalModule.service.BAPM_Service;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : EverSmsService.java
+ * @date 2013. 12. 01.
+ * @version 1.0
+ * @see
+ */
+
+@Service(value = "everSmsService")
+public class EverSmsService extends BaseService {
+
+	private static Logger logger = LoggerFactory.getLogger(EverSmsService.class);
+
+	@Autowired private EverSmsMapper everSmsMapper;
+	@Autowired private BAPM_Service bapm_Service;
+
+	public List<Map<String, String>> getBuyerContact(Map<String, String> contInfo) {
+		return everSmsMapper.getBuyerContact(contInfo);
+	}
+
+	public String sendSmsNhe(Map<String, String> param) throws Exception {
+
+		try {
+			// 보내는 사람ID 기본값 설정
+			if( param.get("SEND_USER_ID") == null ) {
+				param.put("SEND_USER_ID", PropertiesManager.getString("eversrm.userId.default"));
+			}
+			
+			// 보내는 사람 기분값 설정
+			if (param.get("SEND_USER_NM") == null) {
+				param.put("SEND_USER_NM", "SYSTEM");
+			}
+			
+			// 직접 받는 메일,SMS 주소가 들어오면 받는 사람 아이디 삭제
+			if( !EverString.isEmpty(param.get("DIRECT_TARGET")) ) {
+				param.put("RECV_USER_ID", "");
+			}
+			
+			// 보내는 사람 : 031-738-8157
+			param.put("SEND_TEL_NUM", PropertiesManager.getString("eversrm.system.sms.default.telNo"));
+			
+			// 받는 사람
+			Map<String,String> smsMap = everSmsMapper.getReceiverPhoneNo(param);
+			param.put("RECV_TEL_NUM", smsMap.get("CELL_NUM"));
+			param.put("RECV_USER_NM", smsMap.get("USER_NM"));
+			
+			// 개발 또는 테스트 발송인 경우 받는 사람을 특정함
+			boolean isDevelopmentMode = PropertiesManager.getBoolean("eversrm.system.developmentFlag");
+			String sendType           = PropertiesManager.getString("eversrm.system.sms.send.type");
+			String receiveTelNum      = PropertiesManager.getString("eversrm.system.sms.test.receive.telNo");
+			if( isDevelopmentMode || "test".equals(sendType) ) {
+				param.put("RECV_TEL_NUM", receiveTelNum);
+			}
+			System.err.println("======================isDevelopmentMode="+isDevelopmentMode);
+			System.err.println("======================eversrm.system.sms.send.type="+sendType);
+			System.err.println("======================receiver_tel_num="+param.get("RECV_TEL_NUM"));
+			
+			// SMS 내용
+			String contents = param.get("CONTENTS");
+			param.put("CONTENTS", contents);
+			
+			// 송신번호 체크
+			String sendTelNum = param.get("SEND_TEL_NUM");
+			if(EverString.nullToEmptyString(sendTelNum).trim().length() <= 0) {
+				return "";
+			}
+			
+			// 수신번호 체크
+			String recvTelNum = param.get("RECV_TEL_NUM");
+			if(EverString.nullToEmptyString(recvTelNum).trim().length() <= 0) {
+				return "";
+			}
+
+			recvTelNum = Pattern.compile("[^0-9.]").matcher(recvTelNum).replaceAll("");
+			param.put("SEND_TEL_NUM", sendTelNum.replaceAll("-", ""));
+			param.put("RECV_TEL_NUM", makePhoneNumber(recvTelNum));
+			
+			// 송신번호 체크
+			if(EverString.nullToEmptyString(param.get("SEND_TEL_NUM")).trim().length() <= 0) {
+				return "";
+			}
+			
+			// 수신번호 체크
+			if(EverString.nullToEmptyString(param.get("RECV_TEL_NUM")).trim().length() <= 0) {
+				return "";
+			}
+			
+			// SMS 전송여부
+			boolean isSendFlag = PropertiesManager.getBoolean("eversrm.system.sms.send.flag");
+			if( isSendFlag ) {
+				ArrayList<String> list = com.st_ones.common.util.clazz.EverString.chopSplitString(contents, 90);
+				
+				param.put("KEY", everSmsMapper.getKey(param));
+				// 2021-02-26 SMS, MMS 구분값 추가
+				if( list.size() > 1 ) { // MMS
+					param.put("SEND_TYPE", "M");
+				} else {
+					param.put("SEND_TYPE", "S");
+				}
+				everSmsMapper.sendSms(param);
+				
+				if( list.size() > 1 ) { // MMS
+					param.put("EPRO_WRS_DS", "90"); // epro_wrs_ds [상품코드] - 90 : LMS
+					param.put("SUBJECT", "[전자구매시스템]");
+					everSmsMapper.emMmtTran(param);
+				} else { // SMS
+					param.put("EPRO_WRS_DS", "80"); // epro_wrs_ds [상품코드] - 80 : SMS
+					everSmsMapper.emSmtTran(param);
+				}
+				
+				// SMS, LMS 사용료 청구자료 Insert.
+				String payFlag = ((param.get("payFlag") == null || param.get("payFlag").equals("")) ? "N" : param.get("payFlag"));
+				if( payFlag.equals("Y") ) {
+					String resultMsg = bapm_Service.putBkCost(param);
+					if( !resultMsg.equals("OK") ) {
+						return resultMsg;
+					}
+				}
+			}
+			return "";
+		}
+		catch(Exception e) {
+			logger.error(e.getMessage());
+		}
+		return "";
+	}
+
+	public static String makePhoneNumber(String phoneNoStr) {
+
+		String regEx = "(010|011|016|017|018?019)(.+)(.{4})";
+		if(!Pattern.matches(regEx, phoneNoStr)) return null;
+		return phoneNoStr.replaceAll(regEx, "$1$2$3");
+	}
+}

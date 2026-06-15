@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.common.util.LargeTextMapper">
+	
+	<!-- eversrm.system.largeTextService=clob -->
+	<!-- LargeTextCLOB -->
+    <insert id="insertLargeText">
+        INSERT INTO STOCTXTH <if test="_databaseId == 'mssql'">with (ROWLOCK)</if> (
+              GATE_CD
+        	, TEXT_NUM
+        	, TEXT_CONTENTS
+        	, REG_DATE
+        	, VID_RANDOM
+        	, IRS_NUM
+        	, SIGN_VALUE
+        )
+        VALUES (
+	        <choose>
+	            <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+	          	<otherwise>#{ses.gateCd}</otherwise>
+	        </choose>
+            , #{TEXT_NUM}
+            , #{RICH_TEXT_EDIT}
+            , SYSDATE
+            , #{VID_RANDOM}
+            , #{IRS_NUM}
+            , #{TEXT_SIGN_CONTENTS}
+        )
+    </insert>
+	
+	<!-- LargeTextCLOB -->
+    <update id="updateLargeText">
+        UPDATE STOCTXTH <if test="_databaseId == 'mssql'">with (ROWLOCK)</if>
+           SET TEXT_CONTENTS = #{RICH_TEXT_EDIT}
+             , REG_DATE      = SYSDATE
+             , VID_RANDOM    = #{VID_RANDOM}
+             , IRS_NUM       = #{IRS_NUM}
+             , SIGN_VALUE    = #{TEXT_SIGN_CONTENTS}
+         WHERE GATE_CD = <choose>
+                          	 <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                             <otherwise>#{ses.gateCd}</otherwise>
+                         </choose>
+           AND TEXT_NUM = #{TEXT_NUM}
+    </update>
+	
+	<!-- LargeTextCLOB -->
+    <select id="selectLargeText" parameterType="hashMap" resultType="java.lang.String">
+
+        SELECT <include refid="common.sql.nvl"/>(TEXT_CONTENTS, ' ') AS TEXT_CONTENTS
+          FROM STOCTXTH
+         WHERE GATE_CD = <choose>
+                             <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                             <otherwise>#{ses.gateCd}</otherwise>
+                         </choose>
+           AND TEXT_NUM = #{TEXT_NUM}
+    </select>
+    
+    
+    
+    <!-- eversrm.system.largeTextService=splitString -->
+	<!-- LargeTextSplitString -->
+    <select id="selectTXTD" parameterType="hashMap" resultType="java.lang.String">
+
+        SELECT TEXT_CONTENTS
+          FROM STOCTXTD
+         WHERE GATE_CD = <choose>
+                             <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                             <otherwise>#{ses.gateCd}</otherwise>
+                         </choose>
+           AND TEXT_NUM = #{TEXT_NUM}
+         ORDER BY TEXT_SQ
+    </select>
+	
+	<!-- LargeTextSplitString -->
+    <insert id="insertTXTH" parameterType="hashmap">
+        INSERT INTO STOCTXTH (
+              GATE_CD
+            , TEXT_NUM
+            , REG_DATE
+            , TEXT_CONTENTS
+            , VID_RANDOM
+            , IRS_NUM
+            , SIGN_VALUE
+        )
+        VALUES(
+            <choose>
+                <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                <otherwise>#{ses.gateCd}</otherwise>
+            </choose>
+            , #{TEXT_NUM}
+            , SYSDATE
+            , NULL
+            , #{VID_RANDOM}
+            , #{IRS_NUM}
+            , #{TEXT_SIGN_CONTENTS}
+        )
+    </insert>
+    
+    <!-- LargeTextSplitString -->
+    <select id="getTextSq" parameterType="hashMap" resultType="java.lang.String">
+
+        SELECT <include refid="common.sql.nvl"/>(MAX(TEXT_SQ), 0) + 1
+          FROM STOCTXTD
+         WHERE GATE_CD = <choose>
+                            <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                            <otherwise>#{ses.gateCd}</otherwise>
+                         </choose>
+           AND TEXT_NUM = #{TEXT_NUM}
+    </select>
+	
+	<!-- LargeTextSplitString -->
+    <insert id="insertTXTD" parameterType="hashMap">
+
+        INSERT INTO STOCTXTD (
+              GATE_CD
+            , TEXT_NUM
+            , TEXT_SQ
+            , TEXT_CONTENTS
+        )
+        VALUES(
+            <choose>
+                <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                <otherwise>#{ses.gateCd}</otherwise>
+            </choose>
+            , #{TEXT_NUM}
+            , #{TEXT_SQ}
+            , #{RICH_TEXT_EDIT}
+        )
+    </insert>
+	
+	<!-- LargeTextSplitString -->
+	<update id="updateTXTH" parameterType="hashmap">
+        UPDATE STOCTXTH
+           SET REG_DATE   = SYSDATE
+             , VID_RANDOM = #{VID_RANDOM}
+             , IRS_NUM    = #{IRS_NUM} 
+             , SIGN_VALUE = #{TEXT_SIGN_CONTENTS}
+         WHERE GATE_CD = <choose>
+                             <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                             <otherwise>#{ses.gateCd}</otherwise>
+                         </choose>
+           AND TEXT_NUM = #{TEXT_NUM}
+    </update>
+	
+	<!-- LargeTextSplitString -->
+    <delete id="deleteTXTD" parameterType="hashmap">
+
+        DELETE STOCTXTD <if test="_databaseId == 'mssql'">with (ROWLOCK)</if>
+         WHERE GATE_CD = <choose>
+                            <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                            <otherwise>#{ses.gateCd}</otherwise>
+                        </choose>
+           AND TEXT_NUM = #{TEXT_NUM}
+    </delete>
+	
+	
+	
+    <!-- LargeText For Mail -->
+    <insert id="insertMailContents" parameterType="hashmap">
+
+        INSERT INTO STOCMATX (
+              GATE_CD
+            , TEXT_NUM
+            , MAIL_CONTENTS
+            , REG_DATE
+        )
+        VALUES (
+            <choose>
+                <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                <otherwise>#{ses.gateCd}</otherwise>
+            </choose>
+            , #{TEXT_NUM}
+            , #{MAIL_CONTENTS}
+            , SYSDATE
+        )
+    </insert>
+	
+	<!-- LargeText For Mail -->
+    <select id="selectMailContents" parameterType="hashMap" resultType="java.lang.String">
+
+        SELECT <include refid="common.sql.nvl"/>(MAIL_CONTENTS, ' ') AS MAIL_CONTENTS
+          FROM STOCMATX
+         WHERE GATE_CD = <choose>
+                             <when test="ses.gateCd == null or ses.gateCd == ''">'100'</when>
+                             <otherwise>#{ses.gateCd}</otherwise>
+                         </choose>
+           AND TEXT_NUM = #{TEXT_NUM}
+    </select>
+
+</mapper>

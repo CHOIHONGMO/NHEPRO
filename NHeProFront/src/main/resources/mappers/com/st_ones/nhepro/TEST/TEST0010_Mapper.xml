@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.TEST.TEST0010_Mapper">
+
+	<insert id = "test0010_doSave" parameterType="hashmap">
+		INSERT INTO TB_PL_DO_AUDIT_REQUEST(
+		
+			  RECEIVE_ADDRESS_NAME
+			, RECEIVE_ADDRESS_CODE
+			, SEND_ADDRESS_NAME
+			, SEND_ADDRESS_CODE
+			, FORM_TITLE
+			, REQUEST_DATE
+			--, 본문 컬럼 뭐로?..
+			, FORM_ID 
+			, FORM_VERSION  
+			, KEEP_FORM_ID  
+			, FSRGDTM
+			, FSRGID
+			, LSCHGDTM
+			, LSCHGID               
+		)
+		VALUES (
+			  #{수신부서}
+			, #{수신코드}  
+			, #{발신부서}
+			, #{발신코드}
+			, #{건 명}
+			, SYSDATE
+		)
+		
+		
+		
+	</insert>
+
+
+	<select id="test0020P10_doSearch" parameterType="hashmap"
+		resultType="hashmap">
+		SELECT
+			  FORM_ID
+			, FORM_VERSION
+			, DISTRIBUTE_ORDER
+			, ROLE_CODE
+			, ROLE_NAME
+			, SIGN_TYPE
+			, DISTRIBUTE_NOTE
+			
+		FROM TB_PL_RE_STANDARD_APPROVAL
+	    ORDER BY DISTRIBUTE_ORDER ASC
+	</select>
+
+
+
+	<insert id="test0020P10_doSave" parameterType="hashmap">
+		insert into
+		TB_PL_RE_STANDARD_APPROVAL (
+
+		FORM_ID
+		, FORM_VERSION
+		, DISTRIBUTE_ORDER
+		, ROLE_CODE
+		, ROLE_NAME
+		, SIGN_TYPE
+		, DISTRIBUTE_NOTE
+		, FSRGID
+		)
+		values (
+
+		 '1'
+		,'1'
+		,#{DISTRIBUTE_ORDER}
+		,#{ROLE_CODE}
+		,#{ROLE_NAME}
+		,#{SIGN_TYPE}
+		,#{DISTRIBUTE_NOTE}
+		,#{ses.userId}
+		)
+	</insert>
+	
+	<update id="test0020P10_doDeleteECCR">
+		UPDATE 테이블
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , DEL_FLAG    = '1'
+		WHERE GATE_CD  = #{ses.gateCd}
+		  AND BUYER_CD = #{BUYER_CD}
+		  AND FORM_NUM = #{FORM_NUM}
+	</update>
+	
+	<select id="test0030_doSearch" parameterType="hashmap"	resultType="hashmap">
+	select 
+          AUREQ.FORM_ID
+        , AUREQ.FORM_TITLE
+        , AUREQ.FSRGID
+        , STAPP.FSRGDTM
+        , APREQ.APPROVAL_NAME
+        , APREQ.APPROVAL_NAME 
+        , APREQ.STATE_CONTENTS
+        
+	FROM   TB_PL_RE_APPROVAL_REQUEST  APREQ
+     	, TB_PL_RE_STANDARD_APPROVAL  STAPP
+     	, TB_PL_DO_AUDIT_REQUEST AUREQ
+     
+     
+     WHERE 		APREQ.FORM_ID = STAPP.FORM_ID
+            and STAPP.FORM_ID = AUREQ.FORM_ID
+            and APREQ.FORM_VERSION = STAPP.FORM_VERSION
+            and STAPP.FORM_VERSION = AUREQ.FORM_VERSION
+	</select>
+	
+	
+	
+
+</mapper>

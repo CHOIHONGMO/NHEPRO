@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.batch.nhebatch.BNH0001_Mapper">
+	
+	<!-- 인사정보 등록전에 전체 삭제 -->
+	<delete id="doDelTbCoInsa">
+		DELETE FROM NHEBILL.TB_CO_INSA
+	</delete>
+	
+	<!-- 조직정보 등록전에 전체 삭제 -->
+	<delete id="doDelTbCoOrgz">
+		DELETE FROM NHEBILL.TB_CO_ORGZ
+	</delete>
+	
+	<!-- 인사정보 등록 : 1,500개 단위 -->
+	<insert id="doInsTbCoInsa" parameterType="hashMap">
+        INSERT INTO NHEBILL.TB_CO_INSA (
+			 USER_ID
+			,USER_NM
+			,DEPT_C
+			,DEPT_NM
+			,EMP_STSC
+			,GNAF_DSC
+			,EMPL_DSC
+			,DWIN_TEL
+			,REP_TEL
+			,CUST_TEL
+			,HP_NO
+			,EMAIL
+			,CHRG_BSN_NM
+			,DTI_CHRG_BSN_NM
+			,OFT_C
+			,OFT_NM
+			,PZC_C
+			,PZC_NM
+			,FSRGDTM
+			,FSRGID
+        )
+	<foreach collection="list" item="item" index="index" separator=" UNION ALL " open="" close="">
+		SELECT
+			 '${item.USER_ID}'
+			,'${item.USER_NM}'
+			,'${item.DEPT_C}'
+			,'${item.DEPT_NM}'
+			,'${item.EMP_STSC}'
+			,'${item.GNAF_DSC}'
+			,'${item.EMPL_DSC}'
+			,'${item.DWIN_TEL}'
+			,'${item.REP_TEL}'
+			,'${item.CUST_TEL}'
+			,'${item.HP_NO}'
+			,'${item.EMAIL}'
+			,'${item.CHRG_BSN_NM}'
+			,'${item.DTI_CHRG_BSN_NM}'
+			,'${item.OFT_C}'
+			,'${item.OFT_NM}'
+			,'${item.PZC_C}'
+			,'${item.PZC_NM}'
+			,SYSDATE
+			,'NhePro'
+		 FROM DUAL
+		WHERE NOT EXISTS (SELECT '1' FROM NHEBILL.TB_CO_INSA
+						   WHERE USER_ID = #{USER_ID})
+   	</foreach>
+	</insert>
+	
+	<!-- 인사정보 암호화 필드 처리 -->
+	<update id="doUpsTbCoInsa" parameterType="hashMap" timeout="1200">
+        UPDATE NHEBILL.TB_CO_INSA SET
+			 USER_NM         = <include refid="common.sql.strEncStart"/>USER_NM<include refid="common.sql.strEncEnd"/>--USER_NM
+			,DEPT_C          = REPLACE(DEPT_C,'#','')--DEPT_C
+			,DEPT_NM         = REPLACE(DEPT_NM,'#','')--DEPT_NM
+			,EMP_STSC        = REPLACE(EMP_STSC,'#','')--EMP_STSC
+			,GNAF_DSC        = REPLACE(GNAF_DSC,'#','')--GNAF_DSC
+			,EMPL_DSC        = REPLACE(EMPL_DSC,'#','')--EMPL_DSC
+			,DWIN_TEL        = <include refid="common.sql.strEncStart"/>DWIN_TEL<include refid="common.sql.strEncEnd"/>--DWIN_TEL
+			,REP_TEL         = <include refid="common.sql.strEncStart"/>REP_TEL<include refid="common.sql.strEncEnd"/>--REP_TEL
+			,CUST_TEL        = <include refid="common.sql.strEncStart"/>CUST_TEL<include refid="common.sql.strEncEnd"/>--CUST_TEL
+			,HP_NO           = <include refid="common.sql.strEncStart"/>HP_NO<include refid="common.sql.strEncEnd"/>--HP_NO
+			,EMAIL           = <include refid="common.sql.strEncStart"/>EMAIL<include refid="common.sql.strEncEnd"/>--EMAIL
+			,CHRG_BSN_NM     = REPLACE(CHRG_BSN_NM,'#','')--CHRG_BSN_NM
+			,DTI_CHRG_BSN_NM = REPLACE(DTI_CHRG_BSN_NM,'#','')--DTI_CHRG_BSN_NM
+			,OFT_C           = REPLACE(OFT_C,'#','')--OFT_C
+			,OFT_NM          = REPLACE(OFT_NM,'#','')--OFT_NM
+			,PZC_C           = REPLACE(PZC_C,'#','')--PZC_C
+			,PZC_NM          = REPLACE(PZC_NM,'#','')--PZC_NM
+	</update>
+	
+	<!-- 조직정보 등록 -->
+	<insert id="doInsTbCoOrgz" parameterType="hashMap">
+        INSERT INTO NHEBILL.TB_CO_ORGZ (
+			 DEPT_C
+			,ONL_C
+			,UP_DEPT_C
+			,DEPT_NM
+			,SQNO
+			,STSC
+			,NH_CORP_CODE
+			,GIRO_C
+			,CORP_NO
+			,ADDR
+			,ZIP
+			,REP_TEL
+			,CUST_TEL
+			,FAX
+			,DOC_DEPT_C
+			,PROV_C
+			,SUB_BRC
+			,FSRGDTM
+			,FSRGID
+        )
+        SELECT
+			 #{DEPT_C}--DEPT_C
+			,#{ONL_C}--ONL_C
+			,#{UP_DEPT_C}--UP_DEPT_C
+			,#{DEPT_NM}--DEPT_NM
+			,#{SQNO}--SQNO
+			,#{STSC}--STSC
+			,#{NH_CORP_CODE}--NH_CORP_CODE
+			,#{GIRO_C}--GIRO_C
+			,CASE WHEN #{DEPT_C} = '09155' THEN '1068195255' ELSE replace(#{CORP_NO},'-','') END AS CORP_NO --CORP_NO
+			,<include refid="common.sql.strEncStart"/>#{ADDR}<include refid="common.sql.strEncEnd"/>--ADDR
+			,<include refid="common.sql.strEncStart"/>#{ZIP}<include refid="common.sql.strEncEnd"/>--ZIP
+			,<include refid="common.sql.strEncStart"/>#{REP_TEL}<include refid="common.sql.strEncEnd"/>--REP_TEL
+			,<include refid="common.sql.strEncStart"/>#{CUST_TEL}<include refid="common.sql.strEncEnd"/>--CUST_TEL
+			,<include refid="common.sql.strEncStart"/>#{FAX}<include refid="common.sql.strEncEnd"/>--FAX
+			,#{DOC_DEPT_C}--DOC_DEPT_C
+			,replace(#{PROV_C},'|','')--PROV_C
+			,#{SUB_BRC}--SUB_BRC
+			,SYSDATE--FSRGDTM
+			,'NhePro'--FSRGID
+           FROM DUAL
+          WHERE NOT EXISTS (SELECT '1' FROM NHEBILL.TB_CO_ORGZ
+							 WHERE DEPT_C = #{DEPT_C})
+            AND #{NH_CORP_CODE} IN ('1','2','3','5','A','B','C','D')
+	</insert>
+	
+	<!-- 사용안함 -->
+	<insert id="doUpsTbCoOrgz" parameterType="hashMap">
+        UPDATE NHEBILL.TB_CO_ORGZ SET
+			 ADDR     = <include refid="common.sql.strEncStart"/>ADDR<include refid="common.sql.strEncEnd"/>--ADDR
+			,ZIP      = <include refid="common.sql.strEncStart"/>ZIP<include refid="common.sql.strEncEnd"/>--ZIP
+			,REP_TEL  = <include refid="common.sql.strEncStart"/>REP_TEL<include refid="common.sql.strEncEnd"/>--REP_TEL
+			,CUST_TEL = <include refid="common.sql.strEncStart"/>CUST_TEL<include refid="common.sql.strEncEnd"/>--CUST_TEL
+			,FAX      = <include refid="common.sql.strEncStart"/>FAX<include refid="common.sql.strEncEnd"/>--FAX
+	</insert>
+
+	<!-- Batch 로그 등록 -->
+	<insert id="doSaveBatchLog" parameterType="hashmap">
+		INSERT INTO STOCBLOG (
+			JOB_DATE
+		<if test='_databaseId == "oracle"'>
+			,JOB_SQ
+		</if>
+			,JOB_TYPE
+			,JOB_ID
+			,JOB_KEY
+			,JOB_RLT
+			,JOB_RLT_CD
+			,JOB_RLT_MSG
+			,JOB_END_DATE
+		) VALUES (
+			 TO_DATE(#{JOB_DATE},'YYYY-MM-DD-HH24:MI:SS')
+		<if test='_databaseId == "oracle"'>
+			,SEQ_STOCBLOG.nextval
+		</if>
+			,#{JOB_TYPE}
+			,#{JOB_ID}
+			,#{JOB_KEY}
+			,#{JOB_RLT}
+			,#{JOB_RLT_CD}
+			,SUBSTR(#{JOB_RLT_MSG},1,2000)
+			,SYSDATE
+		)
+	</insert>
+
+</mapper>

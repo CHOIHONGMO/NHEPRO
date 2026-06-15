@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sg:BONCAL xmlns:sg="http://egis.sgic.co.kr/boncal" xmlns:cc="http://egis.sgic.co.kr/schema/CC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://egis.sgic.co.kr/boncal ..\Schema\boncal.xsd">
+<Header.Details>
+	<cc:Message.Sender.Identifier>	
+		<Identifier.Content/>
+	</cc:Message.Sender.Identifier>	
+	<cc:Message.Receiver.Identifier>	
+		<Identifier.Content/>
+	</cc:Message.Receiver.Identifier>	
+	<cc:Message.Function.Code>	
+		<Code.Content/>
+	</cc:Message.Function.Code>	
+	<cc:Message.Type.Identifier>	
+		<Identifier.Content/>
+	</cc:Message.Type.Identifier>	
+	<cc:Message.Name>	
+		<Text.Content/>
+	</cc:Message.Name>	
+	<cc:Message.Version.Text>	
+		<Text.Content/>
+	</cc:Message.Version.Text>	
+	<cc:Document.Number.Text>	
+		<Text.Content/>
+	</cc:Document.Number.Text>	
+	<cc:Document.ManagementNumber.Text>	
+		<Text.Content/>
+	</cc:Document.ManagementNumber.Text>	
+	<cc:Document.ReferenceNumber.Text>	
+		<Text.Content/>
+	</cc:Document.ReferenceNumber.Text>	
+	<cc:Document.Title.Name>	
+		<Text.Content/>
+	</cc:Document.Title.Name>	
+</Header.Details>
+<Sender.Organization.Details>
+	<cc:Organization.Name>	
+		<Text.Content/>
+	</cc:Organization.Name>	
+	<cc:Organization.Identifier>	
+		<Identifier.Content/>
+	</cc:Organization.Identifier>	
+</Sender.Organization.Details>
+<Receiver.Organization.Details>		
+	<cc:Organization.Name>	
+		<Text.Content/>
+	</cc:Organization.Name>	
+	<cc:Organization.Identifier>	
+		<Identifier.Content/>
+	</cc:Organization.Identifier>	
+</Receiver.Organization.Details>
+<MainContract.Info.Details>		
+	<cc:Contract.Number.Text>	
+		<Text.Content/>
+	</cc:Contract.Number.Text>	
+</MainContract.Info.Details>		
+<Application.Information.Details>		
+	<cc:Application.Bran.Code>	
+		<Text.Content/>
+	</cc:Application.Bran.Code>	
+	<cc:Application.Kind.Code>	
+		<Text.Content/>
+	</cc:Application.Kind.Code>	
+	<cc:Application.Serial.Code>	
+		<Text.Content/>
+	</cc:Application.Serial.Code>	
+	<cc:Premium.Amount>	
+		<AmountCurrency.Identification.Code/>
+		<Amount.Content/>
+	</cc:Premium.Amount>	
+	<cc:Premium.Amount.Text>	
+		<Text.Content/>
+	</cc:Premium.Amount.Text>	
+	<cc:Application.Ends.Code>	
+		<Code.Content/>
+	</cc:Application.Ends.Code>	
+</Application.Information.Details>
+</sg:BONCAL>

@@ -1,0 +1,567 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:38 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCUR.CCUR0030_Mapper">
+
+    <select id="ccur0030_doSearch" parameterType="hashmap" resultType="hashmap">
+
+        SELECT
+            A.*
+          FROM (
+            SELECT
+                 CVUR.USER_TYPE
+                ,CVUR.USER_ID
+                ,CVUR.USER_ID AS ORI_USER_ID
+                ,<include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+                ,CVUR.COMPANY_CD
+                ,CUST.CUST_NM AS COMPANY_NM
+                ,CVUR.DEPT_CD
+                ,CVUR.DEPT_NM
+                ,CVUR.PARENT_DEPT_CD
+                ,CVUR.PARENT_DEPT_NM
+                ,<include refid="common.sql.strDecStart"/>CVUR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+                ,<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+                ,<include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+                ,CVUR.POSITION_NM
+                ,CVUR.DUTY_NM
+                ,CVUR.BLOCK_FLAG
+                ,CVUR.BLOCK_REASON
+                ,<include refid="common.sql.toChar"/>(CVUR.REG_DATE, 'yyyyMMdd') AS REG_DATE
+                ,CVUR.SMS_FLAG
+                ,CVUR.MAIL_FLAG
+                ,CVUR.WORK_TYPE
+              FROM STOCCVUR CVUR
+              LEFT OUTER JOIN STOCCUST CUST
+               ON (CUST.GATE_CD = CVUR.GATE_CD
+               AND CUST.CUST_CD = CVUR.COMPANY_CD)
+              LEFT OUTER JOIN STOCOGDP OGDP
+               ON (OGDP.GATE_CD = CVUR.GATE_CD
+               AND OGDP.BUYER_CD = CVUR.COMPANY_CD
+               AND OGDP.DEPT_CD = CVUR.DEPT_CD)
+             WHERE CVUR.COMPANY_CD = #{ses.companyCd}
+               AND CVUR.GATE_CD = #{ses.gateCd}
+               AND CVUR.DEL_FLAG = '0'
+            <if test="USER_TYPE != '' and USER_TYPE != null">
+                AND CVUR.USER_TYPE = #{USER_TYPE}
+            </if>
+            <if test="USER_ID != '' and USER_ID != null">
+                AND UPPER(CVUR.USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+            </if>
+            <if test="USER_NM != '' and USER_NM != null">
+                AND UPPER(<include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/>) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+            </if>
+            <if test="DEPT_NM != '' and DEPT_NM != null">
+                AND UPPER(CVUR.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+            </if>
+            <if test="FROM_DATE != '' and FROM_DATE != null and TO_DATE != '' and TO_DATE != null">
+                AND CVUR.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{FROM_DATE})
+                AND CVUR.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{TO_DATE})
+            </if>
+            <if test="CTRL_CD != '' and CTRL_CD != null">
+                AND (SELECT COUNT(CP.CTRL_CD) FROM STOCBACP CP
+                      WHERE CP.GATE_CD = CVUR.GATE_CD
+                        AND CP.BUYER_CD = CVUR.COMPANY_CD
+                        AND CP.CTRL_USER_ID = CVUR.USER_ID
+                        AND CP.DEL_FLAG = '0'
+                        AND CP.USE_FLAG = '1'
+                        AND CP.CTRL_CD = #{CTRL_CD}) <![CDATA[>]]> 0
+            </if>
+            <if test="CTRL_NM != '' and CTRL_NM != null">
+                AND (SELECT COUNT((SELECT CO.CTRL_NM FROM STOCBACO CO
+                                    WHERE CO.GATE_CD = CP.GATE_CD
+                                      AND CO.BUYER_CD = #{ses.manageCd}
+                                      AND CO.CTRL_CD = CP.CTRL_CD
+                                      AND CO.CTRL_NM LIKE '%' <include refid="common.sql.stringMerge"/> #{CTRL_NM} <include refid="common.sql.stringMerge"/> '%')) FROM STOCBACP CP
+                      WHERE CP.GATE_CD = CVUR.GATE_CD
+                        AND CP.BUYER_CD = CVUR.COMPANY_CD
+                        AND CP.CTRL_USER_ID = CVUR.USER_ID
+                        AND CP.DEL_FLAG = '0'
+                        AND CP.USE_FLAG = '1') <![CDATA[>]]> 0
+            </if>
+          ) A
+        ORDER BY A.COMPANY_NM, A.USER_NM
+
+    </select>
+
+    <update id="ocur0030_doDeleteMngYn" parameterType="hashmap">
+
+        UPDATE STOCCVUR SET
+            MNG_YN = '0'
+         WHERE GATE_CD = #{ses.gateCd}
+           AND COMPANY_CD = #{COMPANY_CD}
+
+    </update>
+
+    <update id="ccur0030_doUpdate" parameterType="hashmap">
+
+        UPDATE STOCCVUR SET
+              DEL_FLAG = '0'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , WORK_TYPE = #{WORK_TYPE}
+            , MY_SITE_FLAG = #{MY_SITE_FLAG}
+            , WMS_FLAG = #{WMS_FLAG}
+            , BUDGET_FLAG = #{BUDGET_FLAG}
+            , GR_FLAG = #{GR_FLAG}
+            , FINANCIAL_FLAG = #{FINANCIAL_FLAG}
+            , BLOCK_FLAG = #{BLOCK_FLAG}
+            , BLOCK_REASON = #{BLOCK_REASON}
+            , SMS_FLAG = #{SMS_FLAG}
+            , MAIL_FLAG = #{MAIL_FLAG}
+            , MNG_YN = <include refid="common.sql.nvl"/>(#{MNG_YN}, '0')
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{ORI_USER_ID}
+
+    </update>
+
+    <update id="ccur0030_doDelete" parameterType="hashmap">
+
+        UPDATE STOCCVUR SET
+              DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , BLOCK_REASON = #{BLOCK_REASON }
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{ORI_USER_ID }
+
+    </update>
+
+    <update id="ccur0030_doInitPassword" parameterType="hashMap">
+
+        UPDATE STOCCVUR SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,PASSWORD = #{PASSWORD} <!--<include refid="common.sql.dbo"/>setEncPassword(UPPER(#{PASSWORD}))-->
+            ,PW_WRONG_CNT = 0
+            ,PW_RESET_FLAG = '1'
+            ,PW_RESET_DATE = SYSDATE
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{ORI_USER_ID }
+
+    </update>
+
+    <select id="ccur0031_doSearchInfo" parameterType="hashmap" resultType="hashmap">
+
+        SELECT
+             CVUR.USER_ID
+            ,<include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+            ,'Y' AS ID_CHECK
+            ,CVUR.COMPANY_CD
+            ,CUST.CUST_NM AS COMPANY_NM
+            ,CVUR.DEPT_CD
+            ,CVUR.DEPT_NM
+            ,CVUR.PARENT_DEPT_CD
+            ,CVUR.PARENT_DEPT_NM
+            ,CVUR.PARENT_DEPT_CD <include refid="common.sql.stringMerge"/> ' / ' <include refid="common.sql.stringMerge"/> CVUR.PARENT_DEPT_NM AS PARENT_DEPT_INFO
+            ,<include refid="common.sql.strDecStart"/>CVUR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+            ,<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+            ,<include refid="common.sql.strDecStart"/>CVUR.FAX_NUM<include refid="common.sql.strDecEnd"/> AS FAX_NUM
+            ,<include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+            ,CVUR.POSITION_NM
+            ,CVUR.SMS_FLAG
+            ,CVUR.MAIL_FLAG
+            ,CVUR.DUTY_NM
+            ,CVUR.CHIEF_USER_ID
+            ,<include refid="common.sql.dbo"/>getUserName(CVUR.GATE_CD, CVUR.CHIEF_USER_ID, #{ses.langCd}) AS CHIEF_USER_NM
+            ,CVUR.ONES_DUTY_NM
+            ,CVUR.REG_USER_ID
+            ,CVUR.PASSWORD AS PASSWORD
+            ,CVUR.PASSWORD AS PASSWORD_CHECK
+            ,CUST.RELAT_YN
+          FROM STOCCVUR CVUR
+          LEFT OUTER JOIN STOCCUST CUST
+           ON (CUST.GATE_CD = CVUR.GATE_CD
+           AND CUST.CUST_CD = CVUR.COMPANY_CD)
+          LEFT OUTER JOIN STOCOGDP OGDP
+           ON (OGDP.GATE_CD = CVUR.GATE_CD
+           AND OGDP.BUYER_CD = CVUR.COMPANY_CD
+           AND OGDP.DEPT_CD = CVUR.DEPT_CD)
+         WHERE CVUR.GATE_CD = #{ses.gateCd}
+           AND CVUR.DEL_FLAG = '0'
+           AND CVUR.USER_ID = #{USER_ID}
+
+    </select>
+
+    <select id="ccur0031_doSearchAuth" parameterType="hashmap" resultType="hashmap">
+
+        SELECT
+             CP.CTRL_CD
+            ,(SELECT CO.CTRL_NM FROM STOCBACO CO
+               WHERE CO.GATE_CD = #{ses.gateCd}
+                 AND CO.BUYER_CD = #{ses.manageCd}
+                 AND CO.CTRL_CD = CP.CTRL_CD
+                 AND CO.COMPANY_TYPE = 'B'
+                 AND CO.DEL_FLAG = '0') AS CTRL_NM
+            ,CP.USE_FLAG
+            ,<include refid="common.sql.toChar"/>(CP.REG_DATE, 'yyyyMMdd') AS REG_DATE
+            ,CP.REG_USER_ID
+            ,<include refid="common.sql.dbo"/>getUserName(CP.GATE_CD, CP.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+          FROM STOCBACP CP
+         WHERE CP.GATE_CD = #{ses.gateCd}
+           AND CP.BUYER_CD = #{BUYER_CD}
+           AND CP.CTRL_USER_ID = #{USER_ID}
+           AND CP.DEL_FLAG = '0'
+         ORDER BY CP.CTRL_CD
+
+    </select>
+
+    <select id="CheckUserInfoPassWordSame" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT COUNT(USER_ID) AS CNT
+          FROM STOCUSER
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{USER_ID}
+           AND PASSWORD = #{PASSWORD}
+
+    </select>
+
+    <insert id="ccur0031_doMerge" parameterType="hashmap">
+
+        MERGE <include refid="common.sql.mergeInto"/> STOCCVUR CVUR
+        USING (SELECT #{ses.gateCd} AS GATE_CD
+                     ,UPPER(<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})) AS USER_ID
+                 <include refid="common.sql.dual"/>) B
+         ON (CVUR.GATE_CD = B.GATE_CD
+         AND CVUR.USER_ID = B.USER_ID)
+        WHEN MATCHED THEN
+        UPDATE SET
+              DEL_FLAG = '0'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , USER_NM = <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+            , DEPT_CD = #{DEPT_CD}
+            , DEPT_NM = #{DEPT_NM}
+            , PARENT_DEPT_CD = #{PARENT_DEPT_CD}
+            , PARENT_DEPT_NM = #{PARENT_DEPT_NM}
+            , POSITION_NM = #{POSITION_NM}
+            , TEL_NUM = <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            , FAX_NUM = <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+            , CELL_NUM = <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            , EMAIL = <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+            , SMS_FLAG = #{SMS_FLAG}
+            , MAIL_FLAG = #{MAIL_FLAG}
+            , DUTY_NM = #{DUTY_NM}
+            , CHIEF_USER_ID = #{CHIEF_USER_ID}
+            , ONES_DUTY_NM = #{ONES_DUTY_NM}
+        <if test="CHANGE_PW != '' and CHANGE_PW != null">
+            , PASSWORD = #{PASSWORD} <!--<include refid="common.sql.dbo"/>setEncPassword(UPPER(#{PASSWORD}))-->
+        </if>
+            , PW_WRONG_CNT = 0
+        WHEN NOT MATCHED THEN
+        INSERT (
+              GATE_CD
+            , USER_ID
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , COMPANY_CD
+            , USER_TYPE
+            , USER_NM
+            , PASSWORD
+            , DEPT_CD
+            , DEPT_NM
+            , PARENT_DEPT_CD
+            , PARENT_DEPT_NM
+            , POSITION_NM
+            , TEL_NUM
+            , FAX_NUM
+            , CELL_NUM
+            , EMAIL
+            , SMS_FLAG
+            , MAIL_FLAG
+            , USE_FLAG
+            , DUTY_NM
+            , CHIEF_USER_ID
+            , BLOCK_FLAG
+            , PROGRESS_CD
+            , CONFIRM_USER_ID
+            , CONFIRM_DATE
+            , ONES_DUTY_NM
+        ) VALUES (
+              #{ses.gateCd}
+            , UPPER(<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID}))
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{COMPANY_CD}
+            , #{USER_TYPE}
+            , <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+            , #{PASSWORD}
+            , #{DEPT_CD}
+            , #{DEPT_NM}
+            , #{PARENT_DEPT_CD}
+            , #{PARENT_DEPT_NM}
+            , #{POSITION_NM}
+            , <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+            , #{SMS_FLAG}
+            , #{MAIL_FLAG}
+            , '1'
+            , #{DUTY_NM}
+            , #{CHIEF_USER_ID}
+            , '0'
+            , 'E'
+            , #{ses.userId}
+            , SYSDATE
+            , #{ONES_DUTY_NM}
+        )<include refid="common.sql.comma"/>
+
+    </insert>
+
+    <insert id="ccur0031_doInsertUSAP" parameterType="hashmap">
+
+        INSERT INTO STOCUSAP (
+             GATE_CD
+            ,USER_ID
+            ,AUTH_CD
+            ,REG_DATE
+            ,REG_USER_ID
+            ,MOD_DATE
+            ,MOD_USER_ID
+            ,DEL_FLAG
+        ) VALUES (
+             #{ses.gateCd}
+            ,UPPER(<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID}))
+            ,#{AUTH_CD}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,'0'
+        )
+
+    </insert>
+
+    <select id="ccur0031_getUserData" parameterType="hashmap" resultType="hashmap">
+
+        SELECT DISTINCT
+             CVUR.USER_ID AS USER_ID
+            ,CVUR.USER_NM AS USER_NM
+            ,NVL(OGDP.DEPT_CD, CVUR.DEPT_CD) AS DEPT_C
+            ,OGDP.DEPT_NM AS DEPT_NM
+            ,'1' AS EMP_STSC
+            ,CVUR.TEL_NUM AS DWIN_TEL
+            ,OGDP.TEL_NUM AS REP_TEL
+            ,CVUR.CELL_NUM AS HP_NO
+            ,CVUR.EMAIL AS EMAIL
+            ,NVL(CVUR.ROLE_TEXT, CVUR.ONES_DUTY_NM) AS CHRG_BSN_NM
+            ,CVUR.ROLE_TEXT_DETAIL AS DTI_CHRG_BSN_NM
+            ,CVUR.DUTY_NM AS OFT_NM
+            ,CVUR.POSITION_NM AS PZC_NM
+            ,CUST.IRS_NUM AS CORP_NO
+            ,CVUR.DEPT_CD AS BRC
+            ,CUST.CORP_TYPE AS NH_CORP_CODE
+            ,(CASE WHEN CUST.CORP_TYPE = '1' THEN '02'
+                   WHEN CUST.CORP_TYPE = '2' THEN '03'
+                   WHEN CUST.CORP_TYPE = '3' THEN '04'
+                   WHEN CUST.CORP_TYPE = '5' THEN '06'
+                   WHEN CUST.CORP_TYPE = 'A' THEN '08'
+                   WHEN CUST.CORP_TYPE = 'B' THEN '09'
+                   WHEN CUST.CORP_TYPE = 'C' THEN '10'
+                   WHEN CUST.CORP_TYPE = 'D' THEN '11'
+                   ELSE '' END) AS NC_COMP_DS_C
+            ,'NHEPRO' AS AGENT_ID
+            ,SYSDATE AS FSRGDTM
+            ,#{ses.userId} AS FSRGID
+            ,SYSDATE AS LSCHGDTM
+            ,#{ses.userId} AS LSCHGID
+          FROM STOCCVUR CVUR
+          LEFT JOIN STOCCUST CUST
+           ON (CVUR.GATE_CD = CUST.GATE_CD
+           AND CVUR.COMPANY_CD = CUST.CUST_CD)
+          LEFT JOIN STOCOGDP OGDP
+           ON (CVUR.GATE_CD = OGDP.GATE_CD
+           AND CVUR.COMPANY_CD = OGDP.BUYER_CD
+           AND CVUR.DEPT_CD = OGDP.DEPT_CD)
+         WHERE CVUR.GATE_CD = #{ses.gateCd}
+           AND CVUR.USER_ID = UPPER(<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID}))
+           AND CVUR.DEL_FLAG = '0'
+           AND CUST.DEL_FLAG = '0'
+
+    </select>
+
+    <insert id="ccur0031_doMergeTB" parameterType="hashMap">
+
+        MERGE <include refid="common.sql.mergeInto"/> TB_CO_USER CUSER
+        USING (SELECT #{USER_ID} AS USER_ID
+                     ,#{DEPT_C} AS DEPT_C
+                <include refid="common.sql.dual"/>) B
+          ON (CUSER.USER_ID = B.USER_ID
+          AND CUSER.DEPT_C = B.DEPT_C)
+        WHEN MATCHED THEN
+        UPDATE SET
+             LSCHGID = #{ses.userId}
+            ,LSCHGDTM = SYSDATE
+            ,USER_NM = #{USER_NM}
+            ,DEPT_NM = #{DEPT_NM}
+            ,EMP_STSC = #{EMP_STSC}
+            ,DWIN_TEL = #{DWIN_TEL}
+            ,REP_TEL = #{REP_TEL}
+            ,HP_NO = #{HP_NO}
+            ,EMAIL = #{EMAIL}
+            ,CHRG_BSN_NM = #{CHRG_BSN_NM}
+            ,DTI_CHRG_BSN_NM = #{DTI_CHRG_BSN_NM}
+            ,OFT_NM = #{OFT_NM}
+            ,PZC_NM = #{PZC_NM}
+            ,CORP_NO = #{CORP_NO}
+            ,BRC = #{BRC}
+            ,NH_CORP_CODE = #{NH_CORP_CODE}
+            ,NC_COMP_DS_C = #{NC_COMP_DS_C}
+        WHEN NOT MATCHED THEN
+        INSERT (
+             USER_ID
+            ,USER_NM
+            ,DEPT_C
+            ,DEPT_NM
+            ,EMP_STSC
+            ,DWIN_TEL
+            ,REP_TEL
+            ,HP_NO
+            ,EMAIL
+            ,CHRG_BSN_NM
+            ,DTI_CHRG_BSN_NM
+            ,OFT_NM
+            ,PZC_NM
+            ,CORP_NO
+            ,BRC
+            ,AGENT_ID
+            ,NH_CORP_CODE
+            ,NC_COMP_DS_C
+            ,FSRGDTM
+            ,FSRGID
+            ,LSCHGDTM
+            ,LSCHGID
+        ) VALUES (
+             #{USER_ID}
+            ,#{USER_NM}
+            ,#{DEPT_C}
+            ,#{DEPT_NM}
+            ,#{EMP_STSC}
+            ,#{DWIN_TEL}
+            ,#{REP_TEL}
+            ,#{HP_NO}
+            ,#{EMAIL}
+            ,#{CHRG_BSN_NM}
+            ,#{DTI_CHRG_BSN_NM}
+            ,#{OFT_NM}
+            ,#{PZC_NM}
+            ,#{CORP_NO}
+            ,#{BRC}
+            ,#{AGENT_ID}
+            ,#{NH_CORP_CODE}
+            ,#{NC_COMP_DS_C}
+            ,#{FSRGDTM}
+            ,#{FSRGID}
+            ,#{LSCHGDTM}
+            ,#{LSCHGID}
+        )
+        <include refid="common.sql.comma"/>
+
+    </insert>
+
+    <select id="ccur0031_doCheckUserId" parameterType="hashmap" resultType="java.lang.String">
+
+        SELECT
+            (CASE WHEN COUNT(*) <![CDATA[>]]> 0 THEN 'N' ELSE 'Y' END)
+          FROM (
+            SELECT
+                USER_ID
+              FROM STOCCVUR
+             WHERE GATE_CD = #{ses.gateCd}
+               AND UPPER(USER_ID) = UPPER(#{USER_ID})
+          ) A
+
+    </select>
+
+    <select id="getExistCtrlCd" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT
+            COUNT(*) AS EXIST_CNT
+          FROM STOCBACP CP
+         WHERE CP.GATE_CD = #{ses.gateCd}
+           AND CP.BUYER_CD = #{BUYER_CD}
+           AND CP.CTRL_USER_ID = #{CTRL_USER_ID}
+           AND CP.CTRL_CD = #{CTRL_CD}
+
+    </select>
+	
+	<!-- CCUR0031 : 저장시 전체 삭제 후 저장 -->
+	<update id="ccur0031_doDeleteAuth" parameterType="hashmap">
+
+		UPDATE STOCBACP SET
+			  MOD_DATE  = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+			, DEL_FLAG  = '1'
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CTRL_USER_ID = #{CTRL_USER_ID}
+		   AND DEL_FLAG = '0'
+	</update>
+	
+    <insert id="ccur0031_doMergeAuth" parameterType="hashmap">
+
+        MERGE <include refid="common.sql.mergeInto"/> STOCBACP BACP
+        USING (SELECT #{ses.gateCd}   AS GATE_CD
+                     ,#{BUYER_CD}     AS BUYER_CD
+                     ,#{CTRL_CD}      AS CTRL_CD
+                     ,#{CTRL_USER_ID} AS CTRL_USER_ID
+                 <include refid="common.sql.dual"/>) B
+	         ON( BACP.GATE_CD  = B.GATE_CD
+	         AND BACP.BUYER_CD = B.BUYER_CD
+	         AND BACP.CTRL_CD  = B.CTRL_CD
+	         AND BACP.CTRL_USER_ID = B.CTRL_USER_ID)
+        WHEN MATCHED THEN
+        UPDATE SET
+              MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , DEL_FLAG = '0'
+            , USE_FLAG = #{USE_FLAG}
+        WHEN NOT MATCHED THEN
+        INSERT (
+              GATE_CD
+            , BUYER_CD
+            , CTRL_CD
+            , CTRL_USER_ID
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , USE_FLAG
+        ) VALUES (
+              #{ses.gateCd}
+            , #{BUYER_CD}
+            , #{CTRL_CD}
+            , #{CTRL_USER_ID}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{USE_FLAG}
+        )
+        <include refid="common.sql.comma"/>
+    </insert>
+    
+    <!-- CCUR0031 : 고객사 관리자 직무인 경우 STOCCVUR의 MNG_YN = '1'로 변경 -->
+	<update id="ccur0031_updateCustomerMngYn" parameterType="hashmap">
+
+		UPDATE STOCCVUR SET
+			   MNG_YN = (CASE WHEN <include refid="common.sql.nvl"/>(#{DEL_FLAG}, '0') = '1' THEN '0'
+			                  ELSE (CASE WHEN <include refid="common.sql.nvl"/>(#{USE_FLAG},'0') = '1' THEN '1'
+			                             ELSE '0' END)
+			                  END)
+		 WHERE GATE_CD   = #{ses.gateCd}
+		   AND USER_ID   = (CASE WHEN <include refid="common.sql.nvl"/>(#{CTRL_USER_ID},'X') = 'X' THEN #{CTRL_USER_ID_ORI} ELSE #{CTRL_USER_ID} END)
+		   AND USER_TYPE = 'B'
+		   AND DEL_FLAG  = '0'
+
+	</update>
+
+</mapper>

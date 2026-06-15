@@ -1,0 +1,518 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCPR.CCPR0900_Mapper">
+
+	<!-- CCPR900 : 근로계약대상근로자현황 -->
+	<select id="ccpr0900_doSearch" parameterType="hashMap" resultType="hashMap">
+		SELECT X.*
+			 <!-- ,(CASE WHEN X.CONT_QTY > 1 THEN X.CONT_NUM || '외 ' || X.CONT_QTY || '건' ELSE X.CONT_NUM END) AS CONT_INFO -->
+		FROM (
+			SELECT
+				  TVUR.USER_ID AS USER_ID
+				, <include refid="common.sql.strDecStart"/>TVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+				<!--  ,<include refid="common.sql.toChar"/>(TVUR.REG_DATE, 'yyyyMMdd') AS REQ_DATE
+				, TVUR.POSITION_NM
+				, TVUR.DEL_FLAG-->
+				, TVUR.ENTRY_GB
+				, TVUR.RELATION_ID
+				, TVUR.DIPSA_DAY
+				, TVUR.CONFIRM_DATE
+				, TVUR.CONFIRM_USER_ID
+				, TVUR.CR_DATETIME
+				, TVUR.CR_SABUN_NAME
+				<!-- , TVUR.DUTY_NM -->
+				, TVUR.EMPLOYEE_NO
+				, TVUR.GEUNMU_STS
+				<!--, TVUR.GEUNMU_STS_NAME
+				,<include refid="common.sql.strDecStart"/>TVUR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+				, TVUR.AGREE_YN
+				,<include refid="common.sql.toChar"/>(TVUR.AGREE_YN_DATE, 'yyyyMMdd') AS AGREE_DATE
+				,<include refid="common.sql.strDecStart"/>TVUR.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+				,<include refid="common.sql.strDecStart"/>TVUR.ADDR_1<include refid="common.sql.strDecEnd"/> AS ADDR_1
+				,<include refid="common.sql.strDecStart"/>TVUR.ADDR_2<include refid="common.sql.strDecEnd"/> AS ADDR_2
+				,<include refid="common.sql.dbo"/>GETCODENAME(TVUR.GATE_CD, 'M151', TVUR.GENDER, #{ses.langCd}) AS GENDER_NM
+				,<include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(TVUR.CONFIRM_DATE, 'YYYY-MM-DD HH24:MI'),' ') AS SIGN_DATE-->
+				, TVUR.SUBCUST_NAME
+				, TVUR.CUST_NAME
+				, TVUR.START_CONTRACT
+				, TVUR.END_CONTRACT
+				, <include refid="common.sql.strDecStart"/>TVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL				
+				, REGEXP_REPLACE(REGEXP_REPLACE(<include refid="common.sql.strDecStart"/>TVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> ,'[^0-9]',''),'(.{3})(.+)(.{4})','\1-\2-\3') AS CELL_NUM
+				, TVUR.PROGRESS_CD				
+				, TVUR.SITE_USER_ID
+				, <include refid="common.sql.dbo"/>getUserName(TVUR.GATE_CD, TVUR.SITE_USER_ID, #{ses.langCd}) AS SITE_USER_NM			
+				, TVUR.GENDER
+				, <include refid="common.sql.strDecStart"/>TVUR.BIRTH_DATE<include refid="common.sql.strDecEnd"/> AS BIRTH_DATE				
+				, TVUR.CONFIRM_USER_ID AS SIGN_USER_ID
+				, <include refid="common.sql.dbo"/>getUserName(TVUR.GATE_CD, TVUR.CONFIRM_USER_ID, #{ses.langCd}) AS SIGN_USER_NM
+				<!-- ,(SELECT MAX(TCCT.CONT_NUM) FROM STOCTCCT TCCT
+					WHERE TCCT.GATE_CD  = TVUR.GATE_CD
+					  AND TCCT.USER_ID = TVUR.USER_ID
+					  AND <include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(TCCT.CONT_END_DATE, 'YYYYMMDD'),' ') <![CDATA[>=]]> <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD')
+					  AND TCCT.PROGRESS_CD   IN ('4210','4300') 
+					  AND TCCT.DEL_FLAG = '0') AS CONT_NUM
+ 				,(SELECT COUNT(TCCT.CONT_NUM) FROM STOCTCCT TCCT
+				  WHERE TCCT.GATE_CD  = TVUR.GATE_CD
+					 AND TCCT.USER_ID = TVUR.USER_ID
+					 AND <include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(TCCT.CONT_END_DATE, 'YYYYMMDD'),' ') <![CDATA[>=]]> <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') 
+					 AND TCCT.PROGRESS_CD   IN ('4210','4300') 
+					 AND TCCT.DEL_FLAG = '0') AS CONT_QTY
+				,(SELECT MAX(TCCT.CONT_START_DATE) FROM STOCTCCT TCCT
+					WHERE TCCT.GATE_CD  = TVUR.GATE_CD
+					  AND TCCT.USER_ID = TVUR.USER_ID
+					  AND <include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(TCCT.CONT_END_DATE, 'YYYYMMDD'),' ') <![CDATA[>=]]> <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') 
+					  AND TCCT.PROGRESS_CD   IN ('4210','4300') 
+					  AND TCCT.DEL_FLAG = '0') AS CONT_START_DATE
+				,(SELECT MAX(TCCT.CONT_END_DATE) FROM STOCTCCT TCCT
+					WHERE TCCT.GATE_CD  = TVUR.GATE_CD
+					  AND TCCT.USER_ID = TVUR.USER_ID
+					  AND <include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(TCCT.CONT_END_DATE, 'YYYYMMDD'),' ') <![CDATA[>=]]> <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') 
+					  AND TCCT.PROGRESS_CD   IN ('4210','4300') 
+					  AND TCCT.DEL_FLAG = '0') AS CONT_END_DATE -->
+				, (CASE WHEN TVUR.PROGRESS_CD = 'P' THEN '1'
+					   WHEN TVUR.PROGRESS_CD = 'R' THEN '2'
+					   ELSE '3' END) AS SORT_ORD
+				, <include refid="common.sql.dbo"/>GETCODENAME(TVUR.GATE_CD, 'M044', TVUR.DEL_FLAG, #{ses.langCd}) AS USER_DEL_FLAG
+				, TVUR.SLEEP_ACC 
+			 FROM STOCTVUR TVUR
+			WHERE TVUR.GATE_CD   = #{ses.gateCd}
+			  AND TVUR.USER_TYPE = 'T'
+			<!-- 관리자는 전체, 관리자가 아니면 자신이 현장담당자인 건만 조회 -->
+			<if test="ses.superUserFlag == '' or ses.superUserFlag == null or ses.superUserFlag != '1'.toString()">
+			  AND TVUR.SITE_USER_ID = #{ses.userId}
+			</if>
+			<!--  
+			<if test="BAL_CODE != '' and BAL_CODE != null">
+			  AND TVUR.BAL_CODE = #{BAL_CODE}
+			</if>
+			<if test="GEUNMU_STS != '' and GEUNMU_STS != null">
+			  AND TVUR.GEUNMU_STS = #{GEUNMU_STS}
+			</if>
+			<if test="DEPT_CD != '' and DEPT_CD != null">
+			  AND TVUR.DEPT_CD = #{DEPT_CD}
+			</if>  
+			<if test="DEPT_NM != '' and DEPT_NM != null">
+			  AND TVUR.DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/>#{DEPT_NM}<include refid="common.sql.stringMerge"/>'%'
+			</if>
+			-->
+			<if test="CUST_CODE != '' and CUST_CODE != null">
+			  AND TVUR.CUST_CODE = #{CUST_CODE}
+			</if>
+			<if test="SUBCUST_CODE != '' and SUBCUST_CODE != null">
+			  AND TVUR.SUBCUST_CODE = #{SUBCUST_CODE}
+			</if>
+			
+			<if test="CUST_NAME != '' and CUST_NAME != null">
+			  AND TVUR.CUST_NAME LIKE '%' <include refid="common.sql.stringMerge"/>#{CUST_NAME}<include refid="common.sql.stringMerge"/>'%'
+			</if>
+			<if test="SUBCUST_NAME != '' and SUBCUST_NAME != null">
+			  AND TVUR.SUBCUST_NAME LIKE '%' <include refid="common.sql.stringMerge"/>#{SUBCUST_NAME}<include refid="common.sql.stringMerge"/>'%'
+			</if>
+			<if test="USER_NM != '' and USER_NM != null">
+			  AND TVUR.USER_NM LIKE '%' <include refid="common.sql.stringMerge"/><include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/><include refid="common.sql.stringMerge"/>'%'
+			</if>
+		) X
+		WHERE 1 = 1
+		ORDER BY X.SORT_ORD
+			   , X.USER_NM
+	</select>
+	
+	<!-- 2021.07.01 : 개인근로자 반려시 SMS 수수료부과 추가 -->
+	<select id="costPersonalInfo" parameterType="hashmap" resultType="hashmap">
+		
+        SELECT
+             (SELECT IRS_NUM FROM STOCCUST
+               WHERE GATE_CD = SITE.GATE_CD
+                 AND CUST_CD = SITE.COMPANY_CD)	AS CORP_NO
+            , SITE.DEPT_CD		AS BRC
+            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+            , TVUR.SITE_USER_ID AS USER_ID
+            , 'SMS_PC_RJ'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              TVUR.GATE_CD  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              TVUR.USER_ID		AS CONT_TBL_PK
+            , NULL 				AS FILE_SIZE
+		 FROM STOCTVUR TVUR
+		 JOIN STOCTVUR SITE
+		 	  ON (SITE.GATE_CD  = TVUR.GATE_CD
+		 	  AND SITE.USER_ID  = TVUR.SITE_USER_ID)
+		WHERE TVUR.GATE_CD = #{ses.gateCd}
+		  AND TVUR.USER_ID = #{USER_ID}
+		  AND TVUR.SITE_USER_ID = #{ses.userId}
+    </select>
+	
+		<!-- CCPR0900 : 연계아이디 저장 -->
+	<update id="ccpr0900_doUpdate" parameterType="hashmap">
+		UPDATE STOCTVUR TVUR
+		   SET RELATION_ID = #{RELATION_ID}
+		 WHERE TVUR.GATE_CD   = #{ses.gateCd}
+		   AND TVUR.USER_ID   = #{USER_ID}
+	</update>
+	
+	<!-- CCPR0900 : 개인근로자 승인 및 반려 -->
+	<update id="ccpr0900_doConfirm" parameterType="hashmap">
+		UPDATE STOCTVUR TVUR
+		   SET MOD_DATE    = SYSDATE
+		     , MOD_USER_ID = #{ses.userId}
+		     , PROGRESS_CD = #{PROGRESS_CD}
+		<if test="PROGRESS_CD != '' and PROGRESS_CD != null and PROGRESS_CD == 'E'.toString()">
+		     , CONFIRM_DATE    = SYSDATE
+		     , CONFIRM_USER_ID = #{ses.userId}
+		</if>
+		 WHERE TVUR.GATE_CD   = #{ses.gateCd}
+		   AND TVUR.USER_ID   = #{USER_ID}
+		   AND TVUR.USER_TYPE = 'T'
+	</update>
+	
+<insert id="ccpr0900_doEmpInsert" parameterType="hashMap">
+        INSERT INTO STOCTVUR (
+	        GATE_CD
+	        ,USER_ID
+			,JIKJONG_NAME   
+			,JIKJONG        
+			,JGUBN_NAME     
+			,A8_AMT         
+			,AC_AMT         
+			,JIKKUN_NAME  
+			,JIKKUN
+			,G_TEL          
+			,JIKMU          
+			,OUTGU_NAME     
+			,DIPSA_DAY      
+			,TIMEPAY        
+			,END_CONTRACT   
+			,A3_AMT         
+			,CLASS          
+			,A6_AMT         
+			,GEUNMU_STS     
+			,ADDR_1         
+			,ADDR_2         
+			,CUST_CODE      
+			,CUST_NAME      
+			,SAL_DTYCD      
+			,H_ADDR1        
+			,H_ZIPCODE      
+			,G_NAME         
+			,A7_AMT         
+			,EMAIL_ADD      
+			,SAL_DTYCD_NAME 
+			,OUTGU          
+			,H_ADDR2        
+		<!--,FIRST_CONTRACT 
+		BIRTHDAY-->       
+			,SEX            
+			,G_ZIPCODE      
+			,G_ADDR2        
+			,G_ADDR1        
+			,BAL_CODE       
+			,BAL_CODE_NAME  
+			,JGUBN          
+			,SUBCUST_NAME   
+			,JIKMU_NAME     
+			,SALE_SABUN_NAME
+			,CLASS_NAME     
+			,BAL_DATE       
+			,START_CONTRACT 
+			,GEUNMU_STS_NAME
+			,A2_AMT
+			<!--2022.10.20 보안 이슈때문에 주민번호 삭제 -->
+			<!--,PER_NO         -->
+			,ZIP_CD         
+			,SALE_SABUN     
+			,A4_AMT         
+			,A1_AMT       
+			,HAND_TEL       
+			,USER_NM        
+			,SUBCUST_CODE   
+			,EDIT_DATETIME  
+			,EDIT_SABUN
+			,CR_DATETIME
+			,CR_SABUN
+			,USER_TYPE
+			,DEL_FLAG
+			,PASSWORD
+			,PROGRESS_CD
+			,SITE_USER_ID
+			,USE_FLAG
+			,EMPLOYEE_NO
+			,ENTRY_GB
+			,SMS_FLAG
+			,MAIL_FLAG
+			,BIRTH_DATE
+			,GENDER
+			,EMAIL
+			,TEL_NUM
+			,CELL_NUM
+			,INSAJIKCHECK
+			,INSAJIKCHECKNM
+			,A9_AMT
+			,SLEEP_ACC
+			,A9_AMT_RMKS
+			,A9_AMT2
+			,A9_AMT2_RMKS
+			,A9_AMT3
+			,A9_AMT3_RMKS
+    		)
+		SELECT
+			'100'
+			,#{sabun}	 
+			,#{jikjongName}
+			,#{jikjong}
+			,#{jgubnName}
+			,#{a8Amt}
+			,#{acAmt}
+			,#{jikkunName}
+			,#{jikkun}
+			,#{GTel}
+			,#{jikmu}
+			,#{outguName}
+			,TO_DATE(#{dipsaDay}, 'YYYY-MM-DD')
+			,#{timepay}
+			,TO_DATE(#{endContract}, 'YYYY-MM-DD')
+			,#{a3Amt}
+			,#{class}      
+			,#{a6Amt}       
+			,#{geunmuSts}     
+			,<include refid="common.sql.strEncStart"/>#{addr1}<include refid="common.sql.strEncEnd"/>        
+			,<include refid="common.sql.strEncStart"/>#{addr2}<include refid="common.sql.strEncEnd"/>         
+			,#{custCode}      
+			,#{custName}      
+			,#{salDtycd}      
+			,#{subcustAddr1}  
+			,#{subcustZipcode}
+			,#{GName}         
+			,#{a7Amt}         
+			,<include refid="common.sql.strEncStart"/>#{emailAdd}<include refid="common.sql.strEncEnd"/>     
+			,#{salDtycdName}  
+			,#{outgu}         
+			,#{subcustAddr2}  
+			<!--,TO_DATE(#{firstContract}, 'YYYY-MM-DD') 
+			,<include refid="common.sql.strEncStart"/>TO_DATE(#{birthday},'YYYY-MM-DD')<include refid="common.sql.strEncEnd"/> -->     
+			,#{sex}           
+			,#{GZipcode}      
+			,#{GAddr2}        
+			,#{GAddr1}        
+			,#{balCode}       
+			,#{balCodeName}   
+			,#{jgubn}         
+			,#{subcustName}   
+			,#{jikmuName}     
+			,#{saleSabunName} 
+			,#{className}     
+			,#{balDate}       
+			,TO_DATE(#{startContract}, 'YYYY-MM-DD') 
+			,#{geunmuStsName} 
+			,#{a2Amt}
+			<!-- 2022.10.20 보안 이슈때문에 주민번호 삭제 -->         
+			<!-- ,#{perNo} -->         
+			,#{zipcode}       
+			,#{saleSabun}     
+			,#{a4Amt}         
+			,#{a1Amt}         
+			,<include refid="common.sql.strEncStart"/>#{handTel}<include refid="common.sql.strEncEnd"/>       
+			,<include refid="common.sql.strEncStart"/>#{kname}<include refid="common.sql.strEncEnd"/>         
+			,#{subcustCode}                 
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+			,'T'
+			,'0'
+			,#{PASSWORD}
+			,'E'
+			,#{saleSabun}
+			,'1'
+			,#{sabun}
+			,'E'
+			,'1'
+			,'1'
+			,<include refid="common.sql.strEncStart"/>TO_CHAR(TO_DATE(#{birthday}),'YYYY-MM-DD')<include refid="common.sql.strEncEnd"/>
+			,#{sex}
+			,<include refid="common.sql.strEncStart"/>#{emailAdd}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{handTel}<include refid="common.sql.strEncEnd"/>
+			,<include refid="common.sql.strEncStart"/>#{handTel}<include refid="common.sql.strEncEnd"/>
+			,#{insaJikchek}
+			,#{insaJikchekNm}
+			,#{etcSumAmt}
+			,'0'
+			,#{etcSumNm}
+			,#{etcSumAmt1}
+			,#{etcSumNm1}
+			,#{etcSumAmt2}
+			,#{etcSumNm2}
+		FROM DUAL
+		WHERE NOT EXISTS (SELECT '1' FROM STOCTVUR TVUR
+						   WHERE (USER_ID = '${sabun}' OR RELATION_ID = '${sabun}'))
+</insert>
+<update id="ccpr0900_doEmpUpdate" parameterType="hashMap">
+      UPDATE STOCTVUR TVUR
+      SET JIKJONG_NAME    = #{jikjongName}
+		,JIKJONG         = #{jikjong}
+		,JGUBN_NAME      = #{jgubnName}
+		,A8_AMT          = #{a8Amt}
+		,AC_AMT          = #{acAmt}
+		,JIKKUN_NAME     = #{jikkunName}
+		,JIKKUN          = #{jikkun}
+		,G_TEL           = #{GTel}
+		,JIKMU           = #{jikmu}
+		,OUTGU_NAME      = #{outguName}
+		,DIPSA_DAY       = TO_DATE(#{dipsaDay}, 'YYYY-MM-DD')
+		,TIMEPAY         = #{timepay}
+		,END_CONTRACT    = TO_DATE(#{endContract}, 'YYYY-MM-DD')
+		,A3_AMT          = #{a3Amt}
+		,CLASS           = #{class}         
+		,A6_AMT          = #{a6Amt}         
+		,GEUNMU_STS      = #{geunmuSts}     
+		,ADDR_1          = <include refid="common.sql.strEncStart"/>#{addr1}<include refid="common.sql.strEncEnd"/>         
+		,ADDR_2          = <include refid="common.sql.strEncStart"/>#{addr2}<include refid="common.sql.strEncEnd"/>         
+		,CUST_CODE       = #{custCode}      
+		,CUST_NAME       = #{custName}      
+		,SAL_DTYCD       = #{salDtycd}      
+		,H_ADDR1         = #{subcustAddr1}  
+		,H_ZIPCODE       = #{subcustZipcode}
+		,G_NAME          = #{GName}         
+		,A7_AMT          = #{a7Amt}         
+		,EMAIL_ADD       = #{emailAdd}      
+		,SAL_DTYCD_NAME  = #{salDtycdName}  
+		,OUTGU           = #{outgu}         
+		,H_ADDR2         = #{subcustAddr2}  
+	<!--  	,FIRST_CONTRACT  = TO_DATE(#{firstContract}, 'YYYY-MM-DD')--> 
+		,BIRTH_DATE      = <include refid="common.sql.strEncStart"/>TO_CHAR(TO_DATE(#{birthday}),'YYYY-MM-DD')<include refid="common.sql.strEncEnd"/>      
+		,SEX             = #{sex}           
+		,G_ZIPCODE       = #{GZipcode}      
+		,G_ADDR2         = #{GAddr2}        
+		,G_ADDR1         = #{GAddr1}        
+		,BAL_CODE        = #{balCode}       
+		,BAL_CODE_NAME   = #{balCodeName}   
+		,JGUBN           = #{jgubn}         
+		,SUBCUST_NAME    = #{subcustName}   
+		,JIKMU_NAME      = #{jikmuName}    
+		,SALE_SABUN_NAME = #{saleSabunName} 
+		,CLASS_NAME      = #{className}     
+		,BAL_DATE        = #{balDate}       
+		,START_CONTRACT  = TO_DATE(#{startContract}, 'YYYY-MM-DD') 
+		,GEUNMU_STS_NAME = #{geunmuStsName} 
+		,A2_AMT          = #{a2Amt}
+		<!-- 2022.10.20 보안 이슈때문에 주민번호 삭제 -->          
+		<!-- ,PER_NO          = #{perNo} -->         
+		,ZIP_CD          = <include refid="common.sql.strEncStart"/>#{zipcode}<include refid="common.sql.strEncEnd"/>       
+		,SALE_SABUN      = #{saleSabun}     
+		,A4_AMT          = #{a4Amt}         
+		,A1_AMT          = #{a1Amt}         
+		<!-- ,USER_ID         = #{sabun}  -->        
+		,HAND_TEL        = <include refid="common.sql.strEncStart"/>#{handTel}<include refid="common.sql.strEncEnd"/>       
+		,USER_NM         = <include refid="common.sql.strEncStart"/>#{kname}<include refid="common.sql.strEncEnd"/>         
+		,SUBCUST_CODE    = #{subcustCode}   
+		,EDIT_DATETIME   = SYSDATE              
+		,EDIT_SABUN      = #{ses.userId}
+		<!--,PASSWORD		 = CONCAT(#{sabun}, '1!')-->
+		,SITE_USER_ID	 = #{saleSabun}
+		,CELL_NUM		 = <include refid="common.sql.strEncStart"/>#{handTel}<include refid="common.sql.strEncEnd"/>
+		,TEL_NUM		 = <include refid="common.sql.strEncStart"/>#{handTel}<include refid="common.sql.strEncEnd"/>
+		,EMAIL		 	 = <include refid="common.sql.strEncStart"/>#{emailAdd}<include refid="common.sql.strEncEnd"/>
+		,INSAJIKCHECK    = #{insaJikchek}
+		,INSAJIKCHECKNM	 = #{insaJikchekNm}
+		,A9_AMT          = #{etcSumAmt}
+		,A9_AMT_RMKS     = #{etcSumNm}
+		,A9_AMT2         = #{etcSumAmt1} 
+		,A9_AMT2_RMKS    = #{etcSumNm1}
+		,A9_AMT3         = #{etcSumAmt2}
+		,A9_AMT3_RMKS    = #{etcSumNm2}
+	 WHERE USER_ID = #{sabun}
+</update>
+
+<update id="ccpr0900_doEmpUpdate2" parameterType="hashMap">
+      UPDATE STOCTVUR TVUR
+      SET JIKJONG_NAME    = #{jikjongName}
+		,JIKJONG         = #{jikjong}
+		,JGUBN_NAME      = #{jgubnName}
+		,A8_AMT          = #{a8Amt}
+		,AC_AMT          = #{acAmt}
+		,JIKKUN_NAME     = #{jikkunName}
+		,JIKKUN          = #{jikkun}
+		,G_TEL           = #{GTel}
+		,JIKMU           = #{jikmu}
+		,OUTGU_NAME      = #{outguName}
+		,DIPSA_DAY       = TO_DATE(#{dipsaDay}, 'YYYY-MM-DD')
+		,TIMEPAY         = #{timepay}
+		,END_CONTRACT    = TO_DATE(#{endContract}, 'YYYY-MM-DD')
+		,A3_AMT          = #{a3Amt}
+		,CLASS           = #{class}         
+		,A6_AMT          = #{a6Amt}         
+		,GEUNMU_STS      = #{geunmuSts}     
+		,ADDR_1          = <include refid="common.sql.strEncStart"/>#{addr1}<include refid="common.sql.strEncEnd"/>         
+		,ADDR_2          = <include refid="common.sql.strEncStart"/>#{addr2}<include refid="common.sql.strEncEnd"/>      
+		,CUST_CODE       = #{custCode}      
+		,CUST_NAME       = #{custName}      
+		,SAL_DTYCD       = #{salDtycd}      
+		,H_ADDR1         = #{subcustAddr1}  
+		,H_ZIPCODE       = #{subcustZipcode}
+		,G_NAME          = #{GName}         
+		,A7_AMT          = #{a7Amt}         
+		,EMAIL_ADD       = #{emailAdd}      
+		,SAL_DTYCD_NAME  = #{salDtycdName}  
+		,OUTGU           = #{outgu}         
+		,H_ADDR2         = #{subcustAddr2}  
+		<!-- ,FIRST_CONTRACT  = TO_DATE(#{firstContract}, 'YYYY-MM-DD') --> 
+		,BIRTH_DATE      = <include refid="common.sql.strEncStart"/>TO_CHAR(TO_DATE(#{birthday}),'YYYY-MM-DD')<include refid="common.sql.strEncEnd"/>      
+		,SEX             = #{sex}           
+		,G_ZIPCODE       = #{GZipcode}      
+		,G_ADDR2         = #{GAddr2}        
+		,G_ADDR1         = #{GAddr1}        
+		,BAL_CODE        = #{balCode}       
+		,BAL_CODE_NAME   = #{balCodeName}   
+		,JGUBN           = #{jgubn}         
+		,SUBCUST_NAME    = #{subcustName}   
+		,JIKMU_NAME      = #{jikmuName}    
+		,SALE_SABUN_NAME = #{saleSabunName} 
+		,CLASS_NAME      = #{className}     
+		,BAL_DATE        = #{balDate}       
+		,START_CONTRACT  = TO_DATE(#{startContract}, 'YYYY-MM-DD') 
+		,GEUNMU_STS_NAME = #{geunmuStsName} 
+		,A2_AMT          = #{a2Amt}
+		<!-- 2022.10.20 보안 이슈때문에 주민번호 삭제 -->          
+		<!-- ,PER_NO          = #{perNo} -->         
+		,ZIP_CD          = <include refid="common.sql.strEncStart"/>#{zipcode}<include refid="common.sql.strEncEnd"/>       
+		,SALE_SABUN      = #{saleSabun}     
+		,A4_AMT          = #{a4Amt}         
+		,A1_AMT          = #{a1Amt}         
+		<!-- ,USER_ID         = #{sabun}  -->        
+		,HAND_TEL        = <include refid="common.sql.strEncStart"/>#{handTel}<include refid="common.sql.strEncEnd"/>       
+		,USER_NM         = <include refid="common.sql.strEncStart"/>#{kname}<include refid="common.sql.strEncEnd"/>            
+		,SUBCUST_CODE    = #{subcustCode}   
+		,EDIT_DATETIME   = SYSDATE              
+		,EDIT_SABUN      = #{ses.userId}
+		<!--,PASSWORD		 = CONCAT(#{sabun}, '1!')-->
+		,SITE_USER_ID	 = #{saleSabun}
+		,CELL_NUM		 = <include refid="common.sql.strEncStart"/>#{handTel}<include refid="common.sql.strEncEnd"/>
+		,TEL_NUM		 = <include refid="common.sql.strEncStart"/>#{handTel}<include refid="common.sql.strEncEnd"/>
+		,EMAIL		 	 = <include refid="common.sql.strEncStart"/>#{emailAdd}<include refid="common.sql.strEncEnd"/>
+		,INSAJIKCHECK    = #{insaJikchek}
+		,INSAJIKCHECKNM	 = #{insaJikchekNm}
+		,A9_AMT          = #{etcSumAmt}
+		,A9_AMT_RMKS     = #{etcSumNm}
+		,A9_AMT2         = #{etcSumAmt1} 
+		,A9_AMT2_RMKS    = #{etcSumNm1}
+		,A9_AMT3         = #{etcSumAmt2}
+		,A9_AMT3_RMKS    = #{etcSumNm2}
+	 WHERE RELATION_ID = #{sabun}
+</update>
+
+   <insert id="ccpr0900_InsertPW">
+       INSERT INTO STOCTUPW (
+               GATE_CD
+             , USER_ID
+             , REG_DATE
+             , REG_USER_ID
+             , PASSWORD
+             , REG_IP_ADDR
+       ) VALUES (
+               #{ses.gateCd}
+             , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{sabun})))
+             , SYSDATE
+             , #{ses.userId}
+             , #{PASSWORD}
+             , #{REG_IP_ADDR}
+       )
+   </insert>
+</mapper>

@@ -1,0 +1,1204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.master.user.MTUA0010_Mapper">
+
+    <select id="mtua0010_doSearchUser" parameterType="hashMap" resultType="hashMap">
+
+        SELECT A.*
+        FROM (
+	        SELECT
+		        USERS.USER_ID AS USER_ID
+		        , USERS.USER_ID AS USER_ID_V
+		        , <include refid="common.sql.dbo"/>GETUSERNAME(USERS.GATE_CD, USERS.USER_ID, #{ses.langCd}) AS USER_NM_DISPLAY
+		        , USERS.COMPANY_CD
+		        , USERS.USER_TYPE
+		        , (SELECT <include refid="common.sql.nvl"/>(BUYER_NM, BUYER_NM_ENG) FROM STOCOGCM WHERE GATE_CD = USERS.GATE_CD AND BUYER_CD = USERS.COMPANY_CD AND LANG_CD = #{ses.langCd}) AS COMPANY_NM
+		        , USERS.DEPT_CD
+		        , USERS.GATE_CD
+		        , <include refid="common.sql.dbo"/>GETDEPTNAME(USERS.GATE_CD, USERS.COMPANY_CD, USERS.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+	        FROM STOCUSER USERS
+	        WHERE USERS.GATE_CD = #{ses.gateCd}
+	        AND USERS.DEL_FLAG = '0'
+	        <if test="USER_ID_SEARCH != '' and USER_ID_SEARCH != null">
+	            AND UPPER(USERS.USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+	        </if>
+	        <if test="USER_NM_SEARCH != '' and USER_NM_SEARCH != null">
+	            AND UPPER(<include refid="common.sql.dbo"/>getUserName(USERS.GATE_CD, USERS.USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+	        </if>
+	        <if test="S_DEPT_CD != '' and S_DEPT_CD != null">
+	            <choose>
+	                <when test='INC_CHILD_DEPT != "Y"'>
+	                    AND UPPER(USERS.DEPT_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_CD}) <include refid="common.sql.stringMerge"/> '%'
+	                </when>
+	            </choose>
+	        </if>
+	        <if test="S_DEPT_NM != '' and S_DEPT_NM != null">
+	            <choose>
+	                <when test='INC_CHILD_DEPT != "Y"'>
+	                    AND UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(USERS.GATE_CD, USERS.COMPANY_CD, USERS.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+	                </when>
+	            </choose>
+	        </if>
+	
+	        UNION ALL
+	
+	        SELECT
+		        UPPER((<include refid="common.sql.dbo"/>SF_TRIM(CVUR.USER_ID))) AS USER_ID
+		        , CVUR.USER_ID AS USER_ID_V
+		        , <include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM_DISPLAY
+		        , CVUR.COMPANY_CD
+		        , CVUR.USER_TYPE
+		        ,(CASE WHEN CVUR.USER_TYPE = 'S'
+		        			THEN (SELECT VENDOR_NM FROM STOCVNGL WHERE GATE_CD = #{ses.gateCd} AND VENDOR_CD = CVUR.COMPANY_CD AND DEL_FLAG = '0')
+		        	   WHEN CVUR.USER_TYPE = 'P'  
+		        			THEN (SELECT BUYER_NM FROM STOCOGCM WHERE GATE_CD = #{ses.gateCd} AND BUYER_CD = CVUR.COMPANY_CD AND DEL_FLAG = '0')
+		        	   ELSE (SELECT CUST_NM FROM STOCCUST WHERE GATE_CD = #{ses.gateCd} AND CUST_CD = CVUR.COMPANY_CD AND DEL_FLAG = '0')
+		          END) AS COMPANY_NM
+		        , '' AS DEPT_CD
+		        , CVUR.GATE_CD
+		        , CVUR.DEPT_NM AS DEPT_NM
+	        FROM STOCCVUR CVUR
+	        WHERE CVUR.GATE_CD = #{ses.gateCd}
+	        AND CVUR.DEL_FLAG = '0'
+	        <if test="USER_ID_SEARCH != '' and USER_ID_SEARCH != null">
+	            AND UPPER(CVUR.USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+	        </if>
+	        <if test="USER_NM_SEARCH != '' and USER_NM_SEARCH != null">
+	            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD, CVUR.USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+	        </if>
+	        <if test="S_DEPT_NM != '' and S_DEPT_NM != null">
+	            <choose>
+	                <when test='INC_CHILD_DEPT != "Y"'>
+	                    AND UPPER(CVUR.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+	                </when>
+	            </choose>
+	        </if>
+        ) A
+        WHERE 1 = 1
+        <if test="USER_TYPE_SEARCH != '' and USER_TYPE_SEARCH != null">
+            AND A.USER_TYPE = #{USER_TYPE_SEARCH}
+        </if>
+        <if test="COMPANY_CD_SEARCH != '' and COMPANY_CD_SEARCH != null">
+            AND UPPER(A.COMPANY_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMPANY_CD_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="COMPANY_NM_SEARCH != '' and COMPANY_NM_SEARCH != null">
+            AND UPPER(A.COMPANY_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMPANY_NM_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="S_DEPT_CD != '' and S_DEPT_CD != null">
+            <choose>
+                <when test='INC_CHILD_DEPT == "Y"'>
+                    AND (UPPER(a.DEPT_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_CD}) <include refid="common.sql.stringMerge"/> '%'
+                    OR a.DEPT_CD IN (SELECT DEPT_CD FROM STOCOGDP
+                    WHERE GATE_CD  = A.GATE_CD
+                    AND BUYER_CD = A.COMPANY_CD
+                    AND DEL_FLAG = '0'
+                    START WITH PARENT_DEPT_CD = #{S_DEPT_CD}
+                    CONNECT BY PARENT_DEPT_CD = PRIOR DEPT_CD
+                    UNION ALL
+                    SELECT DEPT_CD FROM STOCOGDP
+                    WHERE GATE_CD  = A.GATE_CD
+                    AND BUYER_CD = A.COMPANY_CD
+                    AND DEPT_CD  = #{S_DEPT_CD}
+                    AND DEL_FLAG = '0')
+                    )
+                </when>
+            </choose>
+        </if>
+        <if test="S_DEPT_NM != '' and S_DEPT_NM != null">
+            <choose>
+                <when test='INC_CHILD_DEPT == "Y"'>
+                    AND (UPPER(a.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+                    OR a.DEPT_CD IN (SELECT DEPT_CD FROM STOCOGDP
+                    WHERE GATE_CD  = A.GATE_CD
+                    AND BUYER_CD = A.COMPANY_CD
+                    AND DEL_FLAG = '0'
+                    START WITH PARENT_DEPT_CD IN (SELECT DEPT_CD
+                    FROM STOCOGDP
+                    WHERE GATE_CD = A.GATE_CD AND BUYER_CD = A.COMPANY_CD AND DEL_FLAG = '0'
+                    AND UPPER(DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+                    CONNECT BY PARENT_DEPT_CD = PRIOR DEPT_CD
+                    UNION ALL
+                    SELECT DEPT_CD FROM STOCOGDP
+                    WHERE GATE_CD  = A.GATE_CD
+                    AND BUYER_CD = A.COMPANY_CD
+                    AND DEPT_CD IN (SELECT DEPT_CD FROM STOCOGDP
+                    WHERE GATE_CD = A.GATE_CD AND BUYER_CD = A.COMPANY_CD AND DEL_FLAG = '0'
+                    AND UPPER(DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_NM}) <include refid="common.sql.stringMerge"/>'%')
+                    AND DEL_FLAG = '0')
+                    )
+                </when>
+            </choose>
+        </if>
+
+        ORDER BY A.USER_ID
+
+    </select>
+    <select id="mtua0010_doSearchUserEmp" parameterType="hashMap" resultType="hashMap">
+       SELECT A.*
+        FROM (
+	        SELECT
+		        UPPER((<include refid="common.sql.dbo"/>SF_TRIM(TVUR.USER_ID))) AS USER_ID
+		        , TVUR.USER_ID AS USER_ID_V
+		        , <include refid="common.sql.strDecStart"/>TVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM_DISPLAY
+		        , TVUR.COMPANY_CD
+		        , TVUR.USER_TYPE
+		        , (SELECT BUYER_NM FROM STOCOGCM WHERE GATE_CD = #{ses.gateCd} AND BUYER_CD = TVUR.COMPANY_CD AND DEL_FLAG = '0')AS COMPANY_NM
+		        , '' AS DEPT_CD
+		        , TVUR.GATE_CD
+		        , TVUR.DEPT_NM AS DEPT_NM
+	        FROM STOCTVUR TVUR
+	        WHERE TVUR.GATE_CD = #{ses.gateCd}
+	        AND TVUR.DEL_FLAG = '0'
+	        <if test="USER_ID_SEARCH != '' and USER_ID_SEARCH != null">
+	            AND UPPER(TVUR.USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+	        </if>
+	        <if test="USER_NM_SEARCH != '' and USER_NM_SEARCH != null">
+	            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(TVUR.GATE_CD, TVUR.USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+	        </if>
+	        <if test="S_DEPT_NM != '' and S_DEPT_NM != null">
+	            <choose>
+	                <when test='INC_CHILD_DEPT != "Y"'>
+	                    AND UPPER(TVUR.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+	                </when>
+	            </choose>
+	        </if>
+        ) A
+        WHERE 1 = 1
+        <if test="USER_TYPE_SEARCH != '' and USER_TYPE_SEARCH != null">
+            AND A.USER_TYPE = #{USER_TYPE_SEARCH}
+        </if>
+        <if test="COMPANY_CD_SEARCH != '' and COMPANY_CD_SEARCH != null">
+            AND UPPER(A.COMPANY_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMPANY_CD_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="COMPANY_NM_SEARCH != '' and COMPANY_NM_SEARCH != null">
+            AND UPPER(A.COMPANY_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMPANY_NM_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="S_DEPT_CD != '' and S_DEPT_CD != null">
+            <choose>
+                <when test='INC_CHILD_DEPT == "Y"'>
+                    AND (UPPER(a.DEPT_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_CD}) <include refid="common.sql.stringMerge"/> '%'
+                    OR a.DEPT_CD IN (SELECT DEPT_CD FROM STOCOGDP
+                    WHERE GATE_CD  = A.GATE_CD
+                    AND BUYER_CD = A.COMPANY_CD
+                    AND DEL_FLAG = '0'
+                    START WITH PARENT_DEPT_CD = #{S_DEPT_CD}
+                    CONNECT BY PARENT_DEPT_CD = PRIOR DEPT_CD
+                    UNION ALL
+                    SELECT DEPT_CD FROM STOCOGDP
+                    WHERE GATE_CD  = A.GATE_CD
+                    AND BUYER_CD = A.COMPANY_CD
+                    AND DEPT_CD  = #{S_DEPT_CD}
+                    AND DEL_FLAG = '0')
+                    )
+                </when>
+            </choose>
+        </if>
+        <if test="S_DEPT_NM != '' and S_DEPT_NM != null">
+            <choose>
+                <when test='INC_CHILD_DEPT == "Y"'>
+                    AND (UPPER(a.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+                    OR a.DEPT_CD IN (SELECT DEPT_CD FROM STOCOGDP
+                    WHERE GATE_CD  = A.GATE_CD
+                    AND BUYER_CD = A.COMPANY_CD
+                    AND DEL_FLAG = '0'
+                    START WITH PARENT_DEPT_CD IN (SELECT DEPT_CD
+                    FROM STOCOGDP
+                    WHERE GATE_CD = A.GATE_CD AND BUYER_CD = A.COMPANY_CD AND DEL_FLAG = '0'
+                    AND UPPER(DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+                    CONNECT BY PARENT_DEPT_CD = PRIOR DEPT_CD
+                    UNION ALL
+                    SELECT DEPT_CD FROM STOCOGDP
+                    WHERE GATE_CD  = A.GATE_CD
+                    AND BUYER_CD = A.COMPANY_CD
+                    AND DEPT_CD IN (SELECT DEPT_CD FROM STOCOGDP
+                    WHERE GATE_CD = A.GATE_CD AND BUYER_CD = A.COMPANY_CD AND DEL_FLAG = '0'
+                    AND UPPER(DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{S_DEPT_NM}) <include refid="common.sql.stringMerge"/>'%')
+                    AND DEL_FLAG = '0')
+                    )
+                </when>
+            </choose>
+        </if>
+
+        ORDER BY A.USER_ID
+
+    </select>
+
+	<select id="doSearchUserSup" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+              USERS.GATE_CD
+            , USERS.USER_ID AS USER_ID
+            , USERS.DEL_FLAG
+            , USERS.USE_FLAG
+            , USERS.COMPANY_CD
+            , USERS.USER_TYPE
+            , (SELECT BUYER_NM FROM STOCOGCM WHERE GATE_CD = USERS.GATE_CD AND BUYER_CD = USERS.COMPANY_CD AND LANG_CD=#{ses.langCd}) AS COMPANY_NM
+            , <include refid="common.sql.dbo"/>GETUSERNAME(USERS.GATE_CD, USERS.USER_ID, #{ses.langCd}) AS USER_NM_DISPLAY
+            , <include refid="common.sql.dbo"/>GETUSERNAME(USERS.GATE_CD, USERS.USER_ID, #{ses.langCd}) USER_NM_DISPLAY
+            , <include refid="common.sql.dbo"/>GETUSERNAME(USERS.GATE_CD, USERS.USER_ID, #{ses.langCd}) USER_NM_SEARCH
+            , <include refid="common.sql.dbo"/>GETDEPTNAME(USERS.GATE_CD, USERS.COMPANY_CD, USERS.DEPT_CD, #{ses.langCd}) as DEPT_NM
+            , <include refid="common.sql.nvl"/>(USERS.SUPER_USER_FLAG, '0') AS SUPER_USER_FLAG
+          FROM STOCUSER USERS
+         WHERE USERS.GATE_CD = #{ses.gateCd}
+           AND USERS.DEL_FLAG = '0'
+	    <if test="USER_TYPE_SEARCH != '' and USER_TYPE_SEARCH != null">
+	        AND UPPER(USERS.USER_TYPE) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_TYPE_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+	    </if>
+		<if test="COMPANY_CD_SEARCH != '' and COMPANY_CD_SEARCH != null">
+		    AND UPPER(USERS.COMPANY_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMPANY_CD_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+	    </if>
+	    <if test="USER_NM_SEARCH != '' and USER_NM_SEARCH != null">
+	        AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM_SEARCH}) <include refid="common.sql.stringMerge"/> '%'
+	    </if>
+	     ORDER BY USERS.USER_ID
+
+    </select>
+
+    <select id="doGetEncPassword" parameterType="hashmap" resultType="hashMap">
+
+    	SELECT UPPER(#{PASSWORD}) AS ENC_PASSWORD <!--<include refid="common.sql.dbo"/>setEncPassword(UPPER(#{PASSWORD}))-->
+    	  <include refid="common.sql.dual"/>
+
+	</select>
+
+    <select id="doGetUser" parameterType="hashmap" resultType="hashMap">
+
+        SELECT USERS.GATE_CD
+             , USERS.USER_ID AS USER_ID
+             , USERS.USER_ID AS USER_ID_ORI
+             , USERS.MOD_USER_ID AS MOD_USER_ID
+             , USERS.DEL_FLAG
+             , USERS.USE_FLAG
+             , USERS.COMPANY_CD
+             , USERS.USER_TYPE
+             , USERS.WORK_TYPE
+             , <include refid="common.sql.strDecStart"/>USERS.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+             , <include refid="common.sql.strDecStart"/>USERS.USER_NM_ENG<include refid="common.sql.strDecEnd"/> AS USER_NM_ENG
+             , USERS.PASSWORD AS PASSWORD
+             , USERS.PASSWORD AS PASSWORD_CHECK
+             , USERS.PASSWORD AS TMP_WORD
+             , USERS.PASSWORD AS TMP_WORD_CHK
+             , USERS.DEPT_CD
+             , USERS.POSITION_NM
+             , USERS.DUTY_NM
+             , USERS.EMPLOYEE_NUM AS EMPLOYEE_NUM
+             , <include refid="common.sql.strDecStart"/>USERS.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+             , <include refid="common.sql.strDecStart"/>USERS.TEL_NUM<include refid="common.sql.strDecEnd"/>  AS TEL_NUM
+             , <include refid="common.sql.strDecStart"/>USERS.CELL_NUM<include refid="common.sql.strDecEnd"/>  AS CELL_NUM
+             , <include refid="common.sql.strDecStart"/>USERS.FAX_NUM<include refid="common.sql.strDecEnd"/>  AS FAX_NUM
+             , USERS.COUNTRY_CD
+             , USERS.PROGRESS_CD
+             , USERS.PW_WRONG_CNT
+             , USERS.PW_RESET_FLAG
+             , USERS.IP_ADDR
+             ,(SELECT <include refid="common.sql.nvl"/>(BUYER_NM, BUYER_NM_ENG) FROM STOCOGCM WHERE GATE_CD = USERS.GATE_CD AND BUYER_CD = USERS.COMPANY_CD AND LANG_CD = #{ses.langCd}) AS COMPANY_NM
+             , 'U' AS INSERT_FLAG
+             , <include refid="common.sql.nvl"/>(USERS.SUPER_USER_FLAG, '0') AS SUPER_USER_FLAG
+             , USERS.PROGRESS_CD
+             , USER_DATE_FORMAT_CD
+             , USER_NUMBER_FORMAT_CD
+             , <include refid="common.sql.toChar"/>(USERS.MOD_DATE, 'yyyy-MM-dd') AS MOD_DATE_LAST
+             , <include refid="common.sql.toChar"/>(USERS.MOD_DATE, 'yyyy-MM-dd') AS MOD_DATE
+             , <include refid="common.sql.dbo"/>GETUSERNAME(USERS.GATE_CD, USERS.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+             , <include refid="common.sql.dbo"/>GETUSERNAME(USERS.GATE_CD, USERS.MOD_USER_ID, #{ses.langCd}) AS CHANGE_USER_ID
+             , <include refid="common.sql.toChar"/>(USERS.PW_RESET_DATE, 'yyyy-MM-dd') AS PW_RESET_DATE
+             , <include refid="common.sql.toChar"/>(USERS.LAST_LOGIN_DATE, 'yyyy-MM-dd') AS LAST_LOGIN_DATE
+             , <include refid="common.sql.toChar"/>(USERS.LAST_LOGIN_DATE, 'hh24:mi') AS LAST_LOGIN_TIME
+             , <include refid="common.sql.dbo"/>GETDEPTNAME(USERS.GATE_CD, USERS.COMPANY_CD, USERS.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+          FROM STOCUSER USERS
+         WHERE USERS.GATE_CD = #{ses.gateCd}
+           AND USERS.DEL_FLAG = '0'
+           AND USERS.USER_ID = #{USER_ID}
+
+    </select>
+
+    <select id="doGetUserTVUR" parameterType="hashmap" resultType="hashMap">
+
+        SELECT TVUR.GATE_CD
+             , TVUR.USER_ID AS USER_ID
+             , TVUR.USER_ID AS USER_ID_ORI
+             , TVUR.MOD_USER_ID AS MOD_USER_ID
+             , TVUR.DEL_FLAG
+             , TVUR.USE_FLAG
+             , TVUR.COMPANY_CD
+             , TVUR.USER_TYPE
+             , TVUR.WORK_TYPE
+             , <include refid="common.sql.strDecStart"/>TVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+             , <include refid="common.sql.strDecStart"/>TVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM_ENG
+             , TVUR.PASSWORD AS PASSWORD
+             , TVUR.PASSWORD AS PASSWORD_CHECK
+             , TVUR.PASSWORD AS TMP_WORD
+             , TVUR.PASSWORD AS TMP_WORD_CHK
+             , ' ' AS DEPT_CD
+             , TVUR.POSITION_NM
+             , TVUR.DUTY_NM
+             , TVUR.EMPLOYEE_NUM AS EMPLOYEE_NUM
+             , <include refid="common.sql.strDecStart"/>TVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+             , <include refid="common.sql.strDecStart"/>TVUR.TEL_NUM<include refid="common.sql.strDecEnd"/>  AS TEL_NUM
+             , <include refid="common.sql.strDecStart"/>TVUR.CELL_NUM<include refid="common.sql.strDecEnd"/>  AS CELL_NUM
+             , <include refid="common.sql.strDecStart"/>TVUR.FAX_NUM<include refid="common.sql.strDecEnd"/>  AS FAX_NUM
+             , 'KR' AS COUNTRY_CD
+             , TVUR.PROGRESS_CD
+             , TVUR.PW_WRONG_CNT
+             , TVUR.PW_RESET_FLAG
+             , TVUR.IP_ADDR
+             ,(SELECT <include refid="common.sql.nvl"/>(BUYER_NM, BUYER_NM_ENG) FROM STOCOGCM WHERE GATE_CD = TVUR.GATE_CD AND BUYER_CD = TVUR.COMPANY_CD AND LANG_CD = #{ses.langCd}) AS COMPANY_NM
+             , 'U' AS INSERT_FLAG
+             , TVUR.MNG_YN AS SUPER_USER_FLAG
+             , TVUR.PROGRESS_CD
+             , NULL AS USER_DATE_FORMAT_CD
+             , NULL AS USER_NUMBER_FORMAT_CD
+             , <include refid="common.sql.toChar"/>(TVUR.MOD_DATE, 'yyyy-MM-dd') AS MOD_DATE_LAST
+             , <include refid="common.sql.toChar"/>(TVUR.MOD_DATE, 'yyyy-MM-dd') AS MOD_DATE
+             , <include refid="common.sql.dbo"/>GETUSERNAME(TVUR.GATE_CD, TVUR.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+             , <include refid="common.sql.dbo"/>GETUSERNAME(TVUR.GATE_CD, TVUR.MOD_USER_ID, #{ses.langCd}) AS CHANGE_USER_ID
+             , <include refid="common.sql.toChar"/>(TVUR.PW_RESET_DATE, 'yyyy-MM-dd') AS PW_RESET_DATE
+             , <include refid="common.sql.toChar"/>(TVUR.LAST_LOGIN_DATE, 'yyyy-MM-dd') AS LAST_LOGIN_DATE
+             , <include refid="common.sql.toChar"/>(TVUR.LAST_LOGIN_DATE, 'hh24:mi') AS LAST_LOGIN_TIME
+             , <include refid="common.sql.dbo"/>GETDEPTNAME(TVUR.GATE_CD, TVUR.COMPANY_CD, TVUR.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+          FROM STOCTVUR TVUR
+         WHERE TVUR.GATE_CD = #{ses.gateCd}
+           AND TVUR.DEL_FLAG = '0'
+           AND TVUR.USER_ID = #{USER_ID}
+
+    </select>
+    <select id="doGetUser_VNGL" parameterType="hashmap" resultType="hashMap">
+
+        SELECT
+              CVUR.GATE_CD
+            , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(CVUR.USER_ID))) AS USER_ID
+            , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(CVUR.USER_ID))) AS USER_ID_ORI
+            , CVUR.MOD_USER_ID AS MOD_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD, CVUR.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+            , <include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD, CVUR.MOD_USER_ID, #{ses.langCd}) AS CHANGE_USER_ID
+            , CVUR.DEL_FLAG
+            , CVUR.USE_FLAG
+            , CVUR.COMPANY_CD AS COMPANY_CD
+            , (CASE WHEN CVUR.USER_TYPE = 'S'
+                    	 THEN (SELECT VENDOR_NM FROM STOCVNGL WHERE GATE_CD = #{ses.gateCd} AND VENDOR_CD = CVUR.COMPANY_CD AND DEL_FLAG = '0')
+                    WHEN CVUR.USER_TYPE = 'P'
+		        		 THEN (SELECT BUYER_NM FROM STOCOGCM WHERE GATE_CD = #{ses.gateCd} AND BUYER_CD = CVUR.COMPANY_CD AND DEL_FLAG = '0')	 
+                    ELSE (SELECT CUST_NM FROM STOCCUST WHERE GATE_CD = #{ses.gateCd} AND CUST_CD = CVUR.COMPANY_CD AND DEL_FLAG = '0') END) AS COMPANY_NM
+            , CVUR.USER_TYPE
+            , NULL AS WORK_TYPE
+            , <include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+            , <include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM_ENG
+            , CVUR.PASSWORD AS PASSWORD
+            , CVUR.PASSWORD AS PASSWORD_CHECK
+            , CVUR.PASSWORD AS TMP_WORD
+            , CVUR.PASSWORD AS TMP_WORD_CHK
+            , ' ' AS DEPT_CD
+            , CVUR.DEPT_NM AS DEPT_NM
+            , CVUR.POSITION_NM AS POSITION_NM
+            , CVUR.DUTY_NM AS DUTY_NM
+            , CVUR.EMPLOYEE_NUM AS EMPLOYEE_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+            , <include refid="common.sql.strDecStart"/>CVUR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+            , (CASE WHEN <include refid="common.sql.length"/>(<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/>)<![CDATA[<]]> 13 
+            	THEN REGEXP_REPLACE(<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/>, '(.{3})(.+)(.{4})','\1-\2-\3' ) 
+                            ELSE <include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> END) AS CELL_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.FAX_NUM<include refid="common.sql.strDecEnd"/> AS FAX_NUM
+            , 'KR' AS COUNTRY_CD
+            , CVUR.PROGRESS_CD AS PROGRESS_CD
+            , CVUR.PW_WRONG_CNT
+            , CVUR.PW_RESET_FLAG
+            , CVUR.IP_ADDR
+            , 'U' AS INSERT_FLAG
+            , NULL AS USER_DATE_FORMAT_CD
+            , NULL AS USER_NUMBER_FORMAT_CD
+            , <include refid="common.sql.toChar"/>(CVUR.MOD_DATE, 'yyyy-MM-dd') AS MOD_DATE_LAST
+            , <include refid="common.sql.toChar"/>(CVUR.MOD_DATE, 'yyyy-MM-dd') AS MOD_DATE
+            , <include refid="common.sql.toChar"/>(CVUR.PW_RESET_DATE, 'yyyy-MM-dd') AS PW_RESET_DATE
+            , <include refid="common.sql.toChar"/>(CVUR.LAST_LOGIN_DATE, 'yyyy-MM-dd') AS LAST_LOGIN_DATE
+            , <include refid="common.sql.toChar"/>(CVUR.LAST_LOGIN_DATE, 'hh24:mi') AS LAST_LOGIN_TIME
+            , CVUR.MNG_YN AS SUPER_USER_FLAG
+       FROM STOCCVUR CVUR
+       LEFT OUTER JOIN STOCVNGL NVGL
+         ON (NVGL.GATE_CD = CVUR.GATE_CD
+         AND NVGL.VENDOR_CD = CVUR.COMPANY_CD
+         AND NVGL.DEL_FLAG = '0')
+  	   WHERE CVUR.GATE_CD = #{ses.gateCd}
+	     AND CVUR.DEL_FLAG = '0'
+         AND CVUR.USER_ID = #{USER_ID}
+
+       UNION ALL
+
+       SELECT
+              USR.GATE_CD
+            , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(USR.USER_ID))) AS USER_ID
+            , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(USR.USER_ID))) AS USER_ID_ORI
+            , USR.MOD_USER_ID AS MOD_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(USR.GATE_CD, USR.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+            , <include refid="common.sql.dbo"/>GETUSERNAME(USR.GATE_CD, USR.MOD_USER_ID, #{ses.langCd}) AS CHANGE_USER_ID
+            , USR.DEL_FLAG
+            , USR.USE_FLAG
+            , USR.COMPANY_CD AS COMPANY_CD
+            , (CASE WHEN USR.USER_TYPE = 'S'
+                    THEN (SELECT VENDOR_NM FROM STOCVNGL WHERE GATE_CD = #{ses.gateCd} AND VENDOR_CD = USR.COMPANY_CD AND DEL_FLAG = '0')
+                    ELSE (SELECT BUYER_NM FROM STOCOGCM WHERE GATE_CD = #{ses.gateCd} AND BUYER_CD = USR.COMPANY_CD AND DEL_FLAG = '0') END) AS COMPANY_NM
+            , USR.USER_TYPE
+            , NULL AS WORK_TYPE
+            , <include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+            , <include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM_ENG
+            , USR.PASSWORD AS PASSWORD
+            , USR.PASSWORD AS PASSWORD_CHECK
+            , USR.PASSWORD AS TMP_WORD
+            , USR.PASSWORD AS TMP_WORD_CHK
+            , ' ' AS DEPT_CD
+            , USR.DEPT_NM AS DEPT_NM
+            , USR.POSITION_NM AS POSITION_NM
+            , USR.DUTY_NM AS DUTY_NM
+            , USR.EMPLOYEE_NUM AS EMPLOYEE_NUM
+            , <include refid="common.sql.strDecStart"/>USR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+            , <include refid="common.sql.strDecStart"/>USR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+            , (CASE WHEN <include refid="common.sql.length"/>(<include refid="common.sql.strDecStart"/>USR.CELL_NUM<include refid="common.sql.strDecEnd"/>)<![CDATA[<]]> 13 
+            	THEN REGEXP_REPLACE(<include refid="common.sql.strDecStart"/>USR.CELL_NUM<include refid="common.sql.strDecEnd"/>, '(.{3})(.+)(.{4})','\1-\2-\3' ) 
+                            ELSE <include refid="common.sql.strDecStart"/>USR.CELL_NUM<include refid="common.sql.strDecEnd"/> END) AS CELL_NUM
+            , <include refid="common.sql.strDecStart"/>USR.FAX_NUM<include refid="common.sql.strDecEnd"/> AS FAX_NUM
+            , 'KR' AS COUNTRY_CD
+            , USR.PROGRESS_CD AS PROGRESS_CD
+            , USR.PW_WRONG_CNT
+            , USR.PW_RESET_FLAG
+            , USR.IP_ADDR
+            , 'U' AS INSERT_FLAG
+            , NULL AS USER_DATE_FORMAT_CD
+            , NULL AS USER_NUMBER_FORMAT_CD
+            , <include refid="common.sql.toChar"/>(USR.MOD_DATE, 'yyyy-MM-dd') AS MOD_DATE_LAST
+            , <include refid="common.sql.toChar"/>(USR.MOD_DATE, 'yyyy-MM-dd') AS MOD_DATE
+            , <include refid="common.sql.toChar"/>(USR.PW_RESET_DATE, 'yyyy-MM-dd') AS PW_RESET_DATE
+            , <include refid="common.sql.toChar"/>(USR.LAST_LOGIN_DATE, 'yyyy-MM-dd') AS LAST_LOGIN_DATE
+            , <include refid="common.sql.toChar"/>(USR.LAST_LOGIN_DATE, 'hh24:mi') AS LAST_LOGIN_TIME
+            , USR.SUPER_USER_FLAG
+         FROM STOCUSER USR
+         LEFT OUTER JOIN STOCVNGL NVGL
+          ON (NVGL.GATE_CD = USR.GATE_CD
+          AND NVGL.VENDOR_CD = USR.COMPANY_CD
+          AND NVGL.DEL_FLAG = '0')
+  	    WHERE USR.GATE_CD = #{ses.gateCd}
+  	      AND USR.DEL_FLAG = '0'
+  	      AND USR.USER_ID = #{USER_ID}
+
+    </select>
+
+    <select id="doGetAuProfile" parameterType="hashMap" resultType="hashMap">
+
+        SELECT DISTINCT
+              CASE WHEN USAP.AUTH_CD IS NOT NULL THEN '1' ELSE '0' END SELECTED
+            , AUPF.AUTH_CD
+            , #{ses.userId} AS USER_ID
+            , AUPF.GATE_CD
+            , <include refid="common.sql.dbo"/>GETMULTINAME(AUPF.GATE_CD, 'AU', #{ses.langCd}, AUPF.AUTH_CD, '') AS AUTH_NM
+            , <include refid="common.sql.dbo"/>GETMULTIDESC(AUPF.GATE_CD, 'AU', #{ses.langCd}, AUPF.AUTH_CD, '') AS AUTH_DESC
+            , <include refid="common.sql.toChar"/>(USAP.VALID_FROM_DATE, 'yyyy-MM-dd') AS VALID_FROM_DATE
+            , <include refid="common.sql.toChar"/>(USAP.VALID_TO_DATE, 'yyyy-MM-dd') AS VALID_TO_DATE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(AUPF.GATE_CD, 'M006', AUPF.USER_TYPE, '0', #{ses.langCd}) AS USER_TYPE
+         FROM STOCAUPF AUPF LEFT OUTER JOIN STOCUSAP USAP
+          ON (AUPF.GATE_CD = USAP.GATE_CD
+          AND AUPF.AUTH_CD = USAP.AUTH_CD
+          AND USAP.DEL_FLAG = '0'
+          AND USAP.USER_ID = #{USER_ID})
+        WHERE AUPF.GATE_CD = #{ses.gateCd}
+          AND AUPF.DEL_FLAG = '0'
+
+        <if test='USER_TYPE == "S"'>
+            AND AUPF.USER_TYPE = #{USER_TYPE}
+        </if>
+        <if test='USER_TYPE == "B"'>
+            AND AUPF.USER_TYPE = #{USER_TYPE}
+        </if>
+        <if test='USER_TYPE == "O"'>
+            <if test="USER_ID != '' and USER_ID != null">
+                AND AUPF.USER_TYPE = (SELECT US.USER_TYPE FROM STOCUSER US WHERE US.GATE_CD = AUPF.GATE_CD AND US.USER_ID = #{USER_ID})
+            </if>
+        </if>
+
+         ORDER BY SELECTED DESC, AUTH_CD
+
+    </select>
+
+    <select id="doGetAcProfile" parameterType="hashMap" resultType="hashMap">
+
+        SELECT DISTINCT
+              CASE WHEN USAC.ACTION_PROFILE_CD IS NOT NULL THEN '1' ELSE '0' END SELECTED
+            , ACPH.ACTION_PROFILE_CD
+            , #{USER_ID} AS USER_ID
+            , ACPH.GATE_CD
+            , <include refid="common.sql.dbo"/>GETMULTINAME(ACPH.GATE_CD, 'AP', #{ses.langCd}, ACPH.ACTION_PROFILE_CD, '') AS PROFILE_NM
+            , <include refid="common.sql.dbo"/>GETMULTIDESC(ACPH.GATE_CD, 'AP', #{ses.langCd}, ACPH.ACTION_PROFILE_CD, '') AS AUTH_DESC
+            , <include refid="common.sql.toChar"/>(USAC.VALID_FROM_DATE, 'yyyy-MM-dd') AS VALID_FROM_DATE
+            , <include refid="common.sql.toChar"/>(USAC.VALID_TO_DATE, 'yyyy-MM-dd') AS VALID_TO_DATE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(ACPH.GATE_CD, 'M006', ACPH.USER_TYPE, '0', #{ses.langCd}) AS USER_TYPE
+          FROM STOCACPH ACPH LEFT OUTER JOIN STOCUSAC USAC
+           ON (ACPH.GATE_CD = USAC.GATE_CD
+           AND ACPH.ACTION_PROFILE_CD = USAC.ACTION_PROFILE_CD
+           AND USAC.DEL_FLAG = '0'
+           AND USAC.USER_ID = #{USER_ID})
+         WHERE ACPH.GATE_CD = #{ses.gateCd}
+           AND ACPH.DEL_FLAG = '0'
+
+        <if test='userType =="S"'>
+            AND EXISTS (SELECT 'X' FROM STOCUSAC SUSAC
+                         WHERE ACPH.GATE_CD = SUSAC.GATE_CD
+                           AND ACPH.ACTION_PROFILE_CD = SUSAC.ACTION_PROFILE_CD
+                           AND SUSAC.USER_ID = #{ses.userId}
+                           AND SUSAC.DEL_FLAG = '0')
+        </if>
+
+        ORDER BY SELECTED DESC, ACTION_PROFILE_CD
+
+    </select>
+
+    <select id="existsUserInformation" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT COUNT(A.USER_ID) AS CNT
+          FROM (
+            SELECT GATE_CD, USER_ID FROM STOCCVUR
+            UNION ALL
+            SELECT GATE_CD, USER_ID  AS USER_ID FROM STOCUSER
+          ) A
+         WHERE A.GATE_CD = #{ses.gateCd}
+           AND A.USER_ID = UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+
+    </select>
+
+    <insert id="createUserInformation" parameterType="hashMap">
+
+        INSERT INTO STOCUSER (
+			  GATE_CD
+            , USER_ID
+            , REG_DATE
+            , REG_USER_ID
+            , DEL_FLAG
+            , USE_FLAG
+            , COMPANY_CD
+            , USER_TYPE
+            , WORK_TYPE
+            , USER_NM
+            , USER_NM_ENG
+            , PASSWORD
+            , DEPT_CD
+            , POSITION_NM
+            , DUTY_NM
+            , EMPLOYEE_NUM
+            , EMAIL
+            , TEL_NUM
+            , CELL_NUM
+            , FAX_NUM
+            , LANG_CD
+            , COUNTRY_CD
+            , SUPER_USER_FLAG
+            , PROGRESS_CD
+            , GMT_CD
+            , USER_DATE_FORMAT_CD
+            , USER_NUMBER_FORMAT_CD
+		) VALUES (
+			  #{ses.gateCd}
+            , UPPER(<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID}))
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{USE_FLAG}
+            , #{COMPANY_CD}
+            , #{USER_TYPE}
+            , #{WORK_TYPE}
+            , <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{USER_NM_ENG}<include refid="common.sql.strEncEnd"/>
+            , #{PASSWORD}
+            , #{DEPT_CD}
+            , #{POSITION_NM}
+            , #{DUTY_NM}
+            , #{EMPLOYEE_NUM}
+            , <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.nvl"/>(#{ses.langCd}, 'KO')
+            , <include refid="common.sql.nvl"/>(#{ses.countryCd}, 'KR')
+            , #{SUPER_USER_FLAG}
+            , #{PROGRESS_CD}
+            , <include refid="common.sql.nvl"/>(#{ses.userGmt}, 'GMT+09:00')
+            , <include refid="common.sql.nvl"/>(CASE WHEN #{USER_DATE_FORMAT_CD} = '' THEN NULL ELSE #{USER_DATE_FORMAT_CD} END, '01')
+            , <include refid="common.sql.nvl"/>(CASE WHEN #{USER_NUMBER_FORMAT_CD} = '' THEN NULL ELSE #{USER_NUMBER_FORMAT_CD} END, '01')
+		)
+
+    </insert>
+
+
+    <insert id="createUserInformation_VNGL" parameterType="hashMap">
+
+        INSERT INTO STOCCVUR (
+             GATE_CD
+            ,USER_ID
+            ,REG_DATE
+            ,REG_USER_ID
+            ,MOD_DATE
+            ,MOD_USER_ID
+            ,DEL_FLAG
+            ,COMPANY_CD
+            ,MNG_YN
+            ,USER_TYPE
+            ,USER_NM
+            ,PASSWORD
+            ,DEPT_CD
+            ,DEPT_NM
+            ,POSITION_NM
+            ,TEL_NUM
+            ,FAX_NUM
+            ,CELL_NUM
+            ,EMAIL
+            ,USE_FLAG
+            ,PROGRESS_CD
+            ,DUTY_NM
+            ,MAIL_FLAG
+            ,SMS_FLAG
+        ) VALUES (
+             #{ses.gateCd}
+            ,UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+            ,SYSDATE
+            ,#{ses.userId}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,'0'
+            ,#{COMPANY_CD}
+            ,<include refid="common.sql.nvl"/>(#{MNG_YN}, '0')
+            ,#{USER_TYPE}
+            ,<include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+            ,#{PASSWORD}
+            ,#{DEPT_CD}
+            ,#{DEPT_NM}
+            ,#{POSITION_NM}
+            ,<include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            ,<include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+            ,<include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            ,<include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+            ,#{USE_FLAG}
+            ,#{PROGRESS_CD}
+            ,#{DUTY_NM}
+            ,#{MAIL_FLAG}
+            ,#{SMS_FLAG}
+        )
+
+    </insert>
+    <!-- 2022.11.17 파트너스 개인근로자 추가  -->
+     <insert id="createUserInformation_TVUR" parameterType="hashMap">
+
+        INSERT INTO STOCTVUR (
+             GATE_CD
+            ,USER_ID
+            ,REG_DATE
+            ,REG_USER_ID
+            ,MOD_DATE
+            ,MOD_USER_ID
+            ,DEL_FLAG
+            ,COMPANY_CD
+            ,MNG_YN
+            ,USER_TYPE
+            ,USER_NM
+            ,PASSWORD
+            ,DEPT_CD
+            ,DEPT_NM
+            ,POSITION_NM
+            ,TEL_NUM
+            ,FAX_NUM
+            ,CELL_NUM
+            ,EMAIL
+            ,USE_FLAG
+            ,PROGRESS_CD
+            ,DUTY_NM
+            ,MAIL_FLAG
+            ,SMS_FLAG
+        ) VALUES (
+             #{ses.gateCd}
+            ,UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+            ,SYSDATE
+            ,#{ses.userId}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,'0'
+            ,#{COMPANY_CD}
+            ,<include refid="common.sql.nvl"/>(#{MNG_YN}, '0')
+            ,#{USER_TYPE}
+            ,<include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+            ,#{PASSWORD}
+            ,#{DEPT_CD}
+            ,#{DEPT_NM}
+            ,#{POSITION_NM}
+            ,<include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            ,<include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+            ,<include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            ,<include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+            ,#{USE_FLAG}
+            ,#{PROGRESS_CD}
+            ,#{DUTY_NM}
+            ,#{MAIL_FLAG}
+            ,#{SMS_FLAG}
+        )
+
+    </insert>
+
+    <select id="existsUserInformation_VNGL" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT
+            COUNT(A.USER_ID) AS CNT
+          FROM (
+            SELECT GATE_CD, USER_ID FROM STOCCVUR
+            UNION ALL
+            SELECT GATE_CD, USER_ID AS USER_ID FROM STOCUSER
+          ) A
+         WHERE A.GATE_CD = #{ses.gateCd}
+           AND A.USER_ID = UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+
+    </select>
+    
+    <!-- 2022.11.17 파트너스 개인근로자 추가 -->
+    <select id="existsUserInformation_TVUR" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT
+            COUNT(A.USER_ID) AS CNT
+          FROM (
+            SELECT GATE_CD, USER_ID FROM STOCTVUR          
+          ) A
+         WHERE A.GATE_CD = #{ses.gateCd}
+           AND A.USER_ID = UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+
+    </select>
+
+    <select id="existsMYNUser_VNGL" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT
+            COUNT(CVUR.USER_ID) AS CNT
+          FROM STOCCVUR CVUR
+          JOIN STOCVNGL A
+           ON (CVUR.GATE_CD = A.GATE_CD
+           AND CVUR.COMPANY_CD = A.VENDOR_CD)
+         WHERE CVUR.GATE_CD = #{ses.gateCd}
+           AND CVUR.COMPANY_CD = #{COMPANY_CD}
+           AND MNG_YN = '1'
+           AND CVUR.USER_ID != #{USER_ID}
+
+    </select>
+
+    <select id="existsMYNUser_CUST" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT
+            COUNT(CVUR.USER_ID) AS CNT
+          FROM STOCCVUR CVUR
+          JOIN STOCCUST A
+           ON (CVUR.GATE_CD = A.GATE_CD
+           AND CVUR.COMPANY_CD = A.CUST_CD)
+         WHERE CVUR.GATE_CD = #{ses.gateCd}
+           AND CVUR.COMPANY_CD = #{COMPANY_CD}
+           AND MNG_YN = '1'
+           AND CVUR.USER_ID != #{USER_ID}
+
+    </select>
+
+    <select id="CheckUserInfoPassWordSame" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT
+            COUNT(USER_ID) AS CNT
+          FROM STOCUSER
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{USER_ID}
+           AND PASSWORD = #{PASSWORD}
+
+    </select>
+
+    <update id="updateUserInformation" parameterType="hashMap">
+
+        UPDATE STOCUSER SET
+        	 MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,USE_FLAG = #{USE_FLAG}
+            ,COMPANY_CD = #{COMPANY_CD}
+            ,USER_TYPE = #{USER_TYPE}
+            ,WORK_TYPE = #{WORK_TYPE}
+            ,USER_NM = <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+            ,USER_NM_ENG = <include refid="common.sql.strEncStart"/>#{USER_NM_ENG}<include refid="common.sql.strEncEnd"/>
+        <if test="CHANGE_PW !='' and CHANGE_PW !=null">
+            ,PASSWORD = #{PASSWORD} <!--<include refid="common.sql.dbo"/>setEncPassword(UPPER(#{PASSWORD}))-->
+        </if>
+            ,DEPT_CD = #{DEPT_CD}
+            ,POSITION_NM = #{POSITION_NM}
+            ,DUTY_NM = #{DUTY_NM}
+            ,EMPLOYEE_NUM = #{EMPLOYEE_NUM}
+            ,EMAIL = <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+            ,TEL_NUM = <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            ,CELL_NUM = <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            ,FAX_NUM = <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+            ,LANG_CD = <include refid="common.sql.nvl"/>(#{ses.langCd}, 'KO')
+            ,COUNTRY_CD = <include refid="common.sql.nvl"/>(#{ses.countryCd}, 'KR')
+            ,SUPER_USER_FLAG = #{SUPER_USER_FLAG}
+            ,GMT_CD = <include refid="common.sql.nvl"/>(#{ses.userGmt}, 'GMT+09:00')
+            ,PROGRESS_CD = #{PROGRESS_CD}
+            ,DEL_FLAG = '0'
+            ,USER_DATE_FORMAT_CD = <include refid="common.sql.nvl"/>(CASE WHEN #{USER_DATE_FORMAT_CD} = '' THEN NULL ELSE #{USER_DATE_FORMAT_CD} END, '01')
+            ,USER_NUMBER_FORMAT_CD = <include refid="common.sql.nvl"/>(CASE WHEN #{USER_NUMBER_FORMAT_CD} = '' THEN NULL ELSE #{USER_NUMBER_FORMAT_CD} END, '01')
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{USER_ID}
+
+    </update>
+
+    <select id="CheckUserInfoPassWordSame_VNGL" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT COUNT(USER_ID)
+          FROM STOCCVUR
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+           AND PASSWORD = #{PASSWORD}
+
+    </select>
+
+    <update id="updateUserInformation_VNGL" parameterType="hashMap">
+
+        UPDATE STOCCVUR SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,COMPANY_CD = #{COMPANY_CD}
+            ,MNG_YN = <include refid="common.sql.nvl"/>(#{SUPER_USER_FLAG}, '0')
+            ,USER_NM = <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+        <if test="CHANGE_PW !='' and CHANGE_PW !=null">
+            ,PASSWORD = #{PASSWORD}
+        </if>
+            ,DEPT_NM = #{DEPT_NM}
+            ,POSITION_NM = #{POSITION_NM}
+            ,EMPLOYEE_NUM = #{EMPLOYEE_NUM}
+            ,DUTY_NM = #{DUTY_NM}
+            ,TEL_NUM = <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            ,FAX_NUM = <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+            ,CELL_NUM = <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            ,EMAIL = <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+            ,PROGRESS_CD = #{PROGRESS_CD}
+            ,USE_FLAG = #{USE_FLAG}
+            ,USER_TYPE = #{USER_TYPE}
+        WHERE GATE_CD = #{ses.gateCd}
+          AND USER_ID = UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+
+    </update>
+
+    <update id="doResetUserInfo" parameterType="hashMap">
+
+        UPDATE STOCUSER SET
+            LAST_LOGIN_DATE = SYSDATE
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID_ORI})))
+
+    </update>
+
+    <update id="doSaveIssue" parameterType="hashMap">
+
+        UPDATE STOCUSER SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = <include refid="common.sql.nvl"/>(#{ses.userId}, 'SYSTEM')
+            ,PASSWORD = #{PASSWORD} <!--<include refid="common.sql.dbo"/>setEncPassword(UPPER(#{PASSWORD}))-->
+            ,PW_WRONG_CNT = 0
+            ,PW_RESET_FLAG = '1'
+            ,PW_RESET_DATE = SYSDATE
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID}
+
+    </update>
+
+    <update id="doSaveIssue_CVUR" parameterType="hashMap">
+
+        UPDATE STOCCVUR SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,PASSWORD = #{PASSWORD} <!--<include refid="common.sql.dbo"/>setEncPassword(UPPER(#{PASSWORD}))-->
+            ,PW_WRONG_CNT = 0
+            ,PW_RESET_FLAG = '1'
+            ,PW_RESET_DATE = SYSDATE
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{USER_ID}
+
+    </update>
+    
+    <update id="doSaveIssue_TVUR" parameterType="hashMap">
+
+        UPDATE STOCTVUR SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,PASSWORD = #{PASSWORD} <!--<include refid="common.sql.dbo"/>setEncPassword(UPPER(#{PASSWORD}))-->
+            ,PW_WRONG_CNT = 0
+            ,PW_RESET_FLAG = '1'
+            ,PW_RESET_DATE = SYSDATE
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{USER_ID}
+
+    </update>
+
+    <select id="existsUSAP" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT COUNT(AUTH_CD) AS CNT FROM STOCUSAP
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID}
+           AND AUTH_CD = #{AUTH_CD}
+
+    </select>
+
+    <delete id="RealdeleteUSAP" parameterType="hashmap">
+
+        DELETE FROM STOCUSAP
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{USER_ID}
+
+    </delete>
+
+    <insert id="createUSAP" parameterType="hashMap">
+
+		INSERT INTO STOCUSAP (
+			  GATE_CD
+            , USER_ID
+            , AUTH_CD
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+        <if test="VALID_FROM_DATE != '' and VALID_FROM_DATE != null">
+            , VALID_FROM_DATE
+        </if>
+        <if test="VALID_TO_DATE != '' and VALID_TO_DATE != null">
+            ,VALID_TO_DATE
+        </if>
+		) VALUES (
+			  #{ses.gateCd}
+            , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+            , #{AUTH_CD}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+        <if test="VALID_FROM_DATE != '' and VALID_FROM_DATE != null">
+            , <include refid="common.sql.toDate"/>(#{VALID_FROM_DATE}, 'yyyyMMdd')
+        </if>
+        <if test="VALID_TO_DATE != '' and VALID_TO_DATE != null">
+            , <include refid="common.sql.toDate"/>(#{VALID_TO_DATE}, 'yyyyMMdd')
+        </if>
+		)
+
+    </insert>
+
+    <insert id="createBACP" parameterType="hashMap">
+
+        MERGE <include refid="common.sql.mergeInto"/> STOCBACP BACP
+        USING (SELECT #{ses.gateCd} AS GATE_CD
+                   ,#{COMPANY_CD} AS BUYER_CD
+                   ,'BASIC' AS CTRL_CD
+                   ,#{USER_ID} AS CTRL_USER_ID <include refid="common.sql.dual"/>
+        ) DATA
+        ON (BACP.GATE_CD = DATA.GATE_CD
+        AND BACP.BUYER_CD = DATA.BUYER_CD
+        AND BACP.CTRL_CD = DATA.CTRL_CD
+        AND BACP.CTRL_USER_ID = DATA.CTRL_USER_ID)
+        WHEN MATCHED THEN
+        UPDATE SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,DEL_FLAG = '0'
+        WHEN NOT MATCHED THEN
+        INSERT (
+             GATE_CD
+            ,BUYER_CD
+            ,CTRL_CD
+            ,CTRL_USER_ID
+            ,REG_DATE
+            ,REG_USER_ID
+            ,MOD_DATE
+            ,MOD_USER_ID
+            ,DEL_FLAG
+            ,USE_FLAG
+        ) VALUES (
+             #{ses.gateCd}
+            ,#{COMPANY_CD}
+            ,'BASIC'
+            ,#{USER_ID}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,SYSDATE
+            ,#{ses.userId}
+            ,'0'
+            ,'1'
+        )<include refid="common.sql.comma"/>
+
+    </insert>
+
+    <update id="updateUSAP" parameterType="hashMap">
+
+        UPDATE STOCUSAP SET
+              MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , DEL_FLAG = '0'
+        <if test="VALID_FROM_DATE != '' and VALID_FROM_DATE != null">
+            , VALID_FROM_DATE = <include refid="common.sql.toDate"/>(#{VALID_FROM_DATE}, 'yyyyMMdd'))
+        </if>
+        <if test="VALID_TO_DATE != '' and VALID_TO_DATE != null">
+            , VALID_TO_DATE = <include refid="common.sql.toDate"/>(#{VALID_TO_DATE}, 'yyyyMMdd'))
+        </if>
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID}
+           AND AUTH_CD = #{AUTH_CD}
+
+    </update>
+
+    <update id="doDeleteUSAP" parameterType="hashMap">
+
+        UPDATE STOCUSAP SET
+               MOD_DATE = SYSDATE
+             , MOD_USER_ID = #{ses.userId}
+             , DEL_FLAG = '1'
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID}
+
+    </update>
+
+    <select id="existsUSAC" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT COUNT(ACTION_PROFILE_CD) FROM STOCUSAC
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID}
+           AND ACTION_PROFILE_CD = #{ACTION_PROFILE_CD}
+
+    </select>
+
+    <insert id="createUSAC" parameterType="hashMap">
+
+        INSERT INTO STOCUSAC (
+        	  GATE_CD
+            , USER_ID
+            , ACTION_PROFILE_CD
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , VALID_FROM_DATE
+            , VALID_TO_DATE
+		) VALUES (
+			  #{ses.gateCd}
+            , #{USER_ID}
+            , #{ACTION_PROFILE_CD}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , <include refid="common.sql.toDate"/>(#{VALID_FROM_DATE}, 'yyyyMMdd')
+            , <include refid="common.sql.toDate"/>(#{VALID_TO_DATE}, 'yyyyMMdd')
+		)
+
+    </insert>
+
+    <update id="updateUSAC" parameterType="hashMap">
+
+        UPDATE STOCUSAC SET
+			  VALID_FROM_DATE = <include refid="common.sql.toDate"/>(#{VALID_FROM_DATE}, 'yyyyMMdd')
+           	, VALID_TO_DATE = <include refid="common.sql.toDate"/>(#{VALID_TO_DATE}, 'yyyyMMdd')
+           	, MOD_DATE = SYSDATE
+           	, MOD_USER_ID = #{ses.userId}
+           	, DEL_FLAG = '0'
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID}
+           AND ACTION_PROFILE_CD = #{ACTION_PROFILE_CD}
+
+    </update>
+
+    <update id="doDeleteUSAC" parameterType="hashMap">
+
+        UPDATE STOCUSAC SET
+               MOD_DATE = SYSDATE
+           	 , MOD_USER_ID = #{ses.userId}
+           	 , DEL_FLAG = '1'
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID}
+
+    </update>
+
+    <update id="doDeleteUserInfo" parameterType="hashMap">
+
+        UPDATE STOCUSER SET
+        	  DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID_ORI}
+
+    </update>
+
+    <update id="doDeleteUserInfoBS">
+
+        UPDATE STOCCVUR
+           SET DEL_FLAG = '1'
+             , MOD_DATE = SYSDATE
+             , MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{GATE_CD}
+           AND USER_ID = #{USER_ID_ORI}
+
+    </update>
+
+	<select id="selectUserSearch" parameterType="hashmap" resultType="hashmap">
+
+		SELECT DISTINCT
+              USER_TBL.USER_ID AS USER_ID
+			, USER_TBL.USER_TYPE
+			, USER_TBL.COMPANY_CD
+            ,(SELECT BUYER_NM FROM STOCOGCM WHERE GATE_CD = USER_TBL.GATE_CD AND BUYER_CD = USER_TBL.COMPANY_CD AND LANG_CD = #{ses.langCd}) AS BUYER_NM
+			, OGDP.DEPT_CD
+			, USER_TBL.POSITION_NM
+			, USER_TBL.DUTY_NM
+			, <include refid="common.sql.dbo"/>getUserName(USER_TBL.GATE_CD, USER_TBL.USER_ID, #{ses.langCd}) AS USER_NM
+			, <include refid="common.sql.dbo"/>getUserName(USER_TBL.GATE_CD, USER_TBL.USER_ID, #{ses.langCd}) AS HIDDEN_USER_NM
+			, <include refid="common.sql.dbo"/>getDeptName(USER_TBL.GATE_CD, USER_TBL.COMPANY_CD, USER_TBL.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+	     FROM STOCUSER USER_TBL
+	     LEFT JOIN STOCOGCM OGCM
+	      ON (USER_TBL.COMPANY_CD = OGCM.BUYER_CD
+	      AND USER_TBL.GATE_CD = OGCM.GATE_CD
+	      AND OGCM.DEL_FLAG = '0')
+	     LEFT JOIN STOCOGDP OGDP
+	      ON (USER_TBL.DEPT_CD = OGDP.DEPT_CD
+	      AND USER_TBL.GATE_CD = OGDP.GATE_CD
+	      AND USER_TBL.COMPANY_CD = OGDP.BUYER_CD
+	      AND OGDP.DEL_FLAG = '0')
+	    WHERE USER_TBL.GATE_CD = #{ses.gateCd}
+	      AND USER_TBL.DEL_FLAG = '0'
+	    <if test="USER_TYPE != '' and USER_TYPE != null">
+	        AND USER_TBL.USER_TYPE = UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_TYPE})))
+	    </if>
+	    <if test="BUYER_NM != '' and BUYER_NM != null">
+	        AND UPPER((SELECT BUYER_NM FROM STOCOGCM WHERE GATE_CD = USER_TBL.GATE_CD AND BUYER_CD = USER_TBL.COMPANY_CD AND LANG_CD = #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+	    </if>
+	    <if test="USER_NM != '' and USER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>getUserName(USER_TBL.GATE_CD, USER_TBL.USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+	    </if>
+	    <if test="DEPT_NM != '' and DEPT_NM != null">
+	        AND UPPER(<include refid="common.sql.dbo"/>getDeptName(USER_TBL.GATE_CD, USER_TBL.COMPANY_CD, USER_TBL.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+	    </if>
+
+    </select>
+
+    <select id="getUserInfo" parameterType="hashmap" resultType="hashmap">
+       <if test="USER_TYPE == 'O'.toString()">
+           SELECT GATE_CD
+                 ,USER_ID AS USER_ID
+                 ,<include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+                 ,<include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+                 ,COMPANY_CD
+             FROM STOCUSER
+            WHERE GATE_CD = '100'
+              AND USER_ID = #{userId}
+       </if>
+       <if test="USER_TYPE == 'CS'.toString()">
+           SELECT GATE_CD
+                 ,USER_ID
+                 ,<include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+                 ,<include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+                 ,COMPANY_CD
+             FROM STOCCVUR
+            WHERE GATE_CD = '100'
+              AND USER_ID = #{userId}
+       </if>
+    </select>
+
+</mapper>

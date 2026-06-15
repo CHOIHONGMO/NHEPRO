@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.SVNR.SVNR0030_Mapper">
+
+    <select id="svnr0030_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT VNGL.GATE_CD
+            , CVUR.USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD,  CVUR.USER_ID , #{ses.langCd}) AS USER_NM
+            , VNGL.VENDOR_CD
+            , VNGL.VENDOR_NM
+            , CVUR.DEPT_CD
+            , CVUR.DEPT_NM
+            , <include refid="common.sql.strDecStart"/>CVUR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+            , CVUR.POSITION_NM
+            , CVUR.SMS_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.SMS_FLAG, '0', #{ses.langCd}) AS SMS_FLAG_NM
+            , CVUR.MAIL_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.MAIL_FLAG, '0', #{ses.langCd}) AS MAIL_FLAG_NM
+            , CVUR.MNG_YN
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.MNG_YN, '0', #{ses.langCd}) AS MNG_YN_NM
+            , CVUR.BLOCK_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.BLOCK_FLAG, '0', #{ses.langCd}) AS BLOCK_FLAG_NM
+            , <include refid="common.sql.toChar"/>(CVUR.REG_DATE, 'YYYY-MM-DD') AS REG_DATE
+        FROM STOCVNGL VNGL
+        LEFT JOIN STOCCVUR CVUR
+            ON (CVUR.GATE_CD = VNGL.GATE_CD
+            AND CVUR.COMPANY_CD = VNGL.VENDOR_CD
+            AND CVUR.DEL_FLAG = '0')
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+        AND VNGL.DEL_FLAG = '0'
+        AND VNGL.VENDOR_CD = #{ses.companyCd}
+        <if test="USER_ID != '' and USER_ID != null">
+            AND UPPER(CVUR.USER_ID) like '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="USER_NM != '' and USER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD,  CVUR.USER_ID , #{ses.langCd})) like '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REG_FROM_DATE != '' and REG_FROM_DATE != null">
+            AND CVUR.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_FROM_DATE})
+        </if>
+        <if test="REG_TO_DATE != '' and REG_TO_DATE != null">
+            AND CVUR.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_TO_DATE})
+        </if>
+        <if test="DEPT_NM != '' and DEPT_NM != null">
+            AND UPPER(CVUR.DEPT_NM) like '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="BLOCK_FLAG != '' and BLOCK_FLAG != null">
+            AND CVUR.BLOCK_FLAG = #{BLOCK_FLAG}
+        </if>
+    </select>
+
+    <update id="svnr0030_doSave" parameterType="hashMap">
+        UPDATE STOCCVUR SET
+            SMS_FLAG = #{SMS_FLAG}
+            , MAIL_FLAG = #{MAIL_FLAG}
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND USER_ID = #{USER_ID}
+    </update>
+
+    <update id="svnr0030_doDelete" parameterType="hashMap">
+        UPDATE STOCCVUR SET
+            DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND USER_ID = #{USER_ID}
+    </update>
+
+    <select id="svnr0031_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT VNGL.GATE_CD
+            , CVUR.COMPANY_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(CVUR.GATE_CD, CVUR.COMPANY_CD, #{ses.langCd}) AS COMPANY_NM
+            , CVUR.USER_ID AS ORG_USER_ID
+            , CVUR.USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD,  CVUR.USER_ID , #{ses.langCd}) AS USER_NM
+            , CVUR.DEPT_CD
+            , CVUR.DEPT_NM
+            , CVUR.MNG_YN
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.MNG_YN, '0', #{ses.langCd}) AS MNG_YN_NM
+            , CVUR.POSITION_NM
+            , CVUR.DUTY_NM
+            , <include refid="common.sql.strDecStart"/>CVUR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.FAX_NUM<include refid="common.sql.strDecEnd"/> AS FAX_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+            , <include refid="common.sql.strDecStart"/>CVUR.ADDR_1<include refid="common.sql.strDecEnd"/> AS ADDR_1
+            , <include refid="common.sql.strDecStart"/>CVUR.ADDR_2<include refid="common.sql.strDecEnd"/> AS ADDR_2
+            , <include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+            , <include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+            , CVUR.SMS_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.SMS_FLAG, '0', #{ses.langCd}) AS SMS_FLAG_NM
+            , CVUR.MAIL_FLAG
+            , <include refid="common.sql.dbo"/>GETCOMCODE(CVUR.GATE_CD, 'M044', CVUR.MAIL_FLAG, '0', #{ses.langCd}) AS MAIL_FLAG_NM
+            , CVUR.VNGL_ROLE
+            , CVUR.BLOCK_FLAG
+            , CVUR.BLOCK_REASON
+        FROM STOCVNGL VNGL
+        LEFT JOIN STOCCVUR CVUR
+            ON (CVUR.GATE_CD = VNGL.GATE_CD
+            AND CVUR.COMPANY_CD = VNGL.VENDOR_CD
+            AND CVUR.DEL_FLAG = '0')
+        WHERE VNGL.GATE_CD = #{ses.gateCd}
+        AND VNGL.DEL_FLAG = '0'
+        AND CVUR.USER_ID = #{USER_ID}
+    </select>
+
+    <insert id="svnr0031_doInsertCVUR" parameterType="hashMap">
+        INSERT INTO STOCCVUR (
+            GATE_CD
+            , USER_ID
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , COMPANY_CD
+            , MNG_YN
+            , USER_TYPE
+            , USER_NM
+            <if test="PASSWORD != '' and PASSWORD != null">
+            , PASSWORD
+            </if>
+            , DEPT_NM
+            , POSITION_NM
+            , TEL_NUM
+            , FAX_NUM
+            , CELL_NUM
+            , EMAIL
+            , ZIP_CD
+            , ADDR_1
+            , ADDR_2
+            , SMS_FLAG
+            , MAIL_FLAG
+            , BLOCK_FLAG
+            , BLOCK_REASON
+            , PW_WRONG_CNT
+            , PW_RESET_FLAG
+            , USE_FLAG
+            , PROGRESS_CD
+            , DUTY_NM
+            )
+        VALUES (
+            #{ses.gateCd}
+            , #{USER_ID}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{COMPANY_CD}
+            , <include refid="common.sql.nvl"/>(#{MNG_YN}, '0')
+            , 'S'
+            , <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+            <if test="PASSWORD != '' and PASSWORD != null">
+            , #{PASSWORD}
+            </if>
+            , #{DEPT_NM}
+            , #{POSITION_NM}
+            , <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{ZIP_CD}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{ADDR_1}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{ADDR_2}<include refid="common.sql.strEncEnd"/>
+            , #{SMS_FLAG}
+            , #{MAIL_FLAG}
+            , #{BLOCK_FLAG}
+            , #{BLOCK_REASON}
+            , '0'
+            , '0'
+            , '1'
+            , 'E'
+            , #{DUTY_NM}
+                )
+    </insert>
+
+    <update id="svnr0031_doUpdateCVUR" parameterType="hashMap">
+        UPDATE STOCCVUR SET
+            MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , MNG_YN = <include refid="common.sql.nvl"/>(#{MNG_YN}, '0')
+            <if test="PASSWORD != '' and PASSWORD != null">, PASSWORD = #{PASSWORD}</if>
+            , DEPT_NM = #{DEPT_NM}
+            , POSITION_NM = #{POSITION_NM}
+            , TEL_NUM = <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            , FAX_NUM = <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+            , CELL_NUM = <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            , EMAIL = <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+            , ZIP_CD = <include refid="common.sql.strEncStart"/>#{ZIP_CD}<include refid="common.sql.strEncEnd"/>
+            , ADDR_1 = <include refid="common.sql.strEncStart"/>#{ADDR_1}<include refid="common.sql.strEncEnd"/>
+            , ADDR_2 = <include refid="common.sql.strEncStart"/>#{ADDR_2}<include refid="common.sql.strEncEnd"/>
+            , SMS_FLAG = #{SMS_FLAG}
+            , MAIL_FLAG = #{MAIL_FLAG}
+            , BLOCK_FLAG = #{BLOCK_FLAG}
+            , BLOCK_REASON = #{BLOCK_REASON}
+            , VNGL_ROLE = #{VNGL_ROLE}
+            , DUTY_NM = #{DUTY_NM}
+        WHERE GATE_CD = #{ses.gateCd}
+        AND USER_ID = #{USER_ID}
+    </update>
+
+    <select id="svnr0031_doDupChkUserId" parameterType="hashmap" resultType="java.lang.String">
+        SELECT CASE WHEN SUM(CNT) > 0 THEN 'N' ELSE 'Y' END
+        FROM (
+                 SELECT COUNT(USER_ID) AS CNT
+                 FROM STOCCVUR
+                 WHERE GATE_CD = #{ses.gateCd}
+                 AND UPPER(USER_ID) = UPPER(#{USER_ID})
+
+                 UNION ALL
+
+                 SELECT COUNT(USER_ID)
+                 FROM STOCUSER
+                 WHERE GATE_CD = #{ses.gateCd}
+                 AND UPPER(USER_ID) = UPPER(#{USER_ID})
+             )
+    </select>
+
+    <select id="svnr0031_dupChkPassword" parameterType="hashMap" resultType="java.lang.Integer">
+        SELECT COUNT(USER_ID) AS CNT
+        FROM STOCCVUR
+        WHERE GATE_CD = #{ses.gateCd}
+        AND USER_ID = #{USER_ID}
+        AND PASSWORD = #{PASSWORD}
+    </select>
+    
+    <select id="svnr0031_userList" parameterType="hashMap" resultType="hashMap">
+        SELECT U.USER_ID        AS USER_ID            /* 사용자아이디      */
+	        , U.USER_NM  		AS USER_NM            /* 사용자명          */
+	        , '000000'          AS DEPT_C             /* 부서코드          */
+	        , NULL              AS DEPT_NM            /* 부서명            */
+	        , '1'               AS EMP_STSC           /* 고용상태    1 정상 , 4 퇴직 */
+	        , NULL              AS GNAF_DSC           /* 서무구분코드    5 법인관리자, 0 일반사용자, 1 주무서무, 2 팀서무, 4 사무소장 */
+	        , NULL              AS EMPL_DSC           /* 고용구분코드    001 정규직 ,  002 비정규직 */
+	        , U.TEL_NUM 		AS DWIN_TEL           /* 사무실구내전화    */
+	        , U.TEL_NUM 		AS REP_TEL            /* 사무실대표번호    */
+	        , U.TEL_NUM 		AS CUST_TEL           /* 고객용전화번호    */
+	        , U.CELL_NUM 		AS HP_NO              /* 핸드폰번호        */
+	        , U.EMAIL 			AS EMAIL              /* 웹메일주소        */
+	        , NULL              AS CHRG_BSN_NM        /* 담당업무          */
+	        , NULL              AS DTI_CHRG_BSN_NM    /* 세부담당업무      */
+	        , NULL              AS OFT_C              /* 직명코드          */
+	        , U.DUTY_NM         AS OFT_NM             /* 직명              */
+	        , NULL              AS PZC_C              /* 직급코드          */
+	        , U.POSITION_NM     AS PZC_NM             /* 직급              */
+	        , V.IRS_NO          AS CORP_NO            /* 사업자번호        */
+	        , '000000'          AS BRC                /* 사무소코드        */
+	        , NULL              AS NH_CORP_CODE       /* 법인구분코드      */
+	        , '01'              AS NC_COMP_DS_C 	  /* 비농협   농협업체코드 */              					
+	        , 'NHEPRO'          AS AGENT_ID           /* 에이전트ID         */
+	        , SYSDATE           AS FSRGDTM            /* 등록일시           */
+	        , #{ses.userId}     AS FSRGID             /* 등록자             */
+	        , SYSDATE           AS LSCHGDTM           /* 수정일시           */
+	        , #{ses.userId}     AS LSCHGID            /* 수정자             */
+		FROM STOCCVUR U, STOCVNGL V
+		WHERE U.GATE_CD = #{ses.gateCd}
+		AND U.USER_ID = #{USER_ID}
+		AND U.GATE_CD = V.GATE_CD
+		AND U.COMPANY_CD = V.VENDOR_CD
+    </select>
+    
+    <insert id="svnr0031_doInsertUserComm" parameterType="hashMap">
+        INSERT INTO TB_CO_USER (
+              USER_ID         		/* 사용자아이디           */
+            , USER_NM         		/* 사용자명          */
+	        , DEPT_C          		/* 부서코드          */
+	        , DEPT_NM         		/* 부서명            */
+	        , EMP_STSC        		/* 고용상태          */  
+	        , GNAF_DSC        		/* 서무구분코드      */  
+	        , EMPL_DSC       		/* 고용구분코드      */  
+	        , DWIN_TEL        		/* 사무실구내전화    */
+	        , REP_TEL         		/* 사무실대표번호    */
+	        , CUST_TEL        		/* 고객용전화번호    */
+	        , HP_NO           		/* 핸드폰번호        */
+	        , EMAIL           		/* 웹메일주소        */
+	        , CHRG_BSN_NM     		/* 담당업무          */
+	        , DTI_CHRG_BSN_NM 		/* 세부담당업무      */
+	        , OFT_C           		/* 직명코드          */
+	        , OFT_NM          		/* 직명              */
+	        , PZC_C           		/* 직급코드          */
+	        , PZC_NM          		/* 직급              */
+	        , CORP_NO         		/* 사업자번호        */
+	        , BRC             		/* 사무소코드        */
+	        , NH_CORP_CODE    		/* 법인구분코드      */
+	        , NC_COMP_DS_C    		/* 농협업체구분      */
+	        , AGENT_ID        		/* 에이전트ID    */  
+         	, FSRGDTM               /* 최초등록일시       */
+         	, FSRGID                /* 최초등록자         */
+         	, LSCHGDTM              /* 수정일시           */
+         	, LSCHGID               /* 수정자             */
+        ) VALUES (
+	         #{USER_ID}             										/* 사용자아이디      */
+	       , DAMO.ENCRYPT_VAR_B64('EBILL_AES_256',  #{USER_NM},  '' )		/* 사용자명          */
+	       , #{COMPANY_CD}                                    			    /* 부서코드          */
+	       , #{COMPANY_NM}                                    			    /* 부서명            */
+	       , '1'                                    		            	/* 고용상태         1 정상 , 4 퇴직 */
+	       , NULL                                    		            	/* 서무구분코드    5 법인관리자, 0 일반사용자, 1 주무서무, 2 팀서무, 4 사무소장 */
+	       , NULL                                    		            	/* 고용구분코드    001 정규직 ,  002 비정규직 */
+	       , DAMO.ENCRYPT_VAR_B64('EBILL_AES_256',  #{TEL_NUM},  '' ) 		/* 사무실구내전화    */
+	       , DAMO.ENCRYPT_VAR_B64('EBILL_AES_256',  #{TEL_NUM},  '' )	 	/* 사무실대표번호    */
+	       , DAMO.ENCRYPT_VAR_B64('EBILL_AES_256',  #{TEL_NUM},  '' ) 		/* 고객용전화번호    */
+	       , DAMO.ENCRYPT_VAR_B64('EBILL_AES_256',  #{CELL_NUM},  '' ) 		/* 핸드폰번호        */
+	       , DAMO.ENCRYPT_VAR_B64('EBILL_AES_256',  #{EMAIL},  '' ) 		/* 웹메일주소        */
+	       , NULL                                    		         		/* 담당업무          */
+	       , NULL                                    	     				/* 세부담당업무      */
+	       , NULL                                    			            /* 직명코드          */
+	       , #{DUTY_NM}                                    			        /* 직명              */
+	       , NULL                                    			            /* 직급코드          */
+	       , #{POSITION_NM}                                    			    /* 직급              */
+	       , #{IRS_NO}                                    			        /* 사업자번호        */
+	       , '000000'                                    			        /* 사무소코드        */
+	       , NULL                                    	       				/* 법인구분코드      */
+	       , '01'                                  							/* 비농협   */                
+	       , 'NHEPRO'                                         	           	/* 에이전트ID         */  
+	       , SYSDATE                                             	        /* 등록일시           */
+	       , #{ses.userId}                                       	        /* 등록자             */
+	       , SYSDATE                                             	        /* 수정일시           */
+	       , #{ses.userId}                                       	        /* 수정자             */
+	    )   
+    </insert>
+    
+    <insert id="svnr0031_doInsertUserBasic" parameterType="hashMap">
+        INSERT INTO TB_PR_CM_USER (
+              USER_ID         		/* 사용자아이디           */
+         	, FSRGDTM               /* 최초등록일시       */
+         	, FSRGID                /* 최초등록자         */
+         	, LSCHGDTM              /* 수정일시           */
+         	, LSCHGID               /* 수정자             */
+        ) VALUES (
+		      #{USER_ID}         	/* 사용자아이디           */
+		    , SYSDATE               /* 등록일시           */
+		    , #{ses.userId}         /* 등록자             */
+		    , SYSDATE               /* 수정일시           */
+		    , #{ses.userId}         /* 수정자             */
+		)	
+    </insert>
+    
+    <insert id="svnr0031_doInsertBrcDetail" parameterType="hashMap">
+        INSERT INTO TB_PR_CD_USER (
+              USER_ID         		/* 사용자아이디           */
+         	, CORP_NO               /* 사업자번호         */
+         	, BRC                   /* 사무소코드         */
+         	, FSRGDTM               /* 최초등록일시       */
+         	, FSRGID                /* 최초등록자         */
+         	, LSCHGDTM              /* 수정일시           */
+         	, LSCHGID               /* 수정자             */
+        ) VALUES (
+		      #{USER_ID}            /* 사용자아이디           */
+         	, #{IRS_NO}             /* 사업자번호         */
+         	, '000000'	            /* 사무소코드         */
+		    , SYSDATE               /* 등록일시           */
+		    , #{ses.userId}         /* 등록자             */
+		    , SYSDATE               /* 수정일시           */
+		    , #{ses.userId}         /* 수정자             */
+		)	
+    </insert>
+    
+    <update id="svnr0031_doUpdateUserComm" parameterType="hashMap">
+        UPDATE TB_CO_USER SET
+            LSCHGDTM = SYSDATE
+            , LSCHGID = #{ses.userId}
+            , OFT_NM = #{DUTY_NM}
+            , PZC_NM = #{POSITION_NM}
+            , DWIN_TEL = DAMO.ENCRYPT_VAR_B64('EBILL_AES_256',  #{TEL_NUM},  '' )
+            , REP_TEL = DAMO.ENCRYPT_VAR_B64('EBILL_AES_256',  #{TEL_NUM},  '' )
+            , CUST_TEL = DAMO.ENCRYPT_VAR_B64('EBILL_AES_256',  #{TEL_NUM},  '' )
+            , HP_NO = DAMO.ENCRYPT_VAR_B64('EBILL_AES_256',  #{CELL_NUM},  '' )
+            , EMAIL = DAMO.ENCRYPT_VAR_B64('EBILL_AES_256',  #{EMAIL},  '' )
+        WHERE USER_ID = #{USER_ID}
+    </update>
+    
+    <update id="svnr0030_doDeleteUserComm" parameterType="hashMap">
+        UPDATE TB_CO_USER SET
+            EMP_STSC = '4'
+            , LSCHGDTM = SYSDATE
+            , LSCHGID = #{ses.userId}
+        WHERE USER_ID = #{USER_ID}
+    </update>
+
+</mapper>

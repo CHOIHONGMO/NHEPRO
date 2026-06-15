@@ -1,0 +1,1297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.batch.nhebatch.BNH0011_Mapper">
+	
+    <select id="getTragetContList" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			  A.GATE_CD
+			, A.BUYER_CD
+			, A.CONT_NUM
+			, A.CONT_CNT
+		  FROM STOCECCT A
+		  JOIN STOCECMT B 
+			   ON (A.GATE_CD  = B.GATE_CD
+               AND A.BUYER_CD = B.BUYER_CD
+               AND A.CONT_NUM = B.CONT_NUM
+			   AND A.CONT_CNT = B.CONT_CNT
+			   AND B.DEL_FLAG = '0')
+		 WHERE A.GATE_CD     = '100'
+		   AND A.PROGRESS_CD = '4300'
+		   AND A.SIGN_STATUS = 'E'
+		   AND <include refid="common.sql.nvl"/>(A.IF_YN,'0') = '0'
+		   AND (SELECT IF_TYPE FROM STOCPRHD
+			 	 WHERE GATE_CD  = B.GATE_CD
+			 	   AND BUYER_CD = B.PB_BUYER_CD
+			 	   AND PR_NUM   = B.PR_NUM
+			 	   AND DEL_FLAG = '0') IN ('ITA', 'ITB')
+		   AND A.DEL_FLAG    = '0'
+		 GROUP BY A.GATE_CD
+				, A.BUYER_CD
+				, A.CONT_NUM
+				, A.CONT_CNT
+	</select>
+	
+	<select id="getTragetContList_20220321" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			  A.GATE_CD
+			, A.BUYER_CD
+			, A.CONT_NUM
+			, A.CONT_CNT
+		  FROM STOCECCT A
+		  JOIN STOCECMT B 
+			   ON (A.GATE_CD  = B.GATE_CD
+               AND A.BUYER_CD = B.BUYER_CD
+               AND A.CONT_NUM = B.CONT_NUM
+			   AND A.CONT_CNT = B.CONT_CNT
+			   AND B.DEL_FLAG = '0')
+		 WHERE A.GATE_CD     = '100'
+		   AND A.PROGRESS_CD = '4300'
+		   AND A.SIGN_STATUS = 'E'
+		   AND <include refid="common.sql.nvl"/>(A.CONT_REQ_CD, '10') = '10'	-- IT포탈 I/F건중에서 변경, 연장계약은 I/F 대상에서 제외
+		   AND <include refid="common.sql.nvl"/>(A.IF_YN,'0') = '0'
+		   AND (SELECT IF_TYPE FROM STOCPRHD
+			 	 WHERE GATE_CD  = B.GATE_CD
+			 	   AND BUYER_CD = B.PB_BUYER_CD
+			 	   AND PR_NUM   = B.PR_NUM
+			 	   AND DEL_FLAG = '0') IN ('ITA', 'ITB')
+		   AND A.DEL_FLAG    = '0'
+		 GROUP BY A.GATE_CD
+				, A.BUYER_CD
+				, A.CONT_NUM
+				, A.CONT_CNT
+	</select>
+	
+	<!-- 2차수 이상의 계약건의 계약구분이 "신규"인 경우 IT포탈 전송시 신규 계약의 최종계약차수를 I/F하기 위하여.... -->
+	<select id="getTragetContList_20211222" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			  A.GATE_CD
+			, A.BUYER_CD
+			, A.CONT_NUM
+			, A.CONT_CNT
+		  FROM STOCECCT A
+		  JOIN STOCECMT B 
+			   ON (A.GATE_CD  = B.GATE_CD
+               AND A.BUYER_CD = B.BUYER_CD
+               AND A.CONT_NUM = B.CONT_NUM
+			   AND A.CONT_CNT = B.CONT_CNT
+			   AND B.DEL_FLAG = '0')
+		 WHERE A.GATE_CD     = '100'
+		   AND A.PROGRESS_CD = '4300'
+		   AND A.SIGN_STATUS = 'E'
+		   AND <include refid="common.sql.nvl"/>(A.CONT_REQ_CD, '10') = '10'	-- IT포탈 I/F건중에서 변경, 연장계약은 I/F 대상에서 제외
+		   AND <include refid="common.sql.nvl"/>(A.IF_YN,'0') = '0'
+		   AND A.CONT_CNT = (SELECT MAX(CONT_CNT) FROM STOCECCT
+		   					  WHERE GATE_CD  = A.GATE_CD
+		   					    AND BUYER_CD = A.BUYER_CD
+		   					    AND CONT_NUM = A.CONT_NUM
+		   					    AND PROGRESS_CD = '4300'
+		   					    AND SIGN_STATUS = 'E'
+		   					    AND <include refid="common.sql.nvl"/>(A.CONT_REQ_CD, '10') = '10')
+		   AND (SELECT IF_TYPE FROM STOCPRHD
+			 	 WHERE GATE_CD  = B.GATE_CD
+			 	   AND BUYER_CD = B.PB_BUYER_CD
+			 	   AND PR_NUM   = B.PR_NUM
+			 	   AND DEL_FLAG = '0') IN ('ITA', 'ITB')
+		   AND A.DEL_FLAG    = '0'
+		 GROUP BY A.GATE_CD
+				, A.BUYER_CD
+				, A.CONT_NUM
+				, A.CONT_CNT
+	</select>
+	
+    <select id="getTragetContListXXXXX" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			  A.GATE_CD
+			, A.BUYER_CD
+			, A.CONT_NUM
+			, A.CONT_CNT
+		  FROM STOCECCT A
+		 WHERE A.GATE_CD  = '100'
+		   AND A.BUYER_CD = #{BUYER_CD}
+		   AND A.CONT_NUM = #{CONT_NUM}
+	</select>
+	
+	<!-- getTragetContList, getTragetContListXXXXX 계약건 -->
+	<update id="completeTarget" parameterType="hashMap">
+		UPDATE STOCECCT SET IF_YN = '1'
+		WHERE GATE_CD  = #{GATE_CD}
+		  AND BUYER_CD = #{BUYER_CD}
+		  AND CONT_NUM = #{CONT_NUM}
+		  AND CONT_CNT = #{CONT_CNT}
+	</update>
+
+    <select id="getContTarget" parameterType="hashmap" resultType="hashmap">
+		SELECT DISTINCT
+			  A.GATE_CD
+			, A.BUYER_CD
+			, A.CONT_NUM
+			, A.CONT_CNT
+			, A.VENDOR_CD
+		  FROM STOCECCT A 
+		  JOIN STOCECMT B 
+			   ON (A.GATE_CD  = B.GATE_CD
+               AND A.BUYER_CD = B.BUYER_CD
+               AND A.CONT_NUM = B.CONT_NUM
+			   AND A.CONT_CNT = B.CONT_CNT
+			   AND B.DEL_FLAG = '0')
+		 WHERE A.GATE_CD  = '100'
+		   AND A.BUYER_CD = #{BUYER_CD}
+		   AND A.CONT_NUM = #{CONT_NUM}
+		   AND A.CONT_CNT = #{CONT_CNT}
+		   AND (SELECT IF_TYPE FROM STOCPRHD
+			 	 WHERE GATE_CD  = B.GATE_CD
+			 	   AND BUYER_CD = B.PB_BUYER_CD
+			 	   AND PR_NUM   = B.PR_NUM
+			 	   AND DEL_FLAG = '0') = #{IF_TYPE} -- IF_TYPE 유형에 따라 처리
+ 	</select>
+ 	
+    <select id="makeEcct" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			 A.GATE_CD                              --게이트코드 - [Gate Code]
+			,A.BUYER_CD                             --고객사코드
+			,A.CONT_NUM                             --계약서번호 - (Contract No.)
+			,A.CONT_CNT                             --계약차수 - (Contract Ordinal No.)
+			,A.REG_DATE                             --등록일자 - [Registration Date]
+			,A.REG_USER_ID                          --등록자ID - (Registerer ID)
+			,A.MOD_DATE                             --수정일자 - (Update  Date)
+			,A.MOD_USER_ID                          --수정자ID - (Updater  ID)
+			,A.DEL_FLAG                             --삭제여부 - (Check whether it is deleted or not)
+			,A.PROGRESS_CD                          --진행상태코드 - (Progress Status Code)
+			,TO_CHAR(A.CONT_DATE,'YYYYMMDD') CONT_DATE  --      계약일자 - (Contract Date)
+			,TO_CHAR(A.CONT_START_DATE,'YYYYMMDD') CONT_START_DATE           --      계약시작일자 - (Contract Start Date)
+			,TO_CHAR(A.CONT_END_DATE,'YYYYMMDD') CONT_END_DATE             --      계약종료일자 - (Contract Termination Date)
+			,A.CONT_DESC                            --계약명 - (Contract Title)
+			,A.CONT_REQ_CD                          --계약구분 [M134] : 신규, 수정, 연장
+			,A.CUR                                  --통화 [M023]
+			,A.CONT_AMT                             --계약금액 - (Contract Amount)
+			,A.VAT_TYPE                             --부가세구분[M100] - (VAT Code)
+			,A.SUPPLY_AMT                           --공급가액 - (Supply Value)
+			,A.VAT_AMT                              --부가세액 - (VAT Amount)
+			,A.DEPT_CD                              --계약부서/사무소
+			,A.CONT_USER_ID                         --계약담당자ID - (Contract User ID )
+			,A.VENDOR_CD                            --업체코드 - [Vendor Code]
+			,substrb(<include refid="common.sql.strDecStart"/>A.VENDOR_PIC_USER_NM<include refid="common.sql.strDecEnd"/>,0,20) VENDOR_PIC_USER_NM                   --업체담당자명 - [Vendor PIC User Name]
+			,<include refid="common.sql.strDecStart"/>A.VENDOR_PIC_USER_EMAIL<include refid="common.sql.strDecEnd"/>  VENDOR_PIC_USER_EMAIL               --업체담당자 이메일주소
+			,<include refid="common.sql.strDecStart"/>A.VENDOR_PIC_USER_CELL_NUM<include refid="common.sql.strDecEnd"/> VENDOR_PIC_USER_CELL_NUM            --협력사담당자 휴대전화번호
+			,A.DELAY_RMK                            --지체상금 문구
+			,A.DELAY_NUME_RATE                      --지체상금율(분자)
+			,A.DELAY_DENO_RATE                      --지체상금율(분모)
+			,A.STAMP_DUTY_FLAG                      --인지세여부
+			,A.STAMP_DUTY_AMT                       --인지세
+			,A.STAMP_ATT_FILE_NUM                   --인지세 첨부파일번호
+			,A.CONT_RMK                             --비고
+			,A.ATT_FILE_NUM                         --첨부파일번호
+			,A.VENDOR_ATT_FILE_NUM                  --업체첨부파일번호
+			,A.BUNDLE_NUM                           --일괄계약번호
+			,A.SEND_DATE                            --전송일시
+			,A.CONT_CLOSE_DATE                      --강제종결일시
+			,A.CONT_CLOSE_RMK                       --강제종결사유
+			,A.CERT_TYPE                            --인증서종류 [M405]
+			,A.AMT_TYPE                             --금액구분[M303]
+			,A.MANUAL_CONT_FLAG                     --수기계약여부
+			,A.VENDOR_EDIT_FLAG                     --협력사 서식수정 가능여부
+			,A.ORIGIN_CONT_START_DATE               --최초계약시작일자
+			,A.AUTO_RENEW_FLAG                      --자동갱신여부
+			,A.AUTO_RENEW_DATE                      --최종자동갱신일시
+			,A.AUTO_RENEW_CNT                       --자동갱신차수
+			,A.APPROVAL_FLAG                        --결재여부
+			,A.APP_DOC_NUM                          --결재문서번호
+			,A.APP_DOC_CNT                          --결재문서차수
+			,A.SIGN_STATUS                          --결재상태 - [M020]
+			,A.SIGN_DATE                            --결재일자
+			,B.IRS_NO                               --업체 사업자번호
+			,B.BUSINESS_SIZE                        --업체 기업규모 - [MP039]
+			,B.VENDOR_NM                            --업체명
+
+			,CASE WHEN D.BID_COUNT > 1 THEN NULL
+				  ELSE D.FINAL_ESTM_PRC END FINAL_ESTM_PRC --최종예정가격
+
+			,C.RECEIPT_DATE RECEIPT_DATE                         --계약의뢰확정(구매접수)일
+			,(SELECT <include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> FROM STOCCVUR WHERE GATE_CD=A.GATE_CD AND USER_ID=A.REG_USER_ID) CONT_USER_NM  --계약담당자명
+
+			,D.VOTE_CNT                             --투찰횟수 BDPG
+
+			,(
+				SELECT SIGN_USER_ID FROM STOCSCTP WHERE GATE_CD = A.GATE_CD
+				                    AND APP_DOC_NUM = A.APP_DOC_NUM
+				                    AND APP_DOC_CNT = A.APP_DOC_CNT
+				                    AND DEL_FLAG = '0'
+									AND DOC_SQ = (
+										SELECT MAX(DOC_SQ) FROM STOCSCTP WHERE GATE_CD = A.GATE_CD
+					                    AND APP_DOC_NUM = A.APP_DOC_NUM
+					                    AND APP_DOC_CNT = A.APP_DOC_CNT
+					                    AND DEL_FLAG = '0'
+										AND SIGN_REQ_TYPE = 'A'
+									)
+			 ) ENTER_MAN_ID                         --입회자ID ECCT 결재 마지막합의
+			,(
+				SELECT getUserName(GATE_CD,SIGN_USER_ID,'KO') FROM STOCSCTP WHERE GATE_CD = A.GATE_CD
+				                    AND APP_DOC_NUM = A.APP_DOC_NUM
+				                    AND APP_DOC_CNT = A.APP_DOC_CNT
+				                    AND DEL_FLAG = '0'
+									AND DOC_SQ = (
+										SELECT MAX(DOC_SQ) FROM STOCSCTP WHERE GATE_CD = A.GATE_CD
+					                    AND APP_DOC_NUM = A.APP_DOC_NUM
+					                    AND APP_DOC_CNT = A.APP_DOC_CNT
+					                    AND DEL_FLAG = '0'
+										AND SIGN_REQ_TYPE = 'A'
+									)
+			 ) ENTER_MAN_NM                         --입회자
+			,(
+				SELECT DEPT_CD FROM STOCSCTP WHERE GATE_CD = A.GATE_CD
+				                    AND APP_DOC_NUM = A.APP_DOC_NUM
+				                    AND APP_DOC_CNT = A.APP_DOC_CNT
+				                    AND DEL_FLAG = '0'
+									AND DOC_SQ = (
+										SELECT MAX(DOC_SQ) FROM STOCSCTP WHERE GATE_CD = A.GATE_CD
+					                    AND APP_DOC_NUM = A.APP_DOC_NUM
+					                    AND APP_DOC_CNT = A.APP_DOC_CNT
+					                    AND DEL_FLAG = '0'
+										AND SIGN_REQ_TYPE = 'A'
+									)
+			 ) ENTER_MAN_DEPT_ID                         --입회자부서ID
+			,(
+				SELECT DEPT_NM FROM STOCSCTP WHERE GATE_CD = A.GATE_CD
+				                    AND APP_DOC_NUM = A.APP_DOC_NUM
+				                    AND APP_DOC_CNT = A.APP_DOC_CNT
+				                    AND DEL_FLAG = '0'
+									AND DOC_SQ = (
+										SELECT MAX(DOC_SQ) FROM STOCSCTP WHERE GATE_CD = A.GATE_CD
+					                    AND APP_DOC_NUM = A.APP_DOC_NUM
+					                    AND APP_DOC_CNT = A.APP_DOC_CNT
+					                    AND DEL_FLAG = '0'
+										AND SIGN_REQ_TYPE = 'A'
+									)
+			 ) ENTER_MAN_DEPT_NM                         --입회자부서
+
+
+		<![CDATA[
+		    ,CASE WHEN A.CONT_AMT+NVL(A.VAT_AMT,0) <= 100000000 THEN 'CM00000434'
+		          WHEN A.CONT_AMT+NVL(A.VAT_AMT,0) > 100000000 AND A.CONT_AMT+NVL(A.VAT_AMT,0) <= 5000000000 THEN 'CM00000435'
+				  WHEN A.CONT_AMT+NVL(A.VAT_AMT,0) > 5000000000 THEN 'CM00001105' END ARB_APP_NM
+		]]>
+
+		    ,D.BID_DATE                             -- BDPG END_DATE
+
+			,C."5_CONT_AMT" "5_CONT_AMT"                           --중앙회계약금액(원)
+			,C."1_CONT_AMT" "1_CONT_AMT"                           --은행계약금액(원)
+			,C."3_CONT_AMT" "3_CONT_AMT"                           --기타계약금액(원)
+			,C."2_CONT_AMT" "2_CONT_AMT"                           --지역농축협계약금액(원)
+			,C."A_CONT_AMT" "A_CONT_AMT"                           --금융지주계약금액(원)
+			,C."B_CONT_AMT" "B_CONT_AMT"                           --경제지주계약금액(원)
+			,C."D_CONT_AMT" "D_CONT_AMT"                           --손해보험계약금액(원)
+			,C."C_CONT_AMT" "C_CONT_AMT"                           --생명보험계약금액(원)
+
+	    ,CASE WHEN A.VAT_TYPE = '0' THEN 0
+	          WHEN A.VAT_TYPE = '1' THEN C."5_CONT_AMT" - TRUNC(C."5_CONT_AMT" / 1.1)
+	          WHEN A.VAT_TYPE = '2' THEN TRUNC(C."5_CONT_AMT" / 10)
+	          ELSE 0 END "5_VAT_AMT"
+	    ,CASE WHEN A.VAT_TYPE = '0' THEN 0
+	          WHEN A.VAT_TYPE = '1' THEN C."1_CONT_AMT" - TRUNC(C."1_CONT_AMT" / 1.1)
+	          WHEN A.VAT_TYPE = '2' THEN TRUNC(C."1_CONT_AMT" / 10)
+	          ELSE 0 END "1_VAT_AMT"
+	    ,CASE WHEN A.VAT_TYPE = '0' THEN 0
+	          WHEN A.VAT_TYPE = '1' THEN C."3_CONT_AMT" - TRUNC(C."3_CONT_AMT" / 1.1)
+	          WHEN A.VAT_TYPE = '2' THEN TRUNC(C."3_CONT_AMT" / 10)
+	          ELSE 0 END "3_VAT_AMT"
+	    ,CASE WHEN A.VAT_TYPE = '0' THEN 0
+	          WHEN A.VAT_TYPE = '1' THEN C."2_CONT_AMT" - TRUNC(C."2_CONT_AMT" / 1.1)
+	          WHEN A.VAT_TYPE = '2' THEN TRUNC(C."2_CONT_AMT" / 10)
+	          ELSE 0 END "2_VAT_AMT"
+	    ,CASE WHEN A.VAT_TYPE = '0' THEN 0
+	          WHEN A.VAT_TYPE = '1' THEN C."A_CONT_AMT" - TRUNC(C."A_CONT_AMT" / 1.1)
+	          WHEN A.VAT_TYPE = '2' THEN TRUNC(C."A_CONT_AMT" / 10)
+	          ELSE 0 END "A_VAT_AMT"
+	    ,CASE WHEN A.VAT_TYPE = '0' THEN 0
+	          WHEN A.VAT_TYPE = '1' THEN C."B_CONT_AMT" - TRUNC(C."B_CONT_AMT" / 1.1)
+	          WHEN A.VAT_TYPE = '2' THEN TRUNC(C."B_CONT_AMT" / 10)
+	          ELSE 0 END "B_VAT_AMT"
+	    ,CASE WHEN A.VAT_TYPE = '0' THEN 0
+	          WHEN A.VAT_TYPE = '1' THEN C."D_CONT_AMT" - TRUNC(C."D_CONT_AMT" / 1.1)
+	          WHEN A.VAT_TYPE = '2' THEN TRUNC(C."D_CONT_AMT" / 10)
+	          ELSE 0 END "D_VAT_AMT"
+	    ,CASE WHEN A.VAT_TYPE = '0' THEN 0
+	          WHEN A.VAT_TYPE = '1' THEN C."C_CONT_AMT" - TRUNC(C."C_CONT_AMT" / 1.1)
+	          WHEN A.VAT_TYPE = '2' THEN TRUNC(C."C_CONT_AMT" / 10)
+	          ELSE 0 END "C_VAT_AMT"
+		FROM STOCECCT A JOIN STOCVNGL B ON A.GATE_CD = B.GATE_CD
+		                                AND A.VENDOR_CD = B.VENDOR_CD
+		                LEFT OUTER JOIN (
+		                			SELECT
+		                			 A1.GATE_CD
+		                			,A1.BUYER_CD
+		                			,A1.CONT_NUM
+		                			,A1.CONT_CNT
+									,NVL(SUM(A1."5_CONT_AMT"),0) "5_CONT_AMT"         --중앙회계약금액(원)
+									,NVL(SUM(A1."1_CONT_AMT"),0) "1_CONT_AMT"         --은행계약금액(원)
+									,NVL(SUM(A1."3_CONT_AMT"),0) "3_CONT_AMT"         --기타계약금액(원)
+									,NVL(SUM(A1."2_CONT_AMT"),0) "2_CONT_AMT"         --지역농축협계약금액(원)
+									,NVL(SUM(A1."A_CONT_AMT"),0) "A_CONT_AMT"         --금융지주계약금액(원)
+									,NVL(SUM(A1."B_CONT_AMT"),0) "B_CONT_AMT"         --경제지주계약금액(원)
+									,NVL(SUM(A1."D_CONT_AMT"),0) "D_CONT_AMT"         --손해보험계약금액(원)
+									,NVL(SUM(A1."C_CONT_AMT"),0) "C_CONT_AMT"         --생명보험계약금액(원)
+									,MAX(TO_CHAR(B1.RECEIPT_DATE,'YYYYMMDD')) RECEIPT_DATE
+									FROM STOCECMT A1 JOIN STOCPRDT B1 ON  A1.GATE_CD  = B1.GATE_CD
+																	AND A1.PB_BUYER_CD = B1.BUYER_CD
+																	AND A1.PR_NUM   = B1.PR_NUM
+																	AND A1.PR_SQ    = B1.PR_SQ
+																	AND B1.DEL_FLAG = '0'
+												    JOIN STOCPRHD C1 ON B1.GATE_CD = C1.GATE_CD
+												    				AND B1.BUYER_CD = C1.BUYER_CD
+												    				AND B1.PR_NUM = C1.PR_NUM
+												    				AND C1.IF_TYPE = #{IF_TYPE}
+												   	JOIN STOCECCT D1 ON A1.GATE_CD = D1.GATE_CD
+												   					AND A1.BUYER_CD = D1.BUYER_CD
+												   					AND A1.CONT_NUM = D1.CONT_NUM
+												   					AND A1.CONT_CNT = D1.CONT_CNT
+									WHERE A1.GATE_CD = '100'
+									AND A1.BUYER_CD = #{BUYER_CD}
+									AND A1.CONT_NUM = #{CONT_NUM}
+									AND A1.CONT_CNT = #{CONT_CNT}
+									GROUP BY A1.GATE_CD,A1.BUYER_CD,A1.CONT_NUM,A1.CONT_CNT
+		                ) C ON A.GATE_CD = C.GATE_CD
+		                    AND A.BUYER_CD = C.BUYER_CD
+		                    AND A.CONT_NUM = C.CONT_NUM
+		                    AND A.CONT_CNT = C.CONT_CNT
+						LEFT OUTER JOIN (
+								SELECT
+								 (SELECT <include refid="common.sql.nvl"/>(MAX(VOTE_CNT),0) FROM STOCBDPG WHERE GATE_CD=M.GATE_CD AND BUYER_CD=M.BUYER_CD AND BID_NUM=M.BID_NUM AND BID_CNT=M.BID_CNT ) VOTE_CNT --투찰횟수 BDPG
+
+								,(
+									SELECT
+									getUserName(GATE_CD,SIGN_USER_ID,'KO')
+									FROM STOCSCTP WHERE GATE_CD = M.GATE_CD
+									                    AND APP_DOC_NUM = M.APP_DOC_NUM
+									                    AND APP_DOC_CNT = M.APP_DOC_CNT
+									                    AND DEL_FLAG = '0'
+														AND DOC_SQ = (
+															SELECT MAX(DOC_SQ) FROM STOCSCTP WHERE GATE_CD = M.GATE_CD
+										                    AND APP_DOC_NUM = M.APP_DOC_NUM
+										                    AND APP_DOC_CNT = M.APP_DOC_CNT
+										                    AND DEL_FLAG = '0'
+															AND SIGN_REQ_TYPE IN ('E', 'ES', 'EP')
+														)
+								 ) ARB_APP_NM                         --ECCT 마지막 결재자
+
+								,NVL((
+									SELECT BID_END_DATE||BID_END_TIME FROM STOCBDPG WHERE GATE_CD=M.GATE_CD AND BUYER_CD=M.BUYER_CD AND BID_NUM=M.BID_NUM AND BID_CNT=M.BID_CNT
+									AND VOTE_CNT =
+									(SELECT MAX(VOTE_CNT) FROM STOCBDPG WHERE GATE_CD=M.GATE_CD AND BUYER_CD=M.BUYER_CD AND BID_NUM=M.BID_NUM AND BID_CNT=M.BID_CNT )
+								) , BID_DATE) BID_DATE							 -- BDPG END_DATE
+
+
+
+
+								,(SELECT FINAL_ESTM_PRC FROM STOCBDES WHERE GATE_CD=M.GATE_CD AND BUYER_CD=M.BUYER_CD AND BID_NUM=M.BID_NUM AND BID_CNT=M.BID_CNT) FINAL_ESTM_PRC
+								,(SELECT COUNT(*) FROM (
+									SELECT  -- 입찰
+										 T.GATE_CD
+										FROM STOCBDHD T
+										WHERE (T.GATE_CD,T.BUYER_CD,T.BID_NUM,T.BID_CNT) IN
+												(
+													SELECT  DISTINCT
+													 K.GATE_CD
+													,K.BUYER_CD
+													,K.BID_NUM
+													,K.BID_CNT
+													FROM STOCBDDT K WHERE (K.PB_BUYER_CD,K.PR_NUM,K.PR_SQ) IN (
+															SELECT DISTINCT
+															 B.PB_BUYER_CD
+															,B.PR_NUM
+															,B.PR_SQ
+															FROM STOCECCT A JOIN STOCECMT B ON A.GATE_CD   = B.GATE_CD
+															                                AND A.BUYER_CD  = B.BUYER_CD
+															                                AND A.CONT_NUM = B.CONT_NUM
+																							AND A.CONT_CNT = B.CONT_CNT
+																							AND B.DEL_FLAG = '0'
+															WHERE A.GATE_CD = '100'
+															AND A.BUYER_CD  = #{BUYER_CD}
+															AND A.CONT_NUM  = #{CONT_NUM}
+															AND A.CONT_CNT  = #{CONT_CNT}
+															AND (SELECT IF_TYPE FROM STOCPRHD
+																 WHERE GATE_CD = B.GATE_CD
+																 AND BUYER_CD  = B.PB_BUYER_CD
+																 AND PR_NUM    = B.PR_NUM
+															) = #{IF_TYPE} -- IF_TYPE 유형에 따라 처리
+														)
+												)
+									UNION ALL
+									SELECT   -- 견적
+										 T.GATE_CD
+										FROM STOCRQHD T
+										WHERE (T.GATE_CD,T.BUYER_CD,T.RFX_NUM,T.RFX_CNT) IN
+
+												(SELECT  DISTINCT
+												 K.GATE_CD
+												,K.BUYER_CD
+												,K.RFX_NUM
+												,K.RFX_CNT
+												FROM STOCRQDT K WHERE (K.PB_BUYER_CD,K.PR_NUM,K.PR_SQ) IN (
+														SELECT DISTINCT
+														 B.PB_BUYER_CD
+														,B.PR_NUM
+														,B.PR_SQ
+														FROM STOCECCT A JOIN STOCECMT B ON A.GATE_CD   = B.GATE_CD
+														                                AND A.BUYER_CD  = B.BUYER_CD
+														                                AND A.CONT_NUM = B.CONT_NUM
+																						AND A.CONT_CNT = B.CONT_CNT
+																						AND B.DEL_FLAG = '0'
+														WHERE A.GATE_CD = '100'
+														AND A.BUYER_CD  = #{BUYER_CD}
+														AND A.CONT_NUM  = #{CONT_NUM}
+														AND A.CONT_CNT  = #{CONT_CNT}
+														AND (SELECT IF_TYPE FROM STOCPRHD
+															 WHERE GATE_CD = B.GATE_CD
+															 AND BUYER_CD  = B.PB_BUYER_CD
+															 AND PR_NUM    = B.PR_NUM
+														) = #{IF_TYPE} -- IF_TYPE 유형에 따라 처리
+													)
+												)
+									)) BID_COUNT
+
+
+								FROM (
+									SELECT  -- 입찰
+										 T.GATE_CD
+										,T.BUYER_CD
+										,T.BID_NUM
+										,T.BID_CNT
+										,T.APP_DOC_NUM
+										,T.APP_DOC_CNT
+										,NULL BID_DATE
+										FROM STOCBDHD T
+										WHERE (T.GATE_CD,T.BUYER_CD,T.BID_NUM,T.BID_CNT) IN
+												(
+													SELECT  DISTINCT
+													 K.GATE_CD
+													,K.BUYER_CD
+													,K.BID_NUM
+													,K.BID_CNT
+													FROM STOCBDDT K WHERE (K.PB_BUYER_CD,K.PR_NUM,K.PR_SQ) IN (
+															SELECT DISTINCT
+															 B.PB_BUYER_CD
+															,B.PR_NUM
+															,B.PR_SQ
+															FROM STOCECCT A JOIN STOCECMT B ON A.GATE_CD   = B.GATE_CD
+															                                AND A.BUYER_CD  = B.BUYER_CD
+															                                AND A.CONT_NUM = B.CONT_NUM
+																							AND A.CONT_CNT = B.CONT_CNT
+																							AND B.DEL_FLAG = '0'
+															WHERE A.GATE_CD = '100'
+															AND A.BUYER_CD  = #{BUYER_CD}
+															AND A.CONT_NUM  = #{CONT_NUM}
+															AND A.CONT_CNT  = #{CONT_CNT}
+															AND (SELECT IF_TYPE FROM STOCPRHD
+																 WHERE GATE_CD = B.GATE_CD
+																 AND BUYER_CD  = B.PB_BUYER_CD
+																 AND PR_NUM    = B.PR_NUM
+															) = #{IF_TYPE} -- IF_TYPE 유형에 따라 처리
+														)
+													AND ROWNUM = 1
+												)
+									UNION ALL
+
+									SELECT   -- 견적
+										 T.GATE_CD
+										,T.BUYER_CD
+										,T.RFX_NUM BID_NUM
+										,T.RFX_CNT BID_CNT
+										,T.APP_DOC_NUM
+										,T.APP_DOC_CNT
+										,TO_CHAR(RFX_START_DATE,'YYYYMMDDHH24MISS') BID_DATE
+										FROM STOCRQHD T
+										WHERE (T.GATE_CD,T.BUYER_CD,T.RFX_NUM,T.RFX_CNT) IN
+
+												(SELECT  DISTINCT
+												 K.GATE_CD
+												,K.BUYER_CD
+												,K.RFX_NUM
+												,K.RFX_CNT
+												FROM STOCRQDT K WHERE (K.PB_BUYER_CD,K.PR_NUM,K.PR_SQ) IN (
+														SELECT DISTINCT
+														 B.PB_BUYER_CD
+														,B.PR_NUM
+														,B.PR_SQ
+														FROM STOCECCT A JOIN STOCECMT B ON A.GATE_CD   = B.GATE_CD
+														                                AND A.BUYER_CD  = B.BUYER_CD
+														                                AND A.CONT_NUM = B.CONT_NUM
+																						AND A.CONT_CNT = B.CONT_CNT
+																						AND B.DEL_FLAG = '0'
+														WHERE A.GATE_CD = '100'
+														AND A.BUYER_CD  = #{BUYER_CD}
+														AND A.CONT_NUM  = #{CONT_NUM}
+														AND A.CONT_CNT  = #{CONT_CNT}
+														AND (SELECT IF_TYPE FROM STOCPRHD
+															 WHERE GATE_CD = B.GATE_CD
+															 AND BUYER_CD  = B.PB_BUYER_CD
+															 AND PR_NUM    = B.PR_NUM
+														) = #{IF_TYPE} -- IF_TYPE 유형에 따라 처리
+													)
+												AND ROWNUM = 1
+												)
+
+								) M
+								WHERE ROWNUM = 1
+						) D ON 1 = 1
+
+		WHERE A.GATE_CD = '100'
+		AND A.BUYER_CD = #{BUYER_CD}
+		AND A.CONT_NUM = #{CONT_NUM}
+		AND A.CONT_CNT = #{CONT_CNT}
+	</select>
+
+    <select id="makeEcmt" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			 A.GATE_CD             --게이트코드 - [Gate Code]
+			,A.BUYER_CD            --고객사코드
+			,A.CONT_NUM            --계약서번호 - (Contract No.)
+			,A.CONT_CNT            --계약차수 - (Contract Ordinal No.)
+			,A.PR_BUYER_CD         --의뢰고객사 (계약체결 고객사)
+			,A.PR_DEPT_CD          --의뢰부서/사무소
+			,A.VENDOR_CD           --업체코드 - [Vendor Code]
+			,A.ITEM_SQ             --고객사별 품목 항번
+			,A.REG_DATE            --등록일자 - [Registration Date]
+			,A.REG_USER_ID         --등록자ID - (Registerer ID)
+			,A.MOD_DATE            --수정일자 - (Update  Date)
+			,A.MOD_USER_ID         --수정자ID - (Updater  ID)
+			,A.DEL_FLAG            --삭제여부 - (Check whether it is deleted or not)
+			,(SELECT IRS_NO FROM STOCVNGL WHERE GATE_CD = D.GATE_CD AND VENDOR_CD = D.VENDOR_CD) IRS_NO              --업체 사업자번호
+			,A.CONT_WT_NUM         --계약서 대기번호 - [Contract Waiting No]
+			,A.EXEC_NUM            --품의번호 - (RFA No.)
+			,A.EXEC_SQ             --품의항번 - (RFA Sequence No.)
+			,A.PURCHASE_TYPE       --구매유형[M061]
+			,A.ITEM_CD             --품목코드 - (Item Code)
+			,A.ITEM_DESC           --품명 - (Item Name)WW
+			,A.ITEM_SPEC           --,
+			,A.MAKER_CD            --제조사코드 [STOCMKBR, MK]
+			,<include refid="common.sql.dbo"/>GETMKBRNAME(A.GATE_CD, A.BUYER_CD, 'MK', A.MAKER_CD) AS MAKER_NM            --제조사명
+			,A.MAKER_PART_NO       --제조사모델번호
+			,A.ORIGIN_CD           --원산지코드 [M004]
+			,A.ITEM_QT             --수량
+			,A.UNIT_CD             --단위
+			,A.ITEM_PRC            --단가
+			,A.ITEM_AMT            --금액
+			,A.SW_BIZ_AMT          --[용역] SW사업대가
+			,A.MNT_SANGJU_YN       --[용역] 상주여부
+			,A.CONSUMER_AMT        --[물품/공사] 소비자금액
+			,A.FC_MNT_TERM         --[물품/공사] 무상유지보수기간
+			,A.CH_RATE             --[물품/공사] 유상요율
+			,A.DOIB_AMOUNT         --[유지보수] 도입금액
+			,A.MNT_RATE            --[유지보수] 유지보수요율
+			,A.MNT_SDAY            --[유지보수] 유지보수 시작일
+			,A.MNT_EDAY            --[유지보수] 유지보수 종료일
+			,A.MNT_GUR_MONTH       --[유지보수] 개월수
+			,A.RT_INSP_PERIOD      --[유지보수] 정기점검주기
+			,A.FALT_RC_TG_TIME     --[유지보수] 장애복구목표시간
+			,A.DUE_DATE            --납기요청일
+			,A.IV_BUYER_CD         --검수고객사
+			,A.IV_DEPT_CD          --검수부서/사무소
+			,A.IV_USER_ID          --검수자ID
+			,A.PR_NUM              --구매의뢰번호 - (P/R No.)
+			,A.PR_SQ               --구매의뢰항번 - (P/R Sequence No.)
+			,<include refid="common.sql.nvl"/>(A.N_CM_REQ_ID, B.CM_REQ_ID) AS CM_REQ_ID				--계약의뢰ID
+			,<include refid="common.sql.nvl"/>(A.N_CM_REQ_DET_ID, B.CM_REQ_DET_ID) AS CM_REQ_DET_ID	--세부계약의뢰번호
+			,<include refid="common.sql.nvl"/>(A.N_MULPUM_ID, B.MULPUM_ID) AS MULPUM_ID				--물품ID
+			,<include refid="common.sql.dbo"/>GETCODENAME('100', 'M301', B.VENDOR_OPEN_TYPE, #{ses.langCd}) VENDOR_OPEN_TYPE    --계약방법 [M301] (일반경쟁/제한경쟁/지명경쟁/수의계약)
+			--,GETCODENAME({ses.gateCd}, 'M302', B.SUBMIT_TYPE, {ses.langCd}) SUBMIT_TYPE         --낙찰자 결정방법 [M302] (최저가, 2단계분리입찰, 2단계동시입찰, 협상에 의한 계약)
+			,NVL(
+				(
+				SELECT
+				<include refid="common.sql.dbo"/>GETCODENAME('100', 'M302', B.CONT_TYPE2, #{ses.langCd})
+				FROM STOCBDDT K JOIN STOCBDHD B ON K.GATE_CD = B.GATE_CD
+								AND K.BUYER_CD = B.BUYER_CD
+								AND K.BID_NUM  = B.BID_NUM
+								AND K.BID_CNT  = B.BID_CNT
+				WHERE (K.PB_BUYER_CD,K.PR_NUM,K.PR_SQ) IN (
+						SELECT DISTINCT
+						 B.PB_BUYER_CD
+						,B.PR_NUM
+						,B.PR_SQ
+						FROM STOCECCT A JOIN STOCECMT B ON A.GATE_CD   = B.GATE_CD
+						                                AND A.BUYER_CD  = B.BUYER_CD
+						                                AND A.CONT_NUM = B.CONT_NUM
+														AND A.CONT_CNT = B.CONT_CNT
+														AND B.DEL_FLAG = '0'
+						WHERE A.GATE_CD = '100'
+						AND A.BUYER_CD  = #{BUYER_CD}
+						AND A.CONT_NUM  = #{CONT_NUM}
+						AND A.CONT_CNT  = #{CONT_CNT}
+						AND (SELECT IF_TYPE FROM STOCPRHD
+							 WHERE GATE_CD = B.GATE_CD
+							 AND BUYER_CD  = B.PB_BUYER_CD
+							 AND PR_NUM    = B.PR_NUM
+						) = #{IF_TYPE} -- IF_TYPE 유형에 따라 처리
+					)
+					AND ROWNUM = 1
+				)
+			,<include refid="common.sql.dbo"/>GETCODENAME('100', 'M302', B.SUBMIT_TYPE, #{ses.langCd}) )SUBMIT_TYPE
+			,CASE WHEN B.PURCHASE_TYPE IN ('S','B') THEN NVL(ROUND((A.ITEM_AMT - A.SW_BIZ_AMT) /  NULLIF(A.ITEM_AMT * 100, 0)), 0) -- 용역
+				  WHEN B.PURCHASE_TYPE IN ('G','C','E','T')	THEN NVL(ROUND((A.ITEM_AMT - A.CONSUMER_AMT) /  NULLIF(A.ITEM_AMT * 100, 0)) ,0) --물품,공사,기타,양수
+				  ELSE 0 END DISCOUNT_RATE       --할인율
+			,A."5_CONT_AMT"          --중앙회계약금액(원)
+			,A."1_CONT_AMT"          --은행계약금액(원)
+			,A."3_CONT_AMT"          --기타계약금액(원)
+			,A."2_CONT_AMT"          --지역농축협계약금액(원)
+			,A."A_CONT_AMT"          --금융지주계약금액(원)
+			,A."B_CONT_AMT"          --경제지주계약금액(원)
+			,A."D_CONT_AMT"          --손해보험계약금액(원)
+			,A."C_CONT_AMT"          --생명보험계약금액(원)
+		    ,CASE WHEN D.VAT_TYPE = '0' THEN 0
+		          WHEN D.VAT_TYPE = '1' THEN A."5_CONT_AMT" - TRUNC(A."5_CONT_AMT" / 1.1)
+		          WHEN D.VAT_TYPE = '2' THEN TRUNC(A."5_CONT_AMT" / 10)
+		          ELSE 0 END "5_VAT_AMT"
+		    ,CASE WHEN D.VAT_TYPE = '0' THEN 0
+		          WHEN D.VAT_TYPE = '1' THEN A."1_CONT_AMT" - TRUNC(A."1_CONT_AMT" / 1.1)
+		          WHEN D.VAT_TYPE = '2' THEN TRUNC(A."1_CONT_AMT" / 10)
+		          ELSE 0 END "1_VAT_AMT"
+		    ,CASE WHEN D.VAT_TYPE = '0' THEN 0
+		          WHEN D.VAT_TYPE = '1' THEN A."3_CONT_AMT" - TRUNC(A."3_CONT_AMT" / 1.1)
+		          WHEN D.VAT_TYPE = '2' THEN TRUNC(A."3_CONT_AMT" / 10)
+		          ELSE 0 END "3_VAT_AMT"
+		    ,CASE WHEN D.VAT_TYPE = '0' THEN 0
+		          WHEN D.VAT_TYPE = '1' THEN A."2_CONT_AMT" - TRUNC(A."2_CONT_AMT" / 1.1)
+		          WHEN D.VAT_TYPE = '2' THEN TRUNC(A."2_CONT_AMT" / 10)
+		          ELSE 0 END "2_VAT_AMT"
+		    ,CASE WHEN D.VAT_TYPE = '0' THEN 0
+		          WHEN D.VAT_TYPE = '1' THEN A."A_CONT_AMT" - TRUNC(A."A_CONT_AMT" / 1.1)
+		          WHEN D.VAT_TYPE = '2' THEN TRUNC(A."A_CONT_AMT" / 10)
+		          ELSE 0 END "A_VAT_AMT"
+		    ,CASE WHEN D.VAT_TYPE = '0' THEN 0
+		          WHEN D.VAT_TYPE = '1' THEN A."B_CONT_AMT" - TRUNC(A."B_CONT_AMT" / 1.1)
+		          WHEN D.VAT_TYPE = '2' THEN TRUNC(A."B_CONT_AMT" / 10)
+		          ELSE 0 END "B_VAT_AMT"
+		    ,CASE WHEN D.VAT_TYPE = '0' THEN 0
+		          WHEN D.VAT_TYPE = '1' THEN A."D_CONT_AMT" - TRUNC(A."D_CONT_AMT" / 1.1)
+		          WHEN D.VAT_TYPE = '2' THEN TRUNC(A."D_CONT_AMT" / 10)
+		          ELSE 0 END "D_VAT_AMT"
+		    ,CASE WHEN D.VAT_TYPE = '0' THEN 0
+		          WHEN D.VAT_TYPE = '1' THEN A."C_CONT_AMT" - TRUNC(A."C_CONT_AMT" / 1.1)
+		          WHEN D.VAT_TYPE = '2' THEN TRUNC(A."C_CONT_AMT" / 10)
+		          ELSE 0 END "C_VAT_AMT"
+			,(
+					 SELECT CORP_TYPE FROM STOCCUST
+					 WHERE GATE_CD = A.GATE_CD
+				     AND CUST_CD = A.PR_BUYER_CD
+			 ) CORP_TYPE            --계약체결고객사 법인구분
+		FROM STOCECMT A JOIN STOCPRDT B ON  A.GATE_CD  = B.GATE_CD
+										AND A.PB_BUYER_CD = B.BUYER_CD
+										AND A.PR_NUM   = B.PR_NUM
+										AND A.PR_SQ    = B.PR_SQ
+										AND B.DEL_FLAG = '0'
+					    JOIN STOCPRHD C ON B.GATE_CD = C.GATE_CD
+					    				AND B.BUYER_CD = C.BUYER_CD
+					    				AND B.PR_NUM = C.PR_NUM
+					    				AND C.IF_TYPE = #{IF_TYPE}
+					   	JOIN STOCECCT D ON A.GATE_CD = D.GATE_CD
+					   					AND A.BUYER_CD = D.BUYER_CD
+					   					AND A.CONT_NUM = D.CONT_NUM
+					   					AND A.CONT_CNT = D.CONT_CNT
+		WHERE A.GATE_CD = '100'
+		AND A.BUYER_CD = #{BUYER_CD}
+		AND A.CONT_NUM = #{CONT_NUM}
+		AND A.CONT_CNT = #{CONT_CNT}
+	</select>
+
+    <select id="makeEcpc" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			 B.GATE_CD              --게이트코드 - [Gate Code]
+			,B.BUYER_CD             --고객사코드
+			,B.CONT_NUM             --계약서번호 - (Contract No.)
+			,B.CONT_CNT             --계약차수 - (Contract Ordinal No.)
+			,B.PR_BUYER_CD          --의뢰고객사 (계약체결 고객사)
+			,B.PR_DEPT_CD           --의뢰부서/사무소
+			,B.VENDOR_CD            --업체코드 - [Vendor Code]
+			,B.PAY_CNT              --지급차수
+			,B.PY_BUYER_CD          --지불고객사
+			,B.PY_DEPT_CD           --지불부서/사무소
+			,B.REG_DATE             --등록일자 - [Registration Date]
+			,B.REG_USER_ID          --등록자ID - (Registerer ID)
+			,B.MOD_DATE             --수정일자 - (Update  Date)
+			,B.MOD_USER_ID          --수정자ID - (Updater  ID)
+			,B.DEL_FLAG             --삭제여부 - (Check whether it is deleted or not)
+			,(SELECT IRS_NO FROM STOCVNGL WHERE GATE_CD = B.GATE_CD AND VENDOR_CD = B.VENDOR_CD) IRS_NO              --업체 사업자번호
+			,B.PAY_AMT              --지급금액 - (Payment Amount) or 계약금액
+			,B.GUAR_TYPE            --보증구분[M404]
+			,B.GUAR_PERCENT         --보증율 - Guarantee Percentage)
+			,B.GUAR_QT              --하자이행보증기간_월 - (Warranty Guarantee Period_Month)
+			,B.VAT_FLAG             --보증금VAT여부
+			,B.GUAR_AMT             --보증금 - (Guarantee Amount)
+			,B.ATT_FILE_NUM         --보증첨부파일번호
+			,B.GUAR_NUM             --보증증권번호
+			,B.INSU_STATUS          --보증상태
+			,B.RMK                  --비고
+			,B.GUAR_TYPE2           --보증방법 [M401]
+			,B.GUARANTEER           --보증기관 [M402]
+			,(
+					 SELECT CORP_TYPE FROM STOCCUST
+					 WHERE GATE_CD = B.GATE_CD
+				     AND CUST_CD = B.PR_BUYER_CD
+			 ) CORP_TYPE            --계약체결고객사 법인구분
+			,(
+					 SELECT CORP_TYPE FROM STOCCUST
+					 WHERE GATE_CD = B.GATE_CD
+				     AND CUST_CD = B.PY_BUYER_CD
+			 ) PY_CORP_TYPE         --지불고객사 법인구분
+		FROM STOCECPC B
+		WHERE B.GATE_CD = '100'
+		AND B.BUYER_CD = #{BUYER_CD}
+		AND B.CONT_NUM = #{CONT_NUM}
+		AND B.CONT_CNT = #{CONT_CNT}
+		AND (
+				 SELECT CORP_TYPE FROM STOCCUST
+				 WHERE GATE_CD = B.GATE_CD
+			     AND CUST_CD = B.PY_BUYER_CD
+		    )
+		<if test="IF_TYPE2 == 'ITA'">
+			= '5'
+		</if>
+		<if test="IF_TYPE2 == 'ITB'">
+			= '1'
+		</if>
+		<if test="IF_TYPE2 == 'ALL'">
+			IN ('1','5')
+		</if>
+	</select>
+
+    <select id="makeEcpy" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			 A.GATE_CD              --게이트코드 - [Gate Code]
+			,A.BUYER_CD             --고객사코드
+			,A.CONT_NUM             --계약서번호 - (Contract No.)
+			,A.CONT_CNT             --계약차수 - (Contract Ordinal No.)
+			,A.PR_BUYER_CD          --의뢰고객사 (계약체결 고객사)
+			,A.PR_DEPT_CD           --의뢰부서/사무소
+			,A.VENDOR_CD            --업체코드 - [Vendor Code]
+			,A.PAY_CNT              --지급차수 - (Payment Ordinal No.)
+			,A.REG_DATE             --등록일자 - [Registration Date]
+			,A.REG_USER_ID          --등록자ID - (Registerer ID)
+			,A.MOD_DATE             --수정일자 - (Update  Date)
+			,A.MOD_USER_ID          --수정자ID - (Updater  ID)
+			,A.DEL_FLAG             --삭제여부 - (Check whether it is deleted or not)
+			,A.PAY_CNT_TYPE         --지급차수구분 - [M097]
+			,A.PAY_CNT_NM           --지급차수명 - (Payment Count Name)
+			,ROUND(SUM(B.PAY_AMT) / MAX(TOTAL_PAY_AMT) * 100) AS PAY_PERCENT          --지급율 퍼센트(%) - (Payment Percentage)
+			,SUM(B.PAY_AMT) AS PAY_AMT   --지급금액 - (Payment Amount)
+			,A.PAY_METHOD_TYPE      --세부지급조건 - (Payment Method) - [M018]
+			,A.PAY_METHOD_NM        --지급상세내역 - (Payment Term Name)
+			,A.PAY_DUE_DATE         --지급예정일자 - (Payment Due Date)
+			,(SELECT IRS_NO FROM STOCVNGL WHERE GATE_CD=A.GATE_CD AND VENDOR_CD=A.VENDOR_CD) IRS_NO               --업체 사업자번호
+			,(
+					 SELECT CORP_TYPE FROM STOCCUST
+					 WHERE GATE_CD = A.GATE_CD
+				     AND CUST_CD = A.PR_BUYER_CD
+			 ) CORP_TYPE         --계약체결고객사 법인구분
+		FROM STOCECPC B
+						JOIN STOCECPY A ON B.GATE_CD  = A.GATE_CD
+													AND B.BUYER_CD     = A.BUYER_CD
+													AND B.CONT_NUM     = A.CONT_NUM
+													AND B.CONT_CNT     = A.CONT_CNT
+													AND B.PR_BUYER_CD  = A.PR_BUYER_CD
+													AND B.PR_DEPT_CD   = A.PR_DEPT_CD
+													AND B.VENDOR_CD    = A.VENDOR_CD
+													AND B.PAY_CNT      = A.PAY_CNT
+						JOIN (		SELECT SUM(B.PAY_AMT) TOTAL_PAY_AMT
+									FROM STOCECPC B
+									-- LEFT OUTER JOIN
+									JOIN STOCECPY A ON B.GATE_CD  = A.GATE_CD
+																AND B.BUYER_CD     = A.BUYER_CD
+																AND B.CONT_NUM     = A.CONT_NUM
+																AND B.CONT_CNT     = A.CONT_CNT
+																AND B.PR_BUYER_CD  = A.PR_BUYER_CD
+																AND B.PR_DEPT_CD   = A.PR_DEPT_CD
+																AND B.VENDOR_CD    = A.VENDOR_CD
+																AND B.PAY_CNT      = A.PAY_CNT
+									WHERE B.GATE_CD = '100'
+									AND B.BUYER_CD = #{BUYER_CD}
+									AND B.CONT_NUM = #{CONT_NUM}
+									AND B.CONT_CNT = #{CONT_CNT}
+									AND (
+											 SELECT CORP_TYPE FROM STOCCUST
+											 WHERE GATE_CD = B.GATE_CD
+										     AND CUST_CD = B.PY_BUYER_CD
+									    )
+								<if test="IF_TYPE2 == 'ITA'">
+									= '5'
+								</if>
+								<if test="IF_TYPE2 == 'ITB'">
+									= '1'
+								</if>
+								<if test="IF_TYPE2 == 'ALL'">
+									IN ('1','5')
+								</if>
+						) C ON 1 = 1
+		WHERE B.GATE_CD = '100'
+		AND B.BUYER_CD = #{BUYER_CD}
+		AND B.CONT_NUM = #{CONT_NUM}
+		AND B.CONT_CNT = #{CONT_CNT}
+		AND B.PAY_CNT NOT IN (0,-1) -- 계약보증 차액보증 제외
+		AND (
+				 SELECT CORP_TYPE FROM STOCCUST
+				 WHERE GATE_CD = B.GATE_CD
+			     AND CUST_CD = B.PY_BUYER_CD
+		    )
+		<if test="IF_TYPE2 == 'ITA'">
+			= '5'
+		</if>
+		<if test="IF_TYPE2 == 'ITB'">
+			= '1'
+		</if>
+		<if test="IF_TYPE2 == 'ALL'">
+			IN ('1','5')
+		</if>
+
+		GROUP BY
+			 A.GATE_CD              --게이트코드 - [Gate Code]
+			,A.BUYER_CD             --고객사코드
+			,A.CONT_NUM             --계약서번호 - (Contract No.)
+			,A.CONT_CNT             --계약차수 - (Contract Ordinal No.)
+			,A.PR_BUYER_CD          --의뢰고객사 (계약체결 고객사)
+			,A.PR_DEPT_CD           --의뢰부서/사무소
+			,A.VENDOR_CD            --업체코드 - [Vendor Code]
+			,A.PAY_CNT              --지급차수 - (Payment Ordinal No.)
+			,A.REG_DATE             --등록일자 - [Registration Date]
+			,A.REG_USER_ID          --등록자ID - (Registerer ID)
+			,A.MOD_DATE             --수정일자 - (Update  Date)
+			,A.MOD_USER_ID          --수정자ID - (Updater  ID)
+			,A.DEL_FLAG             --삭제여부 - (Check whether it is deleted or not)
+			,A.PAY_CNT_TYPE         --지급차수구분 - [M097]
+			,A.PAY_CNT_NM           --지급차수명 - (Payment Count Name)
+			,A.PAY_PERCENT          --지급율 퍼센트(%) - (Payment Percentage)
+			,A.PAY_METHOD_TYPE      --세부지급조건 - (Payment Method) - [M018]
+			,A.PAY_METHOD_NM        --지급상세내역 - (Payment Term Name)
+			,A.PAY_DUE_DATE         --지급예정일자 - (Payment Due Date)
+	</select>
+
+    <select id="makeEcbv" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			 A.GATE_CD
+			,A.BUYER_CD
+			,A.CONT_NUM
+			,A.CONT_CNT
+			,A.VENDOR_CD
+			,A.SELECT_FLAG
+			,A.VENDOR_NM
+			,A.IRS_NO
+			,substrb(A.VENDOR_PIC_USER_NM,0,20) VENDOR_PIC_USER_NM
+			,A.VENDOR_PIC_USER_EMAIL
+			,A.VENDOR_PIC_USER_CELL_NUM
+			,MAX(A.REG_DATE ) REG_DATE
+			,MAX(A.REG_USER_ID ) REG_USER_ID
+		FROM (
+				-- 입찰
+				SELECT	DISTINCT
+						 '100' GATE_CD                     --게이트코드 - [Gate Code]
+						,#{BUYER_CD} BUYER_CD                    --고객사코드
+						,#{CONT_NUM} CONT_NUM                    --계약서번호 - (Contract No.)
+						,#{CONT_CNT} CONT_CNT                    --계약차수 - (Contract Ordinal No.)
+						,N.VENDOR_CD                   --업체코드 - [Vendor Code]
+						,N.REG_DATE                    --생성일자 - [Registration Date]
+						,N.REG_USER_ID                 --생성자ID - (Registerer ID)
+						,CASE WHEN #{VENDOR_CD} = N.VENDOR_CD THEN '1' ELSE '0' END SELECT_FLAG                 --선정여부
+						,V.VENDOR_NM                   --업체명
+						,V.IRS_NO                      --업체 사업자번호
+						,<include refid="common.sql.strDecStart"/>U.USER_NM<include refid="common.sql.strDecEnd"/>  VENDOR_PIC_USER_NM          --업체담당자명 - [Vendor PIC User Name]
+						,<include refid="common.sql.strDecStart"/>U.EMAIL<include refid="common.sql.strDecEnd"/>    VENDOR_PIC_USER_EMAIL       --업체담당자 이메일주소
+						,<include refid="common.sql.strDecStart"/>U.CELL_NUM<include refid="common.sql.strDecEnd"/> VENDOR_PIC_USER_CELL_NUM    --업체담당자 휴대전화번호
+				FROM STOCBDVD N JOIN (SELECT  DISTINCT
+												 K.GATE_CD
+												,K.BUYER_CD
+												,K.BID_NUM
+												,K.BID_CNT
+												FROM STOCBDDT K WHERE (K.PB_BUYER_CD,K.PR_NUM,K.PR_SQ) IN (
+														SELECT DISTINCT
+														 B.PB_BUYER_CD
+														,B.PR_NUM
+														,B.PR_SQ
+														FROM STOCECCT A JOIN STOCECMT B ON A.GATE_CD   = B.GATE_CD
+														                                AND A.BUYER_CD  = B.BUYER_CD
+														                                AND A.CONT_NUM = B.CONT_NUM
+																						AND A.CONT_CNT = B.CONT_CNT
+																						AND B.DEL_FLAG = '0'
+														WHERE A.GATE_CD = '100'
+														AND A.BUYER_CD  = #{BUYER_CD}
+														AND A.CONT_NUM  = #{CONT_NUM}
+														AND A.CONT_CNT  = #{CONT_CNT}
+														AND (SELECT IF_TYPE FROM STOCPRHD
+															 WHERE GATE_CD = B.GATE_CD
+															 AND BUYER_CD  = B.PB_BUYER_CD
+															 AND PR_NUM    = B.PR_NUM
+														) = #{IF_TYPE} -- IF_TYPE 유형에 따라 처리
+													)
+										) M ON N.GATE_CD = M.GATE_CD
+											AND N.BUYER_CD = M.BUYER_CD
+											AND N.BID_NUM = M.BID_NUM
+											AND N.BID_CNT = M.BID_CNT
+						JOIN STOCVNGL V ON N.GATE_CD = V.GATE_CD
+										AND N.VENDOR_CD = V.VENDOR_CD
+						JOIN STOCCVUR U ON N.GATE_CD = U.GATE_CD
+										AND N.REG_USER_ID = U.USER_ID
+					UNION ALL
+				-- 견적
+				SELECT	DISTINCT
+						 '100' GATE_CD                     --게이트코드 - [Gate Code]
+						,#{BUYER_CD} BUYER_CD                    --고객사코드
+						,#{CONT_NUM} CONT_NUM                    --계약서번호 - (Contract No.)
+						,#{CONT_CNT} CONT_CNT                    --계약차수 - (Contract Ordinal No.)
+						,N.VENDOR_CD                   --업체코드 - [Vendor Code]
+						,N.REG_DATE                    --생성일자 - [Registration Date]
+						,N.REG_USER_ID                 --생성자ID - (Registerer ID)
+						,CASE WHEN #{VENDOR_CD} = N.VENDOR_CD THEN '1' ELSE '0' END SELECT_FLAG                 --선정여부
+						,V.VENDOR_NM                   --업체명
+						,V.IRS_NO                      --업체 사업자번호
+						,<include refid="common.sql.strDecStart"/>U.USER_NM<include refid="common.sql.strDecEnd"/>  VENDOR_PIC_USER_NM          --업체담당자명 - [Vendor PIC User Name]
+						,<include refid="common.sql.strDecStart"/>U.EMAIL<include refid="common.sql.strDecEnd"/>    VENDOR_PIC_USER_EMAIL       --업체담당자 이메일주소
+						,<include refid="common.sql.strDecStart"/>U.CELL_NUM<include refid="common.sql.strDecEnd"/> VENDOR_PIC_USER_CELL_NUM    --업체담당자 휴대전화번호
+				FROM STOCRQVN N JOIN (SELECT  DISTINCT
+												 K.GATE_CD
+												,K.BUYER_CD
+												,K.RFX_NUM
+												,K.RFX_CNT
+												FROM STOCRQDT K WHERE (K.PB_BUYER_CD,K.PR_NUM,K.PR_SQ) IN (
+														SELECT DISTINCT
+														 B.PB_BUYER_CD
+														,B.PR_NUM
+														,B.PR_SQ
+														FROM STOCECCT A JOIN STOCECMT B ON A.GATE_CD   = B.GATE_CD
+														                                AND A.BUYER_CD  = B.BUYER_CD
+														                                AND A.CONT_NUM = B.CONT_NUM
+																						AND A.CONT_CNT = B.CONT_CNT
+																						AND B.DEL_FLAG = '0'
+														WHERE A.GATE_CD = '100'
+														AND A.BUYER_CD  = #{BUYER_CD}
+														AND A.CONT_NUM  = #{CONT_NUM}
+														AND A.CONT_CNT  = #{CONT_CNT}
+														AND (SELECT IF_TYPE FROM STOCPRHD
+															 WHERE GATE_CD = B.GATE_CD
+															 AND BUYER_CD  = B.PB_BUYER_CD
+															 AND PR_NUM    = B.PR_NUM
+														) = #{IF_TYPE} -- IF_TYPE 유형에 따라 처리
+													)
+										) M ON N.GATE_CD = M.GATE_CD
+											AND N.BUYER_CD = M.BUYER_CD
+											AND N.RFX_NUM = M.RFX_NUM
+											AND N.RFX_CNT = M.RFX_CNT
+						JOIN STOCVNGL V ON N.GATE_CD = V.GATE_CD
+										AND N.VENDOR_CD = V.VENDOR_CD
+						JOIN STOCCVUR U ON N.GATE_CD = U.GATE_CD
+										AND N.REG_USER_ID = U.USER_ID
+			) A
+			GROUP BY A.GATE_CD
+					,A.BUYER_CD
+					,A.CONT_NUM
+					,A.CONT_CNT
+					,A.VENDOR_CD
+					,A.SELECT_FLAG
+					,A.VENDOR_NM
+					,A.IRS_NO
+					,A.VENDOR_PIC_USER_NM
+					,A.VENDOR_PIC_USER_EMAIL
+					,A.VENDOR_PIC_USER_CELL_NUM
+	</select>
+
+    <select id="getFileSeq" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			  LPAD(SEQ_FILE_SEQ.NEXTVAL,3,'0') SEQ
+			, TO_CHAR(SYSDATE,'YYYYMMDD') TODAY
+			, TO_CHAR(SYSDATE,'HHMMSS') TOTIME
+		FROM DUAL
+	</select>
+
+    <select id="makeAtch" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			 K.GATE_CD
+			,K.UUID
+			,K.UUID_SQ
+			,K.FILE_NM
+			,K.FILE_PATH
+			,K.FILE_SIZE
+			,K.FILE_EXTENSION
+			,K.REAL_FILE_NM||'.'||K.FILE_EXTENSION REAL_FILE_NM
+			,K.BIZ_TYPE
+			,K.REG_DATE
+			,K.REG_USER_ID
+			,K.MOD_DATE
+			,K.MOD_USER_ID
+			,K.FILE_SQ
+			,K.DEL_FLAG
+			,K.ENC_FLAG
+			,A.BUYER_CD
+			,A.CONT_NUM
+			,A.CONT_CNT
+			,A.PR_BUYER_CD
+			,A.PR_DEPT_CD
+		FROM STOCECPC A JOIN STOCATCH K ON A.GATE_CD = K.GATE_CD
+									   AND A.PDF_ATT_FILE_NUM = K.UUID
+									   AND K.DEL_FLAG = '0'
+		WHERE A.GATE_CD = '100'
+		AND A.BUYER_CD = #{BUYER_CD}
+		AND A.CONT_NUM = #{CONT_NUM}
+		AND A.CONT_CNT = #{CONT_CNT}
+
+		UNION ALL/*===============================================================================================*/
+		SELECT
+			 K.GATE_CD
+			,K.UUID
+			,K.UUID_SQ
+			,K.FILE_NM
+			,K.FILE_PATH
+			,K.FILE_SIZE
+			,K.FILE_EXTENSION
+			,K.REAL_FILE_NM||'.'||K.FILE_EXTENSION REAL_FILE_NM
+			,K.BIZ_TYPE
+			,K.REG_DATE
+			,K.REG_USER_ID
+			,K.MOD_DATE
+			,K.MOD_USER_ID
+			,K.FILE_SQ
+			,K.DEL_FLAG
+			,K.ENC_FLAG
+			,A.BUYER_CD
+			,A.CONT_NUM
+			,A.CONT_CNT
+			,A.PR_BUYER_CD
+			,A.PR_DEPT_CD
+		FROM STOCECPC A JOIN STOCATCH K ON A.GATE_CD = K.GATE_CD
+									   AND A.ATT_FILE_NUM = K.UUID
+									   AND K.DEL_FLAG = '0'
+		WHERE A.GATE_CD = '100'
+		AND A.BUYER_CD = #{BUYER_CD}
+		AND A.CONT_NUM = #{CONT_NUM}
+		AND A.CONT_CNT = #{CONT_CNT}
+		AND A.PAY_CNT = '0'
+		AND A.GUAR_TYPE = 'CONT'
+
+		UNION ALL/*===============================================================================================*/
+		SELECT
+			 K.GATE_CD
+			,K.UUID
+			,K.UUID_SQ
+			,K.FILE_NM
+			,K.FILE_PATH
+			,K.FILE_SIZE
+			,K.FILE_EXTENSION
+			,K.REAL_FILE_NM
+			,K.BIZ_TYPE
+			,K.REG_DATE
+			,K.REG_USER_ID
+			,K.MOD_DATE
+			,K.MOD_USER_ID
+			,K.FILE_SQ
+			,K.DEL_FLAG
+			,K.ENC_FLAG
+			,A.BUYER_CD
+			,A.CONT_NUM
+			,A.CONT_CNT
+			,'' PR_BUYER_CD
+			,'' PR_DEPT_CD
+		FROM STOCECCT A JOIN STOCATCH K ON A.GATE_CD = K.GATE_CD
+									   AND A.ATT_FILE_NUM = K.UUID
+									   AND K.DEL_FLAG = '0'
+		WHERE A.GATE_CD = '100'
+		AND A.BUYER_CD = #{BUYER_CD}
+		AND A.CONT_NUM = #{CONT_NUM}
+		AND A.CONT_CNT = #{CONT_CNT}
+
+		UNION ALL/*===============================================================================================*/
+		SELECT
+			 K.GATE_CD
+			,K.UUID
+			,K.UUID_SQ
+			,K.FILE_NM
+			,K.FILE_PATH
+			,K.FILE_SIZE
+			,K.FILE_EXTENSION
+			,K.REAL_FILE_NM
+			,K.BIZ_TYPE
+			,K.REG_DATE
+			,K.REG_USER_ID
+			,K.MOD_DATE
+			,K.MOD_USER_ID
+			,K.FILE_SQ
+			,K.DEL_FLAG
+			,K.ENC_FLAG
+			,A.BUYER_CD
+			,A.CONT_NUM
+			,A.CONT_CNT
+			,'' PR_BUYER_CD
+			,'' PR_DEPT_CD
+		FROM STOCECCT A JOIN STOCATCH K ON A.GATE_CD = K.GATE_CD
+									   AND A.VENDOR_ATT_FILE_NUM = K.UUID
+									   AND K.DEL_FLAG = '0'
+		WHERE A.GATE_CD = '100'
+		AND A.BUYER_CD = #{BUYER_CD}
+		AND A.CONT_NUM = #{CONT_NUM}
+		AND A.CONT_CNT = #{CONT_CNT}
+	</select>
+
+    <select id="makeEcpc20200810" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			 B.GATE_CD              --게이트코드 - [Gate Code]
+			,B.BUYER_CD             --고객사코드
+			,B.CONT_NUM             --계약서번호 - (Contract No.)
+			,B.CONT_CNT             --계약차수 - (Contract Ordinal No.)
+			,B.PR_BUYER_CD          --의뢰고객사 (계약체결 고객사)
+			,B.PR_DEPT_CD           --의뢰부서/사무소
+			,B.VENDOR_CD            --업체코드 - [Vendor Code]
+			,B.PAY_CNT              --지급차수
+			,B.PY_BUYER_CD          --지불고객사
+			,B.PY_DEPT_CD           --지불부서/사무소
+			,B.REG_DATE             --등록일자 - [Registration Date]
+			,B.REG_USER_ID          --등록자ID - (Registerer ID)
+			,B.MOD_DATE             --수정일자 - (Update  Date)
+			,B.MOD_USER_ID          --수정자ID - (Updater  ID)
+			,B.DEL_FLAG             --삭제여부 - (Check whether it is deleted or not)
+			,(SELECT IRS_NO FROM STOCVNGL WHERE GATE_CD = B.GATE_CD AND VENDOR_CD = B.VENDOR_CD) IRS_NO              --업체 사업자번호
+			,B.PAY_AMT              --지급금액 - (Payment Amount) or 계약금액
+			,B.GUAR_TYPE            --보증구분[M404]
+			,B.GUAR_PERCENT         --보증율 - Guarantee Percentage)
+			,B.GUAR_QT              --하자이행보증기간_월 - (Warranty Guarantee Period_Month)
+			,B.VAT_FLAG             --보증금VAT여부
+			,B.GUAR_AMT             --보증금 - (Guarantee Amount)
+			,B.ATT_FILE_NUM         --보증첨부파일번호
+			,B.GUAR_NUM             --보증증권번호
+			,B.INSU_STATUS          --보증상태
+			,B.RMK                  --비고
+			,B.GUAR_TYPE2           --보증방법 [M401]
+			,B.GUARANTEER           --보증기관 [M402]
+			,(
+					 SELECT CORP_TYPE FROM STOCCUST
+					 WHERE GATE_CD = B.GATE_CD
+				     AND CUST_CD = B.PR_BUYER_CD
+			 ) CORP_TYPE            --계약체결고객사 법인구분
+			,(
+					 SELECT CORP_TYPE FROM STOCCUST
+					 WHERE GATE_CD = B.GATE_CD
+				     AND CUST_CD = B.PY_BUYER_CD
+			 ) PY_CORP_TYPE         --지불고객사 법인구분
+		FROM STOCECPC B
+		WHERE B.GATE_CD = '100'
+		AND B.BUYER_CD = #{BUYER_CD}
+		AND B.CONT_NUM = #{CONT_NUM}
+		AND B.CONT_CNT = #{CONT_CNT}
+		AND (
+				 SELECT CORP_TYPE FROM STOCCUST
+				 WHERE GATE_CD = B.GATE_CD
+			     AND CUST_CD = B.PY_BUYER_CD
+		    )
+		<if test="IF_TYPE == 'ITA'">
+			= '5'
+		</if>
+		<if test="IF_TYPE == 'ITB'">
+			= '1'
+		</if>
+	</select>
+
+
+    <select id="makeEcpy20200810" parameterType="hashmap" resultType="hashmap">
+			SELECT
+			 A.GATE_CD              --게이트코드 - [Gate Code]
+			,A.BUYER_CD             --고객사코드
+			,A.CONT_NUM             --계약서번호 - (Contract No.)
+			,A.CONT_CNT             --계약차수 - (Contract Ordinal No.)
+			,A.PR_BUYER_CD          --의뢰고객사 (계약체결 고객사)
+			,A.PR_DEPT_CD           --의뢰부서/사무소
+			,A.VENDOR_CD            --업체코드 - [Vendor Code]
+			,A.PAY_CNT              --지급차수 - (Payment Ordinal No.)
+			,A.REG_DATE             --등록일자 - [Registration Date]
+			,A.REG_USER_ID          --등록자ID - (Registerer ID)
+			,A.MOD_DATE             --수정일자 - (Update  Date)
+			,A.MOD_USER_ID          --수정자ID - (Updater  ID)
+			,A.DEL_FLAG             --삭제여부 - (Check whether it is deleted or not)
+			,A.PAY_CNT_TYPE         --지급차수구분 - [M097]
+			,A.PAY_CNT_NM           --지급차수명 - (Payment Count Name)
+			,ROUND(SUM(B.PAY_AMT) / MAX(TOTAL_PAY_AMT) * 100) AS PAY_PERCENT          --지급율 퍼센트(%) - (Payment Percentage)
+			,SUM(B.PAY_AMT) AS PAY_AMT   --지급금액 - (Payment Amount)
+			,A.PAY_METHOD_TYPE      --세부지급조건 - (Payment Method) - [M018]
+			,A.PAY_METHOD_NM        --지급상세내역 - (Payment Term Name)
+			,A.PAY_DUE_DATE         --지급예정일자 - (Payment Due Date)
+			,(SELECT IRS_NO FROM STOCVNGL WHERE GATE_CD=A.GATE_CD AND VENDOR_CD=A.VENDOR_CD) IRS_NO               --업체 사업자번호
+			,(
+					 SELECT CORP_TYPE FROM STOCCUST
+					 WHERE GATE_CD = A.GATE_CD
+				     AND CUST_CD = A.PR_BUYER_CD
+			 ) CORP_TYPE         --계약체결고객사 법인구분
+			FROM STOCECPC B
+							--LEFT OUTER JOIN
+							JOIN STOCECPY A ON B.GATE_CD  = A.GATE_CD
+														AND B.BUYER_CD     = A.BUYER_CD
+														AND B.CONT_NUM     = A.CONT_NUM
+														AND B.CONT_CNT     = A.CONT_CNT
+														AND B.PR_BUYER_CD  = A.PR_BUYER_CD
+														AND B.PR_DEPT_CD   = A.PR_DEPT_CD
+														AND B.VENDOR_CD    = A.VENDOR_CD
+														AND B.PAY_CNT      = A.PAY_CNT
+							JOIN (		SELECT SUM(B.PAY_AMT) TOTAL_PAY_AMT
+										FROM STOCECPC B
+														-- LEFT OUTER JOIN
+														JOIN STOCECPY A ON B.GATE_CD  = A.GATE_CD
+																					AND B.BUYER_CD     = A.BUYER_CD
+																					AND B.CONT_NUM     = A.CONT_NUM
+																					AND B.CONT_CNT     = A.CONT_CNT
+																					AND B.PR_BUYER_CD  = A.PR_BUYER_CD
+																					AND B.PR_DEPT_CD   = A.PR_DEPT_CD
+																					AND B.VENDOR_CD    = A.VENDOR_CD
+																					AND B.PAY_CNT      = A.PAY_CNT
+										WHERE B.GATE_CD = '100'
+										AND B.BUYER_CD = #{BUYER_CD}
+										AND B.CONT_NUM = #{CONT_NUM}
+										AND B.CONT_CNT = #{CONT_CNT}
+										AND (
+												 SELECT CORP_TYPE FROM STOCCUST
+												 WHERE GATE_CD = B.GATE_CD
+											     AND CUST_CD = B.PY_BUYER_CD
+										    )
+									<if test="IF_TYPE == 'ITA'">
+										= '5'
+									</if>
+									<if test="IF_TYPE == 'ITB'">
+										= '1'
+									</if>
+							) C ON 1 = 1
+
+			WHERE B.GATE_CD = '100'
+			AND B.BUYER_CD = #{BUYER_CD}
+			AND B.CONT_NUM = #{CONT_NUM}
+			AND B.CONT_CNT = #{CONT_CNT}
+			AND B.PAY_CNT NOT IN (0,-1) -- 계약보증 차액보증 제외
+			AND (
+					 SELECT CORP_TYPE FROM STOCCUST
+					 WHERE GATE_CD = B.GATE_CD
+				     AND CUST_CD = B.PY_BUYER_CD
+			    )
+		<if test="IF_TYPE == 'ITA'">
+			= '5'
+		</if>
+		<if test="IF_TYPE == 'ITB'">
+			= '1'
+		</if>
+		GROUP BY
+			 A.GATE_CD              --게이트코드 - [Gate Code]
+			,A.BUYER_CD             --고객사코드
+			,A.CONT_NUM             --계약서번호 - (Contract No.)
+			,A.CONT_CNT             --계약차수 - (Contract Ordinal No.)
+			,A.PR_BUYER_CD          --의뢰고객사 (계약체결 고객사)
+			,A.PR_DEPT_CD           --의뢰부서/사무소
+			,A.VENDOR_CD            --업체코드 - [Vendor Code]
+			,A.PAY_CNT              --지급차수 - (Payment Ordinal No.)
+			,A.REG_DATE             --등록일자 - [Registration Date]
+			,A.REG_USER_ID          --등록자ID - (Registerer ID)
+			,A.MOD_DATE             --수정일자 - (Update  Date)
+			,A.MOD_USER_ID          --수정자ID - (Updater  ID)
+			,A.DEL_FLAG             --삭제여부 - (Check whether it is deleted or not)
+			,A.PAY_CNT_TYPE         --지급차수구분 - [M097]
+			,A.PAY_CNT_NM           --지급차수명 - (Payment Count Name)
+			,A.PAY_PERCENT          --지급율 퍼센트(%) - (Payment Percentage)
+			,A.PAY_METHOD_TYPE      --세부지급조건 - (Payment Method) - [M018]
+			,A.PAY_METHOD_NM        --지급상세내역 - (Payment Term Name)
+			,A.PAY_DUE_DATE         --지급예정일자 - (Payment Due Date)
+	</select>
+
+	<select id="getTargetRegUserId" parameterType="String" resultType="hashmap">
+		SELECT *
+	    FROM stoccodd
+	    WHERE code_type='NH0040'
+	</select>
+
+</mapper>

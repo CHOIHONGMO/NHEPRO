@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.OETR.OETR0020_Mapper">
+	
+	<resultMap id="clobMap" type="HashMap">
+		<result property="SIGN_VALUE" column="SIGN_VALUE" jdbcType="CLOB" javaType="java.lang.String" />
+	</resultMap>
+	
+    <select id="oetr0020_doSearch" parameterType="hashMap" resultType="hashMap">
+    	
+        SELECT
+              ROWNUM AS ROW_NUM
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(NOTC.GATE_CD,  NOTC.REG_USER_ID , #{ses.langCd}) AS REG_USER_NAME
+            ,(CASE WHEN <include refid="common.sql.dbo"/>GETFILECOUNT(NOTC.GATE_CD, NOTC.ATT_FILE_NUM) = 0 THEN NULL
+                   ELSE <include refid="common.sql.dbo"/>GETFILECOUNT(NOTC.GATE_CD, NOTC.ATT_FILE_NUM)
+              END) AS ATTACH_FILE_NO_DISPLAY
+            ,<include refid="common.sql.toChar"/>(NOTC.REG_DATE, 'YYYY-MM-DD') AS REG_DATE
+            ,<include refid="common.sql.toChar"/>(NOTC.START_DATE, 'YYYY-MM-DD')
+             <include refid="common.sql.stringMerge"/>' ~ '<include refid="common.sql.stringMerge"/>
+             <include refid="common.sql.toChar"/>(NOTC.END_DATE, 'YYYY-MM-DD') AS NOTICE_DATE
+            , NOTC.VIEW_TYPE
+            , NOTC.SUBJECT
+            , NOTC.REG_USER_ID  AS REG_USER_ID
+            , NOTC.ATT_FILE_NUM AS ATTACH_FILE_NO
+            ,(CASE WHEN NOTC.ATT_FILE_NUM IS NOT NULL AND (SELECT COUNT(*) FROM STOCATCH
+                                                            WHERE GATE_CD  = #{ses.gateCd}
+                                                              AND UUID     = NOTC.ATT_FILE_NUM
+                                                              AND DEL_FLAG = '0') <![CDATA[>]]> 0 THEN '0'
+              	   ELSE '1'
+              END) AS ATTACH_FILE_NO_DISPLAY_IMAGE
+            ,<include refid="common.sql.nvl"/>(NOTC.VIEW_CNT, 0) AS VIEW_CNT
+            , NOTC.GATE_CD
+            , NOTC.NOTICE_NUM
+            ,<include refid="common.sql.nvl"/>(NOTC.POPUP_FLAG, '0') AS POPUP_FLAG
+            , NOTC.FIXED_TOP_FLAG
+            , COMMENT1
+            , COMMENT2
+         FROM STOCNOTC NOTC
+        WHERE NOTC.GATE_CD  = #{ses.gateCd}
+          AND NOTC.NOTICE_TYPE = #{NOTICE_TYPE}
+          AND NOTC.DEL_FLAG = '0'
+		
+		<choose>
+			<when test="ADD_FROM_DATE != '' and ADD_FROM_DATE != null and ADD_TO_DATE != '' and ADD_TO_DATE != null">
+                AND ((NOTC.START_DATE <![CDATA[>=]]> #{ADD_FROM_DATE} AND NOTC.START_DATE <![CDATA[<=]]> #{ADD_TO_DATE})
+                    OR (NOTC.END_DATE <![CDATA[>=]]> #{ADD_FROM_DATE} AND NOTC.END_DATE <![CDATA[<=]]> #{ADD_TO_DATE}))
+            </when>
+            <otherwise>
+                <if test="ADD_FROM_DATE != '' and ADD_FROM_DATE != null">
+                    AND NOTC.START_DATE <![CDATA[>=]]> #{ADD_FROM_DATE}
+                </if>
+                <if test="ADD_TO_DATE != '' and ADD_TO_DATE != null">
+                    AND NOTC.END_DATE <![CDATA[<=]]> #{ADD_TO_DATE}
+                </if>
+            </otherwise>
+        </choose>
+        <if test="VIEW_TYPE != '' and VIEW_TYPE != null ">
+            AND NOTC.VIEW_TYPE = #{VIEW_TYPE}
+        </if>
+        <if test="ADD_USER_NAME != '' and ADD_USER_NAME != null ">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(NOTC.GATE_CD, NOTC.REG_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ADD_USER_NAME}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="SUBJECT != '' and SUBJECT != null ">
+            AND UPPER(NOTC.SUBJECT) like '%' <include refid="common.sql.stringMerge"/> UPPER(#{SUBJECT}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+         ORDER BY NOTC.FIXED_TOP_FLAG DESC, NOTC.REG_DATE DESC, NOTC.NOTICE_NUM DESC
+    </select>
+	
+	<!-- STOCTXTH의 SIGN_VALUE가 CLOB이기 때문에 resultMap="clobMap"로 설정 -->
+    <select id="oetr0021_doSearchNoticeInfo" parameterType="hashMap" resultType="java.util.Map" resultMap="clobMap">
+        SELECT
+        	  NOTC.SUBJECT
+            , NOTC.NOTICE_NUM
+            , NOTC.NOTICE_TEXT_NUM
+            , NOTC.VIEW_TYPE
+            , <include refid="common.sql.nvl"/>(NOTC.VIEW_CNT, 0) AS VIEW_CNT
+            , <include refid="common.sql.toChar"/>(NOTC.START_DATE, 'YYYYMMDD') as START_DATE
+            , <include refid="common.sql.toChar"/>(NOTC.END_DATE, 'YYYYMMDD') as END_DATE
+            , <include refid="common.sql.toChar"/>(NOTC.REG_DATE, ' YYYY-MM-DD') REG_DATE
+            , <include refid="common.sql.dbo"/>GETUSERNAME(NOTC.GATE_CD,  NOTC.REG_USER_ID , #{ses.langCd}) AS REG_USER_NM
+            , NOTC.REG_USER_ID  REG_USER_ID
+            , NOTC.ATT_FILE_NUM
+            , <include refid="common.sql.nvl"/>(NOTC.POPUP_FLAG, '0') AS POPUP_FLAG
+            , NOTC.FIXED_TOP_FLAG
+            , NOTC.COMMENT1
+            , NOTC.COMMENT2
+            , TXTH.SIGN_VALUE
+            , TXTH.VID_RANDOM
+            , TXTH.IRS_NUM
+         FROM STOCNOTC NOTC
+         LEFT JOIN STOCTXTH TXTH
+         	  ON (NOTC.GATE_CD  = TXTH.GATE_CD
+         	  AND NOTC.NOTICE_TEXT_NUM = TXTH.TEXT_NUM)
+        WHERE NOTC.GATE_CD    = #{ses.gateCd}
+          AND NOTC.NOTICE_NUM = #{NOTICE_NUM}
+    </select>
+
+    <update id="oetr0021_doSaveCount" parameterType="hashMap">
+        UPDATE STOCNOTC SET
+               VIEW_CNT   = #{VIEW_CNT}
+         WHERE GATE_CD    = #{ses.gateCd}
+           AND NOTICE_NUM = #{NOTICE_NUM}
+    </update>
+	
+	<!-- 2021.02.19 COMMENT1, COMMENT2 추가 -->
+    <insert id="oetr0021_doInsert" parameterType="hashMap">
+        INSERT INTO STOCNOTC (
+              GATE_CD
+            , BUYER_CD
+            , DEPT_CD
+            , NOTICE_NUM
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , POPUP_FLAG	-- ASP계약 및 동의서에서 임시저장(0), 완료(1)로 사용
+            , SUBJECT
+            , NOTICE_TYPE
+            , VIEW_TYPE
+            , FIXED_TOP_FLAG
+            , START_DATE
+            , END_DATE
+            , NOTICE_TEXT_NUM
+            , ATT_FILE_NUM
+            , VIEW_CNT
+            , COMMENT1
+            , COMMENT2
+        ) VALUES (
+              #{ses.gateCd}
+            , #{ses.companyCd}
+            , #{ses.deptCd}
+            , #{NOTICE_NUM}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , <include refid="common.sql.nvl"/>(#{POPUP_FLAG}, '0')		-- ASP계약 및 동의서에서 임시저장(0), 완료(1)로 사용
+            , #{SUBJECT}
+            , #{NOTICE_TYPE}
+            , #{VIEW_TYPE}
+            , CASE WHEN <include refid="common.sql.nvl"/>(#{FIXED_TOP_FLAG}, '0' ) = 'on' THEN '1' ELSE '0' END
+            , #{START_DATE}
+            , #{END_DATE}
+            , #{NOTICE_TEXT_NUM}
+            , #{ATT_FILE_NUM}
+            , 0
+            , #{COMMENT1}
+            , #{COMMENT2}
+        )
+    </insert>
+	
+	<!-- 2021.02.19 COMMENT1, COMMENT2 추가 -->
+    <update id="oetr0021_doUpdate" parameterType="hashMap">
+        UPDATE STOCNOTC SET
+              MOD_DATE        = SYSDATE
+            , MOD_USER_ID     = #{ses.userId}
+            , POPUP_FLAG      = <include refid="common.sql.nvl"/>(#{POPUP_FLAG}, '0')	-- ASP계약 및 동의서에서 임시저장(0), 완료(1)로 사용
+            , SUBJECT         = #{SUBJECT}
+            , VIEW_TYPE       = #{VIEW_TYPE}
+            , FIXED_TOP_FLAG  = CASE WHEN <include refid="common.sql.nvl"/>(#{FIXED_TOP_FLAG}, '0' ) = 'on' THEN '1' ELSE '0' END
+            , START_DATE      = #{START_DATE}
+            , END_DATE        = #{END_DATE}
+            , NOTICE_TEXT_NUM = #{NOTICE_TEXT_NUM}
+            , ATT_FILE_NUM    = #{ATT_FILE_NUM}
+            , COMMENT1        = #{COMMENT1}
+            , COMMENT2        = #{COMMENT2}
+        WHERE GATE_CD    = #{ses.gateCd}
+          AND NOTICE_NUM = #{NOTICE_NUM}
+    </update>
+	
+    <update id="oetr0021_doDelete" parameterType="hashMap">
+        UPDATE STOCNOTC SET
+              DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD    = #{ses.gateCd}
+          AND NOTICE_NUM = #{NOTICE_NUM}
+    </update>
+	
+	<update id="oetr0051_doUpdateLastFlag" parameterType="hashMap">
+        UPDATE STOCNOTC SET
+               FIXED_TOP_FLAG = CASE WHEN <include refid="common.sql.nvl"/>(#{FIXED_TOP_FLAG}, '0' ) = 'on' THEN '0' ELSE FIXED_TOP_FLAG END
+         WHERE GATE_CD     = #{ses.gateCd}
+           AND NOTICE_TYPE = #{NOTICE_TYPE}
+           AND VIEW_TYPE   = #{VIEW_TYPE}
+           AND FIXED_TOP_FLAG = '1'	-- 최종여부
+    </update>
+    
+    
+    <select id="oetr0060_doSearch" parameterType="hashMap" resultType="hashMap">
+    	
+        SELECT
+              CMSV.COMPANY_CD
+            , CMSV.USER_TYPE
+            , CMSV.SIGN_ID
+            , CMSV.SIGN_SQ
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(CMSV.GATE_CD, CMSV.SIGN_ID, #{ses.langCd}) AS SIGN_USER_NM
+            , CMSV.PROGRESS_CD
+            ,(CASE WHEN CMSV.USER_TYPE = 'B' THEN (SELECT CUST_NM FROM STOCCUST
+            										WHERE GATE_CD = CMSV.GATE_CD
+            										  AND CUST_CD = CMSV.COMPANY_CD)
+            	   ELSE (SELECT VENDOR_NM FROM STOCVNGL
+            	   		  WHERE GATE_CD   = CMSV.GATE_CD
+            	   		    AND VENDOR_NM = CMSV.COMPANY_CD)
+              END) AS COMPANY_NM
+            ,<include refid="common.sql.dbo"/>GETDEPTNAME(CMSV.GATE_CD, CMSV.COMPANY_CD, (SELECT NVL(CODE,'') FROM STOCCODD WHERE CODE_TYPE = 'M406' AND TEXT2 = CMSV.FORM_NUM), #{ses.langCd}) AS SIGN_DEPT_NM  
+            ,<include refid="common.sql.toChar"/>(CMSV.SIGN_DATE, 'YYYY-MM-DD HH24:MI:SS') AS SIGN_DATE
+            , NOTC.VIEW_TYPE
+            , NOTC.SUBJECT
+            , NOTC.NOTICE_NUM
+            , CMSV.CONT_START_DATE
+            , CMSV.CONT_END_DATE
+            , SUBSTR(CMSV.VENDOR_IRS_NUM, 0, 3)<include refid="common.sql.stringMerge"/>'-'<include refid="common.sql.stringMerge"/>
+			  SUBSTR(CMSV.VENDOR_IRS_NUM, 4, 2)<include refid="common.sql.stringMerge"/>'-'<include refid="common.sql.stringMerge"/>
+			  SUBSTR(CMSV.VENDOR_IRS_NUM, 6) 	AS VENDOR_IRS_NUM
+            , CMSV.VENDOR_NM
+            ,<include refid="common.sql.strDecStart"/>CMSV.VENDOR_CEO_NM<include refid="common.sql.strDecEnd"/> AS VENDOR_CEO_NM
+         FROM STOCCMSV CMSV
+         JOIN STOCNOTC NOTC
+         	  ON (CMSV.GATE_CD  = NOTC.GATE_CD
+         	  AND CMSV.FORM_NUM = NOTC.NOTICE_NUM
+         	  AND NOTC.NOTICE_TYPE = 'CMS')
+        WHERE CMSV.GATE_CD  = #{ses.gateCd}
+		
+		<choose>
+			<when test="ADD_FROM_DATE != '' and ADD_FROM_DATE != null and ADD_TO_DATE != '' and ADD_TO_DATE != null">
+                AND ((CMSV.CONT_START_DATE <![CDATA[>=]]> #{ADD_FROM_DATE} AND CMSV.CONT_START_DATE <![CDATA[<=]]> #{ADD_TO_DATE})
+                  OR (CMSV.CONT_END_DATE   <![CDATA[>=]]> #{ADD_FROM_DATE} AND CMSV.CONT_END_DATE   <![CDATA[<=]]> #{ADD_TO_DATE}))
+            </when>
+            <otherwise>
+                <if test="ADD_FROM_DATE != '' and ADD_FROM_DATE != null">
+                AND CMSV.CONT_START_DATE <![CDATA[>=]]> #{ADD_FROM_DATE}
+                </if>
+                <if test="ADD_TO_DATE != '' and ADD_TO_DATE != null">
+                AND CMSV.CONT_END_DATE   <![CDATA[<=]]> #{ADD_TO_DATE}
+                </if>
+            </otherwise>
+        </choose>
+        <if test="VIEW_TYPE != '' and VIEW_TYPE != null ">
+            AND NOTC.VIEW_TYPE = #{VIEW_TYPE}
+        </if>
+        <if test="SUBJECT != '' and SUBJECT != null ">
+            AND UPPER(CMSV.VENDOR_NM) like '%' <include refid="common.sql.stringMerge"/> UPPER(#{SUBJECT}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        
+         ORDER BY CMSV.REG_DATE DESC
+    </select>
+    
+    <!-- 2021.03.04 추가 -->
+    <select id="oetr0061_doSearchNoticeInfo" parameterType="hashMap" resultType="java.util.Map" resultMap="clobMap">
+		SELECT
+			  NOTC.SUBJECT
+			, NOTC.NOTICE_NUM
+			, NOTC.NOTICE_TEXT_NUM
+			,<include refid="common.sql.toChar"/>(NOTC.START_DATE, 'YYYY')<include refid="common.sql.stringMerge"/>'년 '<include refid="common.sql.stringMerge"/>
+			 <include refid="common.sql.toChar"/>(NOTC.START_DATE, 'MM')  <include refid="common.sql.stringMerge"/>'월 '<include refid="common.sql.stringMerge"/>
+			 <include refid="common.sql.toChar"/>(NOTC.START_DATE, 'DD')  <include refid="common.sql.stringMerge"/>'일' AS START_DATE
+			,<include refid="common.sql.toChar"/>(NOTC.END_DATE, 'YYYY')<include refid="common.sql.stringMerge"/>'년 '<include refid="common.sql.stringMerge"/>
+			 <include refid="common.sql.toChar"/>(NOTC.END_DATE, 'MM')  <include refid="common.sql.stringMerge"/>'월 '<include refid="common.sql.stringMerge"/>
+			 <include refid="common.sql.toChar"/>(NOTC.END_DATE, 'DD')  <include refid="common.sql.stringMerge"/>'일' AS END_DATE
+			, NOTC.COMMENT1				AS UNIT_PRC_TEXT
+			, NOTC.COMMENT2				AS AP_TEXT
+			, SUBSTR(CMSV.IRS_NUM, 0, 3)<include refid="common.sql.stringMerge"/>'-'<include refid="common.sql.stringMerge"/>
+			  SUBSTR(CMSV.IRS_NUM, 4, 2)<include refid="common.sql.stringMerge"/>'-'<include refid="common.sql.stringMerge"/>
+			  SUBSTR(CMSV.IRS_NUM, 6) 	AS IRS_NUM_TEXT
+			, CMSV.COMPANY_NM			AS COMPANY_NM
+			,<include refid="common.sql.strDecStart"/>CMSV.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+			,<include refid="common.sql.strDecStart"/>CMSV.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+			,<include refid="common.sql.strDecStart"/>CMSV.ADDR1<include refid="common.sql.strDecEnd"/> AS ADDR1
+			, CMSV.ADDR2				AS ADDR2
+			,<include refid="common.sql.toChar"/>(CMSV.SIGN_DATE, 'YYYY')<include refid="common.sql.stringMerge"/>'년 '<include refid="common.sql.stringMerge"/>
+			 <include refid="common.sql.toChar"/>(CMSV.SIGN_DATE, 'MM')  <include refid="common.sql.stringMerge"/>'월 '<include refid="common.sql.stringMerge"/>
+			 <include refid="common.sql.toChar"/>(CMSV.SIGN_DATE, 'DD')  <include refid="common.sql.stringMerge"/>'일' AS SIGN_DATE_TEXT
+			, CMSV.VENDOR_IRS_NUM		AS VENDOR_IRS_NUM
+			, CMSV.VENDOR_NM			AS VENDOR_NM
+			,<include refid="common.sql.strDecStart"/>CMSV.VENDOR_CEO_NM<include refid="common.sql.strDecEnd"/> AS VENDOR_CEO_NM
+			,<include refid="common.sql.strDecStart"/>CMSV.VENDOR_ZIP_CD<include refid="common.sql.strDecEnd"/> AS VENDOR_ZIP_CD
+			,<include refid="common.sql.strDecStart"/>CMSV.VENDOR_ADDR1<include refid="common.sql.strDecEnd"/> AS VENDOR_ADDR1
+			,<include refid="common.sql.strDecStart"/>CMSV.VENDOR_ADDR2<include refid="common.sql.strDecEnd"/> AS VENDOR_ADDR2
+		  FROM STOCCMSV CMSV
+		  JOIN STOCNOTC NOTC
+		  	   ON (CMSV.GATE_CD  = NOTC.GATE_CD
+		  	   AND CMSV.FORM_NUM = NOTC.NOTICE_NUM)
+        WHERE CMSV.GATE_CD    = #{ses.gateCd}
+          AND CMSV.COMPANY_CD = #{COMPANY_CD}
+          AND CMSV.SIGN_ID    = #{SIGN_ID}
+          AND CMSV.SIGN_SQ    = #{SIGN_SQ}
+    </select>
+    
+</mapper>

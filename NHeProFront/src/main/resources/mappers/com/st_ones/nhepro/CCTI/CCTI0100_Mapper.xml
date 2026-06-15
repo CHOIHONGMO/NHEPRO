@@ -1,0 +1,681 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCTI.CCTI0100_Mapper">
+	
+	<!-- 계약관리 > 전자계약 > 수기계약서 등록 (CCTI0100) : 수기계약서 조회 -->
+	<select id="ccti0100_doSearch" parameterType="hashmap" resultType="hashmap">
+		SELECT ECCT.BUYER_CD
+		     ,<include refid="common.sql.dbo"/>GETCUSTNAME(ECCT.GATE_CD, ECCT.BUYER_CD) AS BUYER_NM
+		     , ECCT.CONT_NUM
+			 , ECCT.CONT_CNT
+			 , ECCT.PROGRESS_CD
+			 , ECCT.CONT_REQ_CD
+		     ,<include refid="common.sql.toChar"/>(ECCT.CONT_DATE, 'YYYYMMDD') AS CONT_DATE
+		     ,<include refid="common.sql.toChar"/>(ECCT.ORIGIN_CONT_START_DATE, 'YYYYMMDD') AS ORIGIN_CONT_START_DATE
+		     ,<include refid="common.sql.toChar"/>(ECCT.CONT_START_DATE, 'YYYYMMDD') AS CONT_START_DATE
+		     ,<include refid="common.sql.toChar"/>(ECCT.CONT_END_DATE, 'YYYYMMDD') AS CONT_END_DATE
+		     , ECCT.CONT_DESC
+		     , ECCT.CONT_AMT
+		     , ECCT.CUR
+		     , ECCT.VAT_TYPE
+		     , ECCT.CONT_RMK
+		     , ECCT.CONT_USER_ID
+		     , <include refid="common.sql.dbo"/>GETUSERNAME(ECCT.GATE_CD, ECCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+		     , (SELECT COUNT(*) FROM STOCATCH
+				 WHERE GATE_CD  = ECCT.GATE_CD
+				   AND UUID     = ECCT.ATT_FILE_NUM
+				   AND DEL_FLAG = '0') AS ATT_FILE_CNT
+		     , ECCT.ATT_FILE_NUM
+		     ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(ECCM.GATE_CD, ECCM.PR_BUYER_CD, ECCM.PR_DEPT_CD, #{ses.langCd}) AS PR_BUYER_DEPT_NM
+			 , ECCM.PR_BUYER_CD
+		     ,<include refid="common.sql.dbo"/>GETCUSTNAME(ECCM.GATE_CD, ECCM.PR_BUYER_CD) AS PR_BUYER_NM
+			 , ECCM.PR_DEPT_CD
+			 ,<include refid="common.sql.dbo"/>GETDEPTNAME(ECCM.GATE_CD, ECCM.PR_BUYER_CD, ECCM.PR_DEPT_CD, #{ses.langCd}) AS PR_DEPT_NM
+			 , ECCM.VENDOR_CD
+			 ,<include refid="common.sql.dbo"/>GETVENDORNAME(ECCM.GATE_CD, ECCM.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+			 , ECCM.METHOD_TYPE
+		  	 , ECCM.PAY_TERMS
+		  	 , ECCM.PO_CREATE_FLAG
+		  	 , ECCM.IV_TYPE
+		  	 ,(SELECT MAX(EXEC_NUM) FROM STOCECMT
+		  	    WHERE GATE_CD  = ECCT.GATE_CD
+		  	      AND BUYER_CD = ECCT.BUYER_CD
+		  	      AND CONT_NUM = ECCT.CONT_NUM
+		  	      AND CONT_CNT = ECCT.CONT_CNT
+		  	      AND DEL_FLAG = '0') AS EXEC_NUM
+		  	 ,<include refid="common.sql.nvl"/>(ECCT.IF_YN, '0') AS IF_YN -- ITPortal I/F 여부(2021.08.10)
+		  	 ,(SELECT MAX(PRHD.IF_TYPE) FROM STOCECMT ECMT
+			  	JOIN STOCPRDT PRDT
+			  	  	 ON (PRDT.GATE_CD  = ECMT.GATE_CD
+			  	  	 AND PRDT.BUYER_CD = ECMT.PB_BUYER_CD
+			  	  	 AND PRDT.PR_NUM   = ECMT.PR_NUM
+			  	  	 AND PRDT.PR_SQ    = ECMT.PR_SQ
+			  	  	 AND PRDT.DEL_FLAG = '0')
+			  	JOIN STOCPRHD PRHD
+			  		 ON (PRHD.GATE_CD  = PRDT.GATE_CD
+			  	  	 AND PRHD.BUYER_CD = PRDT.BUYER_CD
+			  	  	 AND PRHD.PR_NUM   = PRDT.PR_NUM
+			  	  	 AND PRHD.IF_TYPE  IS NOT NULL
+			  	  	 AND PRHD.DEL_FLAG = '0')
+			   WHERE ECMT.GATE_CD  = ECCT.GATE_CD
+			  	 AND ECMT.BUYER_CD = ECCT.BUYER_CD
+			  	 AND ECMT.CONT_NUM = ECCT.CONT_NUM
+			  	 AND ECMT.CONT_CNT = ECCT.CONT_CNT
+			  	 AND ECMT.DEL_FLAG = '0') AS IF_TYPE
+		  FROM STOCECCT ECCT
+		  JOIN STOCECCM ECCM
+			   ON (ECCT.GATE_CD  = ECCM.GATE_CD
+			   AND ECCT.BUYER_CD = ECCM.BUYER_CD
+			   AND ECCT.CONT_NUM = ECCM.CONT_NUM
+			   AND ECCT.CONT_CNT = ECCM.CONT_CNT
+			   AND ECCM.DEL_FLAG = '0')
+		 WHERE ECCT.GATE_CD  = #{ses.gateCd}
+		   AND ECCT.BUYER_CD = #{ses.companyCd}
+		   AND ECCT.MANUAL_CONT_FLAG = '1'		-- 수기계약건만 조회
+		   
+		<if test="DATE_TYPE eq 'C'.toString()">
+		   AND ECCT.CONT_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_DATE_FROM})
+		   AND ECCT.CONT_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_DATE_TO})
+		</if>
+		<if test="DATE_TYPE eq 'E'.toString()">
+		   AND ECCT.CONT_END_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_DATE_FROM})
+		   AND ECCT.CONT_END_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_DATE_TO})
+		</if>
+		<if test="CONT_USER_ID != null and CONT_USER_ID != ''">
+		   AND UPPER(ECCT.CONT_USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="CONT_USER_NM != null and CONT_USER_NM != ''">
+		   AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(ECCT.GATE_CD, ECCT.CONT_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="CONT_NUM != null and CONT_NUM != ''">
+		   AND (UPPER(ECCT.CONT_DESC)  LIKE UPPER('%' <include refid="common.sql.stringMerge"/> #{CONT_NUM} <include refid="common.sql.stringMerge"/> '%')
+			OR  UPPER(ECCT.CONT_NUM)   LIKE UPPER('%' <include refid="common.sql.stringMerge"/> #{CONT_NUM} <include refid="common.sql.stringMerge"/> '%'))
+		</if>
+		<if test="PR_BUYER_CD != null and PR_BUYER_CD != ''">
+		   AND UPPER(ECCM.PR_BUYER_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_CD}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="PR_BUYER_NM != null and PR_BUYER_NM != ''">
+		   AND UPPER(<include refid="common.sql.dbo"/>GETCUSTNAME(ECCM.GATE_CD, ECCM.PR_BUYER_CD)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="PR_DEPT_CD != null and PR_DEPT_CD != ''">
+		   AND UPPER(ECCM.PR_DEPT_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_DEPT_CD}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="PR_DEPT_NM != null and PR_DEPT_NM != ''">
+   		   AND UPPER(<include refid="common.sql.dbo"/>GETDEPTNAME(ECCM.GATE_CD, ECCM.PR_BUYER_CD, ECCM.PR_DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{PR_DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="VENDOR_CD != null and VENDOR_CD != ''">
+		   AND UPPER(ECCM.VENDOR_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_CD}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="VENDOR_NM != null and VENDOR_NM != ''">
+   		   AND UPPER(<include refid="common.sql.dbo"/>GETVENDORNAME(ECCM.GATE_CD, ECCM.VENDOR_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{VENDOR_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+			
+		   AND ECCT.DEL_FLAG = '0'
+		 ORDER BY ECCT.PROGRESS_CD, ECCT.CONT_NUM DESC
+	</select>
+	
+	<select id="ccti0100_doSearchMTGL" parameterType="hashMap" resultType="hashMap">
+        SELECT
+			  ECMT.CONT_NUM
+			, ECMT.CONT_CNT
+			, ECMT.PR_NUM
+			, ECMT.PR_SQ
+			, ECMT.ITEM_CD
+			, ECMT.ITEM_DESC
+			, ECMT.ITEM_SPEC
+			, ECMT.MAKER_CD
+            , <include refid="common.sql.dbo"/>GETMKBRNAME(ECMT.GATE_CD, ECMT.BUYER_CD, 'MK', ECMT.MAKER_CD) AS MAKER_NM
+			, ECMT.MAKER_PART_NO
+			, ECMT.ORIGIN_CD
+			, ECMT.ITEM_QT
+			, ECMT.UNIT_CD
+			, ECMT.ITEM_PRC AS UNIT_PRC
+			, ECMT.ITEM_AMT
+			, ECMT.PURCHASE_TYPE
+			, ECMT.BUYER_CD
+            , <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(ECCT.GATE_CD, ECCT.BUYER_CD, ECCT.DEPT_CD, #{ses.langCd}) AS BUYER_DEPT_NM
+            , ECMT.PR_BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(ECMT.GATE_CD, ECMT.PR_BUYER_CD, #{ses.langCd}) AS PR_BUYER_NM
+            , ECMT.PR_DEPT_CD
+            , <include refid="common.sql.dbo"/>GETDEPTNAME(ECMT.GATE_CD, ECMT.PR_BUYER_CD, ECMT.PR_DEPT_CD, #{ses.langCd}) AS PR_DEPT_NM
+            , <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(ECMT.GATE_CD, ECMT.PR_BUYER_CD, ECMT.PR_DEPT_CD, #{ses.langCd}) AS PR_BUYER_DEPT_NM
+            , <include refid="common.sql.toChar"/>(ECMT.DUE_DATE, 'YYYY-MM-DD') AS DUE_DATE
+            , <include refid="common.sql.clobToChar"/>(ECMT.RMK) AS RMK
+			, ECMT.EXEC_NUM
+			, ECMT.EXEC_SQ
+            , ECMT.PB_BUYER_CD
+         FROM STOCECCT ECCT
+         JOIN STOCECMT ECMT
+              ON (ECMT.GATE_CD  = ECCT.GATE_CD
+              AND ECMT.BUYER_CD = ECCT.BUYER_CD
+              AND ECMT.CONT_NUM = ECCT.CONT_NUM
+              AND ECMT.CONT_CNT = ECCT.CONT_CNT
+              AND ECMT.DEL_FLAG = '0')
+		WHERE ECCT.GATE_CD  = #{ses.gateCd}
+          AND ECCT.BUYER_CD = #{SCH_BUYER_CD}
+          AND ECCT.CONT_NUM = #{SCH_CONT_NUM}
+          AND ECCT.CONT_CNT = #{SCH_CONT_CNT}
+          AND ECCT.DEL_FLAG = '0'
+    </select>
+    
+	<!-- 수기계약서 등록 -->
+	<insert id="ccti0100_doSaveECCT" parameterType="hashmap">
+		 MERGE INTO STOCECCT A
+		 USING (SELECT #{ses.gateCd} AS GATE_CD
+		             , #{BUYER_CD}   AS BUYER_CD
+		     		 , #{CONT_NUM}   AS CONT_NUM
+		     		 , #{CONT_CNT}   AS CONT_CNT
+		     		 <include refid="common.sql.dual"/>) B
+	            ON (A.GATE_CD  = B.GATE_CD
+	            AND A.BUYER_CD = B.BUYER_CD
+	            AND A.CONT_NUM = B.CONT_NUM
+	            AND A.CONT_CNT = B.CONT_CNT
+	            AND A.DEL_FLAG = '0')
+		   WHEN MATCHED THEN
+		 UPDATE SET
+		        MOD_DATE = SYSDATE
+		      , MOD_USER_ID = #{ses.userId}
+		      , PROGRESS_CD = #{PROGRESS_CD}
+		      , CONT_DATE = #{CONT_DATE}
+		      , ORIGIN_CONT_START_DATE = #{ORIGIN_CONT_START_DATE}
+			  , CONT_START_DATE = #{CONT_START_DATE}
+			  , CONT_END_DATE = #{CONT_END_DATE}
+			  , CONT_DESC = #{CONT_DESC}
+			  , CONT_REQ_CD = '10'
+			  , CONT_AMT = #{CONT_AMT}
+			  , CUR = #{CUR}
+			  , VAT_TYPE = #{VAT_TYPE}
+			  , SUPPLY_AMT = (CASE WHEN #{VAT_TYPE} = '1' THEN TRUNC(TO_NUMBER(#{CONT_AMT}) / 1.1)
+						           WHEN #{VAT_TYPE} = '2' THEN TO_NUMBER(#{CONT_AMT})
+						           WHEN #{VAT_TYPE} = '0' THEN TO_NUMBER(#{CONT_AMT}) END)
+			  , VAT_AMT = (CASE WHEN #{VAT_TYPE} = '1' THEN TO_NUMBER(#{CONT_AMT}) - TRUNC(TO_NUMBER(#{CONT_AMT}) / 1.1)
+						        WHEN #{VAT_TYPE} = '2' THEN TRUNC(TO_NUMBER(#{CONT_AMT}) * 0.1)
+						        WHEN #{VAT_TYPE} = '0' THEN 0 END)
+			  , CONT_RMK = #{CONT_RMK}
+			  , DEPT_CD = (SELECT DEPT_CD FROM STOCCVUR
+					  	   	WHERE GATE_CD = #{ses.gateCd}
+					  	   	  AND USER_ID = #{CONT_USER_ID})
+		      , CONT_USER_ID = #{CONT_USER_ID}
+		      , ATT_FILE_NUM = #{ATT_FILE_NUM}
+		      , SIGN_STATUS = (CASE WHEN #{PROGRESS_CD} = '4300' THEN 'E' ELSE 'T' END)
+		      , SIGN_DATE = (CASE WHEN #{PROGRESS_CD} = '4300' THEN SYSDATE ELSE null END)
+		      , MANUAL_CONT_FLAG = '1'
+		   WHEN NOT MATCHED THEN
+		 INSERT (
+			    GATE_CD
+			  , BUYER_CD
+			  , CONT_NUM
+			  , CONT_CNT
+			  , REG_DATE
+			  , REG_USER_ID
+			  , MOD_DATE
+			  , MOD_USER_ID
+			  , DEL_FLAG
+			  , PROGRESS_CD
+			  , CONT_DATE
+			  , ORIGIN_CONT_START_DATE
+			  , CONT_START_DATE
+			  , CONT_END_DATE
+			  , CONT_DESC
+			  , CONT_REQ_CD
+			  , CONT_AMT
+			  , CUR
+			  , VAT_TYPE
+			  , SUPPLY_AMT
+			  , VAT_AMT
+			  , CONT_RMK
+			  , DEPT_CD
+			  , CONT_USER_ID
+			  , VENDOR_CD
+			  , ATT_FILE_NUM
+			  , SIGN_STATUS
+			  , SIGN_DATE
+			  , MANUAL_CONT_FLAG
+		) VALUES (
+		  	    #{ses.gateCd}
+		  	  , <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+		  	  , #{CONT_NUM}
+		  	  , #{CONT_CNT}
+		  	  , SYSDATE
+			  , #{ses.userId}
+			  , SYSDATE
+			  , #{ses.userId}
+			  , '0'
+			  , #{PROGRESS_CD}
+		  	  , #{CONT_DATE}
+		  	  , #{ORIGIN_CONT_START_DATE}
+		  	  , #{CONT_START_DATE}
+		  	  , #{CONT_END_DATE}
+		  	  , #{CONT_DESC}
+		  	  , '10'						-- CONT_REQ_CD : 신규(10)
+		  	  , #{CONT_AMT}
+		  	  , #{CUR}
+		  	  , #{VAT_TYPE}
+			  ,(CASE WHEN #{VAT_TYPE} = '1' THEN TRUNC(TO_NUMBER(#{CONT_AMT}) / 1.1)
+			         WHEN #{VAT_TYPE} = '2' THEN TO_NUMBER(#{CONT_AMT})
+			         WHEN #{VAT_TYPE} = '0' THEN TO_NUMBER(#{CONT_AMT}) END)
+			  ,(CASE WHEN #{VAT_TYPE} = '1' THEN TO_NUMBER(#{CONT_AMT}) - TRUNC(TO_NUMBER(#{CONT_AMT}) / 1.1)
+			         WHEN #{VAT_TYPE} = '2' THEN TRUNC(TO_NUMBER(#{CONT_AMT}) * 0.1)
+			         WHEN #{VAT_TYPE} = '0' THEN 0 END)
+		  	  , #{CONT_RMK}
+		  	  ,(SELECT DEPT_CD FROM STOCCVUR
+		  	   	 WHERE GATE_CD = #{ses.gateCd}
+		  	   	   AND USER_ID = #{CONT_USER_ID})
+		  	  , #{CONT_USER_ID}
+		  	  , #{VENDOR_CD}
+		  	  , #{ATT_FILE_NUM}
+		  	  ,(CASE WHEN #{PROGRESS_CD} = '4300' THEN 'E' ELSE 'T' END)
+		  	  ,(CASE WHEN #{PROGRESS_CD} = '4300' THEN SYSDATE ELSE null END)
+		  	  , '1'							-- MANUAL_CONT_FLAG
+		)
+	</insert>
+    
+    <!-- 2021.01.08 추가 -->
+	<!-- 수기계약이관 후 계약대기현황(STOCECHB) 테이블에서 복원 -->
+	<update id="ccti0100_doChangeECHB">
+		UPDATE STOCECHB A
+		   SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , DEL_FLAG = '0'
+		 WHERE A.GATE_CD  = #{ses.gateCd}
+		   AND A.BUYER_CD = #{ses.companyCd}
+		   AND A.CONT_WT_NUM IN (SELECT CONT_WT_NUM FROM STOCECMT
+		   						  WHERE GATE_CD  = A.GATE_CD
+		   						    AND BUYER_CD = A.BUYER_CD
+		   						    AND CONT_NUM = #{CONT_NUM}
+		   						    AND CONT_CNT = #{CONT_CNT}
+		   						    AND EXEC_NUM = A.EXEC_NUM
+		   						    AND EXEC_SQ  = A.EXEC_SQ)
+	</update>
+	
+	<delete id="ccti0100_doDeleteECCT">
+        DELETE FROM STOCECCT
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+    </delete>
+    
+    <delete id="ccti0100_doDeleteECCM">
+        DELETE FROM STOCECCM
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+    </delete>
+    
+	<delete id="ccti0100_doDeleteECMT">
+        DELETE FROM STOCECMT
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+    </delete>
+    
+	<insert id="ccti0100_doInsertECCM">
+		 INSERT INTO STOCECCM (
+		 	GATE_CD
+		  	, BUYER_CD
+		  	, CONT_NUM
+		  	, CONT_CNT
+		  	, PR_BUYER_CD
+   		  	, PR_DEPT_CD
+   		  	, VENDOR_CD
+		  	, REG_DATE
+		  	, REG_USER_ID
+		  	, MOD_DATE
+		  	, MOD_USER_ID
+		  	, DEL_FLAG
+		  	, PROGRESS_CD
+		  	, CONT_AMT
+		  	, PO_CREATE_FLAG
+		) VALUES (
+	  	    #{ses.gateCd}
+		  	, <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+		  	, #{CONT_NUM}
+		  	, #{CONT_CNT}
+		  	, #{PR_BUYER_CD}
+   		  	, #{PR_DEPT_CD}
+   		  	, #{VENDOR_CD}
+		  	, SYSDATE
+		  	, #{ses.userId}
+		  	, SYSDATE
+		  	, #{ses.userId}
+		  	, '0'
+		  	, #{PROGRESS_CD}
+		  	, #{CONT_AMT}
+		  	, #{PO_CREATE_FLAG}
+		)<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- 2021.01.07 기능 추가 -->
+	<!-- CCTI0100 : 수기계약서 등록 후 발주서 HD 등록 -->
+	<insert id="ccti0100_doInsertPohd" parameterType="hashmap">
+		INSERT INTO STOCPOHD (
+			GATE_CD
+			, BUYER_CD
+			, PO_NUM
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, DEPT_CD
+			, PROGRESS_CD
+			, PO_CREATE_TYPE
+			, SUBJECT
+			, VENDOR_CD
+			, PO_CREATE_DATE
+			, CUR
+			, PO_AMT
+			, VAT_TYPE
+			, CTRL_USER_ID
+			, INSPECT_USER_ID
+			, APPROVAL_FLAG
+			, SIGN_STATUS
+			, VENDOR_RECEIPT_STATUS
+			, FORCE_CLOSE_FLAG
+		)
+		SELECT
+			ECCT.GATE_CD        AS GATE_CD
+			, ECCT.BUYER_CD     AS BUYER_CD
+			, #{PO_NUM}         AS PO_NUM
+			, SYSDATE           AS REG_DATE
+			, ECCT.REG_USER_ID  AS REG_USER_ID
+			, SYSDATE           AS MOD_DATE
+			, ECCT.MOD_USER_ID  AS MOD_USER_ID
+			, '0'               AS DEL_FLAG
+			, ECCT.DEPT_CD      AS DEPT_CD
+			, '100'             AS PROGRESS_CD
+			,(CASE WHEN #{EXEC_NUM} IS NULL THEN 'MANUAL' ELSE 'MDRAFT' END) AS PO_CREATE_TYPE
+			, ECCT.CONT_DESC    AS SUBJECT
+			, ECCM.VENDOR_CD    AS VENDOR_CD
+			, SYSDATE           AS PO_CREATE_DATE
+			, ECCT.CUR          AS CUR
+			, ECCM.CONT_AMT     AS PO_AMT
+			, ECCT.VAT_TYPE     AS VAT_TYPE
+			, ECCT.CONT_USER_ID AS CTRL_USER_ID
+			,<include refid="common.sql.nvl"/>(#{IV_USER_ID}, ECCT.CONT_USER_ID) AS INSPECT_USER_ID
+			, '0'               AS APPROVAL_FLAG
+			, 'T'               AS SIGN_STATUS
+			, '0'				AS VENDOR_RECEIPT_STATUS
+			, '0'				AS FORCE_CLOSE_FLAG
+	  	FROM STOCECCT ECCT
+	  	JOIN STOCECCM ECCM
+			 ON (ECCM.GATE_CD     = ECCT.GATE_CD
+		     AND ECCM.BUYER_CD    = ECCT.BUYER_CD
+		     AND ECCM.CONT_NUM    = ECCT.CONT_NUM
+		     AND ECCM.CONT_CNT    = ECCT.CONT_CNT
+		   	 AND ECCM.PR_BUYER_CD = #{PR_BUYER_CD}
+		   	 AND ECCM.PR_DEPT_CD  = #{PR_DEPT_CD}
+		   	 AND ECCM.VENDOR_CD   = #{VENDOR_CD}
+		   	 AND ECCM.PO_CREATE_FLAG = '1'
+		     AND ECCM.DEL_FLAG    = '0')
+	 	WHERE ECCT.GATE_CD  = #{ses.gateCd}
+	   	  AND ECCT.BUYER_CD = #{BUYER_CD}
+	   	  AND ECCT.CONT_NUM = #{CONT_NUM}
+	   	  AND ECCT.CONT_CNT = #{CONT_CNT}
+	   	  AND ECCT.DEL_FLAG = '0'
+    </insert>
+
+	<!-- 2021.01.07 기능 추가 -->
+	<!-- CCTI0100 : 수기계약서 등록 후 발주서 DT 등록 -->
+    <insert id="ccti0100_doInsertPodt" parameterType="hashmap">
+		INSERT INTO STOCPODT (
+			GATE_CD
+			, BUYER_CD
+			, PO_NUM
+			, PO_SQ
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, PROGRESS_CD
+			, PR_BUYER_CD
+			, PR_DEPT_CD
+			, PURCHASE_TYPE
+			, ITEM_CD
+			, ITEM_DESC
+			, ITEM_SPEC
+			, MAKER_CD
+			, MAKER_PART_NO
+			, ORIGIN_CD
+			, PO_QT
+			, UNIT_CD
+			, UNIT_PRC
+			, ITEM_AMT
+			, DUE_DATE
+			, RMK
+			, PR_NUM
+			, PR_SQ
+			, EXEC_NUM
+			, EXEC_SQ
+			, PB_BUYER_CD
+			, CONT_NUM
+			, CONT_CNT
+			, ITEM_SQ
+		)
+		SELECT
+			ECMT.GATE_CD         -- GATE_CD
+			, ECMT.BUYER_CD      -- BUYER_CD
+			, #{PO_NUM}          -- PO_NUM
+			, ROWNUM             -- PO_SQ
+			, SYSDATE            -- REG_DATE
+			, ECCT.REG_USER_ID   -- REG_USER_ID
+			, SYSDATE            -- MOD_DATE
+			, ECCT.REG_USER_ID   -- MOD_USER_ID
+			, '0'                -- DEL_FLAG
+			, '100'              -- PROGRESS_CD
+			, ECMT.PR_BUYER_CD   -- PR_BUYER_CD
+			, ECMT.PR_DEPT_CD    -- PR_DEPT_CD
+			, ECMT.PURCHASE_TYPE -- PURCHASE_TYPE
+			, ECMT.ITEM_CD       -- ITEM_CD
+			, ECMT.ITEM_DESC     -- ITEM_DESC
+			, ECMT.ITEM_SPEC     -- ITEM_SPEC
+			, ECMT.MAKER_CD      -- MAKER_CD
+			, ECMT.MAKER_PART_NO -- MAKER_PART_NO
+			, ECMT.ORIGIN_CD     -- ORIGIN_CD
+			, ECMT.ITEM_QT       -- PO_QT
+			, ECMT.UNIT_CD       -- UNIT_CD
+			, ECMT.ITEM_PRC      -- UNIT_PRC
+			, ECMT.ITEM_AMT      -- ITEM_AMT
+			, ECMT.DUE_DATE      -- DUE_DATE
+			, null               -- RMK
+			, ECMT.PR_NUM        -- PR_NUM
+			, ECMT.PR_SQ         -- PR_SQ
+			, ECMT.EXEC_NUM      -- EXEC_NUM
+			, ECMT.EXEC_SQ       -- EXEC_SQ
+			, ECMT.PB_BUYER_CD
+			, ECCT.CONT_NUM
+			, ECCT.CONT_CNT
+			, ECMT.ITEM_SQ
+		FROM STOCECCT ECCT
+		JOIN STOCECCM ECCM
+			 ON (ECCM.GATE_CD  = ECCT.GATE_CD
+			 AND ECCM.BUYER_CD = ECCT.BUYER_CD
+			 AND ECCM.CONT_NUM = ECCT.CONT_NUM
+			 AND ECCM.CONT_CNT = ECCT.CONT_CNT
+			 AND ECCM.PR_BUYER_CD = #{PR_BUYER_CD}
+			 AND ECCM.PR_DEPT_CD  = #{PR_DEPT_CD}
+			 AND ECCM.VENDOR_CD   = #{VENDOR_CD}
+			 AND ECCM.PO_CREATE_FLAG = '1'
+			 AND ECCM.DEL_FLAG = '0')
+		JOIN STOCECMT ECMT
+			 ON (ECMT.GATE_CD     = ECCM.GATE_CD
+			 AND ECMT.BUYER_CD    = ECCM.BUYER_CD
+			 AND ECMT.CONT_NUM    = ECCM.CONT_NUM
+			 AND ECMT.CONT_CNT    = ECCM.CONT_CNT
+			 AND ECMT.PR_BUYER_CD = ECCM.PR_BUYER_CD
+		   	 AND ECMT.PR_DEPT_CD  = ECCM.PR_DEPT_CD
+		   	 AND ECMT.VENDOR_CD   = ECCM.VENDOR_CD
+		   	 AND ECMT.DEL_FLAG    = '0')
+		 WHERE ECCT.GATE_CD  = #{ses.gateCd}
+		   AND ECCT.BUYER_CD = #{BUYER_CD}
+		   AND ECCT.CONT_NUM = #{CONT_NUM}
+		   AND ECCT.CONT_CNT = #{CONT_CNT}
+		   AND ECCT.DEL_FLAG = '0'
+    </insert>
+    
+	<!-- 2021.01.07 추가 : 기존 쿼리문 백업 -->
+	<insert id="ccti0100_doSaveECCT_back" parameterType="hashmap">
+		 MERGE INTO STOCECCT A
+		 USING (SELECT #{ses.gateCd} AS GATE_CD
+		             , #{BUYER_CD}   AS BUYER_CD
+		     		 , #{CONT_NUM}   AS CONT_NUM
+		     		 , #{CONT_CNT}   AS CONT_CNT
+		     	     , #{VENDOR_CD}  AS VENDOR_CD
+		     		 <include refid="common.sql.dual"/>) B
+	            ON (A.GATE_CD  = B.GATE_CD
+	            AND A.BUYER_CD = B.BUYER_CD
+	            AND A.CONT_NUM = B.CONT_NUM
+	            AND A.CONT_CNT = B.CONT_CNT
+	            AND A.VENDOR_CD   = B.VENDOR_CD
+	            AND A.PROGRESS_CD = '4300'
+	            AND A.DEL_FLAG = '0')
+		   WHEN MATCHED THEN
+		 UPDATE SET
+		        MOD_DATE = SYSDATE
+		      , MOD_USER_ID = #{ses.userId}
+		      , CONT_DATE = #{CONT_DATE}
+		      , ORIGIN_CONT_START_DATE = #{ORIGIN_CONT_START_DATE}
+			  , CONT_START_DATE = #{CONT_START_DATE}
+			  , CONT_END_DATE = #{CONT_END_DATE}
+			  , CONT_DESC = #{CONT_DESC}
+			  , CONT_AMT = #{CONT_AMT}
+			  , CUR = #{CUR}
+			  , VAT_TYPE = #{VAT_TYPE}
+			  , CONT_RMK = #{CONT_RMK}
+		      , CONT_USER_ID = #{CONT_USER_ID}
+		      , ATT_FILE_NUM = #{ATT_FILE_NUM}
+		   WHEN NOT MATCHED THEN
+		 INSERT (
+			    GATE_CD
+			  , BUYER_CD
+			  , CONT_NUM
+			  , CONT_CNT
+			  , REG_DATE
+			  , REG_USER_ID
+			  , MOD_DATE
+			  , MOD_USER_ID
+			  , DEL_FLAG
+			  , PROGRESS_CD
+			  , CONT_DATE
+			  , ORIGIN_CONT_START_DATE
+			  , CONT_START_DATE
+			  , CONT_END_DATE
+			  , CONT_DESC
+			  , CONT_AMT
+			  , CUR
+			  , VAT_TYPE
+			  , CONT_RMK
+			  , DEPT_CD
+			  , CONT_USER_ID
+			  , VENDOR_CD
+			  , ATT_FILE_NUM
+		)
+		VALUES (
+		  	    #{ses.gateCd}
+		  	  , <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+		  	  , #{CONT_NUM}
+		  	  , '1'
+		  	  , SYSDATE
+			  , #{ses.userId}
+			  , SYSDATE
+			  , #{ses.userId}
+			  , '0'
+			  , '4300'
+		  	  , #{CONT_DATE}
+		  	  , #{ORIGIN_CONT_START_DATE}
+		  	  , #{CONT_START_DATE}
+		  	  , #{CONT_END_DATE}
+		  	  , #{CONT_DESC}
+		  	  , #{CONT_AMT}
+		  	  , #{CUR}
+		  	  , #{VAT_TYPE}
+		  	  , #{CONT_RMK}
+		  	  , #{CONT_USER_ID}
+		  	  , #{VENDOR_CD}
+		  	  , #{ATT_FILE_NUM}
+		)<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- 2021.01.07 추가 : 기존 쿼리문 백업 -->
+	<insert id="ccti0100_doSaveECCM_back">
+		MERGE INTO STOCECCM A
+		 USING (SELECT #{ses.gateCd} AS GATE_CD
+		             , #{BUYER_CD} AS BUYER_CD
+		     		 , #{CONT_NUM} AS CONT_NUM
+		     		 , #{CONT_CNT} AS CONT_CNT
+		     		 , #{PR_BUYER_CD} AS PR_BUYER_CD
+		     		 , #{PR_DEPT_CD} AS PR_DEPT_CD
+		     		 , #{VENDOR_CD} AS VENDOR_CD
+		     		 <include refid="common.sql.dual"/>) B
+            ON (A.GATE_CD  = B.GATE_CD
+            AND A.BUYER_CD = B.BUYER_CD
+            AND A.CONT_NUM = B.CONT_NUM
+            AND A.CONT_CNT = B.CONT_CNT
+            AND A.PR_BUYER_CD = B.PR_BUYER_CD
+			AND A.PR_DEPT_CD  = B.PR_DEPT_CD
+			AND A.VENDOR_CD   = B.VENDOR_CD
+            AND A.PROGRESS_CD = '4300'
+            AND A.DEL_FLAG = '0')
+		   WHEN MATCHED THEN
+		 UPDATE SET
+		        MOD_DATE = SYSDATE
+		      , MOD_USER_ID = #{ses.userId}
+		      , CONT_AMT = #{CONT_AMT}
+		   WHEN NOT MATCHED THEN
+		 INSERT (
+			    GATE_CD
+			  , BUYER_CD
+			  , CONT_NUM
+			  , CONT_CNT
+			  , PR_BUYER_CD
+    		  , PR_DEPT_CD
+    		  , VENDOR_CD
+			  , REG_DATE
+			  , REG_USER_ID
+			  , MOD_DATE
+			  , MOD_USER_ID
+			  , DEL_FLAG
+			  , PROGRESS_CD
+			  , CONT_AMT
+		) VALUES (
+		  	    #{ses.gateCd}
+			  , <include refid="common.sql.nvl"/>(#{BUYER_CD}, #{ses.companyCd})
+			  , #{CONT_NUM}
+			  , #{CONT_CNT}
+			  , #{PR_BUYER_CD}
+    		  , #{PR_DEPT_CD}
+    		  , #{VENDOR_CD}
+			  , SYSDATE
+			  , #{ses.userId}
+			  , SYSDATE
+			  , #{ses.userId}
+			  , '0'
+			  , '4300'
+			  , #{CONT_AMT}
+		)<include refid="common.sql.comma"/>
+	</insert>
+	
+	<!-- 2021.01.25 계약체결 완료 후 구매요청진행상태=4300 -->
+	<update id="setPrProgressCd" parameterType="hashmap">
+		UPDATE STOCPRDT
+		   SET MOD_DATE    = SYSDATE
+			 , MOD_USER_ID = #{ses.userId}
+			 , PROGRESS_CD = '4300'
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND (BUYER_CD, PR_NUM, PR_SQ) IN (
+				   		SELECT PB_BUYER_CD, PR_NUM, PR_SQ
+				   		  FROM STOCECMT
+				   		 WHERE GATE_CD  = #{ses.gateCd}
+				   		   AND BUYER_CD = #{BUYER_CD}
+				   		   AND CONT_NUM = #{CONT_NUM}
+				   		   AND CONT_CNT = #{CONT_CNT}
+				   		   AND DEL_FLAG = '0')
+		   AND DEL_FLAG = '0'
+	</update>
+	
+</mapper>

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.eApproval.eApprovalEnd.RFQ.EApprovalEndRfq_Mapper">
+
+    <select id="getRfqNum" parameterType="hashMap" resultType="hashmap">
+        SELECT
+        	  RQHD.RFX_NUM
+            , RQHD.RFX_CNT
+            , RQHD.BUYER_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(RQHD.GATE_CD, RQHD.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+            , RQHD.RFX_SUBJECT
+        FROM STOCRQHD RQHD
+        WHERE RQHD.GATE_CD  = #{ses.gateCd}
+          AND RQHD.BUYER_CD = #{BUYER_CD}
+          AND RQHD.APP_DOC_NUM = #{APP_DOC_NUM}
+          AND RQHD.APP_DOC_CNT = #{APP_DOC_CNT}
+          AND RQHD.DEL_FLAG = '0'
+    </select>
+
+    <select id="getRfqList" parameterType="hashMap" resultType="hashmap">
+        SELECT
+        	  RQDT.BUYER_CD
+            , RQDT.RFX_NUM
+            , RQDT.RFX_CNT
+            , RQDT.RFX_SQ
+        FROM STOCRQHD RQHD
+        LEFT JOIN STOCRQDT RQDT
+             ON( RQDT.GATE_CD  = RQHD.GATE_CD
+             AND RQDT.BUYER_CD = RQHD.BUYER_CD
+             AND RQDT.RFX_NUM  = RQHD.RFX_NUM
+             AND RQDT.DEL_FLAG = '0')
+        WHERE RQHD.GATE_CD  = #{ses.gateCd}
+          AND RQHD.BUYER_CD = #{BUYER_CD}
+          AND RQHD.APP_DOC_NUM = #{APP_DOC_NUM}
+          AND RQHD.APP_DOC_CNT = #{APP_DOC_CNT}
+          AND RQHD.DEL_FLAG = '0'
+    </select>
+
+    <select id="getMailList" parameterType="hashMap" resultType="hashmap">
+        SELECT CVUR.USER_ID
+            , <include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+            , RQVN.VENDOR_CD
+            , <include refid="common.sql.dbo"/>GETVENDORNAME(RQVN.GATE_CD, RQVN.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+            , <include refid="common.sql.toChar"/>(SYSDATE, 'YYYY-MM-DD') AS RFX_REQ_DATE
+            , <include refid="common.sql.toChar"/>(RQHD.RFX_START_DATE, 'YYYY-MM-DD HH24:MI') AS RFX_START_DATE
+            , <include refid="common.sql.toChar"/>(RQHD.RFX_END_DATE, 'YYYY-MM-DD HH24:MI') AS RFX_END_DATE
+        FROM STOCRQVN RQVN
+        JOIN STOCRQHD RQHD
+             ON (RQHD.GATE_CD  = RQVN.GATE_CD
+             AND RQHD.BUYER_CD = RQVN.BUYER_CD
+             AND RQHD.RFX_NUM  = RQVN.RFX_NUM
+             AND RQHD.RFX_CNT  = RQVN.RFX_CNT)
+        LEFT JOIN STOCCVUR CVUR
+             ON (CVUR.GATE_CD  = RQVN.GATE_CD
+             AND CVUR.COMPANY_CD = RQVN.VENDOR_CD
+             AND CVUR.DEL_FLAG = '0')
+        WHERE RQVN.GATE_CD    = #{ses.gateCd}
+          AND RQVN.BUYER_CD   = #{BUYER_CD}
+          AND RQVN.RFX_NUM    = #{RFX_NUM}
+          AND RQVN.RFX_CNT    = #{RFX_CNT}
+          AND RQVN.DEL_FLAG   = '0'
+          AND CVUR.BLOCK_FLAG = '0'
+          AND CVUR.MAIL_FLAG  = '1'
+    </select>
+
+    <update id="setRfqSignStatusRQHD" parameterType="hashmap">
+        UPDATE STOCRQHD SET
+              PROGRESS_CD = #{PROGRESS_CD}
+            , SIGN_STATUS = #{SIGN_STATUS}
+		<if test='SIGN_STATUS == "E" or SIGN_STATUS == "R"'>
+            , SIGN_DATE   = SYSDATE
+        </if>
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+          AND RFX_NUM  = #{RFX_NUM}
+          AND RFX_CNT  = #{RFX_CNT}
+    </update>
+
+    <update id="setRfqSignStatusRQDT" parameterType="hashmap">
+        UPDATE STOCRQDT SET
+            PROGRESS_CD = #{PROGRESS_CD}
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+          AND RFX_NUM  = #{RFX_NUM}
+          AND RFX_CNT  = #{RFX_CNT}
+          AND RFX_SQ   = #{RFX_SQ}
+    </update>
+    
+    <select id="getRltRfxNum" parameterType="hashMap" resultType="hashMap">
+
+        SELECT RFX_NUM
+             , RFX_CNT
+          FROM STOCRQHD
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND RLT_APP_DOC_NUM = #{APP_DOC_NUM}
+           AND RLT_APP_DOC_CNT = #{APP_DOC_CNT}
+           AND DEL_FLAG = '0'
+    </select>
+    
+    <update id="setRltSignStatus" parameterType="hashmap">
+
+        UPDATE STOCRQHD SET
+              MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , RLT_SIGN_STATUS = #{SIGN_STATUS}
+        <if test='SIGN_STATUS == "E" or SIGN_STATUS == "R"'>
+            , RLT_SIGN_DATE = SYSDATE
+        </if>
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND RFX_NUM  = #{RFX_NUM}
+           AND RFX_CNT  = #{RFX_CNT}
+    </update>
+
+</mapper>

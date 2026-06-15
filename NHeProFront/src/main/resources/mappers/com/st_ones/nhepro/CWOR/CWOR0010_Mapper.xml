@@ -1,0 +1,1407 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CWOR.CWOR0010_Mapper">
+
+	<select id="cwor0010_doSearch" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 SCTM.BUYER_CD
+			,SCTM.APP_DOC_NUM
+			,SCTM.APP_DOC_CNT
+			,SCTM.SUBJECT
+			,SCTM.SIGN_STATUS
+			,(CASE WHEN SCTP.SIGN_REQ_TYPE = 'CC' THEN '참조' ELSE SCTP.SIGN_STATUS END) AS PER_SIGN_STATUS
+			,SCTM.IMPORTANCE_STATUS
+			,SCTM.DOC_TYPE
+			,<include refid="common.sql.toChar"/>((SELECT MAX(SIGN_DATE) FROM STOCSCTP
+				WHERE GATE_CD = SCTM.GATE_CD
+		  		  AND BUYER_CD = SCTM.BUYER_CD
+		  		  AND APP_DOC_NUM = SCTM.APP_DOC_NUM
+				  AND APP_DOC_CNT = SCTM.APP_DOC_CNT
+				  AND DEL_FLAG = '0'
+				  AND (SIGN_STATUS = 'E' OR SIGN_STATUS = 'R')), 'yyyy-mm-dd hh24:mi') AS SIGN_DATE
+			,<include refid="common.sql.toChar"/>(SCTM.REG_DATE, 'yyyy-mm-dd hh24:mi') AS RFA_DATE_TIME
+			,SCTM.REG_USER_ID AS REG_USER_ID
+			,<include refid="common.sql.dbo"/>getUserName(SCTM.GATE_CD,  SCTM.REG_USER_ID , #{ses.langCd}) AS REG_USER_NM
+		  	,'' as DOC_CONTENTS
+			,SCTP.SIGN_PATH_SQ
+			,SCTM.ATT_FILE_NUM
+			,SCTM.GATE_CD
+			,SCTM.NEXT_SIGN_USER_ID
+			,<include refid="common.sql.strDecStart"/>(CASE WHEN SCTM.SIGN_STATUS = 'P' THEN CUR.USER_NM ELSE '-' END) <include refid="common.sql.strDecEnd"/> AS NEXT_SIGN_USER_NM
+			,SCTP.SIGN_REQ_TYPE
+			,SCTP.DOC_SQ
+		  	,SCTP.SIGN_USER_ID
+		  	,<include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>GETDEPTNAME(SCTM.GATE_CD, SCTM.BUYER_CD, SCTM.DEPT_CD, #{ses.langCd}), <include refid="common.sql.dbo"/>GETDEPTNAME(RCUR.GATE_CD, RCUR.COMPANY_CD, RCUR.DEPT_CD, #{ses.langCd})) AS REG_DEPT_NM
+			,SCTM.APP_AMT
+		<if test="_databaseId == 'oracle'">
+            ,(CASE WHEN SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP', 'A')
+                   THEN SCTP.SIGN_PATH_SQ
+                        <include refid="common.sql.stringMerge"/> '/' <include refid="common.sql.stringMerge"/>
+                        (SELECT COUNT(*) FROM STOCSCTP SCTP
+                          WHERE SCTP.GATE_CD = SCTM.GATE_CD
+                            AND SCTP.BUYER_CD = SCTM.BUYER_CD
+                            AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+                            AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+                            AND SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP', 'A')
+                            AND SCTP.DEL_FLAG = '0')
+                   ELSE (SELECT TO_CHAR(COUNT(*)) FROM STOCSCTP SCTP
+                          WHERE SCTP.GATE_CD = SCTM.GATE_CD
+                            AND SCTP.BUYER_CD = SCTM.BUYER_CD
+                            AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+                            AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+                            AND SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP', 'A')
+                            AND SCTP.DEL_FLAG = '0')
+                   END) AS VIEW_CNT
+            <!--
+			,SCTP.SIGN_PATH_SQ
+			 <include refid="common.sql.stringMerge"/> '/' <include refid="common.sql.stringMerge"/>
+			 (SELECT COUNT(*) FROM STOCSCTP SCTP
+			   WHERE SCTP.GATE_CD = SCTM.GATE_CD
+				 AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+				 AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+				 AND SCTP.DEL_FLAG = '0'
+				 AND SCTP.SIGN_REQ_TYPE = 'E') AS VIEW_CNT
+            -->
+		</if>
+		<if test="_databaseId == 'mssql'">
+			,(SELECT CONVERT(varchar(10), CONVERT(INT, <include refid="common.sql.nvl"/>(MAX(SIGN_PATH_SQ), 0)))
+				FROM STOCSCTP SCTP
+				WHERE SCTP.GATE_CD = SCTM.GATE_CD
+				AND SCTP.BUYER_CD = SCTM.BUYER_CD
+				AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+				AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+				AND SCTP.DEL_FLAG = '0'
+				AND SCTP.SIGN_STATUS IN ('E', 'R'))
+			 <include refid="common.sql.stringMerge"/> '/' <include refid="common.sql.stringMerge"/>
+			 (SELECT CONVERT(varchar(10), CONVERT(INT, COUNT(*)))
+				FROM STOCSCTP SCTP
+			   WHERE SCTP.GATE_CD = SCTM.GATE_CD
+				 AND SCTP.BUYER_CD = SCTM.BUYER_CD
+				 AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+				 AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+				 AND SCTP.DEL_FLAG = '0'
+				 AND SCTP.SIGN_REQ_TYPE = 'E') AS VIEW_CNT
+		</if>
+          FROM STOCSCTM SCTM
+          INNER JOIN STOCSCTP SCTP
+	           ON (SCTM.GATE_CD  = SCTP.GATE_CD
+	           AND SCTM.BUYER_CD = SCTP.BUYER_CD
+	           AND SCTM.APP_DOC_NUM = SCTP.APP_DOC_NUM
+	           AND SCTM.APP_DOC_CNT = SCTP.APP_DOC_CNT)
+		  LEFT OUTER JOIN STOCCVUR CUR
+			   ON (SCTM.GATE_CD  = CUR.GATE_CD
+			   AND SCTM.NEXT_SIGN_USER_ID = CUR.USER_ID)
+		  LEFT OUTER JOIN STOCCVUR RCUR
+			   ON (SCTM.GATE_CD  = RCUR.GATE_CD
+			   AND SCTM.REG_USER_ID = RCUR.USER_ID)
+         WHERE SCTM.GATE_CD  = #{ses.gateCd}
+           AND SCTP.SIGN_USER_ID = #{ses.userId}
+           AND SCTM.DEL_FLAG = '0'
+           AND SCTP.DEL_FLAG = '0'
+        <choose>
+          <when test='LOGIN_STATUS == "E"'>
+            AND ((SCTP.SIGN_STATUS IN ('E','R') AND SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP')) OR (SCTM.SIGN_STATUS IN ('E', 'ES', 'EP') AND SCTP.SIGN_REQ_TYPE = 'CC'))
+            AND SCTM.SIGN_STATUS IN ('P','E','R')
+            AND SCTP.SIGN_USER_ID = #{ses.userId}
+          </when>
+          <when test='LOGIN_STATUS == "P"'>
+            AND SCTP.SIGN_STATUS = 'P'
+            AND SCTM.SIGN_STATUS = 'P'
+            AND SCTM.NEXT_SIGN_USER_ID = #{ses.userId}
+          </when>
+        </choose>
+        <if test="RFA_FROM_DATE != '' and RFA_FROM_DATE != null and RFA_TO_DATE != '' and RFA_TO_DATE != null">
+            AND SCTM.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{RFA_FROM_DATE})
+            AND SCTM.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{RFA_TO_DATE})
+        </if>
+		<if test="SIGN_STATUS != '' and SIGN_STATUS != null">
+		    AND SCTM.SIGN_STATUS = #{SIGN_STATUS}
+		</if>
+		<if test="DOCUMENT_TYPE != '' and DOCUMENT_TYPE != null">
+		    AND SCTM.DOC_TYPE = #{DOCUMENT_TYPE}
+		</if>
+		<if test="USER_ID != '' and USER_ID != null">
+		    AND UPPER(SCTM.REG_USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="USER_NM != '' and USER_NM != null">
+		    AND UPPER(<include refid="common.sql.dbo"/>getUserName(SCTM.GATE_CD, SCTM.REG_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="DOCUMENT_NM != '' and DOCUMENT_NM != null ">
+		    AND UPPER(REPLACE(SCTM.SUBJECT, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{DOCUMENT_NM}, ' ', '')) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+
+		 ORDER BY SCTM.REG_DATE DESC
+
+	</select>
+
+	<select id="selectMySignStatus" parameterType="hashmap" resultType="java.lang.String">
+
+        SELECT DISTINCT SIGN_STATUS AS MY_SIGN_STATUS
+          FROM STOCSCTP
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND APP_DOC_NUM = #{APP_DOC_NUM}
+           AND APP_DOC_CNT = #{APP_DOC_CNT}
+           AND SIGN_USER_ID = #{ses.userId}
+           AND DEL_FLAG = '0'
+
+    </select>
+
+	<select id="cwor0011_doSearchHeader" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 BUYER_CD
+			,APP_DOC_NUM
+			,APP_DOC_CNT
+			,DOC_TYPE
+			,GETCOMCODE(GATE_CD, 'M038', DOC_TYPE, 0, #{ses.langCd}) AS DOC_TYPE_NM
+			,IMPORTANCE_STATUS
+			,<include refid="common.sql.dbo"/>GETCOMCODE(GATE_CD, 'M053', IMPORTANCE_STATUS, 0, #{ses.langCd}) AS IMPORTANCE_STATUS_NM
+			,<include refid="common.sql.toChar"/>(REG_DATE, 'YYYY-MM-DD' <include refid="common.sql.stringMerge"/>' hh24:mi') AS REG_DATE
+			,<include refid="common.sql.toChar"/>(MOD_DATE, 'YYYY-MM-DD' <include refid="common.sql.stringMerge"/>' hh24:mi') AS MOD_DATE
+			,<include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+			,<include refid="common.sql.dbo"/>GETCOMCODE(GATE_CD, 'M038', DOC_TYPE, 0, #{ses.langCd}) AS DOC_TITLE
+			,SUBJECT
+			,CONTENTS_TEXT_NUM
+			,ATT_FILE_NUM
+			,SIGN_STATUS
+			,REG_USER_ID
+		  FROM STOCSCTM
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND APP_DOC_NUM = #{APP_DOC_NUM}
+		   AND APP_DOC_CNT = #{APP_DOC_CNT}
+		   AND DEL_FLAG = '0'
+
+	</select>
+
+	<select id="cwor0011_doSearchDetail" parameterType="hashmap" resultType="hashMap">
+
+		SELECT
+			 SIGN_PATH_SQ
+			,(CASE WHEN SIGN_REQ_TYPE = 'CC' THEN '-' ELSE SIGN_STATUS END) AS SIGN_STATUS
+			,SIGN_REQ_TYPE
+			,<include refid="common.sql.dbo"/>GETUSERNAME(#{ses.gateCd}, SIGN_USER_ID, #{ses.langCd}) AS SIGN_USER_NM
+			,<include refid="common.sql.toChar"/>(SIGN_DATE, 'yyyyMMdd') AS SIGN_DATE
+			,SIGN_RMK
+			,DEPT_NM
+			,POSITION_NM
+			,DUTY_NM
+		  FROM STOCSCTP
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND APP_DOC_NUM = #{APP_DOC_NUM}
+		   AND APP_DOC_CNT = #{APP_DOC_CNT}
+		   AND DEL_FLAG = '0'
+		 ORDER BY SIGN_PATH_SQ
+
+	</select>
+
+	<select id="getUpdateFlag" parameterType="hashmap" resultType="java.lang.String">
+
+		SELECT
+            (CASE WHEN SIGN_DATE IS NULL THEN 'Y' ELSE 'N' END) AS UPDATE_FLAG
+          FROM STOCSCTP
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND APP_DOC_NUM = #{APP_DOC_NUM}
+           AND APP_DOC_CNT = #{APP_DOC_CNT}
+           AND SIGN_REQ_TYPE = 'CC'
+           AND SIGN_USER_ID = #{ses.userId}
+
+    </select>
+
+	<update id="cwor0011_documentRead" parameterType="hashmap">
+
+		UPDATE STOCSCTP <if test="_databaseId == 'mssql'">with (ROWLOCK)</if> SET
+			SIGN_DATE = SYSDATE
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND APP_DOC_NUM = #{APP_DOC_NUM}
+		   AND APP_DOC_CNT = #{APP_DOC_CNT}
+		   AND SIGN_REQ_TYPE = 'CC'
+		   AND SIGN_USER_ID = #{ses.userId}
+
+	</update>
+	
+	<select id="cwor0011_doSearchESTM" parameterType="hashmap" resultType="hashMap">
+
+		SELECT A.*
+		  FROM (
+			SELECT
+				 <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M070', 'BID', 0, #{ses.langCd}) AS TYPE
+				, 'BID' AS RFX_TYPE
+				, HD.BUYER_CD
+				,<include refid="common.sql.dbo"/>getBuyerNames(HD.GATE_CD, HD.BUYER_CD, 'BID', HD.BID_NUM, HD.BID_CNT, null, #{ses.langCd}) AS BUYER_NM
+				, HD.ANN_NO
+				, HD.ANN_ITEM
+				, HD.ANN_DATE
+				, HD.CONT_TYPE1
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', HD.CONT_TYPE1, 0, #{ses.langCd}) AS CONT_TYPE1_LOC
+				, HD.CONT_TYPE2
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M302', HD.CONT_TYPE2, 0, #{ses.langCd}) AS CONT_TYPE2_LOC
+				, HD.CONT_TYPE3
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M303', HD.CONT_TYPE3, 0, #{ses.langCd}) AS CONT_TYPE3_LOC
+				, SUBSTR(HD.APP_BEGIN_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_DATE, 7, 2) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_TIME, 1, 2) <include refid="common.sql.stringMerge"/> ':' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_BEGIN_TIME, 3, 2) AS APP_BEGIN_DATETIME
+				, SUBSTR(HD.APP_END_DATE, 1, 4) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 5, 2) <include refid="common.sql.stringMerge"/> '-' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_DATE, 7, 2) <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 1, 2) <include refid="common.sql.stringMerge"/> ':' <include refid="common.sql.stringMerge"/> SUBSTR(HD.APP_END_TIME, 3, 2) AS APP_END_DATETIME
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS
+				, HD.BID_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.BID_USER_ID, #{ses.langCd}) AS BID_USER_NM
+				, HD.ESTM_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.ESTM_USER_ID, #{ses.langCd}) AS ESTM_USER_NM
+				, HD.BID_NUM
+				, HD.BID_CNT
+				,<include refid="common.sql.nvl"/>(ES.SIGN_STATUS,'') AS SIGN_STATUS
+				,<include refid="common.sql.nvl"/>(HD.ESTM_TYPE,'ES') AS ESTM_TYPE
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS_LOC
+				, HD.BID_STATUS AS BID_STATUS2
+				, ES.APP_DOC_CNT AS APP_DOC_CNT
+				, ES.APP_DOC_NUM AS APP_DOC_NUM
+			  FROM STOCBDHD HD
+			  LEFT OUTER JOIN STOCBDES ES
+				   ON (HD.GATE_CD  = ES.GATE_CD
+				   AND HD.BUYER_CD = ES.BUYER_CD
+				   AND HD.BID_NUM  = ES.BID_NUM
+				   AND HD.BID_CNT  = ES.BID_CNT
+				   AND ES.DEL_FLAG = '0')
+			 WHERE HD.GATE_CD  = #{ses.gateCd}
+			   AND HD.BUYER_CD = #{ses.companyCd}
+			   AND HD.SIGN_STATUS = 'E'
+			   AND HD.BID_STATUS not in ('9999', '2303')
+			   AND HD.DEL_FLAG = '0'
+			   AND <include refid="common.sql.nvl"/>(HD.ESTM_TYPE,'ES') != 'ES' -- 예가 생략 아니것
+			<if test="BUYER_CD != '' and BUYER_CD != null">
+			   AND EXISTS (
+					SELECT '1'
+							FROM STOCBDDT
+							WHERE GATE_CD = HD.GATE_CD
+							AND BUYER_CD = HD.BUYER_CD
+							AND BID_NUM = HD.BID_NUM
+							AND BID_CNT = HD.BID_CNT
+							AND PR_BUYER_CD = #{BUYER_CD}
+							AND DEL_FLAG = '0'
+				)
+			</if>
+			<if test="BUYER_NM != '' and BUYER_NM != null">
+			   AND EXISTS (
+					SELECT '1'
+							FROM STOCBDDT
+							WHERE GATE_CD = HD.GATE_CD
+							AND BUYER_CD = HD.BUYER_CD
+							AND BID_NUM = HD.BID_NUM
+							AND BID_CNT = HD.BID_CNT
+							AND UPPER(<include refid="common.sql.dbo"/>getCustName(GATE_CD, PR_BUYER_CD)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+							AND DEL_FLAG = '0'
+				)
+			</if>
+
+			UNION ALL
+
+			SELECT
+				 <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M070', HD.RFX_TYPE, 0, #{ses.langCd}) AS TYPE
+				, HD.RFX_TYPE
+				, HD.BUYER_CD
+				,<include refid="common.sql.dbo"/>getBuyerNames(HD.GATE_CD, HD.BUYER_CD, 'RFX', HD.RFX_NUM, HD.RFX_CNT, null, #{ses.langCd}) AS BUYER_NM
+				, HD.RFX_NUM AS ANN_NO
+				, HD.RFX_SUBJECT AS ANN_ITEM
+				, <include refid="common.sql.toChar"/>(HD.SIGN_DATE,'YYYYMMDD') AS ANN_DATE
+				, HD.VENDOR_OPEN_TYPE AS CONT_TYPE1
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', HD.VENDOR_OPEN_TYPE, 0, #{ses.langCd}) AS CONT_TYPE1_LOC
+				, 'LP' AS CONT_TYPE2
+				,(CASE WHEN HD.RFX_TYPE = 'RPC' or HD.RFX_TYPE = 'RCA' or HD.RFX_TYPE = 'RFQ' or HD.RFX_TYPE = 'RYQ' THEN NULL
+				 	   ELSE <include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M301', 'LP', 0, #{ses.langCd})
+				  END) AS CONT_TYPE2_LOC
+				, HD.AMT_TYPE AS CONT_TYPE3
+				,<include refid="common.sql.dbo"/>GETCOMCODE(HD.GATE_CD, 'M303', HD.AMT_TYPE, 0, #{ses.langCd}) AS CONT_TYPE3_LOC
+				, <include refid="common.sql.toChar"/>(RFX_START_DATE, 'YYYY-MM-DD HH24:MI') AS APP_BEGIN_DATETIME
+				, <include refid="common.sql.toChar"/>(RFX_END_DATE, 'YYYY-MM-DD HH24:MI') AS APP_END_DATETIME
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS
+				, HD.CTRL_USER_ID AS BID_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.CTRL_USER_ID, #{ses.langCd}) AS BID_USER_NM
+				, HD.ESTM_USER_ID
+				,<include refid="common.sql.dbo"/>GETUSERNAME(HD.GATE_CD, HD.ESTM_USER_ID, #{ses.langCd}) AS ESTM_USER_NM
+				, HD.RFX_NUM AS BID_NUM
+				, HD.RFX_CNT AS BID_CNT
+				,<include refid="common.sql.nvl"/>(ES.SIGN_STATUS,'') AS SIGN_STATUS
+				,(CASE WHEN <include refid="common.sql.nvl"/>(HD.EST_PRICE_TYPE,'0') = '1' THEN 'SE' ELSE 'SE' END) AS ESTM_TYPE
+				,(CASE WHEN ES.ESTM_CONFIRM_DATE IS NULL THEN '0' ELSE '1' END) AS BID_STATUS_LOC
+				, HD.PROGRESS_CD AS BID_STATUS2
+				, ES.APP_DOC_CNT AS APP_DOC_CNT
+				, ES.APP_DOC_NUM AS APP_DOC_NUM
+			  FROM STOCRQHD HD
+			  LEFT OUTER JOIN STOCBDES ES
+				   ON (HD.GATE_CD  = ES.GATE_CD
+				   AND HD.BUYER_CD = ES.BUYER_CD
+				   AND HD.RFX_NUM  = ES.BID_NUM
+				   AND HD.RFX_CNT  = ES.BID_CNT
+				   AND ES.DEL_FLAG = '0')
+			 WHERE HD.GATE_CD     = #{ses.gateCd}
+			   AND HD.BUYER_CD    = #{ses.companyCd}
+			   AND HD.RFX_CNT     = '1'
+			   AND HD.SIGN_STATUS = 'E'
+			   AND HD.DEL_FLAG    = '0'
+			   AND <include refid="common.sql.nvl"/>(HD.EST_PRICE_TYPE,'0') != '0' -- 예가 생략 아니것
+
+			<if test="BUYER_CD != '' and BUYER_CD != null">
+				AND EXISTS ( SELECT '1'
+							   FROM STOCRQDT
+							  WHERE GATE_CD  = HD.GATE_CD
+								AND BUYER_CD = HD.BUYER_CD
+								AND RFX_NUM  = HD.RFX_NUM
+								AND RFX_CNT  = HD.RFX_CNT
+								AND PR_BUYER_CD = #{BUYER_CD}
+								AND DEL_FLAG = '0'
+				)
+			</if>
+			<if test="BUYER_NM != '' and BUYER_NM != null">
+				AND EXISTS (SELECT '1' FROM STOCRQDT
+							 WHERE GATE_CD  = HD.GATE_CD
+							   AND BUYER_CD = HD.BUYER_CD
+							   AND RFX_NUM  = HD.RFX_NUM
+							   AND RFX_CNT  = HD.RFX_CNT
+							   AND UPPER(<include refid="common.sql.dbo"/>getCustName(GATE_CD, PR_BUYER_CD)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+							   AND DEL_FLAG = '0'
+					)
+			</if>
+		  ) A
+		 WHERE 1 = 1
+		<if test="BID_STATUS != '' and BID_STATUS != null">
+		   AND A.BID_STATUS = #{BID_STATUS}
+		</if>
+		<if test="APP_DOC_CNT != '' and APP_DOC_CNT != null">
+		   AND A.APP_DOC_CNT = #{APP_DOC_CNT}
+		</if>
+		<if test="APP_DOC_NUM != '' and APP_DOC_NUM != null">
+		   AND A.APP_DOC_NUM = #{APP_DOC_NUM}
+		</if>
+    </select>
+    
+	<select id="cwor0012_selectPathPopup" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			 SIGN_PATH_SQ
+			,(CASE WHEN SIGN_REQ_TYPE = 'CC' THEN '-' ELSE SIGN_STATUS END) AS SIGN_STATUS
+			,SIGN_REQ_TYPE
+			,SIGN_USER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(#{ses.gateCd}, SIGN_USER_ID, #{ses.langCd}) AS USER_NM
+			,<include refid="common.sql.toChar"/>(SIGN_DATE, 'yyyy-mm-dd hh24:mi') AS SIGN_TIME
+			,SIGN_RMK
+			,DEPT_CD
+			,DEPT_NM
+			,POSITION_NM
+			,DUTY_NM
+			,BUYER_CD
+		  FROM STOCSCTP
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND APP_DOC_NUM = #{APP_DOC_NUM}
+		   AND APP_DOC_CNT = #{APP_DOC_CNT}
+		   AND DEL_FLAG = '0'
+		 ORDER BY SIGN_PATH_SQ
+	</select>
+
+	<select id="cwor0020_doSearch" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 SCTM.BUYER_CD
+			,SCTM.APP_DOC_NUM
+			,SCTM.APP_DOC_CNT
+			,SCTM.SUBJECT
+			,SCTM.SIGN_STATUS
+			,(CASE WHEN SCTP.SIGN_REQ_TYPE = 'CC' THEN '참조' ELSE SCTP.SIGN_STATUS END) AS PER_SIGN_STATUS
+			,SCTM.IMPORTANCE_STATUS
+			,SCTM.DOC_TYPE
+			,<include refid="common.sql.toChar"/>((SELECT MAX(SIGN_DATE) FROM STOCSCTP
+													WHERE GATE_CD = SCTM.GATE_CD
+													  AND BUYER_CD = SCTM.BUYER_CD
+													  AND APP_DOC_NUM = SCTM.APP_DOC_NUM
+													  AND APP_DOC_CNT = SCTM.APP_DOC_CNT
+													  AND DEL_FLAG = '0'
+													  AND (SIGN_STATUS = 'E' OR SIGN_STATUS = 'R')), 'yyyy-mm-dd hh24:mi') AS SIGN_DATE
+			,<include refid="common.sql.toChar"/>(SCTM.REG_DATE, 'yyyy-mm-dd hh24:mi') AS RFA_DATE_TIME
+			,SCTM.REG_USER_ID AS REG_USER_ID
+			,<include refid="common.sql.dbo"/>getUserName(SCTM.GATE_CD,  SCTM.REG_USER_ID , #{ses.langCd}) AS REG_USER_NM
+			,'' as DOC_CONTENTS
+			,SCTP.SIGN_PATH_SQ
+			,SCTM.ATT_FILE_NUM, <include refid="common.sql.dbo"/>getFileCount(SCTM.GATE_CD, SCTM.ATT_FILE_NUM) AS ATT_FILE_CNT
+			,SCTM.NEXT_SIGN_USER_ID
+			,<include refid="common.sql.strDecStart"/>(CASE WHEN SCTM.SIGN_STATUS = 'P' THEN CUR.USER_NM ELSE '-' END) <include refid="common.sql.strDecEnd"/> AS NEXT_SIGN_USER_NM
+			,SCTP.SIGN_REQ_TYPE
+			,SCTP.DOC_SQ
+			,SCTP.SIGN_USER_ID
+			,<include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>GETDEPTNAME(SCTM.GATE_CD, SCTM.BUYER_CD, SCTM.DEPT_CD, #{ses.langCd}), <include refid="common.sql.dbo"/>GETDEPTNAME(RCUR.GATE_CD, RCUR.COMPANY_CD, RCUR.DEPT_CD, #{ses.langCd})) AS REG_DEPT_NM
+			,SCTM.APP_AMT
+		<if test="_databaseId == 'oracle'">
+            ,(CASE WHEN SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP')
+                   THEN SCTP.SIGN_PATH_SQ
+                        <include refid="common.sql.stringMerge"/> '/' <include refid="common.sql.stringMerge"/>
+                        (SELECT COUNT(*) FROM STOCSCTP SCTP
+                          WHERE SCTP.GATE_CD = SCTM.GATE_CD
+                            AND SCTP.BUYER_CD = SCTM.BUYER_CD
+                            AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+                            AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+                            AND SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP')
+                            AND SCTP.DEL_FLAG = '0')
+                   ELSE (SELECT TO_CHAR(COUNT(*)) FROM STOCSCTP SCTP
+                          WHERE SCTP.GATE_CD = SCTM.GATE_CD
+                            AND SCTP.BUYER_CD = SCTM.BUYER_CD
+                            AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+                            AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+                            AND SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP')
+                            AND SCTP.DEL_FLAG = '0')
+                   END) AS VIEW_CNT
+            <!--
+			,SCTP.SIGN_PATH_SQ
+			 <include refid="common.sql.stringMerge"/> '/' <include refid="common.sql.stringMerge"/>
+			 (SELECT COUNT(*) FROM STOCSCTP SCTP
+			   WHERE SCTP.GATE_CD = SCTM.GATE_CD
+				 AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+				 AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+				 AND SCTP.DEL_FLAG = '0'
+				 AND SCTP.SIGN_REQ_TYPE = 'E') AS VIEW_CNT
+            -->
+		</if>
+		<if test="_databaseId == 'mssql'">
+			,(SELECT CONVERT(varchar(10), CONVERT(INT, <include refid="common.sql.nvl"/>(MAX(SIGN_PATH_SQ), 0)))
+				FROM STOCSCTP SCTP
+			   WHERE SCTP.GATE_CD = SCTM.GATE_CD
+			     AND SCTP.BUYER_CD = SCTM.BUYER_CD
+			     AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+			     AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+			     AND SCTP.DEL_FLAG = '0'
+			     AND SCTP.SIGN_STATUS IN ('E', 'R'))
+			 <include refid="common.sql.stringMerge"/> '/' <include refid="common.sql.stringMerge"/>
+			 (SELECT CONVERT(varchar(10), CONVERT(INT, COUNT(*)))
+			 	FROM STOCSCTP SCTP
+			   WHERE SCTP.GATE_CD = SCTM.GATE_CD
+			     AND SCTP.BUYER_CD = SCTM.BUYER_CD
+			     AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+			     AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+			     AND SCTP.DEL_FLAG = '0'
+			     AND SCTP.SIGN_REQ_TYPE = 'E') AS VIEW_CNT
+		</if>
+		  FROM STOCSCTM SCTM
+		  INNER JOIN STOCSCTP SCTP
+		   ON (SCTM.GATE_CD = SCTP.GATE_CD
+		   AND SCTM.BUYER_CD = SCTP.BUYER_CD
+		   AND SCTM.APP_DOC_NUM = SCTP.APP_DOC_NUM
+		   AND SCTM.APP_DOC_CNT = SCTP.APP_DOC_CNT)
+		  LEFT OUTER JOIN STOCCVUR CUR
+		   ON (SCTM.GATE_CD = CUR.GATE_CD
+		   AND SCTM.NEXT_SIGN_USER_ID = CUR.USER_ID)
+		  LEFT OUTER JOIN STOCCVUR RCUR
+		   ON (SCTM.GATE_CD = RCUR.GATE_CD
+		   AND SCTM.REG_USER_ID = RCUR.USER_ID)
+		 WHERE SCTM.GATE_CD = #{ses.gateCd}
+		   AND SCTP.SIGN_USER_ID = #{ses.userId}
+		   AND SCTM.DEL_FLAG = '0'
+		   AND SCTP.DEL_FLAG = '0'
+		<choose>
+			<when test='LOGIN_STATUS == "E"'>
+				AND ((SCTP.SIGN_STATUS IN ('E','R') AND SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP', 'A')) OR (SCTM.SIGN_STATUS = 'E' AND SCTP.SIGN_REQ_TYPE = 'CC'))
+				AND SCTM.SIGN_STATUS IN ('P','E','R')
+				AND SCTP.SIGN_USER_ID = #{ses.userId}
+			</when>
+			<when test='LOGIN_STATUS == "P"'>
+				AND SCTP.SIGN_STATUS = 'P'
+				AND SCTM.SIGN_STATUS = 'P'
+				AND SCTM.NEXT_SIGN_USER_ID = #{ses.userId}
+			</when>
+		</choose>
+		<if test="RFA_FROM_DATE != '' and RFA_FROM_DATE != null and RFA_TO_DATE != '' and RFA_TO_DATE != null">
+			AND SCTM.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{RFA_FROM_DATE})
+			AND SCTM.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{RFA_TO_DATE})
+		</if>
+		<if test="SIGN_STATUS != '' and SIGN_STATUS != null">
+			AND SCTM.SIGN_STATUS = #{SIGN_STATUS}
+		</if>
+		<if test="DOCUMENT_TYPE != '' and DOCUMENT_TYPE != null">
+			AND SCTM.DOC_TYPE = #{DOCUMENT_TYPE}
+		</if>
+		<if test="USER_ID != '' and USER_ID != null">
+			AND UPPER(SCTM.REG_USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="USER_NM != '' and USER_NM != null">
+			AND UPPER(<include refid="common.sql.dbo"/>getUserName(SCTM.GATE_CD, SCTM.REG_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="DOCUMENT_NM != '' and DOCUMENT_NM != null ">
+			AND UPPER(REPLACE(SCTM.SUBJECT, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{DOCUMENT_NM}, ' ', '')) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+
+		ORDER BY SCTM.REG_DATE DESC
+
+	</select>
+	
+	<select id="cwor0060_doSearch" parameterType="hashMap" resultType="hashMap">
+		SELECT
+			 SCTM.BUYER_CD
+			,SCTM.APP_DOC_NUM
+			,SCTM.APP_DOC_CNT
+			,SCTM.SUBJECT
+			,SCTM.SIGN_STATUS
+			,(CASE WHEN SCTP.SIGN_REQ_TYPE = 'CC' THEN '참조' ELSE SCTP.SIGN_STATUS END) AS PER_SIGN_STATUS
+			,SCTM.IMPORTANCE_STATUS
+			,SCTM.DOC_TYPE
+			,<include refid="common.sql.toChar"/>((SELECT MAX(SIGN_DATE) FROM STOCSCTP
+													WHERE GATE_CD = SCTM.GATE_CD
+													  AND BUYER_CD = SCTM.BUYER_CD
+													  AND APP_DOC_NUM = SCTM.APP_DOC_NUM
+													  AND APP_DOC_CNT = SCTM.APP_DOC_CNT
+													  AND DEL_FLAG = '0'
+													  AND (SIGN_STATUS = 'E' OR SIGN_STATUS = 'R')), 'yyyy-mm-dd hh24:mi') AS SIGN_DATE
+			,<include refid="common.sql.toChar"/>(SCTM.REG_DATE, 'yyyy-mm-dd hh24:mi') AS RFA_DATE_TIME
+			,SCTM.REG_USER_ID AS REG_USER_ID
+			,<include refid="common.sql.dbo"/>getUserName(SCTM.GATE_CD,  SCTM.REG_USER_ID , #{ses.langCd}) AS REG_USER_NM
+			,'' as DOC_CONTENTS
+			,SCTP.SIGN_PATH_SQ
+			,SCTM.ATT_FILE_NUM, <include refid="common.sql.dbo"/>getFileCount(SCTM.GATE_CD, SCTM.ATT_FILE_NUM) AS ATT_FILE_CNT
+			,SCTM.NEXT_SIGN_USER_ID
+			,<include refid="common.sql.strDecStart"/>(CASE WHEN SCTM.SIGN_STATUS = 'P' THEN CUR.USER_NM ELSE '-' END) <include refid="common.sql.strDecEnd"/> AS NEXT_SIGN_USER_NM
+			,SCTP.SIGN_REQ_TYPE
+			,SCTP.DOC_SQ
+			,SCTP.SIGN_USER_ID
+			,SCTP.DEPT_CD
+			,<include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>GETDEPTNAME(SCTM.GATE_CD, SCTM.BUYER_CD, SCTM.DEPT_CD, #{ses.langCd}), <include refid="common.sql.dbo"/>GETDEPTNAME(CUR.GATE_CD, CUR.COMPANY_CD, CUR.DEPT_CD, #{ses.langCd})) AS REG_DEPT_NM
+			,SCTM.APP_AMT
+		<if test="_databaseId == 'oracle'">
+            ,(CASE WHEN SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP')
+                   THEN SCTP.SIGN_PATH_SQ
+                        <include refid="common.sql.stringMerge"/> '/' <include refid="common.sql.stringMerge"/>
+                        (SELECT COUNT(*) FROM STOCSCTP SCTP
+                          WHERE SCTP.GATE_CD = SCTM.GATE_CD
+                            AND SCTP.BUYER_CD = SCTM.BUYER_CD
+                            AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+                            AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+                            AND SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP')
+                            AND SCTP.DEL_FLAG = '0')
+                   ELSE (SELECT TO_CHAR(COUNT(*)) FROM STOCSCTP SCTP
+                          WHERE SCTP.GATE_CD = SCTM.GATE_CD
+                            AND SCTP.BUYER_CD = SCTM.BUYER_CD
+                            AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+                            AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+                            AND SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP')
+                            AND SCTP.DEL_FLAG = '0')
+                   END) AS VIEW_CNT
+		</if>
+		<if test="_databaseId == 'mssql'">
+			,(SELECT CONVERT(varchar(10), CONVERT(INT, <include refid="common.sql.nvl"/>(MAX(SIGN_PATH_SQ), 0)))
+				FROM STOCSCTP SCTP
+			   WHERE SCTP.GATE_CD = SCTM.GATE_CD
+			     AND SCTP.BUYER_CD = SCTM.BUYER_CD
+			     AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+			     AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+			     AND SCTP.DEL_FLAG = '0'
+			     AND SCTP.SIGN_STATUS IN ('E', 'R'))
+			 <include refid="common.sql.stringMerge"/> '/' <include refid="common.sql.stringMerge"/>
+			 (SELECT CONVERT(varchar(10), CONVERT(INT, COUNT(*)))
+			 	FROM STOCSCTP SCTP
+			   WHERE SCTP.GATE_CD = SCTM.GATE_CD
+			     AND SCTP.BUYER_CD = SCTM.BUYER_CD
+			     AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+			     AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+			     AND SCTP.DEL_FLAG = '0'
+			     AND SCTP.SIGN_REQ_TYPE = 'E') AS VIEW_CNT
+		</if>
+		 FROM STOCSCTM SCTM
+		 INNER JOIN STOCSCTP SCTP
+		   ON (SCTM.GATE_CD = SCTP.GATE_CD
+		   AND SCTM.BUYER_CD = SCTP.BUYER_CD
+		   AND SCTM.APP_DOC_NUM = SCTP.APP_DOC_NUM
+		   AND SCTM.APP_DOC_CNT = SCTP.APP_DOC_CNT)
+		 LEFT OUTER JOIN STOCCVUR CUR
+			   ON (SCTM.GATE_CD  = CUR.GATE_CD
+			   AND SCTM.NEXT_SIGN_USER_ID = CUR.USER_ID)  
+		 WHERE SCTM.GATE_CD = #{ses.gateCd}
+		   AND SCTM.DEL_FLAG = '0'
+		   AND SCTP.DEL_FLAG = '0'
+		   AND ((SCTP.SIGN_STATUS IN ('E','R') AND SCTP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP', 'A')) OR (SCTM.SIGN_STATUS = 'E' AND SCTP.SIGN_REQ_TYPE = 'CC'))
+		   AND SCTM.SIGN_STATUS IN ('P','E','R')
+		   AND ((SCTP.SIGN_USER_ID = #{ses.userId}) OR (SCTP.DEPT_NM = #{ses.deptNm}))
+		   AND SCTP.DOC_SQ = '1'
+		<if test="RFA_FROM_DATE != '' and RFA_FROM_DATE != null and RFA_TO_DATE != '' and RFA_TO_DATE != null">
+			AND SCTM.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{RFA_FROM_DATE})
+			AND SCTM.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{RFA_TO_DATE})
+		</if>
+		<if test="SIGN_STATUS != '' and SIGN_STATUS != null">
+			AND SCTM.SIGN_STATUS = #{SIGN_STATUS}
+		</if>
+		<if test="DOCUMENT_TYPE != '' and DOCUMENT_TYPE != null">
+			AND SCTM.DOC_TYPE = #{DOCUMENT_TYPE}
+		</if>
+		<if test="USER_ID != '' and USER_ID != null">
+			AND UPPER(SCTM.REG_USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="USER_NM != '' and USER_NM != null">
+			AND UPPER(<include refid="common.sql.dbo"/>getUserName(SCTM.GATE_CD, SCTM.REG_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="DOCUMENT_NM != '' and DOCUMENT_NM != null ">
+			AND UPPER(REPLACE(SCTM.SUBJECT, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{DOCUMENT_NM}, ' ', '')) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+
+		ORDER BY SCTM.REG_DATE DESC
+
+	</select>
+
+	<select id="cwor0030_doSearch" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 SCTM.APP_DOC_NUM
+			,SCTM.APP_DOC_CNT
+			,SCTM.SIGN_STATUS
+			,SCTM.IMPORTANCE_STATUS
+			,SCTM.DOC_TYPE
+			,SCTM.SUBJECT
+			,<include refid="common.sql.toChar"/>(SCTM.REG_DATE, 'yyyy-mm-dd hh24:mi') AS RFA_DATE_TIME
+			,'' AS DOC_CONTENTS
+			,(SELECT MIN(SIGN_PATH_SQ) FROM STOCSCTP
+			   WHERE GATE_CD = SCTM.GATE_CD
+			     AND BUYER_CD = SCTM.BUYER_CD
+			     AND APP_DOC_NUM = SCTM.APP_DOC_NUM
+			     AND APP_DOC_CNT = SCTM.APP_DOC_CNT
+			     AND SIGN_USER_ID = NEXT_SIGN_USER_ID
+			     AND DEL_FLAG = '0') AS SIGN_PATH_SQ
+			,<include refid="common.sql.toChar"/>((SELECT MAX(SIGN_DATE) FROM STOCSCTP
+													WHERE GATE_CD = SCTM.GATE_CD
+													  AND BUYER_CD = SCTM.BUYER_CD
+													  AND APP_DOC_NUM = SCTM.APP_DOC_NUM
+													  AND APP_DOC_CNT = SCTM.APP_DOC_CNT
+													  AND DEL_FLAG = '0'
+													  AND (SIGN_STATUS = 'E' OR SIGN_STATUS = 'R')), 'yyyy-MM-dd hh24:mi') AS SIGN_DATE
+			,SCTM.ATT_FILE_NUM
+			,SCTM.APP_AMT
+			,SCTM.BUYER_CD
+		<if test="_databaseId == 'oracle'">
+            ,(SELECT COUNT(TP.SIGN_PATH_SQ) FROM STOCSCTP TP
+			   WHERE TP.GATE_CD = SCTM.GATE_CD
+			 	 AND TP.BUYER_CD = SCTM.BUYER_CD
+			 	 AND TP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+			 	 AND TP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+			 	 AND TP.SIGN_STATUS IN ('E','R')
+			 	 AND TP.DEL_FLAG = '0' )
+			 <include refid="common.sql.stringMerge"/> '/' <include refid="common.sql.stringMerge"/>
+			 (SELECT COUNT(*) FROM STOCSCTP TP
+			   WHERE TP.GATE_CD = SCTM.GATE_CD
+			 	 AND TP.BUYER_CD = SCTM.BUYER_CD
+			 	 AND TP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+			 	 AND TP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+			 	 AND TP.SIGN_REQ_TYPE IN ('E', 'ES', 'EP', 'A')
+			 	 AND TP.DEL_FLAG = '0') AS VIEW_CNT
+			<!--
+			,(SELECT MIN(SIGN_PATH_SQ) FROM STOCSCTP
+			   WHERE GATE_CD = SCTM.GATE_CD
+			     AND APP_DOC_NUM = SCTM.APP_DOC_NUM
+			     AND APP_DOC_CNT = SCTM.APP_DOC_CNT
+			     AND DEL_FLAG = '0' )
+			 <include refid="common.sql.stringMerge"/> '/' <include refid="common.sql.stringMerge"/>
+			 (SELECT COUNT(*) FROM STOCSCTP SCTP
+			   WHERE SCTP.GATE_CD = SCTM.GATE_CD
+			     AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+			     AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+			     AND SCTP.DEL_FLAG = '0'
+			     AND SCTP.SIGN_REQ_TYPE = 'E') AS VIEW_CNT
+            -->
+		</if>
+		<if test="_databaseId == 'mssql'">
+			,(SELECT CONVERT(varchar(10), CONVERT(INT, <include refid="common.sql.nvl"/>(MAX(SIGN_PATH_SQ), 0)))
+				FROM STOCSCTP SCTP
+			   WHERE SCTP.GATE_CD = SCTM.GATE_CD
+			     AND SCTP.BUYER_CD = SCTM.BUYER_CD
+			     AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+			     AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+			     AND SCTP.DEL_FLAG = '0'
+			     AND SCTP.SIGN_STATUS in ('E', 'R'))
+			 <include refid="common.sql.stringMerge"/> '/' <include refid="common.sql.stringMerge"/>
+			 (SELECT CONVERT(varchar(10), CONVERT(INT, COUNT(*)))
+			 	FROM STOCSCTP SCTP
+			   WHERE SCTP.GATE_CD = SCTM.GATE_CD
+			     AND SCTP.BUYER_CD = SCTM.BUYER_CD
+			     AND SCTP.APP_DOC_NUM = SCTM.APP_DOC_NUM
+			     AND SCTP.APP_DOC_CNT = SCTM.APP_DOC_CNT
+			     AND SCTP.DEL_FLAG = '0'
+			     AND SCTP.SIGN_REQ_TYPE = 'E') AS VIEW_CNT
+		</if>
+		  FROM STOCSCTM SCTM
+		 WHERE SCTM.GATE_CD = #{ses.gateCd}
+		   AND SCTM.REG_USER_ID = #{ses.userId}
+		   AND SCTM.DEL_FLAG = '0'
+		<if test="START_DATE != '' and START_DATE != null and END_DATE != '' and END_DATE != null">
+			AND SCTM.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{START_DATE})
+			AND SCTM.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{END_DATE})
+		</if>
+		<if test="SIGN_STATUS != '' and SIGN_STATUS != null">
+			AND SCTM.SIGN_STATUS = #{SIGN_STATUS}
+		</if>
+		<if test="DOC_TYPE != '' and DOC_TYPE != null">
+			AND SCTM.DOC_TYPE = #{DOC_TYPE}
+		</if>
+		<if test="SUBJECT != '' and SUBJECT != '' and SUBJECT != null ">
+			AND UPPER(REPLACE(SCTM.SUBJECT, ' ', '')) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(REPLACE(#{SUBJECT}, ' ', '')) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+
+		ORDER BY SCTM.REG_DATE DESC
+
+	</select>
+
+	<select id="cwor0040_doSearch" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 RULM.MAIN_PATH_FLAG
+			,<include refid="common.sql.dbo"/>GETCOMCODE(RULM.GATE_CD, 'M044', RULM.MAIN_PATH_FLAG, 0, #{ses.langCd}) AS MAIN_PATH_FLAG_LOC
+			,RULM.SIGN_PATH_NM
+            ,(SELECT COUNT(*) FROM STOCLULP LULP
+               WHERE LULP.GATE_CD = RULM.GATE_CD
+                 AND LULP.PATH_NUM = RULM.PATH_NUM
+                 AND LULP.DEL_FLAG = '0') AS SIGN_PERSON_CNT
+			,(SELECT COUNT(PATH_SQ)
+				FROM STOCLULP LULP
+				JOIN STOCCVUR USERTB
+				 ON (LULP.GATE_CD = USERTB.GATE_CD
+				 AND LULP.SIGN_USER_ID = USERTB.USER_ID)
+				LEFT OUTER JOIN STOCOGDP OGDP
+				 ON (USERTB.GATE_CD = OGDP.GATE_CD
+				 AND USERTB.COMPANY_CD = OGDP.BUYER_CD
+				 AND USERTB.DEPT_CD = OGDP.DEPT_CD
+				 AND OGDP.DEL_FLAG = '0')
+			   WHERE LULP.GATE_CD = RULM.GATE_CD
+			     AND LULP.PATH_NUM = RULM.PATH_NUM
+			     AND LULP.DEL_FLAG = '0'
+			     AND USERTB.DEL_FLAG = '0') AS PATH_SQ
+			,RULM.SIGN_RMK
+			,<include refid="common.sql.toChar"/>(RULM.REG_DATE, 'yyyyMMdd') AS REG_DATE
+			,<include refid="common.sql.toChar"/>(MOD_DATE, 'yyyyMMdd') AS MOD_DATE
+			,RULM.GATE_CD
+			,RULM.PATH_NUM
+			,'' as MAIN_PATH_NM
+		  FROM STOCRULM RULM
+		 WHERE RULM.GATE_CD = #{ses.gateCd}
+		   AND RULM.DEL_FLAG = '0'
+		   AND RULM.PATH_USER_ID = #{ses.userId}
+		<if test="SIGN_PATH_NM != '' and SIGN_PATH_NM != null">
+			AND UPPER(RULM.SIGN_PATH_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SIGN_PATH_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="MAIN_PATH_FLAG != '' and MAIN_PATH_FLAG != null">
+			AND RULM.MAIN_PATH_FLAG = #{MAIN_PATH_FLAG}
+		</if>
+
+		ORDER BY REG_DATE DESC
+
+	</select>
+
+	<update id="deletePath" parameterType="hashMap">
+
+		UPDATE STOCRULM SET
+			 DEL_FLAG = '1'
+			,MOD_USER_ID =  #{ses.userId}
+			,MOD_DATE = SYSDATE
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND PATH_NUM = #{PATH_NUM}
+
+	</update>
+
+	<update id="deletePathDetail" parameterType="hashMap">
+
+		UPDATE STOCLULP SET
+			 DEL_FLAG = '1'
+			,MOD_USER_ID =  #{ses.userId}
+			,MOD_DATE = SYSDATE
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND PATH_NUM = #{PATH_NUM}
+
+	</update>
+
+	<select id="cwor0041_doSearchDT" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 LULP.PATH_SQ
+			,LULP.SIGN_USER_ID  SIGN_USER_ID
+			,<include refid="common.sql.dbo"/>getUserName(LULP.GATE_CD,  LULP.SIGN_USER_ID , #{ses.langCd}) AS USER_NM
+            ,CUST.CUST_CD AS BUYER_CD
+            ,CUST.CUST_NM AS BUYER_NM
+			,<include refid="common.sql.dbo"/>getDeptName(LULP.GATE_CD, OGDP.BUYER_CD, OGDP.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+			,USERTB.POSITION_NM
+			,USERTB.DUTY_NM
+			,LULP.SIGN_REQ_STATUS
+			,LULP.GATE_CD
+			,LULP.PATH_NUM
+			,'R' AS INSERT_FLAG
+		  FROM STOCLULP LULP
+		  JOIN STOCCVUR USERTB
+		   ON (LULP.SIGN_USER_ID = USERTB.USER_ID
+		   AND LULP.GATE_CD = USERTB.GATE_CD)
+		  LEFT OUTER JOIN STOCOGDP OGDP
+		   ON (USERTB.GATE_CD = OGDP.GATE_CD
+		   AND USERTB.COMPANY_CD = OGDP.BUYER_CD
+		   AND USERTB.DEPT_CD = OGDP.DEPT_CD
+		   AND OGDP.DEL_FLAG = '0')
+          LEFT JOIN STOCCUST CUST
+           ON (USERTB.GATE_CD = CUST.GATE_CD
+           AND USERTB.COMPANY_CD = CUST.CUST_CD)
+		 WHERE LULP.GATE_CD = #{ses.gateCd}
+		   AND LULP.PATH_NUM = #{PATH_NUM}
+		   AND LULP.DEL_FLAG = '0'
+		   AND USERTB.DEL_FLAG = '0'
+		 ORDER BY LULP.PATH_SQ
+
+	</select>
+
+	<select id="getPathNo" parameterType="hashMap" resultType="java.lang.String">
+
+		SELECT
+		<if test="_databaseId == 'oracle'">
+			<include refid="common.sql.dbo"/>SF_LPAD(<include refid="common.sql.nvl"/>(MAX(TO_NUMBER(PATH_NUM))+1, 1), 10, '0')
+		</if>
+		<if test="_databaseId == 'mssql'">
+			<include refid="common.sql.dbo"/>SF_LPAD(<include refid="common.sql.nvl"/>(MAX(CAST(PATH_NUM AS FLOAT))+1, 1), 10, '0')
+		</if>
+		  FROM STOCRULM
+		 WHERE GATE_CD = #{ses.gateCd}
+
+	</select>
+
+	<insert id="insertPath" parameterType="hashMap">
+
+		INSERT INTO STOCRULM (
+			 GATE_CD
+			,PATH_NUM
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,MAIN_PATH_FLAG
+			,SIGN_PATH_NM
+			,SIGN_RMK
+			,BUYER_CD
+			,PATH_USER_ID
+		) VALUES (
+			 #{ses.gateCd}
+			,#{PATH_NUM}
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+			,'0'
+			,(CASE WHEN <include refid="common.sql.nvl"/>(#{MAIN_PATH_FLAG}, '0') = 'on' THEN '1' ELSE '0' END)
+			,#{SIGN_PATH_NM}
+			,#{SIGN_RMK}
+			,#{ses.companyCd}
+			,#{ses.userId}
+		)
+
+	</insert>
+
+	<update id="updatePath" parameterType="hashMap">
+
+		UPDATE STOCRULM SET
+			 MOD_USER_ID = #{ses.userId}
+			,MOD_DATE = SYSDATE
+			,MAIN_PATH_FLAG = (CASE WHEN <include refid="common.sql.nvl"/>(#{MAIN_PATH_FLAG}, '0') = 'on' THEN '1' ELSE '0' END)
+			,SIGN_PATH_NM = #{SIGN_PATH_NM}
+			,SIGN_RMK = #{SIGN_RMK}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND PATH_NUM = #{PATH_NUM}
+
+	</update>
+
+	<delete id="deleteLULP" parameterType="hashMap">
+
+		DELETE STOCLULP
+		 WHERE GATE_CD = #{ses.gateCd}
+           AND PATH_NUM = #{PATH_NUM}
+
+    </delete>
+
+	<insert id="insertPathDetail" parameterType="hashMap">
+
+		INSERT INTO STOCLULP (
+			 GATE_CD
+			,PATH_NUM
+			,PATH_SQ
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+			,DEL_FLAG
+			,SIGN_PATH_SQ
+			,SIGN_REQ_STATUS
+			,SIGN_USER_ID
+		) VALUES (
+			 #{ses.gateCd}
+			,#{PATH_NUM}
+			,(SELECT <include refid="common.sql.nvl"/>(MAX(PATH_SQ) + 1, 1) FROM STOCLULP WHERE GATE_CD = #{ses.gateCd} AND PATH_NUM = #{PATH_NUM})
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+			,'0'
+			,(SELECT <include refid="common.sql.nvl"/>(MAX(SIGN_PATH_SQ) + 1, 1) FROM STOCLULP WHERE GATE_CD = #{ses.gateCd} AND PATH_NUM = #{PATH_NUM})
+			,#{SIGN_REQ_STATUS}
+			,#{SIGN_USER_ID}
+		)
+
+	</insert>
+
+    <update id="updateOtherPathToNormal" parameterType="hashMap">
+
+        UPDATE STOCRULM SET
+             MOD_USER_ID = #{ses.userId}
+            ,MOD_DATE = SYSDATE
+            ,MAIN_PATH_FLAG = '0'
+         WHERE GATE_CD = #{ses.gateCd}
+           AND PATH_USER_ID = #{ses.userId}
+           AND PATH_NUM != #{PATH_NUM}
+
+    </update>
+
+	<select id="cwor0042_doSearch" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 RULM.SIGN_PATH_NM
+			,(SELECT COUNT(DISTINCT PATH_SQ)
+				FROM STOCLULP LULP
+				JOIN STOCCVUR USERTB
+				 ON (LULP.GATE_CD = USERTB.GATE_CD
+				 AND LULP.SIGN_USER_ID = USERTB.USER_ID)
+				LEFT JOIN STOCOGDP OGDP
+				 ON (USERTB.GATE_CD = OGDP.GATE_CD
+				 AND USERTB.DEPT_CD = OGDP.DEPT_CD
+				 AND OGDP.DEL_FLAG = '0')
+			   WHERE LULP.GATE_CD = RULM.GATE_CD
+			     AND LULP.PATH_NUM = RULM.PATH_NUM
+			     AND LULP.DEL_FLAG = '0'
+			     AND USERTB.DEL_FLAG = '0') PATH_SQ
+			,<include refid="common.sql.toChar"/>(RULM.REG_DATE, 'yyyyMMdd') AS REG_DATE
+			,RULM.PATH_NUM
+		  FROM STOCRULM RULM
+		 WHERE RULM.GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{ses.companyCd}
+		   AND PATH_USER_ID = #{ses.userId}
+		   AND RULM.DEL_FLAG = '0'
+		 ORDER BY RULM.REG_DATE DESC
+
+	</select>
+
+	<select id="cwor0050_userSearchAll" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 B.SIGN_USER_ID, B.SIGN_USER_NM
+			,B.CUST_CD, B.CUST_NM
+			,B.DEPT_CD, B.DEPT_NM
+			,B.POSITION_NM
+		  FROM (
+			SELECT
+				 A.SIGN_USER_ID, A.SIGN_USER_NM
+				,A.CUST_CD, A.CUST_NM
+				,A.DEPT_CD
+				,A.DEPT_NM
+				--,(SELECT MAX(DP.DEPT_NM) FROM STOCOGDP DP WHERE DP.GATE_CD = A.GATE_CD AND DP.BUYER_CD = A.COMPANY_CD AND DP.DEL_FLAG = '0') AS DEPT_NM
+				,A.POSITION_NM
+			  FROM (
+				SELECT /*+ INDEX(STOCCVUR IDX_CVUR_01) */
+					UR.USER_ID AS SIGN_USER_ID,
+					<include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> AS SIGN_USER_NM,
+					UR.DEPT_CD, OGDP.DEPT_NM,
+					UR.DUTY_NM AS POSITION_NM,
+					CUST.CUST_CD, CUST.CUST_NM,
+					UR.GATE_CD, UR.COMPANY_CD
+				  FROM STOCCVUR UR
+				  LEFT JOIN STOCCUST CUST
+				   	ON (UR.GATE_CD = CUST.GATE_CD
+				   	AND UR.COMPANY_CD = CUST.CUST_CD
+				   	AND CUST.DEL_FLAG = '0')
+				  LEFT JOIN STOCOGDP OGDP
+			   		ON (UR.GATE_CD = OGDP.GATE_CD
+			   		AND UR.COMPANY_CD = OGDP.BUYER_CD
+			   		AND UR.DEPT_CD = OGDP.DEPT_CD)
+				 WHERE UR.GATE_CD = #{ses.gateCd}
+				   AND UR.USER_TYPE = 'B'
+				   AND UR.DEL_FLAG = '0'
+				   AND UR.PROGRESS_CD = 'E'
+				   AND UR.COMPANY_CD = #{CUST_CD}
+				<if test="COMPANY != '' and COMPANY != null">
+					AND UPPER(CUST.CUST_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{COMPANY}) <include refid="common.sql.stringMerge"/> '%'
+				</if>
+				<if test="DEPT_CD != '' and DEPT_CD != null">
+					AND UPPER(OGDP.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_CD}) <include refid="common.sql.stringMerge"/> '%'
+				</if>
+			  ) A
+			 WHERE 1 = 1
+			<if test="SIGN_USER_NM != '' and SIGN_USER_NM != null">
+				AND UPPER(A.SIGN_USER_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SIGN_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+		  ) B
+		 WHERE 1 = 1
+
+
+		 ORDER BY B.CUST_NM, B.DEPT_NM, B.POSITION_NM, B.SIGN_USER_NM
+
+	</select>
+
+	<select id="cwor0050_userSearchMy" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 A.SIGN_USER_ID, A.SIGN_USER_NM
+			,A.CUST_CD, A.CUST_NM
+			,A.DEPT_CD, A.DEPT_NM
+			,A.POSITION_NM
+		  FROM (
+			SELECT
+				UR.USER_ID AS SIGN_USER_ID,
+				<include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> AS SIGN_USER_NM,
+				UR.DEPT_CD,
+				DP.DEPT_NM,
+				UR.DUTY_NM AS POSITION_NM,
+				CUST.CUST_CD, CUST.CUST_NM
+			  FROM STOCCVUR UR LEFT JOIN STOCOGDP DP
+			   ON (UR.DEPT_CD = DP.DEPT_CD
+			   AND UR.COMPANY_CD = DP.BUYER_CD
+			   AND DP.DEL_FLAG = '0'
+			   AND UR.GATE_CD = DP.GATE_CD)
+			  LEFT JOIN STOCCUST CUST
+			   ON (UR.COMPANY_CD = CUST.CUST_CD
+			   AND UR.GATE_CD = CUST.GATE_CD
+			   AND CUST.DEL_FLAG = '0')
+			 WHERE UR.GATE_CD = #{ses.gateCd}
+			   AND UR.COMPANY_CD = #{ses.companyCd}
+			   AND UR.USER_TYPE = 'B'
+			   AND UR.DEL_FLAG = '0'
+			   AND UR.PROGRESS_CD = 'E'
+			<if test="DEPT_CD != '' and DEPT_CD != null">
+				AND UPPER(DP.DEPT_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_CD}) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+		  ) A
+		WHERE 1 = 1
+		<if test="SIGN_USER_NM != '' and SIGN_USER_NM != null">
+			AND UPPER(A.SIGN_USER_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SIGN_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		ORDER BY A.CUST_NM, A.DEPT_NM, A.POSITION_NM, A.SIGN_USER_NM
+
+	</select>
+
+	<select id="getAppLineCd" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			APP_LINE, AGR_LINE
+		  FROM STOCDMLR DMLR
+		 WHERE DMLR.GATE_CD = #{ses.gateCd}
+		   AND DMLR.DEL_FLAG = '0'
+		   AND DMLR.USE_FLAG = '1'
+		   AND DMLR.CUST_CD = #{CUST_CD}
+		   AND DMLR.BIZ_CLS1 = #{BIZ_CLS1}
+		   AND DMLR.BIZ_CLS2 = #{BIZ_CLS2}
+		   AND DMLR.BIZ_CLS3 = #{BIZ_CLS3}
+		   AND DMLR.APP_DATE <![CDATA[<=]]> SYSDATE
+		<if test="_databaseId == 'oracle'">
+			AND TO_NUMBER(#{BIZ_AMT}) BETWEEN DMLR.FROM_AMT AND DMLR.TO_AMT
+		</if>
+		<if test="_databaseId == 'mssql'">
+			AND CONVERT(numeric, #{BIZ_AMT}) BETWEEN DMLR.FROM_AMT AND DMLR.TO_AMT
+		</if>
+
+	</select>
+
+	<select id="getAgrLines" parameterType="hashMap" resultType="hashMap">
+
+		SELECT T.*
+		  FROM(
+			SELECT
+				 'A' AS SIGN_REQ_TYPE
+				,LD.REF_USER_ID AS SIGN_USER_ID
+				,<include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> AS SIGN_USER_NM
+				,'' AS SIGN_USER_NM_IMG
+				,UR.DUTY_NM AS POSITION_NM
+				,UR.DEPT_CD
+				,<include refid="common.sql.dbo"/>GETDEPTNAME(UR.GATE_CD, UR.COMPANY_CD, UR.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+				,UR.DUTY_NM
+			<choose>
+				<when test='CUST_CD == "1000"'>,UR.POSITION_CD</when>
+				<otherwise>,'' AS POSITION_CD</otherwise>
+			</choose>
+			  FROM STOCDMLD LD
+			<choose>
+				<when test='CUST_CD == "1000"'> LEFT JOIN STOCUSER UR </when>
+				<otherwise> LEFT JOIN STOCCVUR UR </otherwise>
+			</choose>
+			   ON (LD.GATE_CD = UR.GATE_CD
+			   AND LD.REF_USER_ID = UR.USER_ID
+			   AND UR.DEL_FLAG = '0')
+			 WHERE LD.GATE_CD = #{ses.gateCd}
+			   AND LD.CUST_CD = #{CUST_CD}
+			   AND LD.DML_TYPE = 'AGR'
+			   AND LD.REF_CD = #{CODE} -- 합의라인 Code
+			   AND LD.DEL_FLAG = '0'
+			   AND LD.USE_FLAG = '1'
+
+			UNION ALL
+
+			SELECT
+				 'CC' AS SIGN_REQ_TYPE
+				,LD.REF_USER_ID AS SIGN_USER_ID
+				,<include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> AS SIGN_USER_NM
+				,'' AS SIGN_USER_NM_IMG
+				,UR.DUTY_NM AS POSITION_NM
+				,UR.DEPT_CD
+				,<include refid="common.sql.dbo"/>GETDEPTNAME(UR.GATE_CD, UR.COMPANY_CD, UR.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+				,UR.DUTY_NM
+			<choose>
+				<when test='CUST_CD == "1000"'>,UR.POSITION_CD</when>
+				<otherwise>,'' AS POSITION_CD</otherwise>
+			</choose>
+			  FROM STOCDMLD LD
+			<choose>
+				<when test='CUST_CD == "1000"'> LEFT JOIN STOCUSER UR </when>
+				<otherwise> LEFT JOIN STOCCVUR UR </otherwise>
+			</choose>
+			   ON (LD.GATE_CD = UR.GATE_CD
+			   AND LD.REF_USER_ID = UR.USER_ID
+			   AND UR.DEL_FLAG = '0')
+			 WHERE LD.GATE_CD = #{ses.gateCd}
+			   AND LD.CUST_CD = #{CUST_CD}
+			   AND LD.DML_TYPE = 'REF'
+			   AND LD.REF_CD = #{REF_CD} -- 전결구분 (대분류)
+			   AND LD.DEL_FLAG = '0'
+			   AND LD.USE_FLAG = '1'
+			<if test="_databaseId == 'oracle'">
+				AND TO_NUMBER(#{REF_BIZ_AMT}) BETWEEN LD.FROM_AMT AND LD.TO_AMT
+			</if>
+			<if test="_databaseId == 'mssql'">
+				AND CONVERT(numeric, #{REF_BIZ_AMT}) BETWEEN LD.FROM_AMT AND LD.TO_AMT
+			</if>
+		  ) T
+		ORDER BY T.SIGN_REQ_TYPE
+
+	</select>
+
+	<select id="getAppLinesOperator" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			'E' AS SIGN_REQ_TYPE
+			,UR.USER_ID AS SIGN_USER_ID
+			,<include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> AS SIGN_USER_NM
+			,'' AS SIGN_USER_NM_IMG
+			,UR.POSITION_NM
+			,<include refid="common.sql.dbo"/>GETDEPTNAME(UR.GATE_CD, UR.COMPANY_CD, UR.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+			,UR.DEPT_CD
+			,UR.DUTY_NM
+		  FROM STOCUSER UR
+		  INNER JOIN (SELECT A.GATE_CD
+						<if test="_databaseId == 'oracle'">
+							,regexp_substr(A.USER_ID, '[^,]+', 1, LEVEL) AS USER_ID
+							,ROWNUM AS SORT_SQ
+						</if>
+						<if test="_databaseId == 'mssql'">
+							,SUBSTRING(Split.a.value('.', 'NVARCHAR(100)'), 1, LEN(Split.a.value('.', 'NVARCHAR(100)'))) AS USER_ID
+							,SUBSTRING(Split.a.value('.', 'NVARCHAR(100)'), 1, 1) AS SORT_SQ
+						</if>
+						FROM (
+							SELECT
+								 A.GATE_CD
+							<if test="_databaseId == 'oracle'">
+								,A.TEXT1 AS USER_ID
+							</if>
+							<if test="_databaseId == 'mssql'">
+								,<![CDATA[ CAST('<M>' + REPLACE(A.TEXT1, ',', '</M><M>') + '</M>' AS XML) AS USER_ID ]]>
+							</if>
+							  FROM STOCCODD A
+							 WHERE A.GATE_CD = #{ses.gateCd}
+							   AND A.CODE_TYPE = 'MP030'
+							   AND A.CODE = #{CODE}
+							   AND A.USE_FLAG = '1'
+							   AND A.DEL_FLAG = '0'
+							<if test="_databaseId == 'oracle'">
+								) A CONNECT BY LEVEL <![CDATA[<=]]> <include refid="common.sql.length"/>(regexp_replace(A.USER_ID, '[^,]+',''))+1 ) B
+							</if>
+							<if test="_databaseId == 'mssql'">
+								) AS A CROSS APPLY USER_ID.nodes ('/M') AS Split(a)) B
+							</if>
+		   ON (UR.GATE_CD = B.GATE_CD
+		   AND UR.USER_ID = B.USER_ID)
+		 WHERE UR.GATE_CD = #{ses.gateCd}
+		   AND UR.COMPANY_CD = #{CUST_CD}
+		   AND UR.DEL_FLAG = '0'
+		 ORDER BY B.SORT_SQ
+
+	</select>
+
+	<select id="getAppLinesTeamLeader" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 'E' AS SIGN_REQ_TYPE
+			,UR.USER_ID AS SIGN_USER_ID
+			,<include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> AS SIGN_USER_NM
+			,'' AS SIGN_USER_NM_IMG
+			,UR.DUTY_NM AS POSITION_NM
+			,<include refid="common.sql.dbo"/>GETDEPTNAME(UR.GATE_CD, UR.COMPANY_CD, UR.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+			,UR.DEPT_CD
+			,UR.DUTY_NM
+		  FROM STOCCVUR UR
+		  INNER JOIN (SELECT A.GATE_CD, A.CHIEF_USER_ID AS USER_ID
+						FROM STOCCVUR A
+					   WHERE A.GATE_CD = #{ses.gateCd}
+					     AND A.USER_ID = #{REG_USER_ID}
+					     AND A.DEL_FLAG = '0') A
+		   ON (UR.GATE_CD = A.GATE_CD
+		   AND UR.USER_ID = A.USER_ID)
+		 WHERE UR.GATE_CD = #{ses.gateCd}
+		   AND UR.COMPANY_CD = #{CUST_CD}
+		   AND UR.DEL_FLAG = '0'
+
+	</select>
+
+	<select id="getAppLinesInCust" parameterType="hashMap" resultType="hashMap">
+
+		SELECT
+			 'E' AS SIGN_REQ_TYPE
+			,UR.USER_ID AS SIGN_USER_ID
+			,<include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> AS SIGN_USER_NM
+			,'' AS SIGN_USER_NM_IMG
+			,UR.DUTY_NM AS POSITION_NM
+			,<include refid="common.sql.dbo"/>GETDEPTNAME(UR.GATE_CD, UR.COMPANY_CD, UR.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+			,UR.DEPT_CD
+			,UR.DUTY_NM
+		  FROM STOCCVUR UR
+		  INNER JOIN (SELECT A.GATE_CD
+						<if test="_databaseId == 'oracle'">
+							,regexp_substr(A.USER_ID, '[^,]+', 1, LEVEL) AS USER_ID
+							,ROWNUM AS SORT_SQ
+						</if>
+						<if test="_databaseId == 'mssql'">
+							,SUBSTRING(Split.a.value('.', 'NVARCHAR(100)'), 2, LEN(Split.a.value('.', 'NVARCHAR(100)'))) AS USER_ID
+							,SUBSTRING(Split.a.value('.', 'NVARCHAR(100)'), 1, 1) AS SORT_SQ
+						</if>
+						FROM (
+							SELECT
+								 A.GATE_CD
+							<if test="_databaseId == 'oracle'">
+								,A.TEXT1 AS USER_ID
+							</if>
+							<if test="_databaseId == 'mssql'">
+								,<![CDATA[CAST ('<M>' + REPLACE(A.TEXT2, ',', '</M><M>') + '</M>' AS XML)]]> AS USER_ID
+							</if>
+							  FROM STOCCODD A
+							 WHERE A.GATE_CD = #{ses.gateCd}
+							   AND A.CODE_TYPE = 'MP030'
+							   AND A.CODE = #{CODE}
+							   AND A.USE_FLAG = '1'
+							   AND A.DEL_FLAG = '0'
+							<if test="_databaseId == 'oracle'">
+								) A CONNECT BY LEVEL <![CDATA[<=]]> <include refid="common.sql.length"/>(regexp_replace(A.USER_ID, '[^,]+',''))+1) B
+							</if>
+							<if test="_databaseId == 'mssql'">
+								) AS A CROSS APPLY USER_ID.nodes ('/M') AS Split(a)) B
+							</if>
+		   ON (UR.GATE_CD = B.GATE_CD
+		   AND UR.USER_ID = B.USER_ID)
+		 WHERE UR.GATE_CD = #{ses.gateCd}
+		   AND UR.COMPANY_CD = #{CUST_CD}
+		   AND UR.DEL_FLAG = '0'
+		 ORDER BY B.SORT_SQ
+
+	</select>
+
+	<select id="doSearchSync" resultType="hashMap">
+
+		SELECT *
+		  FROM (
+		<if test="USER_IDS != '' and USER_IDS != null">
+			<foreach collection="list" item="item" index="index" separator="UNION ALL" open="(" close=")">
+				SELECT
+					#{item.SIGN_TYPE} AS SIGN_REQ_TYPE,
+					#{item.SIGN_PATH_SQ} AS SIGN_PATH_SQ,
+					UR.USER_ID AS SIGN_USER_ID,
+					<include refid="common.sql.strDecStart"/>UR.USER_NM<include refid="common.sql.strDecEnd"/> AS SIGN_USER_NM,
+					UR.DEPT_CD,
+					DP.DEPT_NM,
+					UR.POSITION_NM
+				FROM STOCUSER UR LEFT JOIN STOCOGDP DP
+				 ON (UR.DEPT_CD = DP.DEPT_CD
+				 AND UR.COMPANY_CD = DP.BUYER_CD
+				 AND DP.DEL_FLAG = '0'
+				 AND UR.GATE_CD = DP.GATE_CD)
+			   WHERE UR.GATE_CD = #{ses.gateCd}
+			     AND UR.USER_TYPE = 'B'
+			     AND UR.DEL_FLAG = '0'
+			     AND UR.USER_ID = #{item.USER_ID}
+			</foreach>
+		</if>
+		  )
+		<if test="_databaseId == 'oracle'">
+		 ORDER BY TO_NUMBER(SIGN_PATH_SQ)
+		</if>
+		<if test="_databaseId == 'mssql'">
+		 ORDER BY CONVERT(NUMERIC(22), SIGN_PATH_SQ)
+		</if>
+
+	</select>
+
+	<select id="cwor0050_doSelectMyPath" parameterType="hashMap" resultType="hashMap">
+
+		SELECT DISTINCT
+			 '' AS DOC_SQ
+			,LULP.PATH_SQ AS SIGN_PATH_SQ
+			,LULP.SIGN_USER_ID AS SIGN_USER_ID
+			,<include refid="common.sql.dbo"/>getUserName(LULP.GATE_CD, LULP.SIGN_USER_ID, #{ses.langCd}) AS SIGN_USER_NM
+			,<include refid="common.sql.dbo"/>getDeptName(LULP.GATE_CD, OGDP.BUYER_CD, OGDP.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+			,OGDP.DEPT_CD
+			,USERTB.POSITION_NM
+			,USERTB.DUTY_NM
+			,LULP.SIGN_REQ_STATUS AS SIGN_REQ_TYPE
+		  FROM STOCLULP LULP
+		  JOIN STOCCVUR USERTB
+		   ON (LULP.SIGN_USER_ID = USERTB.USER_ID
+		   AND LULP.GATE_CD = USERTB.GATE_CD)
+		  LEFT JOIN STOCOGDP OGDP
+		   ON (USERTB.GATE_CD = OGDP.GATE_CD
+		   AND USERTB.DEPT_CD = OGDP.DEPT_CD
+		   AND OGDP.DEL_FLAG = '0')
+		 WHERE LULP.GATE_CD = #{ses.gateCd}
+		   AND LULP.PATH_NUM = #{PATH_NUM}
+		   AND LULP.DEL_FLAG = '0'
+		   AND USERTB.DEL_FLAG = '0'
+		 ORDER BY LULP.PATH_SQ
+
+	</select>
+
+	<select id="getAuthorizedCount" parameterType="hashmap" resultType="java.lang.Integer">
+
+		SELECT COUNT(*)
+		  FROM STOCSCTM SCTM
+		  LEFT JOIN STOCSCTP SCTP
+		   ON (SCTM.GATE_CD = SCTP.GATE_CD
+		   AND SCTM.BUYER_CD = SCTP.BUYER_CD
+		   AND SCTM.APP_DOC_NUM = SCTP.APP_DOC_NUM
+		   AND SCTM.APP_DOC_CNT = SCTP.APP_DOC_CNT)
+		 WHERE SCTM.GATE_CD = #{ses.gateCd}
+		   AND SCTM.BUYER_CD = #{BUYER_CD}
+		   AND SCTM.APP_DOC_NUM = #{APP_DOC_NUM}
+		   AND SCTM.APP_DOC_CNT = #{APP_DOC_CNT}
+		   AND (SCTM.REG_USER_ID = #{ses.userId}
+		    OR (SCTP.SIGN_STATUS IN ('E', 'R') AND SCTP.SIGN_USER_ID = #{ses.userId})
+		    OR (SCTP.SIGN_REQ_TYPE = 'CC' AND SCTP.SIGN_USER_ID = #{ses.userId})
+		    OR (SCTM.NEXT_SIGN_USER_ID = #{ses.userId}))
+		   AND SCTM.DEL_FLAG = '0'
+		   AND SCTP.DEL_FLAG = '0'
+
+    </select>
+
+	<select id="cwor0050_getCust" parameterType="hashMap" resultType="hashMap">
+			SELECT CUST_CD "value", CUST_NM "text"
+			FROM STOCCUST
+			WHERE GATE_CD = #{ses.gateCd}
+			AND RELAT_YN  = #{RELAT_YN}
+			AND CORP_TYPE = #{CORP_TYPE}
+			AND DEL_FLAG  = '0'
+    </select>
+    
+    <select id="cwor0050_getCustCd" parameterType="hashMap" resultType="hashMap">
+			SELECT CUST_CD "value", CUST_NM "text"
+			FROM STOCCUST
+			WHERE GATE_CD = #{ses.gateCd}
+			AND RELAT_YN  = #{RELAT_YN}
+			AND CORP_TYPE = #{CORP_TYPE}
+			AND CUST_CD = #{ses.companyCd}
+			AND DEL_FLAG  = '0'
+    </select>
+
+</mapper>

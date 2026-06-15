@@ -1,0 +1,702 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CCTR.CCTI0090_Mapper">
+	
+	<!-- CCTI0090 : 개인근로자 계약정보  -->
+	<select id="ccti0090_doSearch" parameterType="hashMap" resultType="hashMap">
+		SELECT
+			PCCT.CONT_NUM
+			, PCCT.CONT_CNT
+			, PCCT.CONT_NUM <include refid="common.sql.stringMerge"/> ' / ' <include refid="common.sql.stringMerge"/> PCCT.CONT_CNT AS CONT_NUM_AND_CNT
+			, PCCT.BUYER_CD
+			,<include refid="common.sql.dbo"/>GETCOMPANYNAME(PCCT.GATE_CD, PCCT.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+			, PCCT.CONT_USER_ID
+			,<include refid="common.sql.dbo"/>getUserName(PCCT.GATE_CD, PCCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+			, PCCT.CONT_DESC
+			, PCCT.CONT_REMARK
+			, PCCT.ATT_FILE_NUM
+			, PCCT.SIGN_STATUS
+			, PCCT.APP_DOC_NUM
+			, PCCT.APP_DOC_CNT
+		FROM STOCPCCT PCCT
+		WHERE PCCT.GATE_CD  = #{ses.gateCd}
+		  AND PCCT.BUYER_CD = #{BUYER_CD}
+		<choose>
+			<when test="CONT_NUM != '' and CONT_NUM != null and CONT_CNT != '' and CONT_CNT != null">
+				AND PCCT.CONT_NUM = #{CONT_NUM}
+				AND PCCT.CONT_CNT = #{CONT_CNT}
+			</when>
+			<otherwise>
+				AND PCCT.APP_DOC_NUM = #{APP_DOC_NUM}
+			</otherwise>
+		</choose>
+		AND PCCT.DEL_FLAG = '0'
+	</select>
+
+	<!-- CCTI0090 : 개인근로자 계약서 결재상태 체크 -->
+	<select id="ccti0090_doCheckStatus" parameterType="hashMap" resultType="String">
+        SELECT SIGN_STATUS
+          FROM STOCPCCT
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+           AND DEL_FLAG = '0'
+    </select>
+
+	<!-- CCTI0090 : 개인근로자 엑셀업로드 -->
+	<select id="ccti0090_getWorkerListForContract" parameterType="hashmap" resultType="hashmap">
+        SELECT USRP.USER_ID
+             , USRP.USER_NM
+             , USRP.GENDER
+             , USRP.SITE_USER_ID
+             , USRS.USER_NM AS SITE_USER_NM
+          FROM STOCUSER USRP
+          JOIN STOCUSER USRS
+               ON (USRP.GATE_CD  = USRS.GATE_CD
+               AND USRP.SITE_USER_ID = USRS.USER_ID
+               AND USRS.DEL_FLAG = '0')
+         WHERE USRP.GATE_CD  = #{ses.gateCd}
+           AND USRP.USER_ID  IN ${USER_ID}
+           AND USRP.DEL_FLAG = '0'
+    </select>
+
+	<!-- CCTI0090 : 개인근로자 계약서 등록 -->
+	<insert id="doInsertPCCT" parameterType="hashMap">
+        INSERT INTO STOCPCCT (
+              GATE_CD
+			, BUYER_CD
+			, CONT_NUM
+			, CONT_CNT
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, CONT_USER_ID
+			, CONT_DESC
+			, CONT_REMARK
+			, ATT_FILE_NUM
+			, SIGN_STATUS
+        )
+        VALUES (
+              #{ses.gateCd}
+			, #{BUYER_CD}
+			, #{CONT_NUM}
+			, #{CONT_CNT}
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, #{CONT_USER_ID}
+			, #{CONT_DESC}
+			, #{CONT_REMARK}
+			, #{ATT_FILE_NUM}
+			, 'T' -- 작성중
+    	)
+    </insert>
+	
+	<!-- CCTI0090 : 개인근로자 계약서 작성중으로 변경 -->
+	<update id="doUpdatePCCT" parameterType="hashMap">
+        UPDATE STOCPCCT SET
+			  MOD_DATE     = SYSDATE
+			, MOD_USER_ID  = #{ses.userId}
+			, BUYER_CD     = #{BUYER_CD}
+			, CONT_USER_ID = #{CONT_USER_ID}
+			, CONT_DESC    = #{CONT_DESC}
+			, CONT_REMARK  = #{CONT_REMARK}
+			, ATT_FILE_NUM = #{ATT_FILE_NUM}
+            , SIGN_STATUS  = 'T'
+        WHERE GATE_CD  = #{ses.gateCd}
+          AND BUYER_CD = #{BUYER_CD}
+          AND CONT_NUM = #{CONT_NUM}
+          AND CONT_CNT = #{CONT_CNT}
+          AND DEL_FLAG = '0'
+    </update>
+
+	<!-- CCTI0090 : 개인근로자 계약서 삭제 -->
+	<delete id="doDeletePCCT" parameterType="hashMap">
+        UPDATE STOCPCCT SET
+			  MOD_DATE    = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+			, DEL_FLAG    = '1'
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+    </delete>
+
+	<!-- CCTI0090 : 개인근로자 등록 -->
+	<insert id="doInsertPCWU" parameterType="hashMap">
+        INSERT INTO STOCPCWU (
+            GATE_CD
+            , BUYER_CD
+			, CONT_NUM
+			, CONT_CNT
+			, WORKER_USER_ID
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, PROGRESS_CD
+			, WORKER_DEPT_NM
+			, WORKER_JOB_NM
+			, WORKER_CONT_DATE
+			, WORKER_CONT_START_DATE
+			, WORKER_CONT_END_DATE
+			, BASE_PAY
+			, BASE_PAY_RMKS
+			, FOOD_PAY
+			, FOOD_PAY_RMKS
+			, JOB_PAY
+			, JOB_PAY_RMKS
+			, EXTEND_PAY
+			, EXTEND_PAY_RMKS
+			, WORK_PAY
+			, WORK_PAY_RMKS
+			, NIGHT_PAY
+			, NIGHT_PAY_RMKS
+			, ETC_PAY
+			, ETC_PAY_RMKS
+			, WORKER_PAY_AMT
+			, ETC_PAY2
+			, ETC_PAY2_RMKS
+			, ETC_PAY3
+			, ETC_PAY3_RMKS
+			, SPEC_RMKS
+			, SEND_YN
+        )
+        VALUES (
+            #{ses.gateCd}
+            , #{BUYER_CD}
+			, #{CONT_NUM}
+			, #{CONT_CNT}
+			, #{WORKER_ID}
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, '0'
+			, '100' -- 서명대기
+			, #{WORKER_DEPT_NM}
+			, #{WORKER_JOB_NM}
+			,<include refid="common.sql.nvl"/>(#{WORKER_CONT_DATE}, #{REG_DATE})
+			, #{WORKER_CONT_START_DATE}
+			, #{WORKER_CONT_END_DATE}
+			,<include refid="common.sql.nvl"/>(#{BASE_PAY}, 0)
+			, #{BASE_PAY_RMKS}
+			,<include refid="common.sql.nvl"/>(#{FOOD_PAY}, 0)
+			, #{FOOD_PAY_RMKS}
+			,<include refid="common.sql.nvl"/>(#{JOB_PAY}, 0)
+			, #{JOB_PAY_RMKS}
+			,<include refid="common.sql.nvl"/>(#{EXTEND_PAY}, 0)
+			, #{EXTEND_PAY_RMKS}
+			,<include refid="common.sql.nvl"/>(#{WORK_PAY}, 0)
+			, #{WORK_PAY_RMKS}
+			,<include refid="common.sql.nvl"/>(#{NIGHT_PAY}, 0)
+			, #{NIGHT_PAY_RMKS}
+			,<include refid="common.sql.nvl"/>(#{ETC_PAY}, 0)
+			, #{ETC_PAY_RMKS}
+			,<include refid="common.sql.nvl"/>(#{WORKER_PAY_AMT}, 0)
+			,<include refid="common.sql.nvl"/>(#{ETC_PAY2}, 0)
+			, #{ETC_PAY2_RMKS}
+			,<include refid="common.sql.nvl"/>(#{ETC_PAY3}, 0)
+			, #{ETC_PAY3_RMKS}
+			, #{SPEC_RMKS}
+			, '0'
+    	)
+    </insert>
+
+	<!-- CCTI0090 : 개인근로자 삭제 -->
+	<delete id="doDeletePCWU" parameterType="hashMap">
+        DELETE FROM STOCPCWU
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+    </delete>
+
+	<!-- CCTI0090 : 개인근로자 결재상태 진행중으로 변경 -->
+	<update id="doUpdateStatusOfPCCT">
+        UPDATE STOCPCCT SET
+              MOD_DATE    = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , SIGN_STATUS = #{SIGN_STATUS}
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+    </update>
+
+	<!-- CCTI0090 : 결재상신 후 결재문서 번호 저장 -->
+	<update id="doUpdateApprovalPCCT" parameterType="hashmap">
+        UPDATE STOCPCCT
+		   SET APP_DOC_NUM = #{APP_DOC_NUM}
+             , APP_DOC_CNT = CASE WHEN #{APP_DOC_CNT} = '' THEN NULL ELSE #{APP_DOC_CNT} END
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+    </update>
+
+	<!-- CCTR0100 : 개인근로자 계약진행현황 -->
+	<select id="cctr0100_doSearch" parameterType="hashMap" resultType="hashMap">
+		SELECT
+			PCCT.CONT_NUM
+			, PCCT.CONT_CNT
+			, PCCT.BUYER_CD
+			,<include refid="common.sql.dbo"/>GETCUSTNAME(PCCT.GATE_CD, PCCT.BUYER_CD) AS BUYER_NM
+			, PCCT.CONT_USER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(PCCT.GATE_CD, PCCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+			,<include refid="common.sql.dbo"/>GETUSERNAME(PCCT.GATE_CD, PCCT.CONT_USER_ID, #{ses.langCd}) AS DEC_CONT_USER_NM -- 메일방송용
+			,<include refid="common.sql.strDecStart"/>USERC.TEL_NUM<include refid="common.sql.strDecEnd"/> AS DEC_CONT_TEL_NUM -- 메일발송용
+			, USERC.DEPT_CD
+			, OGDP.DEPT_NM
+			,<include refid="common.sql.toChar"/>(PCCT.SIGN_DATE, 'yyyyMMdd') AS SEND_DATE
+			, PCCT.CONT_DESC
+			, PCCT.CONT_REMARK
+			, PCWU.PROGRESS_CD
+			, PCWU.WORKER_USER_ID AS WORKER_ID
+			, PCWU.WORKER_USER_ID AS ENC_WORKER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(PCWU.GATE_CD, PCWU.WORKER_USER_ID, #{ses.langCd}) AS WORKER_NM
+			,<include refid="common.sql.strDecStart"/>USERD.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+			,<include refid="common.sql.strDecStart"/>USERD.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+			,<include refid="common.sql.strDecStart"/>USERD.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+			, USERD.SITE_USER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(USERD.GATE_CD, USERD.SITE_USER_ID, #{ses.langCd}) AS SITE_USER_NM
+			,<include refid="common.sql.dbo"/>GETCODENAME(USERD.GATE_CD, 'M151', USERD.GENDER, #{ses.langCd}) AS GENDER
+			,<include refid="common.sql.strDecStart"/>USERC.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+			,<include refid="common.sql.strDecStart"/>USERD.ADDR_1<include refid="common.sql.strDecEnd"/> AS ADDR_1
+			,<include refid="common.sql.strDecStart"/>USERD.ADDR_2<include refid="common.sql.strDecEnd"/> AS ADDR_2
+			,<include refid="common.sql.toChar"/>(USERD.BIRTH_DATE, 'yyyyMMdd') AS BIRTH_DATE
+			, PCWU.WORKER_DEPT_NM
+			, PCWU.WORKER_JOB_NM
+			,<include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_DATE, 'yyyyMMdd') AS WORKER_CONT_DATE
+			,<include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_START_DATE, 'yyyyMMdd') AS WORKER_CONT_START_DATE
+			,<include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_END_DATE, 'yyyyMMdd') AS WORKER_CONT_END_DATE
+			, PCWU.BASE_PAY
+			, PCWU.BASE_PAY_RMKS
+			, PCWU.FOOD_PAY
+			, PCWU.FOOD_PAY_RMKS
+			, PCWU.JOB_PAY
+			, PCWU.JOB_PAY_RMKS
+			, PCWU.EXTEND_PAY
+			, PCWU.EXTEND_PAY_RMKS
+			, PCWU.WORK_PAY
+			, PCWU.WORK_PAY_RMKS
+			, PCWU.NIGHT_PAY
+			, PCWU.NIGHT_PAY_RMKS
+			, PCWU.ETC_PAY
+			, PCWU.ETC_PAY_RMKS
+			, PCWU.ETC_PAY2
+			, PCWU.ETC_PAY2_RMKS
+			, PCWU.ETC_PAY3
+			, PCWU.ETC_PAY3_RMKS
+			, PCWU.SPEC_RMKS
+			, PCWU.WORKER_PAY_AMT
+			, PCCT.ATT_FILE_NUM
+			,<include refid="common.sql.dbo"/>getFileCount(PCCT.GATE_CD, PCCT.ATT_FILE_NUM) AS ATT_FILE_CNT
+			,<include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(PCWU.SIGN_DATE, 'YYYY-MM-DD HH24:MI'),' ') AS SIGN_DATE
+			, PCWU.STOP_RMK
+			, USERD.DEL_FLAG AS USER_DEL_FLAG
+			, PCCT.SIGN_STATUS
+			, PCWU.ATT_FILE_NUM AS PDF_ATT_FILE_NUM
+			,<include refid="common.sql.dbo"/>getFileCount(PCWU.GATE_CD, PCWU.ATT_FILE_NUM) AS PDF_ATT_FILE_CNT
+			, PCWU.SEND_YN
+		FROM STOCPCCT PCCT
+		JOIN STOCPCWU PCWU
+			ON (PCCT.GATE_CD  = PCWU.GATE_CD
+			AND PCCT.BUYER_CD = PCWU.BUYER_CD
+			AND PCCT.CONT_NUM = PCWU.CONT_NUM
+			AND PCCT.CONT_CNT = PCWU.CONT_CNT
+			AND PCWU.DEL_FLAG = '0')
+		LEFT OUTER JOIN STOCCVUR USERD
+			ON (PCWU.GATE_CD  = USERD.GATE_CD
+			AND PCWU.WORKER_USER_ID = USERD.USER_ID
+			AND USERD.DEL_FLAG = '0')
+		LEFT OUTER JOIN STOCCVUR USERC
+			ON (PCCT.GATE_CD  = USERC.GATE_CD
+			AND PCCT.CONT_USER_ID = USERC.USER_ID
+			AND USERC.DEL_FLAG = '0')
+		LEFT OUTER JOIN STOCOGDP OGDP
+			ON (USERC.GATE_CD = OGDP.GATE_CD
+			AND USERC.COMPANY_CD = OGDP.BUYER_CD
+			AND USERC.DEPT_CD = OGDP.DEPT_CD
+			AND OGDP.DEL_FLAG = '0')
+		WHERE PCCT.GATE_CD  = #{ses.gateCd}
+		  AND PCCT.BUYER_CD = #{BUYER_CD}
+		  AND PCCT.DEL_FLAG = '0'
+
+		<!-- 계약담당자 및 결재자가 조회 -->
+		<if test="CONT_USER_ID != '' and CONT_USER_ID != null">
+		  AND (PCCT.CONT_USER_ID = #{CONT_USER_ID} -- 계약담당자
+			OR EXISTS (
+				SELECT 1 FROM STOCSCTP SCTP
+				 WHERE PCCT.GATE_CD = SCTP.GATE_CD
+				   AND PCCT.APP_DOC_NUM = SCTP.APP_DOC_NUM
+				   AND PCCT.APP_DOC_CNT = SCTP.APP_DOC_CNT
+				   AND SCTP.DEL_FLAG = '0'
+				   AND SCTP.SIGN_USER_ID = #{CONT_USER_ID} --결재자
+				)
+			)
+		</if>
+		<if test="REG_FROM_DATE != '' and REG_FROM_DATE != null">
+			<if test="REG_TO_DATE != '' and REG_TO_DATE != null">
+				AND PCCT.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REG_FROM_DATE})
+				AND PCCT.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REG_TO_DATE})
+			</if>
+		</if>
+		<if test="DEPT_NM != '' and DEPT_NM != null">
+			AND OGDP.DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/> #{DEPT_NM} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="BUYER_CD != '' and BUYER_CD != null">
+			AND PCCT.BUYER_CD = #{BUYER_CD}
+		</if>
+		<if test="BUYER_NM != '' and BUYER_NM != null">
+			AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(PCCT.GATE_CD, PCCT.BUYER_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{BUYER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="CONT_DESC != '' and CONT_DESC != null ">
+			AND (PCCT.CONT_DESC LIKE '%' <include refid="common.sql.stringMerge"/> #{CONT_DESC} <include refid="common.sql.stringMerge"/> '%'
+			  OR PCCT.CONT_NUM  LIKE '%' <include refid="common.sql.stringMerge"/> #{CONT_DESC} <include refid="common.sql.stringMerge"/> '%')
+		</if>
+		<if test="CONT_USER_ID != '' and CONT_USER_ID != null">
+			AND PCCT.CONT_USER_ID = #{CONT_USER_ID}
+		</if>
+		<if test="CONT_USER_NM != '' and CONT_USER_NM != null">
+			AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(PCCT.GATE_CD, PCCT.CONT_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{CONT_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="PROGRESS_CD != '' and PROGRESS_CD != null">
+			AND PCWU.PROGRESS_CD IN ${PROGRESS_CD}
+		</if>
+		<if test="WORKER_USER_ID != '' and WORKER_USER_ID != null">
+			AND PCWU.WORKER_USER_ID = #{WORKER_USER_ID}
+		</if>
+		<if test="WORKER_USER_NM != '' and WORKER_USER_NM != null">
+			AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(PCWU.GATE_CD, PCWU.WORKER_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{WORKER_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="WORKER_DEPT_NM != '' and WORKER_DEPT_NM != null">
+			AND PCWU.WORKER_DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/> #{WORKER_DEPT_NM} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="WORKER_JOB_NM != '' and WORKER_JOB_NM != null">
+			AND PCWU.WORKER_JOB_NM LIKE '%' <include refid="common.sql.stringMerge"/> #{WORKER_JOB_NM} <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="SIGN_STATUS != '' and SIGN_STATUS != null">
+			AND PCCT.SIGN_STATUS IN ${SIGN_STATUS}
+		</if>
+
+		ORDER BY PCCT.CONT_NUM DESC
+				 , PCCT.CONT_CNT DESC
+				 , USERD.USER_NM
+	</select>
+
+	<!-- 계약체결중단 -->
+	<update id="cctr0100_doStop" parameterType="hashmap">
+		UPDATE STOCPCWU
+		   SET MOD_DATE    = SYSDATE
+		     , MOD_USER_ID = #{ses.userId}
+		     , STOP_DATE   = SYSDATE
+		     , PROGRESS_CD = '300' -- 계약체결중단
+		     , STOP_RMK    = #{STOP_RMK}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND WORKER_USER_ID = #{WORKER_ID}
+	</update>
+	
+    <!-- CCTR0110 : 개인근로자 계약서 상세보기 -->
+	<select id="cctr0110_doSearch" parameterType="hashMap" resultType="hashMap">
+		SELECT
+			PCCT.CONT_NUM
+			, PCCT.BUYER_CD
+			, PCCT.CONT_CNT
+			, PCCT.CONT_DESC
+			, PCWU.PROGRESS_CD
+			, PCWU.WORKER_USER_ID AS WORKER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(PCWU.GATE_CD, PCWU.WORKER_USER_ID, #{ses.langCd}) AS WORKER_NM
+			,<include refid="common.sql.strDecStart"/>USERD.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+			,<include refid="common.sql.strDecStart"/>USERD.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM 
+			,<include refid="common.sql.strDecStart"/>USERD.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+			, PCCT.CONT_USER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(PCCT.GATE_CD, PCCT.CONT_USER_ID, #{ses.langCd}) AS CONT_USER_NM
+			,<include refid="common.sql.strDecStart"/>USERC.TEL_NUM<include refid="common.sql.strDecEnd"/> AS CONT_TEL_NUM
+			, USERD.SITE_USER_ID
+			,<include refid="common.sql.dbo"/>getUserName(USERD.GATE_CD, USERD.SITE_USER_ID, #{ses.langCd}) AS SITE_USER_NM
+			,<include refid="common.sql.dbo"/>GETCODENAME(USERD.GATE_CD, 'M151', USERD.GENDER, #{ses.langCd}) AS GENDER
+			,<include refid="common.sql.strDecStart"/>USERC.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+			,<include refid="common.sql.strDecStart"/>USERD.ADDR_1<include refid="common.sql.strDecEnd"/> AS ADDR_1
+			,<include refid="common.sql.strDecStart"/>USERD.ADDR_2<include refid="common.sql.strDecEnd"/> AS ADDR_2
+			,<include refid="common.sql.toChar"/>(USERD.BIRTH_DATE, 'yyyyMMdd') AS BIRTH_DATE
+			, PCWU.WORKER_DEPT_NM
+			, PCWU.WORKER_JOB_NM
+			,<include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_DATE, 'yyyyMMdd') AS WORKER_CONT_DATE
+			,<include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_START_DATE, 'yyyyMMdd') AS WORKER_CONT_START_DATE
+			,<include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_END_DATE, 'yyyyMMdd') AS WORKER_CONT_END_DATE
+			, PCWU.WORKER_CONT_TYPE
+			, PCWU.WORKER_PAY_AMT
+			, PCWU.BASE_PAY
+			, PCWU.BASE_PAY_RMKS
+			, PCWU.FOOD_PAY
+			, PCWU.FOOD_PAY_RMKS
+			, PCWU.JOB_PAY
+			, PCWU.JOB_PAY_RMKS
+			, PCWU.EXTEND_PAY
+			, PCWU.EXTEND_PAY_RMKS
+			, PCWU.WORK_PAY
+			, PCWU.WORK_PAY_RMKS
+			, PCWU.NIGHT_PAY
+			, PCWU.NIGHT_PAY_RMKS
+			, PCWU.ETC_PAY
+			, PCWU.ETC_PAY_RMKS
+			, PCWU.ETC_PAY2
+			, PCWU.ETC_PAY2_RMKS
+			, PCWU.ETC_PAY3
+			, PCWU.ETC_PAY3_RMKS
+			, PCWU.SPEC_RMKS
+			, PCCT.ATT_FILE_NUM
+			,<include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(PCWU.SIGN_DATE, 'YYYY-MM-DD HH24:MI'),' ') AS SIGN_DATE
+			,<include refid="common.sql.dbo"/>getFileCount(PCCT.GATE_CD, PCCT.ATT_FILE_NUM) AS ATT_FILE_CNT
+			, PCWU.WORKER_USER_ID AS ENC_WORKER_ID
+		FROM STOCPCCT PCCT
+		JOIN STOCPCWU PCWU
+			 ON( PCCT.GATE_CD  = PCWU.GATE_CD
+			 AND PCCT.BUYER_CD = PCWU.BUYER_CD
+			 AND PCCT.CONT_NUM = PCWU.CONT_NUM
+			 AND PCCT.CONT_CNT = PCWU.CONT_CNT
+			 AND PCWU.DEL_FLAG = '0')
+		LEFT OUTER JOIN STOCCVUR USERC
+			 ON( PCCT.GATE_CD  = USERC.GATE_CD
+			 AND PCCT.CONT_USER_ID = USERC.USER_ID
+			 AND USERC.DEL_FLAG = '0')
+		LEFT OUTER JOIN STOCCVUR USERD
+			 ON( PCWU.GATE_CD  = USERD.GATE_CD
+			 AND PCWU.WORKER_USER_ID = USERD.USER_ID
+			 AND USERD.DEL_FLAG = '0')
+		WHERE 1 = 1
+		  AND PCCT.GATE_CD  = #{ses.gateCd}
+		  AND PCCT.BUYER_CD = #{BUYER_CD}
+		<choose>
+			<when test="CONT_NUM != '' and CONT_NUM != null and CONT_CNT != '' and CONT_CNT != null">
+				AND PCCT.CONT_NUM = #{CONT_NUM}
+				AND PCCT.CONT_CNT = #{CONT_CNT}
+			</when>
+			<otherwise>
+				AND PCCT.APP_DOC_NUM = #{APP_DOC_NUM}
+				AND PCCT.APP_DOC_CNT = #{APP_DOC_CNT}
+			</otherwise>
+		</choose>
+		AND PCCT.DEL_FLAG = '0'
+	</select>
+	
+	<!-- cctr0100 : 개인근로자 전자서명 직접 요청 -->
+	<update id="cctr0100_doSendYn" parameterType="hashmap">
+		UPDATE STOCPCWU
+		   SET MOD_DATE     = ${systemDateTime}
+		     , MOD_USER_ID  = #{ses.userId}
+		     , SEND_YN = #{SEND_YN}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+		   AND WORKER_USER_ID = #{ENC_WORKER_ID}
+	</update>
+	
+	<!-- cctr0100 : 개인근로자 계약담당자변경 -->
+	<update id="cctr0100_changeContUser" parameterType="hashmap">
+		UPDATE STOCPCCT
+		   SET MOD_DATE     = ${systemDateTime}
+		     , MOD_USER_ID  = #{ses.userId}
+		     , CONT_USER_ID = #{CHANGE_CONT_USER_ID}
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CONT_NUM = #{CONT_NUM}
+		   AND CONT_CNT = #{CONT_CNT}
+	</update>
+	
+	<!-- cctr0100 : 개인근로자 현장담당자변경 -->
+	<update id="cctr0100_changeSiteUser" parameterType="hashmap">
+		UPDATE STOCCVUR USR
+		   SET MOD_DATE     = ${systemDateTime}
+		     , MOD_USER_ID  = #{ses.userId}
+		     , SITE_USER_ID = #{CHANGE_CONT_USER_ID}
+		 WHERE USR.GATE_CD  = #{ses.gateCd}
+		   AND EXISTS (SELECT 1 FROM STOCPCWU
+		                WHERE GATE_CD  = USR.GATE_CD
+		                  AND BUYER_CD = #{BUYER_CD}
+		                  AND CONT_NUM = #{CONT_NUM}
+		                  AND CONT_CNT = #{CONT_CNT}
+		                  AND WORKER_USER_ID = USR.USER_ID
+		                  AND DEL_FLAG = '0')
+	</update>
+	
+	<!-- CCTR0120 : 개인근로자현황 -->
+	<select id="cctr0120_doSearch" parameterType="hashMap" resultType="hashMap">
+		SELECT X.*
+			 ,(CASE WHEN X.CONT_QTY > 1 THEN X.CONT_NUM || '외 ' || X.CONT_QTY || '건'
+					ELSE X.CONT_NUM
+			   END) AS CONT_INFO
+		FROM (
+			SELECT
+				  CVUR.USER_ID
+				,<include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+				,<include refid="common.sql.toChar"/>(CVUR.REG_DATE, 'yyyyMMdd') AS REQ_DATE
+				, CVUR.POSITION_NM
+				, CVUR.DUTY_NM
+				, CVUR.EMPLOYEE_NO
+				,<include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+				,<include refid="common.sql.strDecStart"/>CVUR.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+				,<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+				, CVUR.PROGRESS_CD
+				, CVUR.AGREE_YN
+				,<include refid="common.sql.toChar"/>(CVUR.AGREE_YN_DATE, 'yyyyMMdd') AS AGREE_DATE
+				, CVUR.SITE_USER_ID
+				,<include refid="common.sql.dbo"/>getUserName(CVUR.GATE_CD, CVUR.SITE_USER_ID, #{ses.langCd}) AS SITE_USER_NM
+				, CVUR.GENDER
+				,<include refid="common.sql.dbo"/>GETCODENAME(CVUR.GATE_CD, 'M151', CVUR.GENDER, #{ses.langCd}) AS GENDER_NM
+				,<include refid="common.sql.strDecStart"/>CVUR.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+				,<include refid="common.sql.strDecStart"/>CVUR.ADDR_1<include refid="common.sql.strDecEnd"/> AS ADDR_1
+				,<include refid="common.sql.strDecStart"/>CVUR.ADDR_2<include refid="common.sql.strDecEnd"/> AS ADDR_2
+				,<include refid="common.sql.toChar"/>(CVUR.BIRTH_DATE, 'yyyyMMdd') AS BIRTH_DATE
+				,<include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(CVUR.CONFIRM_DATE, 'YYYY-MM-DD HH24:MI'),' ') AS SIGN_DATE
+				, CVUR.CONFIRM_USER_ID AS SIGN_USER_ID
+				,<include refid="common.sql.dbo"/>getUserName(CVUR.GATE_CD, CVUR.CONFIRM_USER_ID, #{ses.langCd}) AS SIGN_USER_NM
+				,(SELECT MAX(PCCT.CONT_NUM) FROM STOCPCWU PCWU
+					JOIN STOCPCCT PCCT
+						 ON (PCWU.GATE_CD  = PCCT.GATE_CD
+						 AND PCWU.CONT_NUM = PCCT.CONT_NUM
+						 AND PCWU.CONT_CNT = PCCT.CONT_CNT
+						 AND PCCT.SIGN_STATUS IN ('T','P','E') -- 작성중, 결재중, 승인 (상신취소, 결재반려 제외)
+						 AND PCCT.DEL_FLAG = '0')
+					WHERE PCWU.GATE_CD  = CVUR.GATE_CD
+					  AND PCWU.WORKER_USER_ID = CVUR.USER_ID
+					  AND <include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_END_DATE, 'YYYYMMDD'),' ') <![CDATA[>=]]> <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') -- 계약종료일자 >= 현재일자
+					  AND PCWU.PROGRESS_CD   IN ('100','200') -- 서명대기, 서명완료 (서명중단 제외)
+					  AND PCWU.DEL_FLAG = '0') AS CONT_NUM
+				,(SELECT COUNT(PCCT.CONT_NUM) FROM STOCPCWU PCWU
+					JOIN STOCPCCT PCCT
+					     ON (PCWU.GATE_CD  = PCCT.GATE_CD
+						 AND PCWU.CONT_NUM = PCCT.CONT_NUM
+						 AND PCWU.CONT_CNT = PCCT.CONT_CNT
+						 AND PCCT.SIGN_STATUS IN ('T','P','E') -- 작성중, 결재중, 승인 (상신취소, 결재반려 제외)
+						 AND PCCT.DEL_FLAG = '0')
+				   WHERE PCWU.GATE_CD  = CVUR.GATE_CD
+					 AND PCWU.WORKER_USER_ID = CVUR.USER_ID
+					 AND <include refid="common.sql.nvl"/>(<include refid="common.sql.toChar"/>(PCWU.WORKER_CONT_END_DATE, 'YYYYMMDD'),' ') <![CDATA[>=]]> <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') -- 계약종료일자 >= 현재일자
+					 AND PCWU.PROGRESS_CD   IN ('100','200') -- 서명대기, 서명완료 (서명중단 제외)
+					 AND PCWU.DEL_FLAG = '0') AS CONT_QTY
+				,(CASE WHEN CVUR.PROGRESS_CD = 'P' THEN '1'
+					   WHEN CVUR.PROGRESS_CD = 'R' THEN '2'
+					   ELSE '3' END) AS SORT_ORD
+				,<include refid="common.sql.dbo"/>GETCODENAME(CVUR.GATE_CD, 'M044', CVUR.DEL_FLAG, #{ses.langCd}) AS USER_DEL_FLAG
+			 FROM STOCCVUR CVUR
+			WHERE CVUR.GATE_CD   = #{ses.gateCd}
+			  AND CVUR.USER_TYPE = 'P'
+			<!-- 관리자는 전체, 관리자가 아니면 자신이 현장담당자인 건만 조회 -->
+			<if test="ses.superUserFlag == '' or ses.superUserFlag == null or ses.superUserFlag != '1'.toString()">
+			  AND CVUR.SITE_USER_ID = #{ses.userId}
+			</if>
+			<if test="REQ_FROM_DATE != '' and REQ_FROM_DATE != null">
+				<if test="REQ_TO_DATE != '' and REQ_TO_DATE != null">
+			  AND CVUR.REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{REQ_FROM_DATE})
+		  	  AND CVUR.REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{REQ_TO_DATE})
+				</if>
+			</if>
+			<if test="USER_ID != '' and USER_ID != null">
+			  AND CVUR.USER_ID = #{USER_ID}
+			</if>
+			<if test="USER_NM != '' and USER_NM != null">
+			  AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD, CVUR.USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+			<if test="PROGRESS_CD != '' and PROGRESS_CD != null">
+			  AND CVUR.PROGRESS_CD = #{PROGRESS_CD}
+			</if>
+			<if test="SITE_USER_NM != '' and SITE_USER_NM != null">
+			  AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD, CVUR.SITE_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SITE_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+			</if>
+			<if test="CELL_NUM != '' and CELL_NUM != null">
+			  AND CVUR.CELL_NUM LIKE '%' <include refid="common.sql.stringMerge"/> #{CELL_NUM} <include refid="common.sql.stringMerge"/> '%'
+			</if>
+		) X
+		WHERE 1 = 1
+		ORDER BY X.SORT_ORD
+			   , X.AGREE_DATE
+			   , X.USER_NM
+	</select>
+	
+	<!-- cctr0120 : 개인근로자 승인 및 반려 -->
+	<update id="cctr0120_doConfirm" parameterType="hashmap">
+		UPDATE STOCCVUR USR
+		   SET MOD_DATE    = SYSDATE
+		     , MOD_USER_ID = #{ses.userId}
+		     , PROGRESS_CD = #{PROGRESS_CD}
+		<if test="PROGRESS_CD != '' and PROGRESS_CD != null and PROGRESS_CD == 'E'.toString()">
+		     , CONFIRM_DATE    = SYSDATE
+		     , CONFIRM_USER_ID = #{ses.userId}
+		</if>
+		 WHERE USR.GATE_CD   = #{ses.gateCd}
+		   AND USR.USER_ID   = #{USER_ID}
+		   AND USR.USER_TYPE = 'P'
+	</update>
+	
+	<!-- 2021.07.01 : 개인근로자 SMS 수수료부과 추가 -->
+	<select id="costSmsInfo" parameterType="hashmap" resultType="hashmap">
+		
+        SELECT
+              CUST.IRS_NUM 			AS CORP_NO
+            ,(SELECT DEPT_CD FROM STOCCVUR
+               WHERE GATE_CD = PCCT.GATE_CD
+                 AND USER_ID = PCCT.CONT_USER_ID) AS BRC
+            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+            , PCCT.CONT_USER_ID 	AS USER_ID
+            ,(CASE WHEN #{SMS_GUBUN} = 'REQ' THEN 'SMS_PC_REQ'
+            	   ELSE 'SMS_PC_RJT'
+              END) 			<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              PCWU.GATE_CD  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              PCWU.BUYER_CD <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              PCWU.CONT_NUM <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              PCWU.CONT_CNT <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              PCWU.WORKER_USER_ID	AS CONT_TBL_PK
+            , NULL 					AS FILE_SIZE
+          FROM STOCPCWU PCWU
+          JOIN STOCPCCT PCCT
+	           ON (PCCT.GATE_CD  = PCWU.GATE_CD
+	           AND PCCT.BUYER_CD = PCWU.BUYER_CD
+	           AND PCCT.CONT_NUM = PCWU.CONT_NUM
+	           AND PCCT.CONT_CNT = PCWU.CONT_CNT)
+          JOIN STOCCUST CUST
+	           ON (CUST.GATE_CD  = PCCT.GATE_CD
+	           AND CUST.CUST_CD  = PCCT.BUYER_CD)
+         WHERE PCWU.GATE_CD  = #{ses.gateCd}
+           AND PCWU.BUYER_CD = #{BUYER_CD}
+           AND PCWU.CONT_NUM = #{CONT_NUM}
+           AND PCWU.CONT_CNT = #{CONT_CNT}
+           AND PCWU.WORKER_USER_ID = #{WORKER_ID}
+    </select>
+    
+    <!-- 2021.07.01 : 개인근로자 반려시 SMS 수수료부과 추가 -->
+	<select id="costPersonalInfo" parameterType="hashmap" resultType="hashmap">
+		
+        SELECT
+             (SELECT IRS_NUM FROM STOCCUST
+               WHERE GATE_CD = SITE.GATE_CD
+                 AND CUST_CD = SITE.COMPANY_CD)	AS CORP_NO
+            , SITE.DEPT_CD		AS BRC
+            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+            , CVUR.SITE_USER_ID AS USER_ID
+            , 'SMS_PC_RJ'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              CVUR.GATE_CD  <include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              CVUR.USER_ID		AS CONT_TBL_PK
+            , NULL 				AS FILE_SIZE
+		 FROM STOCCVUR CVUR
+		 JOIN STOCCVUR SITE
+		 	  ON (SITE.GATE_CD  = CVUR.GATE_CD
+		 	  AND SITE.USER_ID  = CVUR.SITE_USER_ID)
+		WHERE CVUR.GATE_CD = #{ses.gateCd}
+		  AND CVUR.USER_ID = #{USER_ID}
+		  AND CVUR.SITE_USER_ID = #{ses.userId}
+    </select>
+    
+</mapper>

@@ -1,0 +1,3 @@
+set SGSGIxLinkerHOME=/svc/nhepro/NHeProFront/SGIxLinker
+
+java -classpath .:../../lib/activation.jar:../../lib/exms.jar:../../lib/KICASGIxLinker.jar:../../lib/ldapjdk.jar:../../lib/libgpkiapi_jni.jar:../../lib/mail.jar:../../lib/servlet.jar:../../lib/xalan.jar:../../lib/xercesImpl.jar:../../lib/xmlParserAPIs.jar:../../lib/sggpki.jar:../../lib/sgkm.jar:../../lib/sgsecukit.jar:../../lib/signgate_common.jar:../../lib/signgateCrypto.jar EncPasswd

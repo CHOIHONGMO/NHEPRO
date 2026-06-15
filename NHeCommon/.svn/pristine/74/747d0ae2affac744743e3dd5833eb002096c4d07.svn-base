@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.auth.MAUB0020_Mapper">
+
+    <select id="doSearch_MenuHistory" parameterType="hashMap" resultType="hashMap">
+
+        SELECT MJUH.SCREEN_ID
+             , <include refid="common.sql.dbo"/>GETMULTINAME(MJUH.GATE_CD, 'SC', #{ses.langCd}, '', MJUH.SCREEN_ID) AS SCREEN_NM
+             , SEQ
+             , <include refid="common.sql.dbo"/>GETCODENAME(MJUH.GATE_CD, 'MP012', MJUH.CH_TYPE, #{ses.langCd}) AS CH_TYPE
+             , (CASE WHEN DATA_TYPE = 'J' THEN  MJUH.DATA_CD  ELSE '' END) AS CTRL_CD
+             , (CASE WHEN DATA_TYPE = 'J' THEN  <include refid="common.sql.dbo"/>GETCTRLNAME(MJUH.GATE_CD, #{ses.companyCd},  MJUH.DATA_CD , #{ses.langCd}) ELSE '' END) AS CTRL_NM
+             , (CASE WHEN DATA_TYPE = 'U' THEN  MJUH.DATA_CD  ELSE '' END) AS CTRL_USER_ID
+             , (CASE WHEN DATA_TYPE = 'U' THEN  <include refid="common.sql.dbo"/>GETUSERNAME(MJUH.GATE_CD, MJUH.DATA_CD, #{ses.langCd}) ELSE '' END) AS USER_NM
+             , <include refid="common.sql.dbo"/>getDeptName(USR.GATE_CD, USR.COMPANY_CD, USR.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+             , <include refid="common.sql.dbo"/>GETUSERNAME(MJUH.GATE_CD, MJUH.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+             , <include refid="common.sql.toChar"/>(MJUH.MOD_DATE, 'YYYY-MM-DD HH24:MI') AS MOD_DATE
+          FROM STOCMJUH MJUH
+          LEFT OUTER JOIN STOCUSER USR
+           ON (MJUH.GATE_CD = USR.GATE_CD
+           AND MJUH.DATA_CD = USR.USER_ID)
+         WHERE MJUH.GATE_CD = #{ses.gateCd}
+           AND MJUH.DEL_FLAG = '0'
+        <if test="USER_NM != '' and USER_NM != null">
+	           AND UPPER(<include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/>) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="USER_ID != '' and USER_ID != null">
+	           AND UPPER(USR.USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="CTRL_NM != '' and CTRL_NM != null">
+            AND MJUH.DATA_CD IN
+            <foreach collection="CTRL_NM_LIST" item="value"  open="(" close=")" separator=",">
+                #{value}
+            </foreach>
+        </if>
+        <if test="SCREEN_ID != '' and SCREEN_ID != null">
+           AND UPPER(MJUH.SCREEN_ID) LIKE UPPER('%' <include refid="common.sql.stringMerge"/> #{SCREEN_ID} <include refid="common.sql.stringMerge"/> '%')
+        </if>
+        <if test="SCREEN_NM != '' and SCREEN_NM != null">
+
+           AND UPPER(<include refid="common.sql.dbo"/>GETMULTINAME(MJUH.GATE_CD, 'SC', #{ses.langCd}, '', MJUH.SCREEN_ID)) LIKE UPPER('%' <include refid="common.sql.stringMerge"/> #{SCREEN_NM} <include refid="common.sql.stringMerge"/> '%')
+
+        </if>
+
+         ORDER BY MJUH.SCREEN_ID,MJUH.DATA_TYPE, MJUH.DATA_CD, MJUH.SEQ DESC
+
+    </select>
+
+    <select id="doSearch_ButtonHistory" parameterType="hashMap" resultType="hashMap">
+
+        SELECT MBTH.SCREEN_ID
+             , <include refid="common.sql.dbo"/>GETMULTINAME(MBTH.GATE_CD, 'SC', #{ses.langCd}, '', MBTH.SCREEN_ID) AS SCREEN_NM
+             , MBTH.ACTION_CD
+             , <include refid="common.sql.dbo"/>GETMULTINAME(MBTH.GATE_CD, 'SA', #{ses.langCd}, MBTH.ACTION_CD, MBTH.SCREEN_ID) AS ACTION_NM
+             , SEQ
+             , <include refid="common.sql.dbo"/>GETCODENAME(MBTH.GATE_CD, 'MP012', MBTH.CH_TYPE, #{ses.langCd}) AS CH_TYPE
+             , (CASE WHEN DATA_TYPE = 'J' THEN  MBTH.DATA_CD  ELSE '' END) AS CTRL_CD
+             , (CASE WHEN DATA_TYPE = 'J' THEN <include refid="common.sql.dbo"/>GETCTRLNAME(MBTH.GATE_CD, #{ses.companyCd},  MBTH.DATA_CD , #{ses.langCd}) ELSE '' END) AS CTRL_NM
+             , (CASE WHEN DATA_TYPE = 'U' THEN  MBTH.DATA_CD  ELSE '' END) AS CTRL_USER_ID
+             , (CASE WHEN DATA_TYPE = 'U' THEN <include refid="common.sql.dbo"/>GETUSERNAME(MBTH.GATE_CD, MBTH.DATA_CD, #{ses.langCd}) ELSE '' END) AS USER_NM
+             , <include refid="common.sql.dbo"/>getDeptName(USR.GATE_CD, USR.COMPANY_CD, USR.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+             , <include refid="common.sql.dbo"/>GETUSERNAME(MBTH.GATE_CD, MBTH.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+             , <include refid="common.sql.toChar"/>(MBTH.MOD_DATE, 'YYYY-MM-DD HH24:MI') AS MOD_DATE
+          FROM STOCMBTH MBTH
+          LEFT OUTER JOIN STOCUSER USR
+           ON (MBTH.GATE_CD = USR.GATE_CD
+           AND MBTH.DATA_CD = USR.USER_ID)
+         WHERE MBTH.GATE_CD = #{ses.gateCd}
+           AND MBTH.DEL_FLAG = '0'
+        <if test="USER_NM != '' and USER_NM != null">
+           AND UPPER(<include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/>) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="USER_ID != '' and USER_ID != null">
+           AND UPPER(USR.USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="CTRL_NM != '' and CTRL_NM != null">
+           AND MBTH.DATA_CD IN
+            <foreach collection="CTRL_NM_LIST" item="value"  open="(" close=")" separator=",">
+                #{value}
+            </foreach>
+        </if>
+        <if test="SCREEN_ID != '' and SCREEN_ID != null">
+           AND UPPER(MBTH.SCREEN_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SCREEN_ID}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="SCREEN_NM != '' and SCREEN_NM != null">
+           AND UPPER(<include refid="common.sql.dbo"/>GETMULTINAME(MBTH.GATE_CD, 'SC', #{ses.langCd}, '', MBTH.SCREEN_ID)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SCREEN_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="ACTION_CD != '' and ACTION_CD != null">
+           AND UPPER(MBTH.ACTION_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ACTION_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="ACTION_NM != '' and ACTION_NM != null">
+           AND UPPER(<include refid="common.sql.dbo"/>GETMULTINAME(MBTH.GATE_CD, 'SA', #{ses.langCd}, MBTH.ACTION_CD, MBTH.SCREEN_ID)) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ACTION_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+
+         ORDER BY MBTH.SCREEN_ID, MBTH.ACTION_CD, MBTH.DATA_TYPE, MBTH.DATA_CD, MBTH.SEQ DESC
+
+    </select>
+
+</mapper>

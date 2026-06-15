@@ -1,0 +1,51 @@
+package com.st_ones.eversrm.master.user.service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.eversrm.master.user.MTUB0010_Mapper;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : MTUB0010_Service.java
+ * @date 2013. 07. 22.
+ * @version 1.0
+ */
+
+@Service(value = "mtub0010_Service")
+public class MTUB0010_Service extends BaseService {
+
+	@Autowired private MTUB0010_Mapper mtub0010_Mapper;
+
+	/**
+	 * 화면명 : 사용자 작업이력
+	 * 처리내용 : 시스템에 로그인한 사용자의 작업 이력을 조회하는 화면.
+	 * 경로 : 시스템관리 > 사용자관리 > 사용자작업이력
+	 */
+	public List<Map<String, Object>> mtub0010_doSearch(Map<String, String> param) throws Exception {
+		
+		//2021.11.17 IP 버전 4의 경우 17~24비트영역, 버전 6의 경우 113~128비트영역 마스킹 처리 추가
+		param.put("JOB_TYPE", EverString.forInQuery(param.get("JOB_TYPE"), ","));
+		
+		List<Map<String, Object>> gridList = mtub0010_Mapper.mtub0010_doSearch(param);
+    	for(Map<String, Object> rowData : gridList) {
+    		rowData.put("IP_ADDR", EverString.setMaskString(String.valueOf(rowData.get("IP_ADDR")), "I"));
+    	}
+        return gridList;
+        
+	}
+
+}

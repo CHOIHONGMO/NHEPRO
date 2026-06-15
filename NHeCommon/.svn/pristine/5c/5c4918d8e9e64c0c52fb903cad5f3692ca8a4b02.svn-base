@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.auth.MAUA0040_Mapper">
+
+    <select id="doSearchLMenuAuthMapping" parameterType="hashMap" resultType="hashMap">
+
+        SELECT A.GATE_CD
+             , A.MENU_GROUP_CD
+             , A.AUTH_CD
+             , A.AUTH_SQ
+             , <include refid="common.sql.toChar"/>(<include refid="common.sql.nvl"/>(A.REG_DATE, SYSDATE), 'yyyyMMdd') AS REG_DATE
+             , A.AUTH_MAPPING_TYPE
+             , A.MODULE_TYPE
+             , A.MENU_GROUP_NM
+             , A.MAIN_MODULE_TYPE
+             , A.INSERT_FLAG
+             , A.MODULE_TYPE_NM
+             , A.MAIN_MODULE_TYPE_NM
+             , A.REG_USER_NM
+          FROM (SELECT AUMP.GATE_CD
+                     , AUMP.MENU_GROUP_CD
+                     , AUMP.AUTH_CD
+                     , AUMP.AUTH_SQ
+                     , AUMP.REG_DATE
+                     , AUMP.AUTH_MAPPING_TYPE
+                     , MUGR.MODULE_TYPE
+                     , <include refid="common.sql.dbo"/>GETCOMCODE(MUGR.GATE_CD, 'M009', MUGR.MODULE_TYPE, 0, #{ses.langCd}) AS MODULE_TYPE_NM
+                     , <include refid="common.sql.dbo"/>GETMULTINAME(AUMP.GATE_CD, 'MG', #{ses.langCd}, AUMP.MENU_GROUP_CD, '') AS MENU_GROUP_NM
+                     , <include refid="common.sql.dbo"/>GETMULTINAME(AUMP.GATE_CD, 'MG', #{ses.langCd}, AUMP.MENU_GROUP_CD, '') AS MENU_GROUP_NM_L
+                     , <include refid="common.sql.dbo"/>GETCOMCODE(AUPF.GATE_CD, 'M009', AUPF.MAIN_MODULE_TYPE, 0, #{ses.langCd}) AS MAIN_MODULE_TYPE_NM
+                     , (SELECT USER_NM FROM STOCUSER WHERE GATE_CD = #{ses.gateCd} AND USER_ID = MUGR.MOD_USER_ID) REG_USER_NM
+                     , AUPF.MAIN_MODULE_TYPE
+                     , 'U' AS INSERT_FLAG
+                  FROM STOCAUMP AUMP
+                  LEFT JOIN STOCUSER USERS
+                   ON (AUMP.REG_USER_ID = USERS.USER_ID
+                   AND AUMP.GATE_CD = USERS.GATE_CD)
+                  LEFT JOIN STOCAUPF AUPF
+                   ON (AUMP.AUTH_CD = AUPF.AUTH_CD
+                   AND AUMP.GATE_CD = AUPF.GATE_CD)
+                  LEFT JOIN STOCMUGR MUGR
+                   ON (AUMP.MENU_GROUP_CD = MUGR.MENU_GROUP_CD
+                   AND AUMP.GATE_CD = MUGR.GATE_CD
+                   AND MUGR.USE_FLAG = '1')
+                 WHERE AUMP.GATE_CD = #{ses.gateCd}
+                   AND AUMP.DEL_FLAG = '0'
+                   AND AUPF.DEL_FLAG = '0'
+                   AND MUGR.DEL_FLAG = '0'
+          ) A
+         WHERE 1 = 1
+        <if test="AUTH_CD !='' and AUTH_CD != null">
+           AND UPPER(A.AUTH_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{AUTH_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="MENU_GROUP_NM_L !='' and MENU_GROUP_NM_L != null">
+           AND UPPER(A.MENU_GROUP_NM_L) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{MENU_GROUP_NM_L}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+
+    </select>
+
+    <select id="doSearchRMenuAuthMapping" parameterType="hashMap" resultType="hashMap">
+
+        SELECT A.MENU_GROUP_CD
+             , A.MENU_GROUP_NM
+             , A.MODULE_TYPE
+             , A.MODULE_TYPE_NM
+          FROM (SELECT MUGR.GATE_CD
+                     , MUGR.MENU_GROUP_CD
+                     , MUGR.MODULE_TYPE
+                     , 'U' AS INSERT_FLAG
+                     , <include refid="common.sql.dbo"/>GETMULTINAME(MUGR.GATE_CD, 'MG', #{ses.langCd}, MUGR.MENU_GROUP_CD, '') AS MENU_GROUP_NM
+                     , <include refid="common.sql.dbo"/>GETMULTINAME(MUGR.GATE_CD, 'MG', #{ses.langCd}, MUGR.MENU_GROUP_CD, '') AS MENU_GROUP_NM_R
+                     , <include refid="common.sql.dbo"/>GETCOMCODE(MUGR.GATE_CD, 'M009', MUGR.MODULE_TYPE, 0, #{ses.langCd}) AS MODULE_TYPE_NM
+                 FROM STOCMUGR MUGR
+                WHERE MUGR.GATE_CD = #{ses.gateCd}
+                  AND MUGR.DEL_FLAG = '0'
+                  AND MUGR.USE_FLAG = '1'
+                <if test="MODULE_TYPE !='' and MODULE_TYPE != null">
+                  AND MUGR.MODULE_TYPE = #{MODULE_TYPE}
+                </if>
+          ) A
+         WHERE 1 = 1
+        <if test="MENU_GROUP_NM_R !='' and MENU_GROUP_NM_R != null">
+           AND UPPER(A.MENU_GROUP_NM_R) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{MENU_GROUP_NM_R}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+
+    </select>
+
+    <insert id="doInsertMenuAuthMapping" parameterType="hashMap">
+
+        <selectKey resultType="int" order="BEFORE"  keyProperty="AUTH_SQ_MAX" >
+            SELECT <include refid="common.sql.nvl"/>(MAX(AUTH_SQ)+1,1) AS AUTH_SQ_MAX
+              FROM STOCAUMP
+             WHERE GATE_CD = #{ses.gateCd}
+               AND AUTH_CD = #{AUTH_CD}
+        </selectKey>
+
+        INSERT INTO STOCAUMP (
+              GATE_CD
+            , AUTH_CD
+            , AUTH_SQ
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , AUTH_MAPPING_TYPE
+            , MENU_GROUP_CD
+        ) VALUES (
+              #{ses.gateCd}
+            , #{AUTH_CD}
+            , #{AUTH_SQ_MAX}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{AUTH_MAPPING_TYPE}
+            , #{MENU_GROUP_CD}
+        )
+
+    </insert>
+
+    <update id="doDeleteMenuAuthMapping" parameterType="hashMap">
+
+       UPDATE STOCAUMP SET
+              DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD = #{GATE_CD}
+          AND AUTH_CD = #{AUTH_CD}
+          AND AUTH_SQ = #{AUTH_SQ}
+
+    </update>
+
+</mapper>

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.batch.nhebatch.BNH0020_Mapper">
+	<!-- 검수요청 7일 경과 지연안내 -->
+    <select id="getTagrgetData1" resultType="hashmap" parameterType="hashMap">
+		SELECT A.*
+		  FROM (
+			SELECT
+				 IVHD.BUYER_CD
+				,<include refid="common.sql.dbo"/>GETCOMPANYNAME(IVHD.GATE_CD, IVHD.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+	            , IVHD.DEPT_CD
+	            ,<include refid="common.sql.dbo"/>GETDEPTNAME(IVHD.GATE_CD, IVHD.BUYER_CD, IVHD.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+	            ,<include refid="common.sql.dbo"/>GETBUYERDEPTNAME(IVHD.GATE_CD, IVHD.BUYER_CD, IVHD.DEPT_CD, #{ses.langCd}) AS BUYER_DEPT_NM
+	            , IVHD.PROGRESS_CD
+	            , IVGH.INV_NUM
+	            , IVGH.SEND_DATE
+	            , IVGH.INV_SEND_DATE
+	            ,(CASE WHEN IVHD.DELIVERY_TYPE ='PI' THEN TO_CHAR(IVGH.SEND_DATE + 14, 'YYYY-MM-DD') 
+	                   ELSE TO_CHAR(IVGH.INV_SEND_DATE + 14, 'YYYY-MM-DD')
+	              END) AS SEND_REQ_DATE
+	            ,(CASE WHEN IVHD.DELIVERY_TYPE ='PI' THEN ( CASE WHEN SYSDATE - IVGH.SEND_DATE > 0 THEN <include refid="common.sql.toDate"/>( <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD'), 'YYYYMMDD') -  <include refid="common.sql.toDate"/>( <include refid="common.sql.toChar"/> (IVGH.SEND_DATE, 'YYYYMMDD'), 'YYYYMMDD') 
+	                   ELSE 0 END ) ELSE ( CASE WHEN SYSDATE - IVGH.INV_SEND_DATE > 0 THEN <include refid="common.sql.toDate"/>( <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD'), 'YYYYMMDD') -  <include refid="common.sql.toDate"/>( <include refid="common.sql.toChar"/> (IVGH.INV_SEND_DATE, 'YYYYMMDD'), 'YYYYMMDD') ELSE 0 END )  
+			  	  END) AS LAPSE_DAY  
+	            ,(CASE WHEN IVHD.DELIVERY_TYPE = 'PI' THEN IVGH.SUBJECT ||' ('||IVGH.INV_NUM||')' ELSE '부분검수 '|| '('||IVGH.INV_NUM||')' END) AS SUBJECT
+	            , POHD.CTRL_USER_ID AS USER_ID
+	            ,<include refid="common.sql.dbo"/>GETUSERNAME(POHD.GATE_CD, POHD.INSPECT_USER_ID, #{ses.langCd}) AS INSPECT_USER_NM
+	            , POHD.VENDOR_CD AS VENDOR_CD
+	            ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(POHD.GATE_CD, POHD.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+				-- 2023.03.14 : 검수요청 지연에 대한 SMS 수수료 추가
+	            , CUST.IRS_NUM AS CORP_NO
+	            , CVUR.DEPT_CD AS BRC
+	            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+	            , POHD.INSPECT_USER_ID AS RECV_USER_ID
+	            , 'SMS_INV_BATCH_PRC'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              IVGH.GATE_CD  		<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              CUST.CUST_CD 	    	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              IVGH.INV_NUM 		AS CONT_TBL_PK
+	            , NULL 				AS FILE_SIZE
+			 FROM STOCIVGH IVGH
+			 JOIN STOCIVHD IVHD
+			   ON (IVHD.GATE_CD  = IVGH.GATE_CD
+			  AND IVHD.BUYER_CD = IVGH.BUYER_CD
+			  AND IVHD.INV_NUM  = IVGH.INV_NUM
+			  AND IVHD.DEL_FLAG = '0')
+			 JOIN STOCPOHD POHD
+			   ON (POHD.GATE_CD  = IVGH.GATE_CD
+			  AND POHD.BUYER_CD = IVGH.BUYER_CD
+			  AND POHD.PO_NUM   = IVGH.PO_NUM
+			  AND POHD.DEL_FLAG = '0') 
+			 JOIN STOCCVUR CVUR
+		       ON (CVUR.GATE_CD = POHD.GATE_CD
+		      AND CVUR.USER_ID = POHD.INSPECT_USER_ID) 
+		     JOIN STOCCUST CUST
+		       ON (CUST.GATE_CD = CVUR.GATE_CD
+		      AND CUST.CUST_CD = CVUR.COMPANY_CD)   
+			WHERE IVGH.GATE_CD = #{ses.gateCd}
+			  AND IVHD.SIGN_STATUS IS NULL
+			  AND IVHD.SIGN_VALUE IS NOT NULL
+			  AND IVHD.DELIVERY_TYPE IN ('PI', 'DI')
+			  AND IVHD.PROGRESS_CD IN ('100', '200')
+			  AND IVGH.DEL_FLAG    = '0'
+		  ) A
+		 WHERE 1 = 1
+		   AND A.LAPSE_DAY = '8'
+		 ORDER BY A.INV_NUM  
+	</select>
+	
+	<!-- 대금지급요청 지연안내  -->
+    <select id="getTagrgetData2" resultType="hashmap" parameterType="hashMap">
+    	SELECT A.*
+    	     , CVUR.DEPT_CD AS BRC
+		  FROM (
+			SELECT IVHD.GATE_CD 
+			    , IVHD.BUYER_CD
+	            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(IVHD.GATE_CD, IVHD.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+	            , IVHD.DEPT_CD
+	            , <include refid="common.sql.dbo"/>GETDEPTNAME(IVHD.GATE_CD, IVHD.BUYER_CD, IVHD.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+	            , <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(IVHD.GATE_CD, IVHD.BUYER_CD, IVHD.DEPT_CD, #{ses.langCd}) AS BUYER_DEPT_NM
+	            , IVHD.PROGRESS_CD
+	            , IVGH.INV_NUM
+	            , ROW_NUMBER() OVER (PARTITION BY IVGH.INV_NUM ORDER BY IVPC.PY_BUYER_CD DESC) AS RN
+	            ,(CASE WHEN IVHD.DELIVERY_TYPE = 'PI' THEN IVGH.SUBJECT ||' ('||IVGH.INV_NUM||')' ELSE '부분검수 '|| '('||IVGH.INV_NUM||')' END) AS SUBJECT
+	            , POHD.PO_CREATE_TYPE
+	            , IVGH.PO_NUM
+	            , POHD.PO_CREATE_DATE
+	            , IVHD.INV_DATE
+	            ,(CASE WHEN SYSDATE - IVHD.INV_DATE > 0 
+		            		THEN <include refid="common.sql.toDate"/>(<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD'), 'YYYYMMDD') - <include refid="common.sql.toDate"/>(<include refid="common.sql.toChar"/>(IVHD.INV_DATE, 'YYYYMMDD'), 'YYYYMMDD') 
+		               ELSE 0 
+		          END) AS LAPSE_DAY
+	            , POPY.PAY_CNT_NM
+	            , IVGH.PAY_CNT
+	            , IVHD.DELIVERY_TYPE
+	            , IVHD.REG_USER_ID AS RECV_USER_ID
+	            , IVPC.PY_BUYER_CD
+	            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, #{ses.langCd}) AS PY_BUYER_NM
+	            , IVPC.PY_DEPT_CD
+	            , <include refid="common.sql.dbo"/>GETDEPTNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, IVPC.PY_DEPT_CD, #{ses.langCd}) AS PY_DEPT_NM
+	            , <include refid="common.sql.dbo"/>GETBUYERDEPTNAME(IVPC.GATE_CD, IVPC.PY_BUYER_CD, IVPC.PY_DEPT_CD, #{ses.langCd}) AS PY_BUYER_DEPT_NM
+	            , IVPC.AP_USER_ID 
+	            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(POHD.GATE_CD, POHD.VENDOR_CD, #{ses.langCd}) AS VENDOR_NM
+	            , <include refid="common.sql.strDecStart"/>IVGH.VENDOR_USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+	            , <include refid="common.sql.strDecStart"/>IVGH.VENDOR_CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+	            -- 2023.03.14 : 검수요청 지연에 대한 SMS 수수료 추가
+	            ,(SELECT IRS_NUM FROM STOCCUST
+		           WHERE GATE_CD = IVPC.GATE_CD
+		             AND CUST_CD = IVPC.PY_BUYER_CD) AS CORP_NO
+	            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+	            , 'SMS_AP_BATCH_PRC'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              IVGH.GATE_CD  		<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+	              IVGH.INV_NUM 		AS CONT_TBL_PK
+	            , NULL 				AS FILE_SIZE
+	        FROM STOCIVGH IVGH
+	        LEFT JOIN STOCIVHD IVHD
+	            ON (IVHD.GATE_CD  = IVGH.GATE_CD
+	            AND IVHD.BUYER_CD = IVGH.BUYER_CD
+	            AND IVHD.INV_NUM  = IVGH.INV_NUM
+	            AND IVHD.DEL_FLAG = '0')
+	        LEFT JOIN STOCPOHD POHD
+	            ON (POHD.GATE_CD  = IVGH.GATE_CD
+	            AND POHD.BUYER_CD = IVGH.BUYER_CD
+	            AND POHD.PO_NUM   = IVGH.PO_NUM
+	            AND POHD.DEL_FLAG = '0')
+	        LEFT JOIN STOCPOPY POPY
+	            ON (POPY.GATE_CD   = POHD.GATE_CD
+	            AND POPY.BUYER_CD  = POHD.BUYER_CD
+	            AND POPY.PO_NUM    = POHD.PO_NUM
+	            AND POPY.DEPT_CD   = POHD.DEPT_CD
+	            AND POPY.VENDOR_CD = POHD.VENDOR_CD
+	            AND POPY.PAY_CNT   = IVGH.PAY_CNT
+	            AND POPY.DEL_FLAG  = '0')
+	        LEFT JOIN STOCIVPC IVPC
+	            ON (IVPC.GATE_CD  = POPY.GATE_CD
+	            AND IVPC.BUYER_CD = POPY.BUYER_CD
+	            AND IVPC.INV_NUM  = IVHD.INV_NUM
+	            AND IVPC.PO_NUM   = POPY.PO_NUM
+	            AND IVPC.DEPT_CD  = POPY.DEPT_CD
+	            AND IVPC.PAY_CNT  = POPY.PAY_CNT
+	            AND IVPC.DEL_FLAG = '0')
+	        LEFT JOIN STOCIVAP IVAP
+	            ON (IVAP.GATE_CD  = IVPC.GATE_CD
+	            AND IVAP.BUYER_CD = IVPC.BUYER_CD
+	            AND IVAP.INV_NUM  = IVGH.INV_NUM
+	            AND IVAP.PO_NUM   = IVGH.PO_NUM
+	            AND IVAP.DEPT_CD  = IVHD.DEPT_CD
+	            AND IVAP.PAY_CNT  = IVPC.PAY_CNT
+	            AND IVAP.PY_BUYER_CD = IVPC.PY_BUYER_CD
+	            AND IVAP.PY_DEPT_CD  = IVPC.PY_DEPT_CD
+	            AND IVAP.DEL_FLAG = '0')
+	        WHERE IVGH.GATE_CD   = #{ses.gateCd}
+	          AND IVGH.DEL_FLAG  = '0'
+	          AND IVAP.SIGN_STATUS IS NULL
+	          AND IVHD.PROGRESS_CD = (CASE WHEN IVHD.DELIVERY_TYPE = 'DI' THEN '300' WHEN IVHD.DELIVERY_TYPE = 'PI' THEN '700' ELSE IVHD.PROGRESS_CD END)
+	          AND IVHD.DELIVERY_TYPE IN ('PI', 'DI')
+      	  ) A
+      	  JOIN STOCCVUR CVUR
+		  	   ON (A.GATE_CD    = CVUR.GATE_CD
+		  	   AND A.AP_USER_ID = CVUR.USER_ID)
+		 WHERE 1 = 1
+		   AND A.LAPSE_DAY = '8'
+		   AND A.RN = '1'  
+	</select>
+	
+</mapper>

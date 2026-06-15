@@ -1,0 +1,12 @@
+{
+	"version": 3,
+	"file": "NanumGothic.css",
+	"sources": [
+		"../../../scss/fonts/NanumGothic.scss"
+	],
+	"sourcesContent": [
+		"@font-face {\n  font-family: 'NanumGothic';\n  font-style: normal;\n  font-weight: 400;\n  src: url(../fonts/NanumGothic/NanumGothic.eot);\n  src: local('NanumGothic'),\n  url(../fonts/NanumGothic/NanumGothic.eot?#iefix) format('embedded-opentype'),\n  url(../fonts/NanumGothic/NanumGothic.woff) format('woff');\n}\n\n@font-face {\n  font-family: 'NanumGothic';\n  font-style: normal;\n  font-weight: 700;\n  src: url(../fonts/NanumGothic/NanumGothicBold.eot);\n  src: local('NanumGothic Bold');\n}\n\n@font-face {\n  font-family: NanumGothicLight;\n  src: url(../fonts/NanumGothicLight.eot);\n  src: url(../fonts/NanumGothicLight.eot?#iefix) format(embedded-opentype);\n  src: url(../fonts/NanumGothicLight.woff) format(woff);\n  src: url(../fonts/NanumGothicLight.ttf) format(truetype);\n  src: url(../fonts/NanumGothicLight.svg#NanumGothicLight) format(svg);\n  src: local(※), url(../fonts/NanumGothicLight.woff) format(woff);\n}\n"
+	],
+	"names": [],
+	"mappings": ";AAAA,UAAU;EACR,WAAW,EAAE,aAAa;EAC1B,UAAU,EAAE,MAAM;EAClB,WAAW,EAAE,GAAG;EAChB,GAAG,EAAE,yCAAyC;EAC9C,GAAG,EAAE,oBAAoB,EACzB,gDAAgD,CAAC,2BAA2B,EAC5E,0CAA0C,CAAC,cAAc;;;AAG3D,UAAU;EACR,WAAW,EAAE,aAAa;EAC1B,UAAU,EAAE,MAAM;EAClB,WAAW,EAAE,GAAG;EAChB,GAAG,EAAE,6CAA6C;EAClD,GAAG,EAAE,yBAAyB;;;AAGhC,UAAU;EACR,WAAW,EAAE,gBAAgB;EAC7B,GAAG,EAAE,kCAAkC;EACvC,GAAG,EAAE,yCAAyC,CAAC,yBAAyB;EACxE,GAAG,EAAE,mCAAmC,CAAC,YAAY;EACrD,GAAG,EAAE,kCAAkC,CAAC,gBAAgB;EACxD,GAAG,EAAE,mDAAmD,CAAC,WAAW;EACpE,GAAG,EAAE,SAAS,EAAE,mCAAmC,CAAC,YAAY"
+}

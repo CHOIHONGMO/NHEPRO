@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.eApproval.eApprovalEnd.PR.EApprovalEndPr_Mapper">
+
+    <select id="getPrNum" parameterType="hashMap" resultType="java.lang.String">
+
+        SELECT PR_NUM
+          FROM STOCPRHD
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND APP_DOC_NUM = #{APP_DOC_NUM}
+           AND APP_DOC_CNT = #{APP_DOC_CNT}
+           AND DEL_FLAG = '0'
+
+    </select>
+
+    <update id="setPrSignStatus" parameterType="hashmap">
+
+        UPDATE STOCPRHD SET
+             SIGN_STATUS = #{SIGN_STATUS}
+        <if test='SIGN_STATUS == "E" or SIGN_STATUS == "R"'>
+            ,SIGN_DATE = SYSDATE
+        </if>
+         WHERE GATE_CD = #{ses.gateCd}
+           AND PR_NUM = #{PR_NUM}
+           AND BUYER_CD = #{BUYER_CD}
+
+    </update>
+
+    <update id="setPrProgressCd" parameterType="hashmap">
+
+		UPDATE STOCPRDT SET
+			PROGRESS_CD = '2100'
+         WHERE GATE_CD = #{ses.gateCd}
+           AND PR_NUM = #{PR_NUM}
+           AND BUYER_CD = #{BUYER_CD}
+           AND DEL_FLAG = '0'
+
+    </update>
+
+
+	<select id="getPrhd" parameterType="hashmap" resultType="hashMap">
+		SELECT
+			  A.PR_NUM
+			, A.SUBJECT
+			,<include refid="common.sql.dbo"/>GETCOMPANYNAME(A.GATE_CD, A.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+            ,<include refid="common.sql.dbo"/>GETUSERNAME(A.GATE_CD,  A.CONFIRM_USER_ID , #{ses.langCd}) AS REG_USER_NM
+            ,<include refid="common.sql.dbo"/>GETCOMPANYNAME(A.GATE_CD, #{VENDOR_CD}, #{ses.langCd}) AS VENDOR_NM
+			, TO_CHAR(SYSDATE,'YYYY-MM-DD') AS PO_CREATE_DATE
+			,(SELECT TO_CHAR(MIN(DUE_DATE), 'YYYY-MM-DD') FROM STOCPRDT A
+			   WHERE A.GATE_CD   = A.GATE_CD
+				 AND A.BUYER_CD  = A.BUYER_CD
+				 AND A.PR_NUM    = A.PR_NUM
+				 AND A.VENDOR_CD = #{VENDOR_CD}
+				 AND A.VAT_TYPE  = #{VAT_TYPE}
+		         AND A.VENDOR_CD IS NOT NULL
+		         AND A.VAT_TYPE  IS NOT NULL
+		         AND A.DEL_FLAG  = '0'
+		         AND A.PURCHASE_TYPE = 'G') DUE_DATE
+			 ,(SELECT MAX(PO_NUM) FROM STOCPODT
+			    WHERE GATE_CD     = A.GATE_CD
+			      AND PB_BUYER_CD = A.BUYER_CD
+			      AND PR_NUM      = A.PR_NUM
+			      AND DEL_FLAG = '0') AS PO_NUM
+		FROM STOCPRHD A
+		WHERE A.GATE_CD = #{ses.gateCd}
+		AND A.BUYER_CD  = #{BUYER_CD}
+		AND A.PR_NUM    = #{PR_NUM}
+	</select>
+
+	<select id="getDirectPoTargetVendor" parameterType="hashmap" resultType="hashMap">
+		SELECT
+		      PRDT.BUYER_CD
+		     ,PRDT.PR_NUM
+		     ,PRDT.VENDOR_CD
+		     ,PRDT.VAT_TYPE
+		FROM STOCPRDT PRDT JOIN STOCMTGL MTGL ON PRDT.GATE_CD = MTGL.GATE_CD
+		                                      AND PRDT.PR_BUYER_CD = MTGL.BUYER_CD
+		                                      AND PRDT.ITEM_CD = MTGL.ITEM_CD
+		                                      AND MTGL.DEL_FLAG = '0'
+		                                      AND MTGL.DIRECT_PO_FLAG = '1'
+		                   JOIN STOCINFO INFO ON PRDT.GATE_CD = INFO.GATE_CD
+                                              AND PRDT.PR_BUYER_CD = INFO.BUYER_CD
+                                              AND PRDT.ITEM_CD     = INFO.ITEM_CD
+                                              AND PRDT.VENDOR_CD   = INFO.VENDOR_CD
+                                              AND SYSDATE BETWEEN VALID_FROM_DATE AND VALID_TO_DATE
+                                              AND INFO.DEL_FLAG = '0'
+        WHERE PRDT.GATE_CD = #{ses.gateCd}
+        AND PRDT.BUYER_CD = #{BUYER_CD}
+        AND PRDT.PR_NUM = #{PR_NUM}
+        AND PRDT.DEL_FLAG = '0'
+        AND PRDT.VENDOR_CD IS NOT NULL
+        AND PRDT.VAT_TYPE IS NOT NULL
+	</select>
+
+
+
+	<select id="getDirectPoTarget" parameterType="hashmap" resultType="hashMap">
+		SELECT   -- 안씀.
+		      PRDT.BUYER_CD -- 안씀.
+		     ,PRDT.PR_NUM -- 안씀.
+		     ,PRDT.VENDOR_CD -- 안씀.
+		     ,PRDT.VAT_TYPE -- 안씀.
+		FROM STOCPRDT PRDT JOIN STOCMTGL MTGL ON PRDT.GATE_CD = MTGL.GATE_CD
+		                                      AND PRDT.PR_BUYER_CD = MTGL.BUYER_CD
+		                                      AND PRDT.ITEM_CD = MTGL.ITEM_CD
+		                                      AND MTGL.DEL_FLAG = '0'
+		                                      AND MTGL.DIRECT_PO_FLAG = '1'
+		                   JOIN STOCINFO INFO ON PRDT.GATE_CD = INFO.GATE_CD
+                                              AND PRDT.PR_BUYER_CD = INFO.BUYER_CD
+                                              AND PRDT.ITEM_CD     = INFO.ITEM_CD
+                                              AND PRDT.VENDOR_CD   = INFO.VENDOR_CD
+                                              AND SYSDATE BETWEEN VALID_FROM_DATE AND VALID_TO_DATE
+                                              AND INFO.DEL_FLAG = '0'
+        WHERE PRDT.GATE_CD = #{ses.gateCd}
+        AND PRDT.BUYER_CD = #{BUYER_CD} -- 안씀.
+        AND PRDT.PR_NUM = #{PR_NUM} -- 안씀.
+        AND PRDT.VENDOR_CD = #{VENDOR_CD} -- 안씀.
+        AND PRDT.PR_BUYER_CD = #{PR_BUYER_CD} -- 안씀.
+        AND PRDT.DEL_FLAG = '0'
+	</select>
+
+    <update id="setDirectPoProgressCd" parameterType="hashmap">
+		UPDATE STOCPRDT SET
+			PROGRESS_CD = '5200'
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND PR_NUM = #{PR_NUM}
+		   AND PR_BUYER_CD = #{PR_BUYER_CD}
+		   AND VENDOR_CD = #{VENDOR_CD}
+    </update>
+
+    <insert id="insertPohd" parameterType="hashmap">
+			INSERT INTO STOCPOHD (
+				 GATE_CD
+				,BUYER_CD
+				,PO_NUM
+				,REG_DATE
+				,REG_USER_ID
+				,MOD_DATE
+				,MOD_USER_ID
+				,DEL_FLAG
+				,DEPT_CD
+				,PROGRESS_CD
+				,PO_CREATE_TYPE
+				,SUBJECT
+				,VENDOR_CD
+				,PO_CREATE_DATE
+				,CUR
+				,PO_AMT
+				,VAT_TYPE
+				,DELIVERY_TYPE
+				,PAY_TYPE
+				,PAY_TERMS
+				,CTRL_CD
+				,CTRL_USER_ID
+				,INSPECT_USER_ID
+				,RMK_TEXT_NUM
+				,ATT_FILE_NUM
+				,APPROVAL_FLAG
+				,APP_DOC_NUM
+				,APP_DOC_CNT
+				,SIGN_STATUS
+				,SIGN_DATE
+				,ST_NEED_FLAG
+				,SIGN_CNT
+				,FORCE_CLOSE_DATE
+				,FORCE_CLOSE_RMK
+				,VENDOR_RECEIPT_DATE
+				,VENDOR_RECEIPT_USER_ID
+				,VENDOR_RECEIPT_STATUS
+				,VENDOR_REJECT_RMK
+			) SELECT
+				 A.GATE_CD --GATE_CD
+				,A.BUYER_CD --BUYER_CD
+				,#{PO_NUM} --PO_NUM
+				,SYSDATE --REG_DATE
+				,A.REG_USER_ID --REG_USER_ID
+				,SYSDATE --MOD_DATE
+				,A.MOD_USER_ID --MOD_USER_ID
+				,'0' --DEL_FLAG
+				,null --DEPT_CD
+				,'5200' --PROGRESS_CD
+				,null --PO_CREATE_TYPE
+				,A.SUBJECT --SUBJECT
+				,#{VENDOR_CD} --VENDOR_CD
+				,SYSDATE --PO_CREATE_DATE
+				,A.CUR --CUR
+				,(SELECT SUM(ITEM_AMT) FROM STOCPODT WHERE GATE_CD=#{ses.gateCd} AND BUYER_CD=#{BUYER_CD} AND PO_NUM = #{PO_NUM} ) --PO_AMT
+				,#{VAT_TYPE} --VAT_TYPE
+				,null --DELIVERY_TYPE
+				,null --PAY_TYPE
+				,null --PAY_TERMS
+				,null --CTRL_CD
+				,null --CTRL_USER_ID
+				,null --INSPECT_USER_ID
+				,null --RMK_TEXT_NUM
+				,null --ATT_FILE_NUM
+				,null --APPROVAL_FLAG
+				,null --APP_DOC_NUM
+				,null --APP_DOC_CNT
+				,'E' --SIGN_STATUS
+				,SYSDATE --SIGN_DATE
+				,null --ST_NEED_FLAG
+				,null --SIGN_CNT
+				,null --FORCE_CLOSE_DATE
+				,null --FORCE_CLOSE_RMK
+				,null --VENDOR_RECEIPT_DATE
+				,null --VENDOR_RECEIPT_USER_ID
+				,null --VENDOR_RECEIPT_STATUS
+				,null --VENDOR_REJECT_RMK
+			FROM STOCPRHD A
+			WHERE A.GATE_CD = #{ses.gateCd}
+			AND A.BUYER_CD  = #{BUYER_CD}
+			AND A.PR_NUM    = #{PR_NUM}
+	        AND A.DEL_FLAG = '0'
+
+    </insert>
+
+    <insert id="insertPodt" parameterType="hashmap">
+			INSERT INTO STOCPODT (
+				 GATE_CD
+				,BUYER_CD
+				,PO_NUM
+				,PO_SQ
+				,REG_DATE
+				,REG_USER_ID
+				,MOD_DATE
+				,MOD_USER_ID
+				,DEL_FLAG
+				,PROGRESS_CD
+				,PR_BUYER_CD
+				,PR_DEPT_CD
+				,PURCHASE_TYPE
+				,ITEM_CD
+				,ITEM_DESC
+				,ITEM_SPEC
+				,MAKER_CD
+				,MAKER_PART_NO
+				,ORIGIN_CD
+				,PO_QT
+				,UNIT_CD
+				,UNIT_PRC
+				,ITEM_AMT
+				,DUE_DATE
+				,RMK
+				,PR_NUM
+				,PR_SQ
+				,EXEC_NUM
+				,EXEC_SQ
+				,PO_WT_NUM
+				,INV_QT
+				,GR_QT
+				,FORCE_CLOSE_DATE
+				,FORCE_CLOSE_RMK
+				,PB_BUYER_CD
+		) SELECT
+				 A.GATE_CD --GATE_CD
+				,A.BUYER_CD --BUYER_CD
+				,#{PO_NUM} --PO_NUM
+				,ROWNUM --PO_SQ
+				,SYSDATE --REG_DATE
+				,A.REG_USER_ID --REG_USER_ID
+				,SYSDATE --MOD_DATE
+				,A.REG_USER_ID --MOD_USER_ID
+				,'0' --DEL_FLAG
+				,'5200' --PROGRESS_CD
+				,A.PR_BUYER_CD --PR_BUYER_CD
+				,A.PR_DEPT_CD --PR_DEPT_CD
+				,null --PURCHASE_TYPE
+				,A.ITEM_CD --ITEM_CD
+				,A.ITEM_DESC --ITEM_DESC
+				,A.ITEM_SPEC --ITEM_SPEC
+				,A.MAKER_CD --MAKER_CD
+				,A.MAKER_PART_NO --MAKER_PART_NO
+				,null --ORIGIN_CD
+				,A.PR_QT --PO_QT
+				,A.UNIT_CD --UNIT_CD
+				,A.UNIT_PRC --UNIT_PRC
+				,A.PR_AMT --ITEM_AMT
+				,A.DUE_DATE --DUE_DATE
+				,A.ITEM_RMK --RMK
+				,A.PR_NUM --PR_NUM
+				,A.PR_SQ --PR_SQ
+				,null --EXEC_NUM
+				,null --EXEC_SQ
+				,null --PO_WT_NUM
+				,null --INV_QT
+				,null --GR_QT
+				,null --FORCE_CLOSE_DATE
+				,null --FORCE_CLOSE_RMK
+				,A.BUYER_CD AS PB_BUYER_CD
+			FROM STOCPRDT A
+			WHERE A.GATE_CD = #{ses.gateCd}
+			AND A.BUYER_CD  = #{BUYER_CD}
+			AND A.PR_NUM    = #{PR_NUM}
+			AND A.VENDOR_CD = #{VENDOR_CD}
+			AND A.VAT_TYPE  = #{VAT_TYPE}
+	        AND A.VENDOR_CD IS NOT NULL
+	        AND A.VAT_TYPE IS NOT NULL
+	        AND A.DEL_FLAG = '0'
+    </insert>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</mapper>

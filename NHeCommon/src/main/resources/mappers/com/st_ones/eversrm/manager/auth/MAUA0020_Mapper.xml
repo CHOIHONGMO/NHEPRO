@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.auth.MAUA0020_Mapper">
+
+	<select id="selectTaskPersonInCharge" parameterType="hashmap" resultType="hashmap">
+
+		SELECT
+			  BACO.CTRL_TYPE
+			, <include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+			, BACP.USE_FLAG
+			, BACP.GATE_CD
+			, BACP.GATE_CD AS GATE_CD_ORI
+			, BACP.BUYER_CD
+			, BACP.BUYER_CD AS BUYER_CD_ORI
+			, BACP.CTRL_CD
+			, BACP.CTRL_CD AS CTRL_CD_ORI
+			, BACP.CTRL_USER_ID AS CTRL_USER_ID
+			, BACP.CTRL_USER_ID AS CTRL_USER_ID_ORI
+			, 'U' AS INSERT_FLAG
+			, BACP.REG_DATE AS REG_DATE
+			, BACP.MOD_DATE AS MOD_DATE
+		    , BACO.CTRL_NM
+			, <include refid="common.sql.dbo"/>GETCOMPANYNAME(BACP.GATE_CD, BACP.BUYER_CD, #{ses.langCd}) AS BUYER_NM
+			, <include refid="common.sql.dbo"/>getDeptName(USR.GATE_CD, USR.COMPANY_CD, USR.DEPT_CD, #{ses.langCd}) AS DEPT_NM
+			, <include refid="common.sql.dbo"/>getUserName(BACP.GATE_CD, BACP.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+			, <include refid="common.sql.dbo"/>getUserName(BACP.GATE_CD, BACP.MOD_USER_ID, #{ses.langCd}) AS MOD_USER_NM
+		  FROM STOCBACP BACP
+		  JOIN STOCBACO BACO
+		   ON (BACO.GATE_CD = BACP.GATE_CD
+		   AND BACO.CTRL_CD = BACP.CTRL_CD)
+		  JOIN STOCCVUR USR
+		   ON (BACP.CTRL_USER_ID = USR.USER_ID
+		   AND BACP.GATE_CD = USR.GATE_CD)
+		 WHERE BACP.GATE_CD = #{ses.gateCd}
+		   AND BACP.DEL_FLAG = '0'
+		   AND BACO.DEL_FLAG = '0'
+		   AND USR.DEL_FLAG = '0'
+		<if test="BUYER_CD != '' and BUYER_CD != null">
+			AND BACP.BUYER_CD = #{BUYER_CD}
+		</if>
+		<if test="CTRL_TYPE != '' and CTRL_TYPE != null">
+			AND BACO.CTRL_TYPE = #{CTRL_TYPE}
+		</if>
+		<if test="CTRL_NM != '' and CTRL_NM != null">
+			AND UPPER(<include refid="common.sql.dbo"/>GETCTRLNAME(BACP.GATE_CD, BACP.BUYER_CD, BACP.CTRL_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/>  UPPER(#{CTRL_NM}) <include refid="common.sql.stringMerge"/>  '%'
+		</if>
+		<if test="USER_NM != '' and USER_NM != null">
+			AND UPPER(<include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/>) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="USER_ID != '' and USER_ID != null">
+			AND	UPPER(USR.USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="DEPT_CD != '' and DEPT_CD != null">
+			AND	UPPER(USR.DEPT_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_CD}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="DEPT_NM != '' and DEPT_NM != null">
+			AND	UPPER(<include refid="common.sql.dbo"/>getDeptName(USR.GATE_CD, USR.COMPANY_CD, USR.DEPT_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+
+		ORDER BY BACO.CTRL_TYPE, BACP.CTRL_CD, USR.USER_NM
+
+	</select>
+
+	<select id="checkTaskPersonInCharge" parameterType="hashmap" resultType="java.lang.Integer">
+
+		SELECT COUNT(CTRL_CD) AS CNT
+		  FROM STOCBACP
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CTRL_CD = #{CTRL_CD}
+		   AND CTRL_USER_ID = #{CTRL_USER_ID}
+
+	</select>
+
+	<insert id="insertTaskPersonInCharge" parameterType="hashmap">
+
+		INSERT INTO STOCBACP (
+			  REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, GATE_CD
+			, BUYER_CD
+			, CTRL_CD
+			, CTRL_USER_ID
+			, DEL_FLAG
+			, USE_FLAG
+		) VALUES (
+			  SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, #{ses.gateCd}
+			, #{BUYER_CD}
+			, #{CTRL_CD}
+			, #{CTRL_USER_ID}
+			, '0'
+			, #{USE_FLAG}
+		)
+
+	</insert>
+
+	<update id="updateTaskPersonInCharge" parameterType="hashmap">
+
+		UPDATE STOCBACP SET
+			  MOD_USER_ID = #{ses.userId}
+			, MOD_DATE = SYSDATE
+			, DEL_FLAG = '0'
+			<if test="USE_FLAG != '' and USE_FLAG != null">, USE_FLAG = #{USE_FLAG}</if>
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD}
+		   AND CTRL_USER_ID = #{CTRL_USER_ID}
+		   AND CTRL_CD = #{CTRL_CD}
+
+	</update>
+
+	<insert id="saveHistoryBACH" parameterType="hashmap">
+
+		INSERT INTO STOCBACH (
+			  GATE_CD
+			, BUYER_CD
+			, CTRL_CD
+			, CTRL_USER_ID
+			, SEQ
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, CH_TYPE
+			, DEL_FLAG
+			, USE_FLAG
+		)
+		VALUES (
+			  #{ses.gateCd}
+			, #{BUYER_CD}
+			, #{CTRL_CD}
+			, #{CTRL_USER_ID}
+			, <include refid="common.sql.nvl"/>((SELECT MAX(SEQ)
+					 FROM STOCBACH
+					WHERE GATE_CD = #{ses.gateCd}
+					  AND BUYER_CD = #{BUYER_CD}
+					  AND CTRL_CD = #{CTRL_CD}
+					  AND CTRL_USER_ID = #{CTRL_USER_ID}), 0) + 1
+			, SYSDATE
+			, #{ses.userId}
+			, SYSDATE
+			, #{ses.userId}
+			, #{CH_TYPE}
+			, '0'
+			, #{USE_FLAG}
+		)
+
+	</insert>
+
+	<update id="deleteTaskPersonInCharge" parameterType="hashmap">
+
+		UPDATE STOCBACP SET
+			  DEL_FLAG = '1'
+			, MOD_USER_ID = #{ses.userId}
+			, MOD_DATE = SYSDATE
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND BUYER_CD = #{BUYER_CD_ORI}
+		   AND CTRL_USER_ID = #{CTRL_USER_ID_ORI}
+		   AND CTRL_CD = #{CTRL_CD_ORI}
+
+	</update>
+
+</mapper>

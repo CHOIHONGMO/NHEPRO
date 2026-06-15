@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.CETR.CETR0010_Mapper">
+
+    <select id="cetr0010_doSearchG" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+              DM.DELY_NM
+            , <include refid="common.sql.strDecStart"/>DM.RECIPIENT_NM<include refid="common.sql.strDecEnd"/>
+            , DM.RECIPIENT_DEPT_NM
+            , <include refid="common.sql.strDecStart"/>DM.RECIPIENT_TEL_NUM<include refid="common.sql.strDecEnd"/> AS RECIPIENT_TEL_NUM
+            , <include refid="common.sql.strDecStart"/>DM.RECIPIENT_CELL_NUM<include refid="common.sql.strDecEnd"/> AS RECIPIENT_CELL_NUM
+            , <include refid="common.sql.strDecStart"/>DM.RECIPIENT_EMAIL<include refid="common.sql.strDecEnd"/> AS RECIPIENT_EMAIL
+            , <include refid="common.sql.strDecStart"/>DM.DELY_ZIP_CD<include refid="common.sql.strDecEnd"/> AS DELY_ZIP_CD
+            , <include refid="common.sql.strDecStart"/>DM.DELY_ADDR_1<include refid="common.sql.strDecEnd"/> AS DELY_ADDR_1
+            , <include refid="common.sql.strDecStart"/>DM.DELY_ADDR_2<include refid="common.sql.strDecEnd"/> AS DELY_ADDR_2
+            , DM.DELY_RMK
+            , DM.CUST_CD
+            , DM.USER_ID USER_ID
+            , DM.SEQ
+          FROM STOCCUDM DM
+         WHERE DM.GATE_CD = #{ses.gateCd}
+           AND DM.CUST_CD = #{CUST_CD}
+           AND DM.USER_ID  = #{USER_ID}
+           AND DM.DEL_FLAG = '0'
+         ORDER BY DM.SEQ
+
+    </select>
+
+    <update id="oetr0010_doSaveG" parameterType="hashMap">
+
+        MERGE <include refid="common.sql.mergeInto"/> STOCCUDM  A
+        USING (SELECT #{ses.gateCd} AS GATE_CD
+                    , #{CUST_CD} AS CUST_CD
+                    , #{USER_ID} AS USER_ID
+                    <if test="_databaseId == 'oracle'">
+                    ,<include refid="common.sql.nvl"/>(#{SEQ}, '999') AS SEQ
+                    </if>
+                    <if test="_databaseId == 'mssql'">
+                    , CONVERT(INT, <include refid="common.sql.nvl"/>(#{SEQ}, '999')) AS SEQ
+                    </if>
+                    <include refid="common.sql.dual"/>
+                ) B
+            ON (A.GATE_CD = B.GATE_CD
+            AND A.CUST_CD = B.CUST_CD
+            AND A.USER_ID  = B.USER_ID
+            AND A.SEQ = B.SEQ)
+        WHEN MATCHED THEN
+        UPDATE SET
+              DELY_NM = #{DELY_NM}
+            , RECIPIENT_NM = <include refid="common.sql.strEncStart"/>#{RECIPIENT_NM}<include refid="common.sql.strEncEnd"/>
+            , RECIPIENT_DEPT_NM = #{RECIPIENT_DEPT_NM}
+            , RECIPIENT_TEL_NUM = <include refid="common.sql.strEncStart"/>#{RECIPIENT_TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            , RECIPIENT_CELL_NUM = <include refid="common.sql.strEncStart"/>#{RECIPIENT_CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            , RECIPIENT_EMAIL = <include refid="common.sql.strEncStart"/>#{RECIPIENT_EMAIL}<include refid="common.sql.strEncEnd"/>
+            , DELY_ZIP_CD = <include refid="common.sql.strEncStart"/>#{DELY_ZIP_CD}<include refid="common.sql.strEncEnd"/>
+            , DELY_ADDR_1 = <include refid="common.sql.strEncStart"/>#{DELY_ADDR_1}<include refid="common.sql.strEncEnd"/>
+            , DELY_ADDR_2 = <include refid="common.sql.strEncStart"/>#{DELY_ADDR_2}<include refid="common.sql.strEncEnd"/>
+            , DELY_RMK = #{DELY_RMK}
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID =  #{ses.userId}
+        WHEN NOT MATCHED THEN
+        INSERT (
+              GATE_CD
+            , CUST_CD
+            , USER_ID
+            , SEQ
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , DELY_NM
+            , RECIPIENT_NM
+            , RECIPIENT_DEPT_NM
+            , RECIPIENT_TEL_NUM
+            , RECIPIENT_CELL_NUM
+            , RECIPIENT_EMAIL
+            , DELY_ZIP_CD
+            , DELY_ADDR_1
+            , DELY_ADDR_2
+            , DELY_RMK
+        ) VALUES (
+              #{ses.gateCd}
+            , #{CUST_CD}
+            , #{USER_ID}
+            , (SELECT <include refid="common.sql.nvl"/>(MAX(SEQ) + 1, 1) FROM STOCCUDM WHERE GATE_CD = #{ses.gateCd} AND CUST_CD = #{CUST_CD} AND USER_ID = #{USER_ID})
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{DELY_NM}
+            , <include refid="common.sql.strEncStart"/>#{RECIPIENT_NM}<include refid="common.sql.strEncEnd"/>
+            , #{RECIPIENT_DEPT_NM}
+            , <include refid="common.sql.strEncStart"/>#{RECIPIENT_TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{RECIPIENT_CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{RECIPIENT_EMAIL}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{DELY_ZIP_CD}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{DELY_ADDR_1}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{DELY_ADDR_2}<include refid="common.sql.strEncEnd"/>
+            , #{DELY_RMK}
+        )<include refid="common.sql.comma"/>
+
+    </update>
+
+    <update id="oetr0010_doDeleteG" parameterType="hashMap">
+
+        UPDATE STOCCUDM SET
+              DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND CUST_CD = #{CUST_CD}
+           AND USER_ID = #{USER_ID}
+           AND SEQ = #{SEQ}
+
+    </update>
+
+    <select id="selectUser" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+              USER_ID AS USER_ID
+            , <include refid="common.sql.strDecStart"/> USER_NM <include refid="common.sql.strDecEnd"/>  AS USER_NM
+            , <include refid="common.sql.strDecStart"/> USER_NM_ENG <include refid="common.sql.strDecEnd"/>  AS USER_NM_ENG
+            , PASSWORD AS PASSWORD
+            , <include refid="common.sql.strDecStart"/> EMAIL  <include refid="common.sql.strDecEnd"/>  AS EMAIL
+            , <include refid="common.sql.strDecStart"/> TEL_NUM <include refid="common.sql.strDecEnd"/>    AS TEL_NUM
+            , <include refid="common.sql.strDecStart"/> CELL_NUM <include refid="common.sql.strDecEnd"/>  AS CELL_NUM
+            , <include refid="common.sql.strDecStart"/> FAX_NUM <include refid="common.sql.strDecEnd"/>    AS FAX_NUM
+            , LANG_CD
+            , COUNTRY_CD
+            , COMPANY_CD
+            , GMT_CD
+            , USER_DATE_FORMAT_CD
+            , USER_NUMBER_FORMAT_CD
+            , POSITION_NM
+            , DUTY_NM
+            , PW_RESET_FLAG
+        <if test="_databaseId == 'oracle'">
+            , (CASE WHEN PW_RESET_DATE <![CDATA[<=]]> SYSDATE - 90 THEN 'N'
+                    WHEN PW_RESET_DATE IS NULL THEN 'N'
+                    ELSE 'Y'
+                    END) AS RESET_VALIDATE_FLAG
+        </if>
+        <if test="_databaseId == 'mssql'">
+            , (CASE WHEN PW_RESET_DATE <![CDATA[<=]]> DATEADD(dd,-90,SYSDATE) THEN 'N'
+                    WHEN PW_RESET_DATE IS NULL THEN 'N'
+                    ELSE 'Y'
+                    END) AS RESET_VALIDATE_FLAG
+        </if>
+          FROM STOCUSER
+         WHERE USER_ID = #{ses.userId}
+           AND DEL_FLAG = '0'
+           AND GATE_CD = #{ses.gateCd}
+        <if test="P_PASSWORD != '' and P_PASSWORD != null">
+            AND PASSWORD = #{P_PASSWORD}
+        </if>
+
+    </select>
+
+    <select id="selectUserCS" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+              CVUR.GATE_CD
+            , <include refid="common.sql.strDecStart"/> CVUR.USER_NM <include refid="common.sql.strDecEnd"/> AS USER_NM
+            , <include refid="common.sql.strDecStart"/> CVUR.USER_NM <include refid="common.sql.strDecEnd"/> AS USER_NM_ENG
+            , CVUR.PASSWORD AS PASSWORD
+            , <include refid="common.sql.strDecStart"/> CVUR.EMAIL <include refid="common.sql.strDecEnd"/> AS EMAIL
+            , <include refid="common.sql.strDecStart"/> CVUR.TEL_NUM <include refid="common.sql.strDecEnd"/> AS TEL_NUM
+            , <include refid="common.sql.strDecStart"/> CVUR.CELL_NUM <include refid="common.sql.strDecEnd"/> AS CELL_NUM
+            , <include refid="common.sql.strDecStart"/> CVUR.FAX_NUM  <include refid="common.sql.strDecEnd"/>AS FAX_NUM
+            , 'KO' AS LANG_CD
+            , 'KR' AS COUNTRY_CD
+            , 'GMT+09:00' AS GMT_CD
+            , '01' AS USER_DATE_FORMAT_CD
+            , '01' AS USER_NUMBER_FORMAT_CD
+            , CVUR.SMS_FLAG
+            , CVUR.MAIL_FLAG
+            , CVUR.POSITION_NM
+            , CVUR.DUTY_NM AS DUTY_NM
+            , CVUR.PW_RESET_FLAG
+            , (CASE WHEN CVUR.PW_RESET_DATE <![CDATA[<=]]> SYSDATE - 90 THEN 'N'
+                    WHEN CVUR.PW_RESET_DATE IS NULL THEN 'N'
+                    ELSE 'Y' END) AS RESET_VALIDATE_FLAG
+            , UPPER(<include refid="common.sql.dbo"/>SF_TRIM( CVUR.USER_ID )) AS USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(CVUR.GATE_CD, CVUR.MOD_USER_ID, #{ses.langCd}) <include refid="common.sql.stringMerge"/>' / '  <include refid="common.sql.stringMerge"/> <include refid="common.sql.toChar"/>(CVUR.MOD_DATE, 'YYYY-MM-DD HH24:MI') AS MOD_INFO
+            , <include refid="common.sql.dbo"/>getUserName(CVUR.GATE_CD, CVUR.CHIEF_USER_ID, #{ses.langCd}) AS CHIEF_USER_NM
+            , CVUR.CHIEF_USER_ID AS CHIEF_USER_ID
+            , <include refid="common.sql.nvl"/>(CVUR.DEPT_NM, (SELECT OGDP.DEPT_NM FROM STOCOGDP OGDP WHERE OGDP.GATE_CD = CVUR.GATE_CD AND OGDP.BUYER_CD = CVUR.COMPANY_CD AND OGDP.DEPT_CD = CVUR.DEPT_CD)) AS DEPT_NM
+            ,CUST.CUST_NM AS COMPANY_NM
+            ,(SELECT
+                  LISTAGG(CO.CTRL_NM,', ') WITHIN GROUP(ORDER BY CO.CTRL_NM)
+                FROM STOCBACO CO LEFT JOIN STOCBACP CP
+                 ON (CO.GATE_CD = CP.GATE_CD
+                 AND CO.CTRL_CD = CP.CTRL_CD)
+               WHERE CO.GATE_CD = CVUR.GATE_CD
+                 AND CP.CTRL_USER_ID = CVUR.USER_ID
+                 AND CO.DEL_FLAG = '0'
+                 AND CP.DEL_FLAG = '0'
+                 AND CP.USE_FLAG = '1') AS CTRL_NM
+          FROM STOCCVUR CVUR LEFT OUTER JOIN STOCCUST CUST
+           ON (CVUR.GATE_CD = CUST.GATE_CD
+           AND CVUR.COMPANY_CD = CUST.CUST_CD)
+         WHERE CVUR.GATE_CD = #{ses.gateCd}
+           AND CVUR.DEL_FLAG = '0'
+           AND CVUR.USER_ID  = #{ses.userId}
+        <if test="P_PASSWORD != '' and P_PASSWORD != null">
+            AND CVUR.PASSWORD = #{P_PASSWORD}
+        </if>
+
+    </select>
+
+    <update id="doUpdate" parameterType="hashMap">
+
+        UPDATE STOCUSER SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,USER_NM = <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+            ,USER_NM_ENG = #{USER_NM_ENG}
+            <if test="PASSWORD != '' and PASSWORD != null">
+                ,PASSWORD = #{PASSWORD}
+                ,PW_RESET_FLAG = '1'
+                ,PW_RESET_DATE = SYSDATE
+                ,PW_WRONG_CNT = 0
+                ,COMPULSION_PW_RESET_FLAG = '0'
+        </if>
+            ,TEL_NUM = <include refid="common.sql.strEncStart"/> #{TEL_NUM} <include refid="common.sql.strEncEnd"/>
+            ,CELL_NUM = <include refid="common.sql.strEncStart"/> #{CELL_NUM} <include refid="common.sql.strEncEnd"/>
+            ,FAX_NUM = <include refid="common.sql.strEncStart"/> #{FAX_NUM} <include refid="common.sql.strEncEnd"/>
+            ,EMAIL = <include refid="common.sql.strEncStart"/> #{EMAIL} <include refid="common.sql.strEncEnd"/>
+            ,POSITION_NM = #{POSITION_NM}
+            ,DUTY_NM = #{DUTY_NM}
+         WHERE USER_ID = #{USER_ID}
+           AND DEL_FLAG = '0'
+           AND GATE_CD = #{ses.gateCd}
+
+    </update>
+
+    <update id="doUpdateCS" parameterType="hashMap">
+
+        UPDATE STOCCVUR SET
+             MOD_DATE = SYSDATE
+            ,MOD_USER_ID = #{ses.userId}
+            ,USER_NM = <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+        <if test="PASSWORD !='' and PASSWORD !=null">
+            ,PASSWORD = #{PASSWORD}
+            ,PW_RESET_FLAG = '1'
+            ,PW_RESET_DATE = SYSDATE
+            ,PW_WRONG_CNT = 0
+        </if>
+            ,POSITION_NM = #{POSITION_NM}
+            ,DUTY_NM = #{DUTY_NM}
+            ,TEL_NUM = <include refid="common.sql.strEncStart"/> #{TEL_NUM} <include refid="common.sql.strEncEnd"/>
+            ,FAX_NUM = <include refid="common.sql.strEncStart"/> #{FAX_NUM} <include refid="common.sql.strEncEnd"/>
+            ,CELL_NUM = <include refid="common.sql.strEncStart"/> #{CELL_NUM} <include refid="common.sql.strEncEnd"/>
+            ,EMAIL = <include refid="common.sql.strEncStart"/> #{EMAIL} <include refid="common.sql.strEncEnd"/>
+            ,SMS_FLAG = #{SMS_FLAG}
+            ,MAIL_FLAG = #{MAIL_FLAG}
+            ,CHIEF_USER_ID = #{CHIEF_USER_ID}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{USER_ID}
+           AND DEL_FLAG = '0'
+
+    </update>
+
+    <select id="getDateFormatValue" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+            <include refid="common.sql.dbo"/>GETCOMCODE(#{ses.gateCd}, 'M054', #{USER_DATE_FORMAT_CD}, '0', #{ses.langCd}) AS USER_DATE_FORMAT_VALUE
+          FROM STOCUSER
+         WHERE USER_ID = #{ses.userId}
+           AND DEL_FLAG = '0'
+           AND GATE_CD = #{ses.gateCd}
+
+    </select>
+
+</mapper>

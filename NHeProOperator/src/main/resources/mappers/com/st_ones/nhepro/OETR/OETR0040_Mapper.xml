@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.OETR.OETR0040_Mapper">
+
+    <select id="oetr0040_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  VOCM.GATE_CD
+            , VOCM.VC_NO
+            , VOCM.COMPANY_CD
+            , VOCM.SUBJECT
+            , VOCM.VOC_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'MP053', VOCM.VOC_TYPE, 0, #{ses.langCd}) AS VOC_TYPE_NM
+            , VOCM.PROGRESS_CD
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'MP052', VOCM.PROGRESS_CD, 0, #{ses.langCd}) AS PROGRESS_NM
+            , VOCM.REQ_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.REQ_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+            , <include refid="common.sql.dbo"/>GETUSERINFO(VOCM.GATE_CD, VOCM.REQ_USER_ID, 'USER_TYPE') AS REQ_USER_TYPE
+            , VOCM.REQ_COM_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.REQ_COM_CD, #{ses.langCd}) AS REQ_COM_NM
+            , <include refid="common.sql.toChar"/>(VOCM.REQ_DATE , 'YYYY-MM-DD HH24:MI') AS REQ_DATE
+            , <include refid="common.sql.toChar"/>(VOCM.PH_DATE , 'yyyy-MM-dd') AS PH_DATE
+            , <include refid="common.sql.toChar"/>(VOCM.RECV_DATE , 'yyyy-MM-dd') AS RECV_DATE
+            , <include refid="common.sql.toChar"/>(VOCM.CD_DATE , 'yyyy-MM-dd') AS CD_DATE
+            , <include refid="common.sql.toChar"/>(VOCM.DS_DATE , 'YYYY-MM-DD HH24:MI') AS DS_DATE
+            , VOCM.DS_USER_ID
+            , <include refid="common.sql.dbo"/>getUserName(VOCM.GATE_CD, VOCM.DS_USER_ID, #{ses.langCd}) AS DS_USER_NM
+            , <include refid="common.sql.dbo"/>GETUSERINFO(VOCM.GATE_CD, VOCM.DS_USER_ID, 'USER_TYPE') AS DS_USER_TYPE
+            , VOCM.ORDER_NO
+            , VOCM.ITEM_CD
+            , VOCM.RUB_TYPE
+            , <include refid="common.sql.dbo"/>getComCode(VOCM.GATE_CD, 'MP054', VOCM.RUB_TYPE, 0, #{ses.langCd}) AS RUB_TYPE_NM
+            , VOCM.VOC_OBJ
+            , VOCM.VOC_OBJ_SUP_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.REQ_COM_CD, #{ses.langCd}) AS VOC_OBJ_NM
+         FROM STOCVOCM VOCM
+        WHERE VOCM.GATE_CD   = #{ses.gateCd}
+          AND VOCM.VIEW_TYPE = 'VOC'
+          AND VOCM.DEL_FLAG  = '0'
+          AND VOCM.VOC_OBJ   = 'USNI'
+          AND VOCM.PROGRESS_CD != '100'
+          
+        <if test="START_DATE != '' and START_DATE != null and END_DATE != '' and END_DATE != null">
+            AND VOCM.REQ_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{START_DATE})
+            AND VOCM.REQ_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{END_DATE})
+        </if>
+        <if test="PROGRESS_CD != '' and PROGRESS_CD != null">
+            AND VOCM.PROGRESS_CD = #{PROGRESS_CD}
+        </if>
+        <if test="REQ_USER_NM != '' and REQ_USER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.REQ_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{REQ_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REQ_COM_CD != '' and REQ_COM_CD != null">
+            AND UPPER(VOCM.REQ_COM_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{REQ_COM_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REQ_COM_NM != '' and REQ_COM_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.REQ_COM_CD, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{REQ_COM_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="VOC_TYPE != '' and VOC_TYPE != null">
+            AND VOCM.VOC_TYPE = #{VOC_TYPE}
+        </if>
+        <if test="DS_USER_NM != '' and DS_USER_NM != null">
+            AND UPPER(<include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.DS_USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DS_USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="SUBJECT != '' and SUBJECT != null">
+            AND VOCM.SUBJECT LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{SUBJECT}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REQ_RMK != '' and REQ_RMK != null">
+            AND VOCM.REQ_RMK LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{REQ_RMK}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        
+        ORDER BY VOCM.VC_NO DESC
+    </select>
+
+    <select id="oetr0041_doSearch" parameterType="hashMap" resultType="hashMap">
+        SELECT
+        	  VOCM.VC_NO
+            , VOCM.COMPANY_CD
+            , VOCM.REQ_COM_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.REQ_COM_CD, #{ses.langCd}) AS REQ_COM_NM
+            , VOCM.REQ_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.REQ_USER_ID, #{ses.langCd}) AS REQ_USER_NM
+            , <include refid="common.sql.toChar"/>(VOCM.REQ_DATE , 'YYYY-MM-DD HH24:MI') AS REQ_DATE
+            , CVUR.DEPT_CD
+            , CVUR.DEPT_NM
+            , VOCM.VOC_TYPE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'MP053', VOCM.VOC_TYPE, 0, #{ses.langCd}) AS VOC_TYPE_NM
+            , <include refid="common.sql.toChar"/>(VOCM.PH_DATE , 'yyyy-MM-dd') AS PH_DATE
+            , VOCM.VOC_OBJ
+            , VOCM.VOC_OBJ_SUP_CD
+            , <include refid="common.sql.dbo"/>GETCOMPANYNAME(VOCM.GATE_CD, VOCM.VOC_OBJ_SUP_CD, #{ses.langCd}) AS VOC_OBJ_SUP_NM
+            , VOCM.ORDER_NO
+            , VOCM.ITEM_CD
+            , VOCM.SUBJECT
+            , VOCM.REQ_RMK
+            , VOCM.ATTACH_FILE_NO
+            , <include refid="common.sql.toChar"/>(VOCM.RECV_DATE , 'YYYY-MM-DD HH24:MI') AS RECV_DATE
+            , VOCM.PROGRESS_CD
+            , VOCM.PROGRESS_CD AS ORG_PROGRESS_CD
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'MP052', VOCM.PROGRESS_CD, 0, #{ses.langCd}) AS PROGRESS_NM
+            , VOCM.DS_USER_ID
+            , <include refid="common.sql.dbo"/>GETUSERNAME(VOCM.GATE_CD, VOCM.DS_USER_ID, #{ses.langCd}) AS DS_USER_NM
+            , <include refid="common.sql.toChar"/>(VOCM.CD_DATE , 'yyyy-MM-dd') AS CD_DATE
+            , <include refid="common.sql.toChar"/>(VOCM.DS_DATE , 'YYYY-MM-DD HH24:MI') AS DS_DATE
+            , <include refid="common.sql.dbo"/>GETCOMCODE(VOCM.GATE_CD, 'MP054', VOCM.RUB_TYPE, 0, #{ses.langCd}) AS RUB_TYPE
+            , VOCM.DF_RMK
+            , VOCM.DS_ATTACH_FILE_NO
+        FROM STOCVOCM VOCM
+        LEFT JOIN STOCCVUR CVUR
+             ON (CVUR.GATE_CD = VOCM.GATE_CD
+             AND CVUR.USER_ID = VOCM.REQ_USER_ID)
+        WHERE VOCM.GATE_CD    = #{ses.gateCd}
+          AND VOCM.COMPANY_CD = #{COMPANY_CD}
+          AND VOCM.VC_NO      = #{VC_NO}
+          AND VOCM.DEL_FLAG   = '0'
+    </select>
+	
+	<!-- 고객의소리(voc) 회신 -->
+    <update id="oetr0041_doSave" parameterType="hashMap">
+        UPDATE STOCVOCM SET
+              PROGRESS_CD = #{PROGRESS_CD}
+            , RECV_DATE   = <include refid="common.sql.toDate"/>(#{RECV_DATE}, 'YYYY-MM-DD HH24:MI:SS')
+            , DS_USER_ID  = #{DS_USER_ID}
+            , CD_DATE     = #{CD_DATE}
+            , DS_DATE     = <include refid="common.sql.toDate"/>(#{DS_DATE}, 'YYYY-MM-DD HH24:MI:SS')
+            , DF_RMK      = #{DF_RMK}
+            , DS_ATTACH_FILE_NO = #{DS_ATTACH_FILE_NO}
+            , MOD_DATE    = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+        WHERE GATE_CD    = #{ses.gateCd}
+          AND COMPANY_CD = #{COMPANY_CD}
+          AND VC_NO      = #{VC_NO}
+    </update>
+    
+    <!-- 2021.07.13 추가 -->
+    <select id="costSmsInfo" parameterType="hashMap" resultType="hashMap">
+        SELECT CUST.IRS_NUM 	AS CORP_NO
+             , CVUR.DEPT_CD 	AS BRC
+             ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+             , CVUR.USER_ID		AS USER_ID
+             , 'SMS_VOC_CMPL'	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               CUST.GATE_CD 	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               #{VC_NO}      	AS CONT_TBL_PK
+             , NULL 			AS FILE_SIZE
+         FROM STOCCVUR CVUR
+         JOIN STOCCUST CUST
+              ON (CVUR.GATE_CD    = CUST.GATE_CD
+              AND CVUR.COMPANY_CD = CUST.CUST_CD)
+        WHERE CVUR.GATE_CD   = #{ses.gateCd}
+          AND CVUR.USER_ID   = #{REQ_USER_ID}
+          AND CVUR.USER_TYPE = 'B'
+    </select>
+
+</mapper>

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.org.MOGA0020_Mapper">
+
+	<select id="selectCompany" parameterType="hashmap" resultType="hashMap">
+
+        SELECT OGCM.BUSINESS_TYPE
+            , OGCM.BUYER_CD
+            , OGCM.BUYER_CD AS BUYER_CD_ORI
+            , OGCM.BUYER_NM
+            , OGCM.BUYER_NM_ENG
+            , <include refid="common.sql.strDecStart"/>OGCM.CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+            , <include refid="common.sql.strDecStart"/>OGCM.CEO_USER_NM_ENG<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM_ENG
+            , OGCM.CITY_NM
+            , OGCM.COMPANY_REG_NUM
+            , OGCM.COUNTRY_CD
+            , OGCM.CUR
+            , OGCM.DUNS_NUM
+            , <include refid="common.sql.strDecStart"/>OGCM.FAX_NUM<include refid="common.sql.strDecEnd"/> AS FAX_NUM
+            , <include refid="common.sql.strDecStart"/>OGCM.TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+            , OGCM.GATE_CD
+            , OGCM.GATE_CD AS GATE_CD_ORI
+            , OGCM.GMT_CD
+            , OGCM.INDUSTRY_TYPE
+            , OGCM.IRS_NUM
+            , OGCM.LANG_CD
+            , OGCM.REG_USER_ID
+            , <include refid="common.sql.strDecStart"/>OGCM.ZIP_CD<include refid="common.sql.strDecEnd"/> AS ZIP_CD
+            , OGCM.ACCOUNT_UNIT_CD
+            , <include refid="common.sql.strDecStart"/>OGCM.ZIP_CD_5<include refid="common.sql.strDecEnd"/> AS ZIP_CD_5
+            , CASE WHEN OGCM.USE_FLAG = '1' THEN 'Y' ELSE 'N' END AS USE_FLAG
+            , <include refid="common.sql.toChar"/>(OGCM.FOUNDATION_DATE, 'yyyy-MM-dd') AS FOUNDATION_DATE
+            , <include refid="common.sql.dbo"/>GETGATENAME(OGCM.GATE_CD, #{ses.langCd}) AS GATE_NM
+            , <include refid="common.sql.toChar"/>(OGCM.REG_DATE, 'yyyyMMdd') AS REG_DATE
+            , <include refid="common.sql.toChar"/>(OGCM.REG_DATE, 'yyyy-MM-dd') AS REG_DATE_FORM
+            , <include refid="common.sql.dbo"/>GETUSERNAME(OGCM.GATE_CD, OGCM.REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+            , <include refid="common.sql.strDecStart"/>OGCM.IRS_SUB_ZIP_CD<include refid="common.sql.strDecEnd"/> AS IRS_SUB_ZIP_CD
+            , <include refid="common.sql.strDecStart"/>OGCM.SUB_ZIP_CD_5<include refid="common.sql.strDecEnd"/> AS SUB_ZIP_CD_5
+            , OGCM.IRS_SUB_NO AS IRS_SUB_NO
+            , <include refid="common.sql.strDecStart"/>OGCM.IRS_SUB_ADDR<include refid="common.sql.strDecEnd"/> AS IRS_SUB_ADDR
+            , <include refid="common.sql.strDecStart"/>OGCM.ADDR<include refid="common.sql.strDecEnd"/> AS ADDR
+            , <include refid="common.sql.strDecStart"/>OGCM.ADDR_ENG<include refid="common.sql.strDecEnd"/> AS ADDR_ENG
+            , OGCM.IRS_SUB_NM AS IRS_SUB_NM
+        FROM STOCOGCM OGCM
+        INNER JOIN STOCOGHU OGHU
+            ON (OGCM.GATE_CD = OGHU.GATE_CD)
+        WHERE OGCM.GATE_CD = #{ses.gateCd}
+        AND OGCM.DEL_FLAG = '0'
+        AND OGHU.DEL_FLAG = '0'
+        ORDER BY OGCM.BUYER_CD
+    </select>
+
+    <select id="checkCompanyExists" parameterType="hashMap" resultType="java.lang.Integer">
+        SELECT COUNT(BUYER_CD)
+        FROM STOCOGCM
+        WHERE UPPER(GATE_CD) = UPPER(#{gateCd})
+        AND UPPER(BUYER_CD) = UPPER(#{buyerCd})
+    </select>
+
+    <update id="updateCompany" parameterType="hashMap">
+        UPDATE STOCOGCM SET
+              MOD_USER_ID = #{ses.userId}
+            , DEL_FLAG = '0'
+            <if test="buyerNm != null">, BUYER_NM = #{buyerNm}</if>
+            <if test="buyerNmEng != null">, BUYER_NM_ENG = #{buyerNmEng}</if>
+            <if test="langCd != null">, LANG_CD = #{langCd}</if>
+            <if test="countryCd != null">, COUNTRY_CD = #{countryCd}</if>
+            <if test="cityNm != null">, CITY_NM = #{cityNm}</if>
+            <if test="address != null">, ADDR = #{address}</if>
+            <if test="addressEng != null">, ADDR_ENG = #{addressEng}</if>
+            <if test="zipCd != null">, ZIP_CD = #{zipCd}</if>
+            <if test="telNum != null">, TEL_NUM = #{telNum}</if>
+            <if test="irsNum != null">, IRS_NUM = #{irsNum}</if>
+            <if test="faxNum != null">, FAX_NUM = #{faxNum}</if>
+            <if test="ceoUserNm != null">, CEO_USER_NM = #{ceoUserNm}</if>
+            <if test="ceoUserNmEng != null">, CEO_USER_NM_ENG = #{ceoUserNmEng}</if>
+            <if test="businessType != null">, BUSINESS_TYPE = #{businessType}</if>
+            <if test="industryType != null">, INDUSTRY_TYPE = #{industryType}</if>
+            <if test="cur != null">, CUR = #{cur}</if>
+            <if test="companyRegNum != null">, COMPANY_REG_NUM = #{companyRegNum}</if>
+            <if test="dunsNum != null">, DUNS_NUM = #{dunsNum}</if>
+            <if test="gmtCd != null">, GMT_CD = #{gmtCd}</if>
+            <if test="ACCOUNT_UNIT_CD != null">, ACCOUNT_UNIT_CD = #{ACCOUNT_UNIT_CD}</if>
+            <if test="ZIP_CD_5 != null">, ZIP_CD_5 = #{ZIP_CD_5}</if>
+            <if test="USE_FLAG != null">, USE_FLAG = CASE WHEN <include refid="common.sql.nvl"/>(#{USE_FLAG}, '') = '' THEN '0' ELSE '1' END</if>
+            <if test="GW_USE_FLAG == 'x'">, GW_USE_FLAG = CASE WHEN <include refid="common.sql.nvl"/>(#{GW_USE_FLAG}, '') = '' THEN '0' ELSE '1' END</if>
+            , MOD_DATE = SYSDATE
+            <if test="foundationDate != null">, FOUNDATION_DATE = <include refid="common.sql.toDate"/>(#{foundationDate}, 'yyyy-MM-dd')</if>
+        WHERE  GATE_CD = #{gateCd}
+        AND  BUYER_CD = #{buyerCd}
+    </update>
+
+    <insert id="insertCompany" parameterType="hashMap">
+        INSERT INTO STOCOGCM (
+              GATE_CD
+            , BUYER_CD
+            , BUYER_NM
+            , BUYER_NM_ENG
+            , LANG_CD
+            , COUNTRY_CD
+            , CITY_NM
+            , ADDR
+            , ADDR_ENG
+            , ZIP_CD
+            , TEL_NUM
+            , IRS_NUM
+            , FAX_NUM
+            , CEO_USER_NM
+            , CEO_USER_NM_ENG
+            , CUR
+            , INDUSTRY_TYPE
+            , BUSINESS_TYPE
+            , COMPANY_REG_NUM
+            , DUNS_NUM
+            , GMT_CD
+            , DEL_FLAG
+            , REG_USER_ID
+            , MOD_USER_ID
+            , ACCOUNT_UNIT_CD
+            , ZIP_CD_5
+            , USE_FLAG
+--            , GW_USE_FLAG
+            , FOUNDATION_DATE
+            , REG_DATE
+            , MOD_DATE
+        ) VALUES (
+              #{gateCd}
+            , #{buyerCd}
+            , #{buyerNm}
+            , #{buyerNmEng}
+            , #{langCd}
+            , #{countryCd}
+            , #{cityNm}
+            , #{address}
+            , #{addressEng}
+            , #{zipCd}
+            , #{telNum}
+            , #{irsNum}
+            , #{faxNum}
+            , #{ceoUserNm}
+            , #{ceoUserNmEng}
+            , #{cur}
+            , #{industryType}
+            , #{businessType}
+            , #{companyRegNum}
+            , #{dunsNum}
+            , #{gmtCd}
+            , '0'
+            , #{ses.userId}
+            , #{ses.userId}
+            , #{ACCOUNT_UNIT_CD}
+            , #{ZIP_CD_5}
+            , CASE WHEN <include refid="common.sql.nvl"/>(#{USE_FLAG}, '') = '' THEN '0' ELSE '1' END
+--            , CASE WHEN <include refid="common.sql.nvl"/>({GW_USE_FLAG}, '') = '' THEN '0' ELSE '1' END
+            , <include refid="common.sql.toDate"/>(#{foundationDate}, 'yyyy-MM-dd')
+            , SYSDATE
+            , SYSDATE
+        )
+    </insert>
+
+    <update id="deleteCompany" parameterType="hashMap">
+        UPDATE STOCOGCM SET
+              DEL_FLAG = '1'
+            , MOD_USER_ID = #{ses.userId}
+            , MOD_DATE = SYSDATE
+        WHERE  GATE_CD = #{GATE_CD_ORI}
+        AND  BUYER_CD = #{BUYER_CD_ORI}
+    </update>
+
+</mapper>

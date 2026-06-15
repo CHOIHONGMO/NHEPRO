@@ -1,0 +1,203 @@
+package com.st_ones.eversrm.eApproval.eApprovalEnd.INV.service;
+
+import com.st_ones.common.docNum.service.DocNumService;
+import com.st_ones.common.mail.service.EverMailService;
+import com.st_ones.common.message.service.MessageService;
+import com.st_ones.common.sms.service.EverSmsService;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.INV.EApprovalEndInv_Mapper;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2014 ST-Ones CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : EApprovalEndInv_Service.java
+ * @date 2020. 4. 02.
+ * @version 1.0
+ */
+@Service(value = "EApprovalEndInv_Service")
+public class EApprovalEndInv_Service extends BaseService {
+
+    @Autowired private MessageService msg;
+    @Autowired private EApprovalEndInv_Mapper endInv_Mapper;
+    @Autowired DocNumService docNumService;
+    @Autowired private EverMailService evermailservice;
+    @Autowired private EverSmsService eversmsservice;
+    
+    Logger logger = LoggerFactory.getLogger(this.getClass());
+    
+    /**
+     * 모듈명 : 검수요청 [INV]
+     * 처리내용 : SIGN_STATUS, SIGN_DATE, PROGRESS_CD 변경.
+     */
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public String endApproval(String buyerCd, String appDocNum, String appDocCnt, String signStatus) throws Exception {
+    	
+        Map<String, String> param = new HashMap<>();
+        
+        param.put("BUYER_CD",    buyerCd);
+        param.put("APP_DOC_NUM", appDocNum);
+        param.put("APP_DOC_CNT", appDocCnt);
+        param.put("SIGN_STATUS", signStatus);
+        
+        Map<String, String> map = endInv_Mapper.getInvNum(param);
+        List<Map<String, Object>> list = endInv_Mapper.getInvList(param);
+        
+        param.put("INV_NUM", map.get("INV_NUM"));
+        param.put("GR_NUM",  map.get("GR_NUM"));
+        param.put("PO_NUM",  map.get("PO_NUM"));
+        
+        String rtnMsg = "";
+        String DELIVERY_TYPE = map.get("DELIVERY_TYPE");
+        if(signStatus.equals("E")) {
+            if("DI".equals(DELIVERY_TYPE)) {
+                param.put("PROGRESS_CD", "300"); // 부분검수(DI) 검수완료
+            } else {
+                param.put("PROGRESS_CD", "700"); // 전체검수(PI) 검수완료
+            }
+            // 2021.01.29 검수요청서 반송은 업무에서 진행하고, 결재는 결재 반려/취소만 처리함
+            //param.put("REJECT_RMK", "");
+            
+            // 발주 품목 진행상태 변경
+            for(Map<String, Object> data : list) {
+                data.put("DELIVERY_TYPE", DELIVERY_TYPE);
+                if("DI".equals(DELIVERY_TYPE)) {
+                    data.put("PROGRESS_CD", "6200");
+                    data.put("GR_QT", data.get("GR_APP_QT"));
+                    endInv_Mapper.setInvSignStatusGRDT(data);
+                } else {
+                    data.put("PROGRESS_CD", "7200");
+                }
+                endInv_Mapper.setInvSignStatusPODT(data);
+            }
+            rtnMsg = msg.getMessage("0057");
+        }
+        else if(signStatus.equals("R")) {
+            /**
+             * 2021.01.29 검수요청서 반송은 업무에서 진행하고, 결재는 결재 반려/취소만 처리함
+        	if("DI".equals(DELIVERY_TYPE)) {
+                param.put("PROGRESS_CD", "400");
+            } else {
+                param.put("PROGRESS_CD", "500");
+            }
+            param.put("REJECT_RMK", "");*/
+        	
+            endInv_Mapper.setInvRejectGRDT(param);
+            rtnMsg = msg.getMessage("0058");
+        }
+        else if(signStatus.equals("C")) {
+        	/**
+             * 2021.01.29 검수요청서 반송은 업무에서 진행하고, 결재는 결재 반려/취소만 처리함
+            if("DI".equals(DELIVERY_TYPE)) {
+                param.put("PROGRESS_CD", "200");
+            } else {
+                param.put("PROGRESS_CD", "100");
+            }
+            param.put("REJECT_RMK", "");*/
+        	
+            endInv_Mapper.setInvRejectGRDT(param);
+            rtnMsg = msg.getMessage("0061");
+        }
+        
+        // 검수요청 Header 진행상태 변경
+        endInv_Mapper.setInvSignStatusIVHD(param);
+        
+        // 2021.01.29 검수요청서 반송은 업무에서 진행하고, 결재는 결재 반려/취소만 처리함
+        //endInv_Mapper.setInvRejectIVGH(param);
+        
+        // 2021.05.10 처리사유 삭제
+        // 기존 결재 반려시 협력사에게 직접 반송되던 때는 결재반려사유를 보냈지만, 반송은 별도로 처리하닌까 처리사유를 메일에서 제외함
+        // STOCSCTP의 "SIGN_RMK"
+        if(signStatus.equals("E")) {
+            String title = "거래명세서";
+            if ("PI".equals(DELIVERY_TYPE)) {
+                title = "검수요청서";
+            }
+            
+            String linkUrl = PropertiesManager.getString("eversrm.urls.maintain.real") ;
+            
+            List<Map<String, String>> listMail = endInv_Mapper.getMailList(param);
+            for(Map<String, String> data : listMail) {
+                try {
+                	String subject = "[전자구매시스템] 협력사 [" + data.get("VENDOR_NM") + "]에서 요청한 [(" + data.get("INV_NUM") + ")" + data.get("SUBJECT") + "] 관련 [" + title + "]가 승인되었습니다";
+                	
+                	// E-MAIL
+                    Map<String,String> mailMap = new HashMap<>();
+                    mailMap.put("SUBJECT", subject);
+
+                    String content = "<BR> 안녕하세요." +
+                            "<BR> [" + data.get("VENDOR_NM") + "] " + data.get("USER_NM") + " 님." +
+                            "<BR> " +
+                            "<BR> 아래와 같이 협력사에서 요청하신 [" + title  + "]가 승인처리 되였습니다." +
+                            "<BR> 협력사 : [" + data.get("VENDOR_NM") + "]" +
+                            "<BR> 계약명 : [(" + data.get("INV_NUM") + ") " + data.get("SUBJECT") + "]" +
+                            "<BR> 승인일 : [" + data.get("SIGN_DATE") + "]" +
+                            "<BR> 처리결과 : [승인]" +
+                            "<BR> " +
+                            "<BR> 전자구매시스템에 <a href='" + linkUrl + "' target='newP'>로그인</a> 하시어, 세부내용을 확인 해주십시오." +
+                            "<BR> " +
+                            "<BR> 감사합니다.";
+                    
+                    mailMap.put("CONTENTS", content);
+                    mailMap.put("REF_MODULE_CD", "MIV02");
+                    mailMap.put("RECV_USER_ID", data.get("RECV_USER_ID"));		// 메일은 요청서 등록자의 DB에 저장된 메일주소로 보냄
+                    mailMap.put("REF_NUM", data.get("INV_NUM"));
+                    evermailservice.SendMail(mailMap);
+                    
+                    //SMS
+                    Map<String,String> smsMap = new HashMap<String,String>();
+                    smsMap.put("CONTENTS", subject);
+                    smsMap.put("REF_MODULE_CD", "SIV02");
+    				//2021.11.23 : 거래명세서 작성시 입력한 협력업체 담당자, 담당자 휴대전화번호로 SMS 발송
+                    if( EverString.isEmpty(data.get("CELL_NUM")) ) {
+        				smsMap.put("RECV_USER_ID", data.get("RECV_USER_ID"));
+                    } else {
+                        smsMap.put("DIRECT_TARGET", data.get("CELL_NUM"));
+        				smsMap.put("DIRECT_USER_NM", data.get("USER_NM"));
+                    }
+                    
+                    // 검수 승인 후 검수담당자 고객사에게 SMS수수료 부과
+                    param.put("INSPECT_USER_ID", data.get("INSPECT_USER_ID"));
+                    Map<String, String> costInfo = endInv_Mapper.costSmsInfo(data);
+                    
+                    smsMap.put("CORP_NO", costInfo.get("CORP_NO"));     		// 고객사 사업자번호
+                    smsMap.put("BRC", costInfo.get("BRC"));            			// 고객사 부서
+                    smsMap.put("EPRO_PS_DSC", "1");     						// 1  : 구매
+                    smsMap.put("EPRO_RATE_DSC", "01");  						// 01 : 최초
+                    smsMap.put("APLY_DT", costInfo.get("APLY_DT"));     		// 발생일 YYYYMMDD
+                    smsMap.put("USER_ID", costInfo.get("USER_ID"));     		// 고객사 보내는사람 ID
+                    smsMap.put("CONT_TBL_ID", "STOCIVHD");              		// 검증 테이블
+                    smsMap.put("CONT_TBL_PK", costInfo.get("CONT_TBL_PK"));  	// 검증 조건
+                    smsMap.put("tmp", EverString.isEmpty(data.get("CELL_NUM")) ? data.get("RECV_USER_ID") : data.get("CELL_NUM"));	// 유니크한 값.
+                    smsMap.put("payFlag", "Y");
+                    
+                    eversmsservice.sendSmsNhe(smsMap);
+                }
+    			catch (Exception ex) {
+    			    logger.error("검수(거래명세서) 요청건 결재승인 후 메일&문자 발송 오류 : " + ex.getMessage());
+    			}
+            }
+        }
+
+        return rtnMsg;
+    }
+
+}

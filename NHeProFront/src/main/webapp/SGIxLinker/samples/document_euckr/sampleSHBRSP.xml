@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<sg:SHBRSP xmlns:sg="http://egis.sgic.co.kr/shrsp" xmlns:cc="http://egis.sgic.co.kr/schema/CC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLoaction="http://egis.sgic.co.kr/shrsp  ..\Schema\shrsp.xsd">
+      <Header.Details>
+            <cc:Message.Sender.Identifier>
+                  <Identifier.Content>A111111111900</Identifier.Content>
+            </cc:Message.Sender.Identifier>
+            <cc:Message.Receiver.Identifier>
+                  <Identifier.Content>z120811300200</Identifier.Content>
+            </cc:Message.Receiver.Identifier>
+            <cc:Message.Function.Code>
+                  <Code.Content>53</Code.Content>
+            </cc:Message.Function.Code>
+            <cc:Message.Type.Identifier>
+                  <Identifier.Content>SHBRSP</Identifier.Content>
+            </cc:Message.Type.Identifier>
+            <cc:Message.Name>
+                  <Text.Content>응답메세지</Text.Content>
+            </cc:Message.Name>
+            <cc:Message.Version.Text>
+                  <Text.Content>1.0</Text.Content>
+            </cc:Message.Version.Text>
+            <cc:Document.ManagementNumber.Text>
+                  <Text.Content>13.20060227151000.12345.0043338' '2</Text.Content>
+            </cc:Document.ManagementNumber.Text>
+            <cc:Document.Title.Name>
+                  <Text.Content>응답메세지</Text.Content>
+            </cc:Document.Title.Name>
+            <cc:Organization.Code.Identifier>
+                  <Identifier.Content>NAM</Identifier.Content>
+            </cc:Organization.Code.Identifier>
+            <cc:Document.Serial.Text>
+                  <Text.Content>0043338 2</Text.Content>
+            </cc:Document.Serial.Text>
+            <cc:Message.Error.Code>
+                  <Code.Content>A000</Code.Content>
+            </cc:Message.Error.Code>
+            <cc:Message.Response.Text>
+                  <Text.Content>정상</Text.Content>
+            </cc:Message.Response.Text>
+            <cc:Bank.Usage.Text>
+                  <Text.Content>은행사용란</Text.Content>
+            </cc:Bank.Usage.Text>
+      </Header.Details>
+</sg:SHBRSP>

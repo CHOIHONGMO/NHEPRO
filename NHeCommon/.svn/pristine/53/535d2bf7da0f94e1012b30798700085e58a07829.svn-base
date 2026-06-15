@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.eApproval.eApprovalEnd.PCONT.EApprovalEndPcont_Mapper">
+
+    <select id="getContNum" parameterType="hashMap" resultType="hashMap">
+
+        SELECT
+              CONT_NUM
+            , CONT_CNT
+            , CONT_CNT - 1 AS PRE_CONT_CNT
+          FROM STOCPCCT
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND APP_DOC_NUM = #{APP_DOC_NUM}
+           AND APP_DOC_CNT = #{APP_DOC_CNT}
+           AND DEL_FLAG = '0'
+    </select>
+
+    <update id="setContSignStatus" parameterType="hashmap">
+
+        UPDATE STOCPCCT SET
+              MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , SIGN_STATUS = #{SIGN_STATUS}
+        <if test='SIGN_STATUS == "E" or SIGN_STATUS == "R"'>
+            , SIGN_DATE = SYSDATE
+        </if>
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+    </update>
+	
+	<!-- 2021.07.01 : 개인근로자 전자결재 후 메일발송 및 SMS 수수료 추가 -->
+    <select id="getMailTargetList" parameterType="hashMap" resultType="hashMap">
+    
+		SELECT
+			  PCCT.CONT_NUM
+			, PCCT.CONT_CNT
+			, PCCT.CONT_DESC
+			,<include refid="common.sql.dbo"/>GETCUSTNAME(PCCT.GATE_CD, PCCT.BUYER_CD) AS BUYER_NM
+			, PCWU.WORKER_USER_ID AS WORKER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(PCWU.GATE_CD, PCWU.WORKER_USER_ID, #{ses.langCd}) AS WORKER_NM
+			,<include refid="common.sql.strDecStart"/>USERD.EMAIL<include refid="common.sql.strDecEnd"/>    AS EMAIL
+			,<include refid="common.sql.strDecStart"/>USERD.CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+			, PCCT.CONT_USER_ID
+			,<include refid="common.sql.dbo"/>GETUSERNAME(PCCT.GATE_CD, PCCT.CONT_USER_ID, #{ses.langCd})  AS CONT_USER_NM
+			,<include refid="common.sql.strDecStart"/>USERC.TEL_NUM<include refid="common.sql.strDecEnd"/> AS CONT_TEL_NUM
+			-- 2021.07.01 : 개인근로자 계약서 결재 완료 후 SMS 수수료 부과
+            ,(SELECT IRS_NUM FROM STOCCUST
+               WHERE GATE_CD = PCCT.GATE_CD
+                 AND CUST_CD = PCCT.BUYER_CD)	  AS CORP_NO
+            ,(SELECT DEPT_CD FROM STOCCVUR
+               WHERE GATE_CD = PCCT.GATE_CD
+                 AND USER_ID = PCCT.CONT_USER_ID) AS BRC
+            ,<include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+            , PCCT.CONT_USER_ID 	AS USER_ID
+            , 'SMS_PC_SIGN'		<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              PCWU.GATE_CD  	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              PCWU.BUYER_CD 	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              PCWU.CONT_NUM  	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              PCWU.CONT_CNT 	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+              PCWU.WORKER_USER_ID	AS CONT_TBL_PK
+            , NULL 					AS FILE_SIZE
+		FROM STOCPCCT PCCT
+		JOIN STOCPCWU PCWU
+			 ON( PCCT.GATE_CD  = PCWU.GATE_CD
+			 AND PCCT.BUYER_CD = PCWU.BUYER_CD
+			 AND PCCT.CONT_NUM = PCWU.CONT_NUM
+			 AND PCCT.CONT_CNT = PCWU.CONT_CNT
+			 AND PCWU.DEL_FLAG = '0')
+		LEFT JOIN STOCCVUR USERC
+			 ON( PCCT.GATE_CD  = USERC.GATE_CD
+			 AND PCCT.CONT_USER_ID = USERC.USER_ID)
+		LEFT JOIN STOCCVUR USERD
+			 ON( PCWU.GATE_CD  = USERD.GATE_CD
+			 AND PCWU.WORKER_USER_ID = USERD.USER_ID)
+		WHERE PCCT.GATE_CD  = #{ses.gateCd}
+		  AND PCCT.BUYER_CD = #{BUYER_CD}
+          AND PCCT.CONT_NUM = #{CONT_NUM}
+          AND PCCT.CONT_CNT = #{CONT_CNT}
+	</select>
+
+</mapper>

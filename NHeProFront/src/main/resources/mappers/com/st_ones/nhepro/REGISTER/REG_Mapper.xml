@@ -1,0 +1,1083 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.REGISTER.REG_Mapper">
+
+	<select id="userIdCheck" resultType="java.lang.Integer">
+
+		SELECT COUNT(*)
+		  FROM (
+	        SELECT USER_ID
+			  FROM STOCCVUR
+			 WHERE GATE_CD = #{ses.gateCd}
+			   AND UPPER(USER_ID) = UPPER(#{USER_ID})
+
+			 UNION ALL
+
+			SELECT USER_ID
+			  FROM STOCUSER
+			 WHERE GATE_CD = #{ses.gateCd}
+			   AND UPPER(USER_ID) = UPPER(#{USER_ID})
+	       ) A
+	</select>
+	
+	<select id="userCompanyInfo" resultType="java.util.Map">
+		<if test="USER_TYPE eq 'B'.toString()">
+			SELECT CUST_NM AS COMPANY_NM
+				 , IRS_NUM
+				 , <include refid="common.sql.strDecStart"/>CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+				 , <include refid="common.sql.toChar"/>(FOUNDATION_DATE , 'YYYY. MM. DD') AS FOUNDATION_DATE
+				 , <include refid="common.sql.strDecStart"/>ADDR1<include refid="common.sql.strDecEnd"/>
+				   <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+				   <include refid="common.sql.strDecStart"/>ADDR2<include refid="common.sql.strDecEnd"/> AS ADDR
+				 , BUSINESS_TYPE
+				 , INDUSTRY_TYPE
+				 , CUST_CD AS COMPANY_CD
+			  FROM STOCCUST
+		     WHERE GATE_CD = #{ses.gateCd}
+		       AND IRS_NUM = #{IRS_NUM}
+		       AND DEL_FLAG = '0'
+		</if>
+		<if test="USER_TYPE eq 'S'.toString()">
+			SELECT VENDOR_NM AS COMPANY_NM
+				 , IRS_NO AS IRS_NUM
+				 , <include refid="common.sql.strDecStart"/>CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+				 , <include refid="common.sql.toChar"/>(FOUNDATION_DATE , 'YYYY. MM. DD') AS FOUNDATION_DATE
+				 , <include refid="common.sql.strDecStart"/>HQ_ADDR_1<include refid="common.sql.strDecEnd"/>
+				   <include refid="common.sql.stringMerge"/> ' ' <include refid="common.sql.stringMerge"/>
+				   <include refid="common.sql.strDecStart"/>HQ_ADDR_2<include refid="common.sql.strDecEnd"/> AS ADDR
+				 , BUSINESS_TYPE
+				 , INDUSTRY_TYPE
+				 , VENDOR_CD AS COMPANY_CD
+			  FROM STOCVNGL
+		     WHERE GATE_CD = #{ses.gateCd}
+		       AND IRS_NO = #{IRS_NUM}
+		       AND DEL_FLAG = '0'
+		</if>
+ 	</select>
+
+    <select id="doSearchATTD" resultType="java.util.Map">
+        SELECT
+        	   ATTD.GATE_CD
+             , ATTD.BUYER_CD
+             , ATTD.TMPL_NUM
+             , TO_CHAR(ATTD.TMPL_SQ) AS TMPL_SQ
+             , ATTD.TMPL_FILE_NM
+             , ATTD.VALID_PERIOD
+             , <include refid="common.sql.toChar"/>(SYSDATE, 'YYYY-MM-DD') AS VALID_START_DATE
+             , CASE WHEN ATTD.VALID_PERIOD = '1년' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 12), 'YYYY-MM-DD')
+                    WHEN ATTD.VALID_PERIOD = '11개월' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 11), 'YYYY-MM-DD')
+                    WHEN ATTD.VALID_PERIOD = '10개월' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 10), 'YYYY-MM-DD')
+                    WHEN ATTD.VALID_PERIOD = '9개월' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 9), 'YYYY-MM-DD')
+                    WHEN ATTD.VALID_PERIOD = '8개월' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 8), 'YYYY-MM-DD')
+                    WHEN ATTD.VALID_PERIOD = '7개월' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 7), 'YYYY-MM-DD')
+                    WHEN ATTD.VALID_PERIOD = '6개월' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 6), 'YYYY-MM-DD')
+                    WHEN ATTD.VALID_PERIOD = '5개월' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 5), 'YYYY-MM-DD')
+                    WHEN ATTD.VALID_PERIOD = '4개월' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 4), 'YYYY-MM-DD')
+                    WHEN ATTD.VALID_PERIOD = '3개월' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 3), 'YYYY-MM-DD')
+                    WHEN ATTD.VALID_PERIOD = '2개월' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 2), 'YYYY-MM-DD')
+                    WHEN ATTD.VALID_PERIOD = '1개월' THEN <include refid="common.sql.toChar"/>(ADD_MONTHS(SYSDATE, 1), 'YYYY-MM-DD') END AS VALID_END_DATE
+             , ATTD.REQUIRED_FLAG
+             , <include refid="common.sql.dbo"/>GETCOMCODE(ATTD.GATE_CD, 'M044', ATTD.REQUIRED_FLAG, '0', #{ses.langCd}) AS REQUIRED_FLAG_NM
+          FROM STOCATTD ATTD
+         WHERE ATTD.GATE_CD = #{ses.gateCd}
+        <if test="BUYER_CD == null or BUYER_CD == ''">
+           AND ATTD.BUYER_CD = #{ses.manageCd}
+        </if>
+        <if test="BUYER_CD != null and BUYER_CD != ''">
+           AND ATTD.BUYER_CD = #{BUYER_CD}
+        </if>
+           AND ATTD.DEL_FLAG = '0'
+           AND ATTD.USE_FLAG = '1'
+           AND ATTD.DOC_TYPE = 'D02'
+         ORDER BY ATTD.BUYER_CD, ATTD.SORT_SQ
+    </select>
+
+	<select id="doFileInfo" resultType="java.util.Map">
+		SELECT *
+		  FROM STOCATCH
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND UUID IN
+		<foreach item="item" index="index" collection="ATT_FILE_NUM" open="(" separator="," close=")">
+            #{item}
+		</foreach>
+           AND DEL_FLAG = '0'
+ 	</select>
+
+    <select id="operIdSearch" resultType="java.util.Map">
+        SELECT USR.USER_ID
+          FROM STOCUSER USR
+          JOIN STOCOGCM OGCM
+	           ON (USR.GATE_CD = OGCM.GATE_CD
+	           AND USR.COMPANY_CD = OGCM.BUYER_CD
+	           AND OGCM.DEL_FLAG = '0')
+         WHERE <include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/> = #{I_USER_NM}
+           AND <include refid="common.sql.strDecStart"/>USR.EMAIL<include refid="common.sql.strDecEnd"/> = #{I_EMAIL}
+           AND REPLACE(<include refid="common.sql.strDecStart"/>USR.CELL_NUM<include refid="common.sql.strDecEnd"/>, '-', '') = REPLACE(#{I_CELL_NO}, '-', '')
+           AND OGCM.IRS_NUM = #{I_IRS_NO}
+    </select>
+
+    <select id="vendorIdSearch" resultType="java.util.Map">
+        SELECT CVUR.USER_ID
+          FROM STOCCVUR CVUR
+          JOIN STOCVNGL VNGL
+	           ON (CVUR.GATE_CD    = VNGL.GATE_CD
+	           AND CVUR.COMPANY_CD = VNGL.VENDOR_CD
+	           AND VNGL.DEL_FLAG = '0')
+         WHERE <include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> = #{I_USER_NM}
+           AND <include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> = #{I_EMAIL}
+           AND REPLACE(<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/>, '-', '') = REPLACE(#{I_CELL_NO}, '-', '')
+           AND VNGL.IRS_NO = #{I_IRS_NO}
+    </select>
+
+    <select id="custIdSearch" resultType="java.util.Map">
+        SELECT CVUR.USER_ID
+          FROM STOCCVUR CVUR
+          JOIN STOCCUST CUST
+	           ON (CVUR.GATE_CD    = CUST.GATE_CD
+	           AND CVUR.COMPANY_CD = CUST.CUST_CD
+	           AND CUST.DEL_FLAG   = '0')
+         WHERE <include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> = #{I_USER_NM}
+           AND <include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> = #{I_EMAIL}
+           AND REPLACE(<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/>, '-', '') = REPLACE(#{I_CELL_NO}, '-', '')
+           AND CUST.IRS_NUM = #{I_IRS_NO}
+    </select>
+
+    <select id="doPwInfo" resultType="java.util.Map">
+        SELECT MAX(A.CNT) AS CNT
+             , MAX(A.USER_TYPE) AS USER_TYPE
+          FROM (SELECT COUNT(*) AS CNT
+                     , CVUR.USER_TYPE
+                  FROM STOCCVUR CVUR
+                  JOIN STOCVNGL VNGL
+	                   ON (CVUR.GATE_CD    = VNGL.GATE_CD
+	                   AND CVUR.COMPANY_CD = VNGL.VENDOR_CD
+	                   AND VNGL.DEL_FLAG   = '0')
+                 WHERE CVUR.USER_ID = #{P_USER_ID}
+                   AND <include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> = #{P_USER_NM}
+                   AND <include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> = #{P_EMAIL}
+                   AND REPLACE(<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/>, '-', '') = REPLACE(#{P_CELL_NO}, '-', '')
+                   AND VNGL.IRS_NO = #{P_IRS_NO}
+                 GROUP BY CVUR.USER_TYPE
+                 
+                 UNION ALL
+                
+                SELECT COUNT(*) AS CNT
+                     , USR.USER_TYPE
+                  FROM STOCUSER USR
+                  JOIN STOCOGCM OGCM
+	                   ON (USR.GATE_CD    = OGCM.GATE_CD
+	                   AND USR.COMPANY_CD = OGCM.BUYER_CD
+	                   AND OGCM.DEL_FLAG  = '0')
+                 WHERE USR.USER_ID = #{P_USER_ID}
+                   AND <include refid="common.sql.strDecStart"/>USR.USER_NM<include refid="common.sql.strDecEnd"/> = #{P_USER_NM}
+                   AND <include refid="common.sql.strDecStart"/>USR.EMAIL<include refid="common.sql.strDecEnd"/> = #{P_EMAIL}
+                   AND REPLACE(<include refid="common.sql.strDecStart"/>USR.CELL_NUM<include refid="common.sql.strDecEnd"/>, '-', '') = REPLACE(#{P_CELL_NO}, '-', '')
+                   AND OGCM.IRS_NUM = #{P_IRS_NO}
+                 GROUP BY USR.USER_TYPE
+                
+                 UNION ALL
+                
+                SELECT COUNT(*) AS CNT
+                     , CVUR.USER_TYPE
+                  FROM STOCCVUR CVUR
+                  JOIN STOCCUST CUST
+	                   ON (CVUR.GATE_CD    = CUST.GATE_CD
+	                   AND CVUR.COMPANY_CD = CUST.CUST_CD
+	                   AND CUST.DEL_FLAG   = '0')
+                 WHERE CVUR.USER_ID = #{P_USER_ID}
+                   AND <include refid="common.sql.strDecStart"/>CVUR.USER_NM<include refid="common.sql.strDecEnd"/> = #{P_USER_NM}
+                   AND <include refid="common.sql.strDecStart"/>CVUR.EMAIL<include refid="common.sql.strDecEnd"/> = #{P_EMAIL}
+                   AND REPLACE(<include refid="common.sql.strDecStart"/>CVUR.CELL_NUM<include refid="common.sql.strDecEnd"/>, '-', '') = REPLACE(#{P_CELL_NO}, '-', '')
+                   AND CUST.IRS_NUM = #{P_IRS_NO}
+                 GROUP BY CVUR.USER_TYPE
+          ) A
+    </select>
+
+    <select id="getBrUserList" resultType="java.util.Map">
+        SELECT CTRL_USER_ID
+          FROM STOCBACP
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CTRL_CD  = 'BR090'
+           AND DEL_FLAG = '0'
+    </select>
+
+    <select id="getBrVendorUserList" resultType="java.util.Map">
+        SELECT DISTINCT
+               <include refid="common.sql.dbo"/>GETCUSTNAME(BACP.GATE_CD, BACP.BUYER_CD) AS BUYER_NM
+             , <include refid="common.sql.dbo"/>GETUSERNAME(BACP.GATE_CD, BACP.CTRL_USER_ID, #{ses.langCd}) AS CTRL_USER_NM
+             , VNGL.VENDOR_NM
+             , BACP.CTRL_USER_ID
+          FROM STOCVNGL VNGL
+          JOIN STOCVNCM VNCM
+	           ON (VNGL.GATE_CD   = VNCM.GATE_CD
+	           AND VNGL.VENDOR_CD = VNCM.VENDOR_CD
+	           AND VNCM.DEL_FLAG  = '0')
+          JOIN STOCBACP BACP
+	           ON (VNCM.GATE_CD  = BACP.GATE_CD
+	           AND VNCM.BUYER_CD = BACP.BUYER_CD
+	           AND BACP.CTRL_CD  = 'BR090'
+	           AND BACP.DEL_FLAG = '0')
+         WHERE VNGL.GATE_CD = #{ses.gateCd}
+           AND VNGL.IRS_NO  = #{IRS_NUM}
+    </select>
+
+    <select id="doSearchVNGL" resultType="java.util.Map">
+        SELECT
+        	   VENDOR_CD
+             , VENDOR_NM
+             , VENDOR_ENG_NM
+             , IRS_NO
+             , REG_TYPE
+             , COMPANY_REG_NO
+             , BUSINESS_SIZE
+             , <include refid="common.sql.strDecStart"/>CEO_USER_NM<include refid="common.sql.strDecEnd"/> AS CEO_USER_NM
+             , <include refid="common.sql.toChar"/>(FOUNDATION_DATE, 'YYYY-MM-DD') AS FOUNDATION_DATE
+             , RELAT_YN
+             , CORP_TYPE
+             , <include refid="common.sql.strDecStart"/>HQ_ZIP_CD<include refid="common.sql.strDecEnd"/> AS HQ_ZIP_CD
+             , <include refid="common.sql.strDecStart"/>HQ_ADDR_1<include refid="common.sql.strDecEnd"/> AS HQ_ADDR_1
+             , <include refid="common.sql.strDecStart"/>HQ_ADDR_2<include refid="common.sql.strDecEnd"/> AS HQ_ADDR_2
+             , BUSINESS_TYPE
+             , INDUSTRY_TYPE
+             , <include refid="common.sql.strDecStart"/>TEL_NO<include refid="common.sql.strDecEnd"/> AS TEL_NO
+             , <include refid="common.sql.strDecStart"/>FAX_NO<include refid="common.sql.strDecEnd"/> AS FAX_NO
+             , <include refid="common.sql.strDecStart"/>EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+             , HOMEPAGE_URL
+             , BUSINESS_REMARK
+             , REMARK_TEXT
+             , E_BILL_ASP_TYPE
+             , TAX_ASP_NM
+             , TAX_SEND_TYPE
+             , CREDIT_EVAL_COMPANY
+             , CREDIT_CD
+             ,(SELECT REAL_FILE_NM FROM STOCATCH
+                WHERE UUID = VNGL.EV_ATT_FILE_NUM
+                  AND DEL_FLAG = '0') AS EV_ATT_FILE_NM
+             , EV_ATT_FILE_NUM AS EV_ATT_FILE_NUM
+          FROM STOCVNGL VNGL
+         WHERE GATE_CD = #{ses.gateCd}
+           AND IRS_NO  = #{IRS_NUM}
+    </select>
+
+    <select id="doSearchVNSL" resultType="java.util.Map">
+        SELECT
+        	   COMPANY_CD
+        	 , SL_TYPE
+             , SL_NUM
+             , SL_NM
+             , ISSUE_NM
+             , EXPIRY_DATE
+             ,(SELECT REAL_FILE_NM FROM STOCATCH
+                WHERE UUID = VNSL.ATT_FILE_NUM
+                  AND DEL_FLAG = '0') AS SL_ATT_FILE_NM
+             , ATT_FILE_NUM AS SL_ATT_FILE_NUM
+          FROM STOCVNSL VNSL
+         WHERE GATE_CD    = #{ses.gateCd}
+           AND COMPANY_CD = #{VENDOR_CD}
+    </select>
+
+    <select id="doSearchVNFI" resultType="java.util.Map">
+        SELECT
+        	   VENDOR_CD
+        	 , FI_YEAR
+             , EVIDENCE_TYPE
+             , TO_CHAR(OWNER_CAPITAL_AMOUNT, 'FM9,999,999,999,999') AS OWNER_CAPITAL_AMOUNT
+             , TO_CHAR(TOT_FUND_AMT, 'FM9,999,999,999,999') AS TOT_FUND_AMT
+             , TO_CHAR(TOT_LIAB_AMT, 'FM9,999,999,999,999') AS TOT_LIAB_AMT
+             , TO_CHAR(TOTAL_LIABILITY_RATE, 'FM9,999,999,999,999') AS TOTAL_LIABILITY_RATE
+             , TO_CHAR(CURRENT_ASSET_AMOUNT, 'FM9,999,999,999,999') AS CURRENT_ASSET_AMOUNT
+             , TO_CHAR(CURRENT_ASSET_LIABILITY_AMOUNT, 'FM9,999,999,999,999') AS CURRENT_ASSET_LIABILITY_AMOUNT
+             , TO_CHAR(SALES_AMOUNT, 'FM9,999,999,999,999') AS SALES_AMOUNT
+             , TO_CHAR(NET_PROFIT_AMOUNT, 'FM9,999,999,999,999') AS NET_PROFIT_AMOUNT
+             ,(SELECT REAL_FILE_NM FROM STOCATCH
+                WHERE UUID = VNFI.ATT_FILE_NUM
+                  AND DEL_FLAG = '0') AS VNFI_ATT_FILE_NM
+             , ATT_FILE_NUM AS VNFI_ATT_FILE_NUM
+          FROM STOCVNFI VNFI
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND VENDOR_CD = #{VENDOR_CD}
+    </select>
+
+    <select id="doSearchVNAP" resultType="java.util.Map">
+        SELECT
+        	   VENDOR_CD
+        	 , PAY_ACC_NM
+             , PAY_BANK
+             , <include refid="common.sql.strDecStart"/>PAY_ACCOUNT_NUM<include refid="common.sql.strDecEnd"/> AS PAY_ACCOUNT_NUM
+             , <include refid="common.sql.strDecStart"/>PAY_ACCOUNT_USER_NM<include refid="common.sql.strDecEnd"/> AS PAY_ACCOUNT_USER_NM
+             , <include refid="common.sql.strDecStart"/>PAY_ACC_MNG_NM<include refid="common.sql.strDecEnd"/> AS PAY_ACC_MNG_NM
+             , <include refid="common.sql.strDecStart"/>PAY_ACC_NMG_TEL_NUM<include refid="common.sql.strDecEnd"/> AS PAY_ACC_NMG_TEL_NUM
+             , <include refid="common.sql.strDecStart"/>PAY_ACC_MNG_EMAIL<include refid="common.sql.strDecEnd"/> AS PAY_ACC_MNG_EMAIL
+             ,(SELECT REAL_FILE_NM FROM STOCATCH
+                WHERE UUID = ATT_FILE_NUM
+                  AND DEL_FLAG = '0') AS PAY_ATT_FILE_NM
+             , ATT_FILE_NUM AS PAY_ATT_FILE_NUM
+          FROM STOCVNAP
+         WHERE GATE_CD = #{ses.gateCd}
+           AND VENDOR_CD = #{VENDOR_CD}
+    </select>
+
+    <select id="doSearchVNCM" resultType="java.util.Map">
+        SELECT
+        	   BUYER_CD
+             , <include refid="common.sql.dbo"/>GETCUSTNAME(GATE_CD, BUYER_CD) AS BUYER_NM
+             , REQ_REASON
+          FROM STOCVNCM
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND VENDOR_CD = #{VENDOR_CD}
+    </select>
+
+    <select id="doSearchCVUR" resultType="java.util.Map">
+        SELECT USER_ID
+             , <include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> AS USER_NM
+             , <include refid="common.sql.strDecStart"/>TEL_NUM<include refid="common.sql.strDecEnd"/> AS TEL_NUM
+             , <include refid="common.sql.strDecStart"/>EMAIL<include refid="common.sql.strDecEnd"/> AS EMAIL
+             , <include refid="common.sql.strDecStart"/>FAX_NUM<include refid="common.sql.strDecEnd"/> AS FAX_NUM
+             , <include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/> AS CELL_NUM
+             , MAIL_FLAG
+             , SMS_FLAG
+             , POSITION_NM
+             , DUTY_NM
+             , ROLE_TEXT
+          FROM STOCCVUR
+         WHERE GATE_CD  = #{ses.gateCd}
+           AND COMPANY_CD = #{VENDOR_CD}
+           AND DEL_FLAG = '0'
+    </select>
+
+    <select id="doSearchATTS" resultType="java.util.Map">
+        SELECT TS.BUYER_CD
+             , TS.TMPL_NUM
+             , TS.TMPL_SQ
+             , TD.TMPL_FILE_NM
+             , TD.VALID_PERIOD
+             , <include refid="common.sql.toChar"/>(TS.VALID_START_DATE, 'YYYY-MM-DD') AS VALID_START_DATE
+             , <include refid="common.sql.toChar"/>(TS.VALID_END_DATE, 'YYYY-MM-DD') AS VALID_END_DATE
+             , TD.REQUIRED_FLAG
+             ,(SELECT REAL_FILE_NM FROM STOCATCH
+                WHERE UUID = TS.ATT_FILE_NUM
+                  AND DEL_FLAG = '0') AS ATTS_ATT_FILE_NM
+             , TS.ATT_FILE_NUM AS ATTS_ATT_FILE_NUM
+          FROM STOCATTS TS
+          LEFT OUTER JOIN STOCATTD TD
+	           ON (TS.GATE_CD = TD.GATE_CD
+	           AND TS.BUYER_CD = TD.BUYER_CD
+	           AND TS.DOC_TYPE = TD.DOC_TYPE
+	           AND TS.TMPL_NUM = TD.TMPL_NUM
+	           AND TS.TMPL_SQ = TD.TMPL_SQ)
+         WHERE TS.GATE_CD   = #{ses.gateCd}
+           AND TS.VENDOR_CD = #{VENDOR_CD}
+           AND TS.DEL_FLAG  = '0'
+         ORDER BY TS.TMPL_SQ
+    </select>
+	
+	<!-- 사용자 권한 프로파일 등록 -->
+    <insert id="userInsertUSAP" parameterType="hashMap">
+		MERGE INTO STOCUSAP A
+		USING (SELECT #{ses.gateCd} AS GATE_CD
+		            , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID}))) AS USER_ID
+		            , #{AUTH_CD} AS AUTH_CD
+		       <include refid="common.sql.dual"/>) B
+            ON (A.GATE_CD = B.GATE_CD
+            AND A.USER_ID = B.USER_ID
+            AND A.AUTH_CD = B.AUTH_CD)
+		   WHEN MATCHED THEN
+		UPDATE SET
+		        MOD_DATE = SYSDATE
+		      , MOD_USER_ID = #{ses.userId}
+		      , DEL_FLAG = '0'
+	        <if test="VALID_FROM_DATE != '' and VALID_FROM_DATE != null">
+	          , VALID_FROM_DATE = <include refid="common.sql.toDate"/>(#{VALID_FROM_DATE}, 'yyyyMMdd')
+	        </if>
+	        <if test="VALID_TO_DATE != '' and VALID_TO_DATE != null">
+	          , VALID_TO_DATE = <include refid="common.sql.toDate"/>(#{VALID_TO_DATE}, 'yyyyMMdd')
+	        </if>
+		WHEN NOT MATCHED THEN
+		INSERT (
+			  GATE_CD
+            , USER_ID
+            , AUTH_CD
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+        <if test="VALID_FROM_DATE != '' and VALID_FROM_DATE != null">
+            , VALID_FROM_DATE
+        </if>
+        <if test="VALID_TO_DATE != '' and VALID_TO_DATE != null">
+            ,VALID_TO_DATE
+        </if>
+		) VALUES (
+			  #{ses.gateCd}
+            , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+            , #{AUTH_CD}
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+        <if test="VALID_FROM_DATE != '' and VALID_FROM_DATE != null">
+            , <include refid="common.sql.toDate"/>(#{VALID_FROM_DATE}, 'yyyyMMdd')
+        </if>
+        <if test="VALID_TO_DATE != '' and VALID_TO_DATE != null">
+            , <include refid="common.sql.toDate"/>(#{VALID_TO_DATE}, 'yyyyMMdd')
+        </if>
+		)
+    </insert>
+    
+    <!-- 협력업체 사용자 등록 -->
+    <insert id="userInsertCVUR" parameterType="hashMap">
+		MERGE INTO STOCCVUR A
+		USING (SELECT #{ses.gateCd} AS GATE_CD
+		            , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID}))) AS USER_ID
+		       <include refid="common.sql.dual"/>) B
+            ON (A.GATE_CD = B.GATE_CD
+            AND A.USER_ID = B.USER_ID)
+		   WHEN MATCHED THEN
+		UPDATE SET
+		        MOD_DATE = SYSDATE
+		      , MOD_USER_ID = #{ses.userId}
+		      , DEL_FLAG = '0'
+              , COMPANY_CD = #{COMPANY_CD}
+              , MNG_YN = <include refid="common.sql.nvl"/>(#{MNG_YN}, '0')
+              , USER_TYPE = #{USER_TYPE}
+              , USER_NM = <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+              , PASSWORD = #{PASSWORD}
+              , DEPT_CD = #{DEPT_CD}
+              , DEPT_NM = #{DEPT_NM}
+              , POSITION_NM = #{POSITION_NM}
+              , TEL_NUM = <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+              , FAX_NUM = <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+              , CELL_NUM = <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+              , EMAIL = <include refid="common.sql.strEncStart"/>#{USER_EMAIL}<include refid="common.sql.strEncEnd"/>
+              , USE_FLAG = #{USE_FLAG}
+              , PROGRESS_CD = #{PROGRESS_CD}
+              , DUTY_NM = #{DUTY_NM}
+              , MAIL_FLAG = #{MAIL_FLAG}
+              , SMS_FLAG = #{SMS_FLAG}
+              , BLOCK_FLAG = '0'
+              , ROLE_TEXT = #{ROLE_TEXT}
+		WHEN NOT MATCHED THEN
+		INSERT (
+            GATE_CD
+            , USER_ID
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , COMPANY_CD
+            , MNG_YN
+            , USER_TYPE
+            , USER_NM
+            , PASSWORD
+            , DEPT_CD
+            , DEPT_NM
+            , POSITION_NM
+            , TEL_NUM
+            , FAX_NUM
+            , CELL_NUM
+            , EMAIL
+            , USE_FLAG
+            , PROGRESS_CD
+            , DUTY_NM
+            , MAIL_FLAG
+            , SMS_FLAG
+            , BLOCK_FLAG
+            , ROLE_TEXT
+        ) VALUES (
+             #{ses.gateCd}
+            , UPPER((<include refid="common.sql.dbo"/>SF_TRIM(#{USER_ID})))
+            , SYSDATE
+            , #{ses.userId}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+            , #{COMPANY_CD}
+            , <include refid="common.sql.nvl"/>(#{MNG_YN}, '0')
+            , #{USER_TYPE}
+            , <include refid="common.sql.strEncStart"/>#{USER_NM}<include refid="common.sql.strEncEnd"/>
+            , #{PASSWORD}
+            , #{DEPT_CD}
+            , #{DEPT_NM}
+            , #{POSITION_NM}
+            , <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{CELL_NUM}<include refid="common.sql.strEncEnd"/>
+            , <include refid="common.sql.strEncStart"/>#{USER_EMAIL}<include refid="common.sql.strEncEnd"/>
+            , #{USE_FLAG}
+            , #{PROGRESS_CD}
+            , #{DUTY_NM}
+            , #{MAIL_FLAG}
+            , #{SMS_FLAG}
+            , '0'
+            , #{ROLE_TEXT}
+        )
+    </insert>
+    
+    <!-- STOCVNGL 등록 -->
+    <insert id="doInsertVNGL" parameterType="hashMap">
+        MERGE INTO STOCVNGL A
+		USING (SELECT #{ses.gateCd} AS GATE_CD
+		            , #{COMPANY_CD} AS VENDOR_CD
+		       <include refid="common.sql.dual"/>) B
+            ON (A.GATE_CD   = B.GATE_CD
+            AND A.VENDOR_CD = B.VENDOR_CD)
+		   WHEN MATCHED THEN
+		UPDATE SET
+		        MOD_DATE = SYSDATE
+		      , MOD_USER_ID = #{ses.userId}
+		      , DEL_FLAG = '0'
+              , PROGRESS_CD = #{PROGRESS_CD}
+              , SIGN_STATUS = #{SIGN_STATUS}
+              , VENDOR_NM = #{VENDOR_NM}
+              , VENDOR_ENG_NM = #{VENDOR_ENG_NM}
+              , REG_TYPE = #{REG_TYPE}
+              , COMPANY_REG_NO = #{COMPANY_REG_NO}
+              , BUSINESS_SIZE = #{BUSINESS_SIZE}
+              , CEO_USER_NM = <include refid="common.sql.strEncStart"/>#{CEO_USER_NM}<include refid="common.sql.strEncEnd"/>
+              , FOUNDATION_DATE = REPLACE(#{FOUNDATION_DATE}, '-', '')
+              , RELAT_YN = #{RELAT_YN}
+              , CORP_TYPE = #{CORP_TYPE}
+              , HQ_ZIP_CD = <include refid="common.sql.strEncStart"/>#{HQ_ZIP_CD}<include refid="common.sql.strEncEnd"/>
+              , HQ_ADDR_1 = <include refid="common.sql.strEncStart"/>#{HQ_ADDR_1}<include refid="common.sql.strEncEnd"/>
+              , HQ_ADDR_2 = <include refid="common.sql.strEncStart"/>#{HQ_ADDR_2}<include refid="common.sql.strEncEnd"/>
+              , BUSINESS_TYPE = SUBSTRB(#{BUSINESS_TYPE}, 0, 100)
+              , INDUSTRY_TYPE = SUBSTRB(#{INDUSTRY_TYPE}, 0, 100)
+              , TEL_NO = <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+              , FAX_NO = <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+              , EMAIL = <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+              , HOMEPAGE_URL = #{HOMEPAGE_URL}
+              , BUSINESS_REMARK = #{BUSINESS_REMARK}
+              , REMARK_TEXT = #{REMARK_TEXT}
+              , PAY_PUBLIC_TYPE = #{PAY_PUBLIC_TYPE}
+              , PAY_CONDITION = #{PAY_CONDITION}
+              , PAY_TYPE = #{PAY_TYPE}
+              , E_BILL_ASP_TYPE = #{E_BILL_ASP_TYPE}
+              , TAX_ASP_NM = #{TAX_ASP_NM}
+              , TAX_SEND_TYPE = #{TAX_SEND_TYPE}
+              , CREDIT_EVAL_COMPANY = #{CREDIT_EVAL_COMPANY}
+              , CREDIT_CD = #{CREDIT_CD}
+              , EV_ATT_FILE_NUM = #{EV_ATT_FILE_NUM}
+		WHEN NOT MATCHED THEN
+		INSERT (
+             -- 회사정보
+               GATE_CD
+             , VENDOR_CD
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , USE_FLAG
+             , PROGRESS_CD
+             , SIGN_STATUS
+             , VENDOR_NM
+             , VENDOR_ENG_NM
+             , IRS_NO
+             , REG_TYPE
+             , COMPANY_REG_NO
+             , BUSINESS_SIZE
+             , CEO_USER_NM
+             , FOUNDATION_DATE
+             , RELAT_YN
+             , CORP_TYPE
+             , HQ_ZIP_CD
+             , HQ_ADDR_1
+             , HQ_ADDR_2
+             , BUSINESS_TYPE
+             , INDUSTRY_TYPE
+             , TEL_NO
+             , FAX_NO
+             , EMAIL
+             , HOMEPAGE_URL
+             , BUSINESS_REMARK
+             , BLOCK_FLAG
+             , REMARK_TEXT
+             -- 결제정보
+             , PAY_PUBLIC_TYPE
+             , PAY_CONDITION
+             , PAY_TYPE
+             -- 관리정보
+             , E_BILL_ASP_TYPE
+             , TAX_ASP_NM
+             , TAX_SEND_TYPE
+             , CREDIT_EVAL_COMPANY
+             , CREDIT_CD
+             , EV_ATT_FILE_NUM
+        ) VALUES (
+               #{ses.gateCd}
+             , #{COMPANY_CD}
+             , SYSDATE
+             , #{ses.userId}
+             , SYSDATE
+             , #{ses.userId}
+             , '0'
+             , '1'
+             , #{PROGRESS_CD}
+             , #{SIGN_STATUS}
+             , #{VENDOR_NM}
+             , #{VENDOR_ENG_NM}
+             , #{IRS_NUM}
+             , #{REG_TYPE}
+             , #{COMPANY_REG_NO}
+             , #{BUSINESS_SIZE}
+             , <include refid="common.sql.strEncStart"/>#{CEO_USER_NM}<include refid="common.sql.strEncEnd"/>
+             , REPLACE(#{FOUNDATION_DATE}, '-', '')
+             , #{RELAT_YN}
+             , #{CORP_TYPE}
+             , <include refid="common.sql.strEncStart"/>#{HQ_ZIP_CD}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{HQ_ADDR_1}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{HQ_ADDR_2}<include refid="common.sql.strEncEnd"/>
+             , SUBSTRB(#{BUSINESS_TYPE}, 0, 100)
+             , SUBSTRB(#{INDUSTRY_TYPE}, 0, 100)
+             , <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+             , #{HOMEPAGE_URL}
+             , #{BUSINESS_REMARK}
+             , '0'
+             , #{REMARK_TEXT}
+                 -- 결제정보
+             , #{PAY_PUBLIC_TYPE}
+             , #{PAY_CONDITION}
+             , #{PAY_TYPE}
+                 -- 관리정보
+             , #{E_BILL_ASP_TYPE}
+             , #{TAX_ASP_NM}
+             , #{TAX_SEND_TYPE}
+             , #{CREDIT_EVAL_COMPANY}
+             , #{CREDIT_CD}
+             , #{EV_ATT_FILE_NUM}
+        )
+    </insert>
+	
+	<!-- 고객사(STOCCUST) 등록 -->
+    <insert id="doInsertCUST" parameterType="hashmap">
+        INSERT INTO STOCCUST(
+             -- 회사정보
+               GATE_CD
+             , CUST_CD
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , PROGRESS_CD
+             , SIGN_STATUS
+             , CUST_NM
+             , CUST_ENG_NM
+             , IRS_NUM
+             , COMPANY_TYPE
+             , COMPANY_REG_NUM
+             , BUSINESS_SIZE
+             , CEO_USER_NM
+             , FOUNDATION_DATE
+             , RELAT_YN
+             , CORP_TYPE
+             , ZIP_CD
+             , ADDR1
+             , ADDR2
+             , BUSINESS_TYPE
+             , INDUSTRY_TYPE
+             , TEL_NUM
+             , FAX_NUM
+             , EMAIL
+             , HOMEPAGE_URL
+             , ABOUT_US
+             , REMARK
+             -- 결제정보
+             , PAY_PUBLIC_TYPE
+             , PAY_CONDITION
+             , PAY_TYPE
+             -- 관리정보
+             , E_BILL_ASP_TYPE
+             , TAX_ASP_NM
+             , TAX_SEND_TYPE
+             , CREDIT_EVAL_COMPANY
+             , CREDIT_CD
+             , EV_ATT_FILE_NUM
+        ) VALUES (
+               #{ses.gateCd}
+             , #{COMPANY_CD}
+             , SYSDATE
+             , #{ses.userId}
+             , SYSDATE
+             , #{ses.userId}
+             , '0'
+             , #{PROGRESS_CD}
+             , #{SIGN_STATUS}
+             , #{VENDOR_NM}
+             , #{VENDOR_ENG_NM}
+             , #{IRS_NUM}
+             , #{REG_TYPE}
+             , #{COMPANY_REG_NO}
+             , #{BUSINESS_SIZE}
+             , REPLACE(#{FOUNDATION_DATE}, '-', '')
+             , #{RELAT_YN}
+             , #{CORP_TYPE}
+             , <include refid="common.sql.strEncStart"/>#{CEO_USER_NM}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{HQ_ZIP_CD}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{HQ_ADDR_1}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{HQ_ADDR_2}<include refid="common.sql.strEncEnd"/>
+             , SUBSTRB(#{BUSINESS_TYPE}, 0, 100)
+             , SUBSTRB(#{INDUSTRY_TYPE}, 0, 100)
+             , <include refid="common.sql.strEncStart"/>#{TEL_NUM}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{FAX_NUM}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{EMAIL}<include refid="common.sql.strEncEnd"/>
+             , #{HOMEPAGE_URL}
+             , #{BUSINESS_REMARK}
+             , #{REMARK_TEXT}
+             -- 결제정보
+             , #{PAY_PUBLIC_TYPE}
+             , #{PAY_CONDITION}
+             , #{PAY_TYPE}
+             -- 관리정보
+             , #{E_BILL_ASP_TYPE}
+             , #{TAX_ASP_NM}
+             , #{TAX_SEND_TYPE}
+             , #{CREDIT_EVAL_COMPANY}
+             , #{CREDIT_CD}
+             , #{EV_ATT_FILE_NUM}
+         )
+    </insert>
+	
+	<!-- 재무정보 등록 -->
+    <insert id="doInsertVNFI" parameterType="hashMap">
+        MERGE INTO STOCVNFI A
+		USING (SELECT #{ses.gateCd} AS GATE_CD
+		            , #{COMPANY_CD} AS VENDOR_CD
+		            , #{FI_YEAR}    as FI_YEAR
+		       <include refid="common.sql.dual"/>) B
+            ON (A.GATE_CD   = B.GATE_CD
+            AND A.VENDOR_CD = B.VENDOR_CD
+            AND A.FI_YEAR   = B.FI_YEAR)
+		   WHEN MATCHED THEN
+		UPDATE SET
+		        MOD_DATE = SYSDATE
+		      , MOD_USER_ID = #{ses.userId}
+		      , DEL_FLAG = '0'
+              , EVIDENCE_TYPE = #{EVIDENCE_TYPE}
+              , OWNER_CAPITAL_AMOUNT = #{OWNER_CAPITAL_AMOUNT}
+              , TOT_FUND_AMT = #{TOT_FUND_AMT}
+              , TOT_LIAB_AMT = #{TOT_LIAB_AMT}
+              , TOTAL_LIABILITY_RATE = #{TOTAL_LIABILITY_RATE}
+              , CURRENT_ASSET_AMOUNT = #{CURRENT_ASSET_AMOUNT}
+              , CURRENT_ASSET_LIABILITY_AMOUNT = #{CURRENT_ASSET_LIABILITY_AMOUNT}
+              , SALES_AMOUNT = #{SALES_AMOUNT}
+              , NET_PROFIT_AMOUNT = #{NET_PROFIT_AMOUNT}
+              , ATT_FILE_NUM = #{VNFI_ATT_FILE_NUM}
+		WHEN NOT MATCHED THEN
+		INSERT (
+               GATE_CD
+             , VENDOR_CD
+             , FI_YEAR
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , EVIDENCE_TYPE
+             , OWNER_CAPITAL_AMOUNT
+             , TOT_FUND_AMT
+             , TOT_LIAB_AMT
+             , TOTAL_LIABILITY_RATE
+             , CURRENT_ASSET_AMOUNT
+             , CURRENT_ASSET_LIABILITY_AMOUNT
+             , SALES_AMOUNT
+             , NET_PROFIT_AMOUNT
+             , ATT_FILE_NUM
+        ) VALUES (
+               #{ses.gateCd}
+             , #{COMPANY_CD}
+             , #{FI_YEAR}
+             , SYSDATE
+             , #{ses.userId}
+             , SYSDATE
+             , #{ses.userId}
+             , '0'
+             , #{EVIDENCE_TYPE}
+             , #{OWNER_CAPITAL_AMOUNT}
+             , #{TOT_FUND_AMT}
+             , #{TOT_LIAB_AMT}
+             , #{TOTAL_LIABILITY_RATE}
+             , #{CURRENT_ASSET_AMOUNT}
+             , #{CURRENT_ASSET_LIABILITY_AMOUNT}
+             , #{SALES_AMOUNT}
+             , #{NET_PROFIT_AMOUNT}
+             , #{VNFI_ATT_FILE_NUM}
+        )
+    </insert>
+	
+	<!-- 결재정보 -->
+    <insert id="doInsertVNAP" parameterType="hashMap">
+        INSERT INTO STOCVNAP (
+               GATE_CD
+             , VENDOR_CD
+             , SEQ
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , PAY_ACC_MNG_NM
+             , PAY_ACC_NMG_TEL_NUM
+             , PAY_ACC_MNG_EMAIL
+             , PAY_BANK
+             , PAY_ACCOUNT_NUM
+             , PAY_ACCOUNT_USER_NM
+             , PAY_ACC_NM
+             , ATT_FILE_NUM
+        ) VALUES (
+               #{ses.gateCd}
+             , #{COMPANY_CD}
+             , (SELECT <include refid="common.sql.nvl"/>(MAX(TO_NUMBER(SEQ)), 0) + 1
+                  FROM STOCVNAP
+                 WHERE GATE_CD = #{ses.gateCd}
+                   AND VENDOR_CD = #{COMPANY_CD}
+                   AND DEL_FLAG = '0')
+             , SYSDATE
+             , #{ses.userId}
+             , SYSDATE
+             , #{ses.userId}
+             , '0'
+             , <include refid="common.sql.strEncStart"/>#{PAY_ACC_MNG_NM}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{PAY_ACC_NMG_TEL_NUM}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{PAY_ACC_MNG_EMAIL}<include refid="common.sql.strEncEnd"/>
+             , #{PAY_BANK}
+             , <include refid="common.sql.strEncStart"/>#{PAY_ACCOUNT_NUM}<include refid="common.sql.strEncEnd"/>
+             , <include refid="common.sql.strEncStart"/>#{PAY_ACCOUNT_USER_NM}<include refid="common.sql.strEncEnd"/>
+             , #{PAY_ACC_NM}
+             , #{PAY_ATT_FILE_NUM}
+        )
+    </insert>
+	
+	<!-- 특허 및 면허취급 -->
+    <insert id="doInsertVNSL" parameterType="hashMap">
+        INSERT INTO STOCVNSL (
+               GATE_CD
+             , COMPANY_CD
+             , COMPANY_DEPT_CD
+             , SEQ
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , SL_TYPE
+             , SL_NUM
+             , SL_NM
+             , ISSUE_NM
+             , EXPIRY_DATE
+             , ATT_FILE_NUM
+        ) VALUES (
+               #{ses.gateCd}
+             , #{COMPANY_CD}
+             , '0000'
+             , (SELECT <include refid="common.sql.nvl"/>(MAX(TO_NUMBER(SEQ)), 0) + 1
+                  FROM STOCVNSL
+                 WHERE GATE_CD = #{ses.gateCd}
+                   AND COMPANY_CD = #{COMPANY_CD}
+                   AND COMPANY_DEPT_CD = '0000'
+                   AND DEL_FLAG = '0')
+             , SYSDATE
+             , #{ses.userId}
+             , SYSDATE
+             , #{ses.userId}
+             , '0'
+             , #{SL_TYPE}
+             , #{SL_NUM}
+             , #{SL_NM}
+             , #{ISSUE_NM}
+             , #{EXPIRY_DATE}
+             , #{SL_ATT_FILE_NUM}
+        )
+    </insert>
+	
+	<!-- 협력업체 거래요청 고객사 등록 -->
+    <insert id="doInsertVNCM" parameterType="hashMap">
+        MERGE INTO STOCVNCM A
+		USING (SELECT #{ses.gateCd} AS GATE_CD
+		            , #{VENDOR_CD}  AS VENDOR_CD
+		            , #{BUYER_CD}   AS BUYER_CD
+		       <include refid="common.sql.dual"/>) B
+            ON (A.GATE_CD   = B.GATE_CD
+            AND A.VENDOR_CD = B.VENDOR_CD
+            AND A.BUYER_CD  = B.BUYER_CD)
+		WHEN MATCHED THEN
+		UPDATE SET
+			  MOD_DATE     = SYSDATE
+			, MOD_USER_ID  = #{ses.userId}
+			, DEL_FLAG     = '0'
+			, REQ_REASON   = #{REQ_REASON}
+			, CONFIRM_FLAG = 'J'
+		WHEN NOT MATCHED THEN
+		INSERT (
+               GATE_CD
+             , VENDOR_CD
+             , BUYER_CD
+             , DEPT_CD
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , REQ_REASON
+             , CONFIRM_FLAG
+        ) VALUES (
+               #{ses.gateCd}
+             , #{VENDOR_CD}
+             , #{BUYER_CD}
+             , <include refid="common.sql.nvl"/>(#{DEPT_CD}, 'O')
+             , SYSDATE
+             , #{ses.userId}
+             , SYSDATE
+             , #{ses.userId}
+             , '0'
+             , #{REQ_REASON}
+             , 'J'
+        )
+    </insert>
+	
+	<!-- 협력업체 첨부파일 -->
+    <insert id="doInsertATTS" parameterType="hashMap">
+        INSERT INTO STOCATTS (
+               GATE_CD
+             , BUYER_CD
+             , DOC_TYPE
+             , TMPL_NUM
+             , TMPL_SQ
+             , DOC_NUM
+             , DOC_CNT
+             , VENDOR_CD
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , VALID_START_DATE
+             , VALID_END_DATE
+             , ATT_FILE_NUM
+        ) VALUES (
+               #{ses.gateCd}
+             , #{TMPL_BUYER_CD}
+             , #{DOC_TYPE}
+             , #{TMPL_NUM}
+             , #{TMPL_SQ}
+             , '1'
+             , '1'
+             , #{COMPANY_CD}
+             , SYSDATE
+             , #{ses.userId}
+             , SYSDATE
+             , #{ses.userId}
+             , '0'
+             , REPLACE(#{VALID_START_DATE}, '-', '')
+             , REPLACE(#{VALID_END_DATE}, '-', '')
+             , #{ATTS_ATT_FILE_NUM}
+        )
+    </insert>
+
+    <update id="doFileUpdate">
+        UPDATE STOCATCH
+           SET FILE_PATH = #{DIR_PATH}
+         WHERE GATE_CD = #{ses.gateCd}
+           AND UUID = #{UUID}
+           AND UUID_SQ = #{UUID_SQ}
+    </update>
+
+    <update id="doUpdateCVUR">
+
+        UPDATE STOCCVUR
+           SET PASSWORD = #{PPDD}
+             , PW_WRONG_CNT = 0
+             , PW_RESET_FLAG = '1'
+             , PW_RESET_DATE = SYSDATE
+         WHERE USER_ID = #{P_USER_ID}
+    </update>
+
+    <update id="doUpdateUSER">
+
+        UPDATE STOCUSER
+           SET PASSWORD = #{PPDD}
+             , PW_WRONG_CNT = 0
+             , PW_RESET_FLAG = '1'
+             , PW_RESET_DATE = SYSDATE
+         WHERE USER_ID = #{P_USER_ID}
+    </update>
+
+    <delete id="doDeleteVNGL">
+        DELETE FROM STOCVNGL
+         WHERE GATE_CD = #{ses.gateCd}
+           AND VENDOR_CD = #{VENDOR_CD}
+    </delete>
+
+    <delete id="doDeleteVNCM">
+    	UPDATE STOCVNCM
+    	   SET DEL_FLAG  = '1'
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND VENDOR_CD = #{VENDOR_CD}
+    </delete>
+
+    <delete id="doDeleteVNFI">
+        UPDATE STOCVNFI
+           SET MOD_DATE = SYSDATE
+			 , MOD_USER_ID  = #{ses.userId}
+			 , DEL_FLAG = '1'
+         WHERE GATE_CD = #{ses.gateCd}
+           AND VENDOR_CD = #{VENDOR_CD}
+    </delete>
+
+    <delete id="doDeleteVNAP">
+        DELETE FROM STOCVNAP
+         WHERE GATE_CD = #{ses.gateCd}
+           AND VENDOR_CD = #{VENDOR_CD}
+    </delete>
+
+    <delete id="doDeleteVNSL">
+        DELETE FROM STOCVNSL
+         WHERE GATE_CD = #{ses.gateCd}
+           AND COMPANY_CD = #{VENDOR_CD}
+    </delete>
+
+    <delete id="doDeleteATTS">
+        DELETE FROM STOCATTS
+         WHERE GATE_CD = #{ses.gateCd}
+           AND VENDOR_CD = #{VENDOR_CD}
+    </delete>
+
+    <delete id="doDeleteUSAP">
+        DELETE FROM STOCUSAP
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{USER_ID}
+    </delete>
+
+    <delete id="doDeleteCVUR">
+        DELETE FROM STOCCVUR
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = #{USER_ID}
+    </delete>
+    
+    <!-- 협력사의 거래요청 승인시 승인하는 사람의 고객사에게 수수료 요청 -->
+    <select id="costSmsInfo" parameterType="hashMap" resultType="hashMap">
+        SELECT CUST.IRS_NUM 	AS CORP_NO
+             , CVUR.DEPT_CD 	AS BRC
+             , <include refid="common.sql.toChar"/>(SYSDATE, 'YYYYMMDD') AS APLY_DT
+             , CVUR.USER_ID		AS USER_ID
+             , 'SMS_VEND'		<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               CUST.GATE_CD 	<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               CUST.CUST_CD		<include refid="common.sql.stringMerge"/> '@@' <include refid="common.sql.stringMerge"/>
+               #{VENDOR_CD}		AS CONT_TBL_PK
+             , NULL				AS FILE_SIZE
+         FROM STOCCUST CUST
+         JOIN STOCCVUR CVUR
+              ON (CVUR.GATE_CD    = CUST.GATE_CD
+              AND CVUR.COMPANY_CD = CUST.CUST_CD)
+        WHERE CUST.GATE_CD = #{ses.gateCd}
+          AND CVUR.USER_ID = #{CTRL_USER_ID}
+    </select>
+    
+</mapper>

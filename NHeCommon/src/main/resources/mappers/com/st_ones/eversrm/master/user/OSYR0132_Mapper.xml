@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.master.user.OSYR0132_Mapper">
+
+	<select id="osyr0132_doSearch" parameterType="hashmap" resultType="hashmap">
+
+		SELECT GETUSERNAME(GATE_CD, USER_ID, #{ses.langCd}) AS USER_NM
+		     , USER_ID
+		     , ACCESS_DATE
+			 , SCREEN_ID
+			 , GETMULTINAME(GATE_CD, 'SC', #{ses.langCd}, '', SCREEN_ID) AS SCREEN_NM
+			 , SCREEN_CRUD
+			 , MASK_RMK
+			 , MASK_SQ
+		     , MASK_APPROVAL
+			 , MASK_APPROVAL_RETURN
+		  FROM STOCMASK
+	     WHERE GATE_CD = #{ses.gateCd}
+		<if test="FROM_DATE != null and FROM_DATE != ''">
+		   AND REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{FROM_DATE})
+		</if>
+		<if test="TO_DATE != null and TO_DATE != ''">
+		   AND REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{TO_DATE})
+		</if>
+		<if test="USER_ID != null and USER_ID != ''">
+		   AND UPPER(USER_ID) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_ID}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		<if test="USER_NM != null and USER_NM != ''">
+		   AND UPPER(GETUSERNAME(GATE_CD, USER_ID, #{ses.langCd})) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{USER_NM}) <include refid="common.sql.stringMerge"/> '%'
+		</if>
+		   AND MASK_APPROVAL IS NULL
+           AND SCREEN_CRUD = 'T'
+           AND DEL_FLAG = '0'
+
+	</select>
+
+	<update id="osyr0132_doUpdate" parameterType="hashmap">
+
+		UPDATE STOCMASK
+		   SET MOD_DATE = SYSDATE
+		     , MOD_USER_ID = #{ses.userId}
+		     , MASK_APPROVAL = #{MASK_APPROVAL}
+		     , MASK_APPROVAL_USER_ID = #{ses.userId}
+			 , MASK_APPROVAL_RETURN = #{MASK_APPROVAL_RETURN}
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND MASK_SQ = #{MASK_SQ}
+		   AND ACCESS_DATE = #{ACCESS_DATE}
+		   AND USER_ID = #{USER_ID}
+
+	</update>
+
+</mapper>

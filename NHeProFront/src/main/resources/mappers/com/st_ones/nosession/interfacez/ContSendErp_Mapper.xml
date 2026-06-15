@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.st_ones.nosession.interfacez.ContSendErp_Mapper">
+    <select id="getContData" parameterType="hashmap" resultType="hashmap">
+		SELECT
+			  '16' CODE_COMPANY          --회사코드
+			, BB.PROJECT_CD CODE_PROJECT          --프로젝트코드
+			, TO_CHAR(BB.PROJECT_SQ) CHASU_RE_SAUP_VAL    --재사업발의차수
+			, EC.CONT_NUM NO_CONTRACT           --계약번호
+			, EC.CONT_DESC NM_CONTRACT           --계약명
+			, BB.IRS_NUM CODE_CUST_CONTRACT    --계약거래처
+			, '' GBN_GEORAE_CONTRACT   --계약거래구분 공통코드 (CODE-AC-724)
+
+			, CASE  WHEN BB.PURCHASE_TYPE = 'S' THEN '010'
+					WHEN BB.PURCHASE_TYPE = 'G' THEN '020'
+					WHEN BB.PURCHASE_TYPE = 'M' THEN '060'
+					WHEN BB.PURCHASE_TYPE = 'C' THEN '080'
+					WHEN BB.PURCHASE_TYPE = 'L' THEN '090'
+			  END  CODE_CONTRACT_TYPE    --계약형태 공통코드 (CODE-AC-725)
+			, CASE  WHEN BB.VENDOR_OPEN_TYPE = 'PC' THEN '010'
+					WHEN BB.VENDOR_OPEN_TYPE = 'LC' THEN '020'
+					WHEN BB.VENDOR_OPEN_TYPE = 'NC' THEN '030'
+					WHEN BB.VENDOR_OPEN_TYPE = 'GC' THEN '040'
+			  END CODE_CONTRACT_METHOD  --계약방법 공통코드 (CODE-AC-726)
+			, CASE WHEN EC.AMT_TYPE = 'TA' THEN '1'
+			       WHEN EC.AMT_TYPE = 'UP' THEN '2'
+			  END CODE_CONTRACT_AMT     --계약금액구분 공통코드 (CODE-AC-729)
+
+			, TO_CHAR(EC.CONT_AMT) AMT_CONTRACT          --계약금액
+			, TO_CHAR(EC.CONT_AMT+NVL(EC.VAT_AMT,0)) AMT_CONTRACT_VAT      --계약금액_부가세포함
+
+
+			, TO_CHAR(EC.CONT_DATE,'YYYYMMDD') DT_CONTRACT           --계약체결일
+			, EC.CONT_USER_ID ID_CHARGE_CONTRACT    --계약담당자ID
+			, TO_CHAR(EC.CONT_START_DATE,'YYYYMMDD') DT_CONTRACT_ST        --계약시작일
+			, TO_CHAR(EC.CONT_END_DATE,'YYYYMMDD') DT_CONTRACT_ED        --계약종료일
+
+
+			, TO_CHAR(EC.CONT_END_DATE + 1,'YYYYMMDD') DT_FIXDEFECT_ST       --하자보수시작일
+			, TO_CHAR(EC.CONT_END_DATE + 1,'YYYYMMDD') DT_FIXDEFECT_ED       --하자보수종료일
+
+
+			--, EC.WARR_GUAR_PERCENT RATE_FIXDEFECT        --하자보수율
+			, TO_CHAR(NVL(EC.DELAY_NUME_RATE / EC.DELAY_DENO_RATE ,0)) RATE_DELAY   --지체상금율
+			, EC.DELAY_RMK NOTE_DELAY            --지체상금내용
+			, TO_CHAR(BB.FC_MNT_TERM) AS_MONTH              --무상유지보수기간
+			, '' AS_START_COND         --무상유지보수시작조건
+			, <include refid="common.sql.strDecStart"/>EC.VENDOR_PIC_USER_NM<include refid="common.sql.strDecEnd"/> NM_CHARGE_PHASE       --매입담당자명
+			, <include refid="common.sql.strDecStart"/>EC.VENDOR_PIC_USER_CELL_NUM<include refid="common.sql.strDecEnd"/> NO_MOBILE             --연락처
+			, <include refid="common.sql.strDecStart"/>EC.VENDOR_PIC_USER_EMAIL<include refid="common.sql.strDecEnd"/> EMAIL_ADDR            --이메일
+			, '' ID_SEUNGIN            --승인자ID
+			, '1' STATUS                --결재상태(CODE_US_077)
+			, '' DTM_SEUNGIN           --승인일시
+			, '' NOTE_ETC              --기타내용
+			, '' SAYU_RETURN           --반려사유
+			, '' CODE_PROJECT_PRE      --전프로젝트코드
+			, '1' CODE_STATUS_LED       --원장상태코드(CODE_AC_730)
+			, EC.REG_USER_ID ID_REG                --등록자
+			, TO_CHAR(EC.REG_DATE) DTM_REG               --등록일시
+			, EC.MOD_USER_ID ID_UPT                --수정자
+			, TO_CHAR(EC.MOD_DATE) DTM_UPT               --수정일시
+			, null AMT_EST               --추정금액
+			, null AMT_EST_VAT           --추정금액_부가세포함
+			, '' GBN_MANAGE_CONTRACT   --계약관리구분(CODE_AC_738)
+
+			, CASE  WHEN BB.SUBMIT_TYPE = 'LP' THEN '1'
+					WHEN BB.SUBMIT_TYPE = 'NE' THEN '2'
+			  END CODE_BID_METHOD       --낙찰자결정방법(CODE_AC_739)
+
+			, '' RATE_DC_CONTRACT      --계약할인율
+			, BB.PROJECT_TYPE CODE_PROJECT_TP       --프로젝트유형코드
+			, null CODE_OUTPUT_WAY       --산출방법코드
+			, null DTM_CHG               --계약변경(거래처, 계약일, 금액) 발생일자
+			, null DTM_FIX               --담당자 확정일자
+			, null ID_FIX                --확정 담당자
+		FROM STOCECCT EC JOIN (
+								SELECT
+								     PH.PROJECT_CD
+								    ,PH.PROJECT_SQ
+								    ,EM.PURCHASE_TYPE
+								    ,PD.VENDOR_OPEN_TYPE
+								    ,EM.FC_MNT_TERM
+									,PD.SUBMIT_TYPE
+									,PH.PROJECT_TYPE
+									,(SELECT IRS_NO FROM STOCVNGL WHERE GATE_CD=EM.GATE_CD AND VENDOR_CD=EM.VENDOR_CD) IRS_NUM
+								FROM STOCECMT EM JOIN STOCPRDT PD ON EM.GATE_CD = PD.GATE_CD
+																AND EM.PB_BUYER_CD = PD.BUYER_CD
+																AND EM.PR_NUM   = PD.PR_NUM
+																AND EM.PR_SQ    = PD.PR_SQ
+												 JOIN STOCPRHD PH ON PH.GATE_CD = PD.GATE_CD
+																AND PH.BUYER_CD = PD.BUYER_CD
+																AND PH.PR_NUM   = PD.PR_NUM
+								WHERE EM.GATE_CD  = #{ses.gateCd}
+								AND   EM.BUYER_CD = #{BUYER_CD}
+								AND   EM.CONT_NUM = #{CONT_NUM}
+								AND   EM.CONT_CNT = #{CONT_CNT}
+								AND   EM.DEL_FLAG = '0'
+								AND   PD.DEL_FLAG = '0'
+								AND   PH.PROJECT_CD IS NOT NULL --추가
+								AND   PH.PROJECT_SQ IS NOT NULL --추가
+								AND   PH.SIGN_STATUS = 'E'      --추가
+								AND   EM.PB_BUYER_CD||EM.PR_NUM||EM.PR_SQ = (
+																SELECT MAX(EM1.PB_BUYER_CD||EM1.PR_NUM||EM1.PR_SQ)
+																FROM STOCECMT EM1 JOIN STOCPRDT PD1 ON EM1.GATE_CD = PD1.GATE_CD
+																								AND EM1.PB_BUYER_CD = PD1.BUYER_CD
+																								AND EM1.PR_NUM   = PD1.PR_NUM
+																								AND EM1.PR_SQ    = PD1.PR_SQ
+																WHERE EM1.GATE_CD  = #{ses.gateCd}
+																AND   EM1.BUYER_CD = #{BUYER_CD}
+																AND   EM1.CONT_NUM = #{CONT_NUM}
+																AND   EM1.CONT_CNT = #{CONT_CNT}
+																AND   EM1.DEL_FLAG = '0'
+																AND   PD1.DEL_FLAG = '0'
+															)
+								AND ROWNUM = 1
+							) BB ON 1 = 1
+		WHERE EC.GATE_CD  = #{ses.gateCd}
+		AND   EC.BUYER_CD = #{BUYER_CD}
+		AND   EC.CONT_NUM = #{CONT_NUM}
+		AND   EC.CONT_CNT = #{CONT_CNT}
+		AND   EC.PROGRESS_CD = '4300' --추가
+	</select>
+
+
+    <insert id="erpSendComplete" parameterType="hashmap">
+		UPDATE STOCECCT SET ERP_SEND = '1'
+		WHERE GATE_CD  = #{ses.gateCd}
+		AND   BUYER_CD = #{BUYER_CD}
+		AND   CONT_NUM = #{CONT_NUM}
+		AND   CONT_CNT = #{CONT_CNT}
+	</insert>
+
+
+
+
+
+
+
+
+
+</mapper>

@@ -1,0 +1,91 @@
+<HEAD>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+	<link rel="stylesheet" href="$maintainUrl$/css/index.css" type="text/css"/>
+	<link rel="stylesheet" href="$maintainUrl$/css/ymro/ui/layout.css" type="text/css"/>
+	<link rel="stylesheet" href="$maintainUrl$/css/ymro/ui/style.css" type="text/css">
+</HEAD>
+
+<BODY>
+<div style='width:740px;margin:auto;padding:5px;border-top:1px solid #4d585d;font-family:Nanum Gothic, sans-serif;'>
+	<div style="border-bottom: 1px solid #b7b7b7;">
+        <table style="width: 100%;">
+            <tr style="text-align: center; height: 70px;">
+                <td style="font-size: 18px; font-weight: bold; vertical-align: middle;">금일($CURRENT_DATE$)부로 납기일정이 D-1일 남은 주문건이 존재합니다.</td>
+            </tr>
+        </table>
+    </div>
+    <div style="padding: 0;height: 150px;">
+        <table style="width: 100%;">
+            <tr>
+                <td><img style="padding: 10px 0 0 0;" src="$maintainUrl$/images/ymro/mail/icon_mail_02.jpg" alt="MAIL" /></td>
+                <td style="vertical-align: middle; padding: 0 0 0 10px;">
+                    <p style="text-align: left; color: #606060;">안녕하세요. DSP MRO 입니다.</p>
+                    <br>
+                    <p style="text-align: left; color: #606060;">$VENDOR_NM$ 님.</p>
+                    <p style="text-align: left; color: #606060;">금일($CURRENT_DATE$)부로 납기일정이 D-1일 남은 주문건이 아래와 같이 존재합니다.</p>
+                    <p style="text-align: left; color: #606060;">조속한 처리 부탁드립니다.</p>
+                    <p style="text-align: left; color: #606060;">납기지연 발생 시 품목담당자와 협의하시기 바랍니다.($MAIN_TEL_NUM$)</p>
+                    <br>
+                    <p style="text-align: left; color: #606060;">보내주신 관심에 항상 감사드리며, 최고의 서비스 제공을 위해 최선을 다하겠습니다.</p>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <br>
+	<strong style='display:block;height:22px;padding:0 0 0 20px;font-size:13px;color:#232323;background:url($maintainUrl$/images/ymro/mail/ico_title.gif) 0 3px no-repeat'>납품예정정보</strong>
+	<div style='width:100%;'>
+		<table style='width:100%;font-weight:normal;border:0;border-collapse:collapse;border-spacing:0;table-layout:fixed;border-top:2px solid #027bc2'>
+			<colgroup>
+				<col style="width:29%">
+				<col style="width:15%">
+				<col style="width:14%">
+				<col style="width:13%">
+				<col style="width:15%">
+				<col style="width:14%">
+			</colgroup>
+			<thead>
+                <tr>
+                    <th style='vertical-align: top;border-bottom:1px solid #b8b8b8;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;padding:8px 0 8px;text-align:center;font-size:12px;color:#404141;background:#eeeeee'>고객사</th>
+					<th style='vertical-align: top;border-bottom:1px solid #b8b8b8;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;padding:8px 0 8px;text-align:center;font-size:12px;color:#404141;background:#eeeeee'>주문번호</th>
+					<th style='vertical-align: top;border-bottom:1px solid #b8b8b8;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;padding:8px 0 8px;text-align:center;font-size:12px;color:#404141;background:#eeeeee'>주문자</th>
+					<th style='vertical-align: top;border-bottom:1px solid #b8b8b8;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;padding:8px 0 8px;text-align:center;font-size:12px;color:#404141;background:#eeeeee'>주문일자</th>
+					<th style='vertical-align: top;border-bottom:1px solid #b8b8b8;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;padding:8px 0 8px;text-align:center;font-size:12px;color:#404141;background:#eeeeee'>발주번호</th>
+					<th style='vertical-align: top;border-bottom:1px solid #b8b8b8;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;padding:8px 0 8px;text-align:center;font-size:12px;color:#404141;background:#eeeeee'>희망납기일</th>
+                </tr>
+			</thead>
+
+			$tblBody$
+
+		</table>
+	</div>
+    <br>
+	<div>
+		<p style="font-size: 12px; color: #303030; font-weight: bold;">※ 본 메일은 발신 전용입니다. 궁금하신 점이나 불편한 사항은 당사 담당자 또는 고객센터($MAIN_TEL_NUM$)로 문의해주시기 바랍니다.</p>
+	</div>
+	<br>
+	<div align="center">
+		<dl style="text-align:center; display: inline-table;">
+			<a id="goWebsite" target="_blank" href="$maintainUrl$/"><img id="btnImg" src="$maintainUrl$/images/ymro/mail/system_link.png" width="110px" alt="DSPMRO" /></a>&nbsp;
+		</dl>
+	</div>
+	<br>
+	<div style="width: 100%; height: 65px;">
+		<footer style="width: 730px; height: 100%; margin: 0 auto;">
+			<div style="width: 100%;">
+				<p style="font-size: 13px; line-height: 20px; color: #606060; position: relative; left: 7px;">
+					<span>본사 : 전북 익산시 석암로3길 59(팔봉동 827-2)</span>
+					<span>| TEL. 063-834-6384</span>
+					<span>| FAX. 063-835-6385</span>
+				</p>
+				<p style="font-size: 13px; line-height: 20px; color: #606060; position: relative; left: 7px;">
+					<span>수도권사업부 : 경기도 화성시 동탄대로 635(영천동) SH타임스퀘어1차 911호</span>
+					<span>| TEL. 031-376-3415</span>
+					<span>| FAX. 031-376-3416</span>
+				</p>
+				<p class="copyright" style="font-size: 13px; position: relative; left: 100px;">Copyright DSPMRO. All rights reserved.</p>
+			</div>
+		</footer>
+	</div>
+</div>
+</BODY>

@@ -1,0 +1,573 @@
+package com.st_ones.eversrm.eApproval.eApprovalModule.service;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.st_ones.common.mail.service.EverMailService;
+import com.st_ones.common.message.service.MessageService;
+import com.st_ones.common.sms.service.EverSmsService;
+import com.st_ones.common.util.clazz.EverFile;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.common.util.service.LargeTextService;
+import com.st_ones.everf.serverside.config.PropertiesManager;
+import com.st_ones.everf.serverside.exception.ApprovalException;
+import com.st_ones.everf.serverside.info.BaseInfo;
+import com.st_ones.everf.serverside.info.UserInfoManager;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.eversrm.eApproval.EApprovalMapper;
+import com.st_ones.eversrm.eApproval.eApprovalModule.BAPM_Mapper;
+import com.st_ones.eversrm.eApproval.service.EndApprovalService;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : BAPM_Service.java
+ * @date 2013. 07. 22.
+ * @version 1.0
+ */
+
+@Service(value = "bapm_Service")
+public class BAPM_Service extends BaseService {
+
+	@Autowired private MessageService msg;
+	@Autowired private BAPM_Mapper bapm_Mapper;
+	@Autowired private EndApprovalService endApprovalService;
+	@Autowired private EverMailService evermailservice;
+	@Autowired private LargeTextService largeTextService;
+	@Autowired private EApprovalMapper eApprovalMapper;
+    @Autowired private EverSmsService eversmsservice;
+	@Autowired private EverMailService everMailService;
+
+	private Logger logger = LoggerFactory.getLogger(BAPM_Service.class);
+
+	public List<Map<String, Object>> selectPath(Map<String, String> param) throws Exception {
+		return bapm_Mapper.selectPath(param);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String insertPath(Map<String, String> formData, List<Map<String, Object>> gridDatas) throws Exception {
+		String pathNo = bapm_Mapper.getPathNo(formData);
+
+		formData.put("PATH_NUM", pathNo);
+		bapm_Mapper.insertPath(formData);
+
+		bapm_Mapper.deleteLULP(formData);
+		for (Map<String, Object> gridData : gridDatas) {
+			gridData.put("PATH_NUM", pathNo);
+			bapm_Mapper.insertPathDetail(gridData);
+		}
+
+		return msg.getMessage("0015");
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String updatePath(Map<String, String> formData, List<Map<String, Object>> gridDatas) throws Exception {
+		String pathNo = formData.get("PATH_NUM");
+
+		bapm_Mapper.updatePath(formData);
+
+		bapm_Mapper.deleteLULP(formData);
+		for (Map<String, Object> gridData : gridDatas) {
+			if (!gridData.get("INSERT_FLAG").toString().equals("D")) {
+				gridData.put("PATH_NUM", pathNo);
+				bapm_Mapper.insertPathDetail(gridData);
+			}
+		}
+
+		return msg.getMessage("0016");
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String deletePath(List<Map<String, Object>> gridDatas) throws Exception {
+
+		for (Map<String, Object> gridData : gridDatas) {
+			bapm_Mapper.deletePathDetail(gridData);
+			bapm_Mapper.deletePath(gridData);
+		}
+
+		return msg.getMessage("0017");
+	}
+
+	public List<Map<String, Object>> selectPathDetail(Map<String, String> param) throws Exception {
+		return bapm_Mapper.selectPathDetail(param);
+	}
+
+	///pathSearch
+	public List<Map<String, Object>> selectPathPopup(Map<String, String> param) throws Exception {
+		return bapm_Mapper.selectPathPopup(param);
+	}
+
+	//////////
+	public String getMatchUserInfoByName(String userNm) throws ApprovalException, IOException {
+		int count = matchUserCountByName(userNm);
+
+		if (count != 1) {
+			if (count > 1) {
+				ApprovalException e = new ApprovalException("More Than 1 Result");
+				e.setSelectedUserCount(count);
+				throw e;
+			}
+			ApprovalException e = new ApprovalException("No Result");
+			e.setSelectedUserCount(count);
+			throw e;
+		}
+
+		Map<String, String> userInfo = getUserInfoByName(userNm);
+		return new ObjectMapper().writeValueAsString(userInfo);
+	}
+
+	/**
+	 * userInfo by userNm
+	 * @param userNm
+	 * @return
+	 * @throws Exception
+	 */
+	private Map<String, String> getUserInfoByName(String userNm) {
+		HashMap<String, String> hashMap = new HashMap<String, String>();
+		hashMap.put("USER_NM", userNm);
+		return bapm_Mapper.getUserInfoByName(hashMap);
+	}
+
+	/**
+	 * userCount with name
+	 * @param userNm
+	 * @return
+	 * @throws Exception
+	 */
+	private int matchUserCountByName(String userNm) {
+		HashMap<String, String> hashMap = new HashMap<String, String>();
+		hashMap.put("USER_NM", userNm);
+		return bapm_Mapper.matchUserCountByName(hashMap);
+	}
+
+	/**
+	 * Request Approval Service
+	 * @param docInfo APP_DOC_NUM, APP_DOC_CNT, DOC_TYPE, PROCEEDING_FLAG를 설정 해야 합니다.
+	 * @param strApprovalHeaderData 공통 결재 요청 팝업으로 부터 결재 Header Data 입니다.
+	 * @param strApprovalDetailData 공통 결재 요청 팝업으로 부터 결재 Detail Data 입니다.
+	 * @throws ApprovalException
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public void doApprovalProcess(Map<String, String> docInfo, String strApprovalFormData, String strApprovalGridData) throws Exception {
+
+        BaseInfo userInfo = UserInfoManager.getUserInfo();
+        if(docInfo.get("BUYER_CD") == null || EverString.nullToEmptyString(docInfo.get("BUYER_CD")).equals("")) {
+            if(userInfo != null) { docInfo.put("BUYER_CD", userInfo.getCompanyCd()); }
+        }
+
+		String previousUnAcceptableStatus = previousUnacceptableStatus(docInfo);
+
+		if (EverString.equals(previousUnAcceptableStatus, "P")) {
+			throw new ApprovalException(msg.getMessageForService(this, "proceeding_item"));
+		}
+
+		Map<String, String> approvalHeader = new ObjectMapper().readValue(strApprovalFormData, Map.class);
+		List<Map<String, String>> approvalDetails = new ObjectMapper().readValue(strApprovalGridData, List.class);
+
+		String nextSignUserId = approvalDetails.get(0).get("SIGN_USER_ID");
+		approvalHeader.put("NEXT_SIGN_USER_ID", nextSignUserId);
+		approvalHeader.put("CONTENTS_TEXT_NUM", largeTextService.saveLargeText(approvalHeader.get("CONTENTS_TEXT_NUM"), approvalHeader.get("DOC_CONTENTS")));
+
+		approvalHeader.putAll(docInfo);
+		bapm_Mapper.insertSTOCSCTM(approvalHeader);
+
+		for (Map<String, String> approvalData : approvalDetails) {
+			approvalData.putAll(docInfo);
+			bapm_Mapper.insertSTOCSCTP(approvalData);
+		}
+		
+		try {
+			String linkUrl = PropertiesManager.getString("eversrm.urls.maintain.real") ;
+			
+			approvalHeader.put("BUYER_CD", docInfo.get("BUYER_CD"));
+			Map<String, String> sctmInfo = eApprovalMapper.selectSTOCSCTM(approvalHeader);
+			
+			//EMAIL
+	        String subject = "[전자구매시스템] [" + sctmInfo.get("BUYER_NM") + "] " + sctmInfo.get("REG_USER_NM") + "]님이 결재문서 [" + sctmInfo.get("SUBJECT") + "]을 상신하였습니다";
+	        
+	        Map<String,String> mailMap = new HashMap<String,String>();
+	        mailMap.put("SUBJECT", subject);
+	        
+	        StringBuffer content = new StringBuffer(255);
+	        content.append("<BR> 안녕하세요.																			");
+	        content.append("<BR> [" + sctmInfo.get("BUYER_NM") + "] " + sctmInfo.get("NEXT_SIGN_USER_NM") + " 님.	");
+	        content.append("<BR>                   																	");
+	        content.append("<BR> 아래와 같이 결재문서가 상신되었습니다                   										");
+	        content.append("<BR> 제목 : " + sctmInfo.get("SUBJECT") + "												");
+	        content.append("<BR> 상신자 : " + sctmInfo.get("REG_USER_NM") + "                   						");
+	        content.append("<BR>                   																	");
+	        content.append("<BR> 전자구매시스템에 <a href=\""+linkUrl+"\" target=\"newP\">로그인</a> 하시어, 세부내용을 확인 후 [승인/반려] 해주십시오.  ");
+	        content.append("<BR>                   																	");
+	        content.append("<BR> 감사합니다.                                          									");
+	        
+	        mailMap.put("CONTENTS", content.toString());
+	        mailMap.put("REF_MODULE_CD", "MSIGN01");
+	        mailMap.put("RECV_USER_ID", nextSignUserId);
+	        mailMap.put("REF_NUM", docInfo.get("APP_DOC_NUM"));
+	        //개발테스트시에는 잠시 주석
+	        //evermailservice.SendMail(mailMap);
+	        
+	        //SMS
+	        Map<String,String> smsMap = new HashMap<String,String>();
+	        // 2021.01.05 SMS 문구 조정
+	        //smsMap.put("CONTENTS", subject);
+            smsMap.put("CONTENTS", "[전자구매시스템]" + sctmInfo.get("REG_USER_NM") + " "+sctmInfo.get("DUTY_NM") + " 님이 상신한 결재문서가 도착하였습니다");
+	        smsMap.put("REF_MODULE_CD", "SSIGN01");
+	        smsMap.put("REF_NUM", docInfo.get("APP_DOC_NUM"));
+	        smsMap.put("RECV_USER_ID", nextSignUserId);
+	        
+	        // 2021.06.29 : 결재상신 SMS 수수료 부과하기
+	        smsMap.put("CORP_NO", sctmInfo.get("CORP_NO"));			// 고객사 사업자번호
+			smsMap.put("BRC", sctmInfo.get("BRC"));					// 고객사 부서
+			smsMap.put("EPRO_PS_DSC", "1");							// 1  : 구매
+            smsMap.put("EPRO_RATE_DSC", "01");						// 01 : 최초
+			smsMap.put("APLY_DT", sctmInfo.get("APLY_DT"));			// 발생일 YYYYMMDD
+			smsMap.put("USER_ID", sctmInfo.get("USER_ID"));			// 고객사 보내는사람 ID
+			smsMap.put("CONT_TBL_ID", "STOCSCTM");					// 검증 테이블
+			smsMap.put("CONT_TBL_PK", sctmInfo.get("CONT_TBL_PK")); // 검증 조건(협력사별 입찰번호)
+			smsMap.put("tmp", sctmInfo.get("CONT_TBL_PK"));			// myBatis 버그 해결을 위한 무의미한, 유니크한 값.
+			smsMap.put("payFlag", "Y");								// SMS 과금여부
+			//개발테스트시에는 잠시 주석
+	        //eversmsservice.sendSmsNhe(smsMap);
+		}
+		catch (Exception ex) {
+		    logger.error("결재문서 상신 메일&문자 발송 오류 : " + ex.getMessage());
+		}
+	}
+
+	/**
+	 * HMCHOI-151027
+	 * G/W 연동시 STOCSCTM 테이블에 데이터를 등록함
+	 * @param docInfo APP_DOC_NUM, APP_DOC_CNT, DOC_TYPE, PROCEEDING_FLAG를 설정 해야 합니다.
+	 * @throws ApprovalException
+	 * @throws Exception
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public void doApprovalProcess(Map<String, String> docInfo) throws Exception {
+		bapm_Mapper.insertSTOCSCTM(docInfo);
+	}
+
+	/**
+	 * When the document is approved or proceeded then return the status of the approval process
+	 * @param docInfo<br>
+	 * GATE_CD, APP_DOC_NUM
+	 * @return
+	 * Approved then E, Proceeding then P others null
+	 * @throws Exception
+	 */
+	private String previousUnacceptableStatus(Map<String, String> docInfo) {
+		List<String> signStatusHistory = bapm_Mapper.selectSTOCSCTPSignStatusHistory(docInfo);
+		if (signStatusHistory.isEmpty()) {
+			return null;
+		}
+
+		if (signStatusHistory.contains("P")) {
+			return "P";
+		}
+		return null;
+	}
+
+	/**
+	 * 결재 마스터 조회
+	 * GATE_CD, APP_DOC_NUM, APP_DOC_CNT
+	 * @param approvalInfoKey
+	 * @return
+	 * @throws Exception
+	 * @throws ApprovalException
+	 */
+	public Map<String, String> selectApprovalInfoHeader(Map<String, String> approvalInfoKey) throws Exception {
+
+		if (!isAuthorized(approvalInfoKey)) {
+			throw new ApprovalException("결재라인에 존재하지 않는 사용자입니다.");
+		}
+
+		Map<String, String> infoHeader = bapm_Mapper.selectSTOCSCTM(approvalInfoKey);
+		String splitString = largeTextService.selectLargeText(infoHeader.get("CONTENTS_TEXT_NUM"));
+		infoHeader.put("DOC_CONTENTS", splitString);
+		return infoHeader;
+	}
+
+	public String selectMySignStatus(Map<String, String> formDataParam) {
+		return bapm_Mapper.selectMySignStatus(formDataParam);
+	}
+
+	/**
+	 * 결재 상세 조회
+	 * GATE_CD, APP_DOC_NUM, APP_DOC_CNT
+	 * @param formData
+	 * @return
+	 * @throws Exception
+	 */
+	public List<Map<String, Object>> selectApprovalInfoDetail(Map<String, String> formData) throws Exception {
+		return bapm_Mapper.selectSTOCSCTP(formData);
+	}
+
+	public boolean isAuthorized(Map<String, String> approvalInfoKey) throws Exception {
+		int authorizedUserCount = bapm_Mapper.getAuthorizedCount(approvalInfoKey);
+        return authorizedUserCount > 0;
+    }
+
+	public List<Map<String, Object>> getMyPath() {
+		return bapm_Mapper.getMyPath(new HashMap<String, String>());
+	}
+
+	public List<Map<String, String>> selectLULP(HashMap<String, String> approvalPathKey) {
+		return bapm_Mapper.selectLULP(approvalPathKey);
+	}
+
+	/**
+	 *
+	 * cancelApprovalProcess
+	 * @param map <br/>
+	 * SIGN_STATUS, GATE_CD, APP_DOC_NUM, APP_DOC_CNT
+	 * @return
+	 * @throws Exception
+	 * @throws ApprovalException
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String cancelApprovalProcess(Map<String, String> map) throws Exception {
+		checkCancellable(map);
+		cancelApproval(map);
+		String nextSignPathSeq = bapm_Mapper.getNextSignPathSeq(map);
+		map.put("SIGN_PATH_SEQ", nextSignPathSeq);
+		return msg.getMessageForService(this, "cancel");
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public void documentRead(Map<String, String> param) throws Exception {
+
+		String updateFlag = EverString.nullToEmptyString(bapm_Mapper.getUpdateFlag(param));
+		if(updateFlag.equals("Y")) {
+			bapm_Mapper.updateReadDate(param);
+		}
+	}
+
+	/**
+	 * @param map<br>
+	 * SIGN_STATUS, GATE_CD, APP_DOC_NUM, APP_DOC_CNT
+	 * @throws Exception
+	 * @throws ApprovalException
+	 */
+	private void checkCancellable(Map<String, String> map) throws Exception {
+		Map<String, String> approvalRequestInfo = bapm_Mapper.selectSTOCSCTM(map.get("APP_DOC_NUM"), map.get("APP_DOC_CNT"));
+
+		if (!EverString.equals(approvalRequestInfo.get("SIGN_STATUS"), "P")) {
+			throw new ApprovalException(msg.getMessageForService(this, "cannotCancel_01"));
+		}
+	}
+
+	/**
+	 * 결재 모듈 취소 후 사용자 모듈 결재 취소 서비스 CALL
+	 * 승인 반려자가 없는 경우 가능
+	 * @param map<br>
+	 * DOC_TYPE, APP_DOC_NUM, DOC_TYPE
+	 * @return Message from user Method
+	 * @throws Exception
+	 * @throws ApprovalException
+	 */
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String cancelApproval(Map<String, String> map) throws Exception {
+		map.put("SIGN_STATUS", "C");
+
+		bapm_Mapper.updateSTOCSCTM(map);
+
+		String docType   = map.get("DOC_TYPE");
+		String buyerCd 	 = map.get("BUYER_CD");
+		String appDocNum = map.get("APP_DOC_NUM");
+		String appDocCnt = map.get("APP_DOC_CNT");
+
+		return endApprovalService.doAfterCancel(docType, buyerCd, appDocNum, appDocCnt);
+	}
+
+	/**
+	* @param approvalInfoKey<br>
+	* GATE_CD, APP_DOC_NUM
+	* @return
+	* @throws Exception
+	* @throws ApprovalException
+	*/
+	public Map<String, String> selectPreviousInfoForm(Map<String, String> approvalInfoKey) throws Exception {
+		Map<String, String> selectSTOCSCTM = bapm_Mapper.selectSTOCSCTM(approvalInfoKey);
+		if (selectSTOCSCTM == null) {
+			return null;
+		}
+		String appDocCnt = bapm_Mapper.getCurrentDocCount(approvalInfoKey);
+		approvalInfoKey.put("APP_DOC_CNT", appDocCnt);
+		if (!isAuthorized(approvalInfoKey)) {
+			throw new ApprovalException("Un Authorized Access");
+		}
+		return selectSTOCSCTM;
+	}
+
+	/**
+	* @param approvalInfoKey
+	* GATE_CD, APP_DOC_NUM
+	* @return
+	* @throws Exception
+	*/
+	public List<Map<String, Object>> selectPreviousInfoGrid(Map<String, String> approvalInfoKey) throws Exception {
+		String appDocCnt = bapm_Mapper.getCurrentDocCount(approvalInfoKey);
+		approvalInfoKey.put("APP_DOC_CNT", appDocCnt);
+		return bapm_Mapper.selectSTOCSCTP(approvalInfoKey);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public void deleteSCTM(Map<String, String> appDocNum) {
+		bapm_Mapper.deleteSCTM(appDocNum);
+		bapm_Mapper.deleteSCTP(appDocNum);
+	}
+
+	public List<Map<String, Object>> singerList(Map<String, String> param) throws Exception {
+		return bapm_Mapper.singerList(param);
+	}
+
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String putBkCost(Map<String, String> param) throws Exception {
+
+		// 테스트를 위해 값 변경.
+		if( PropertiesManager.getBoolean("eversrm.system.localserver") ) {
+			param.put("CORP_NO", "2148206195");
+			param.put("BRC", "005085");
+			param.put("USER_ID", "11303733");
+        } // 운영에서 CUSTOMER 계정은 하드코딩...
+		else {
+//			if(EverString.nullToEmptyString(param.get("USER_ID")).equals("CUSTOMER")) {
+//				param.put("CORP_NO", "2148206195");
+//				param.put("BRC", "005085");
+//				param.put("USER_ID", "11303733");
+//			}
+		}
+
+		// EPRO_WRS_DS = '30' 또는 '40'일 때 반드시 계약금액을 넣어야 함.
+		if(param.get("EPRO_WRS_DS").equals("30") || param.get("EPRO_WRS_DS").equals("40")) {
+			if(param.get("tmp") == null || param.get("tmp").equals("")) {
+				param.put("tmp", "0");
+			}
+		}
+		
+        /**
+         * 사용 수수료 청구
+		 * call NHEPRO.PUT_BK_COST(
+         *      #{CORP_NO}, #{BRC}, #{EPRO_PS_DSC}, #{EPRO_WRS_DS}, #{EPRO_RATE_DSC}, #{APLY_DT}, #{USER_ID}, #{CONT_TBL_ID}, #{CONT_TBL_PK}, NULL, #{tmp}
+         *     ,#{RESULT_STR, mode=OUT, javaType=string, jdbcType=VARCHAR}
+         * )
+         */
+		bapm_Mapper.putBkCost(param);
+		// 2021.01.12 사용수수료 청구 후 결과값 return
+		if( !param.get("RESULT_STR").equals("OK") ) {
+			return "사용 수수료 부과시 오류 발생 => " + param.get("RESULT_STR") + " 관리자 > 이용권구매 메뉴를 통해 이용권을 구매하세요.";
+		}
+
+		return "OK";
+	}
+
+	private void eApprovalMailSend(String approvalStatus, Map<String, String> receiverInfo, String approvalNum, String appDocCnt) throws Exception {
+
+		// E-Mail 발송
+		String maintainUrl = "";
+		// 개발 운영 모드 설정
+		boolean isDevelopmentMode = PropertiesManager.getBoolean("eversrm.system.developmentFlag");
+		if(isDevelopmentMode){
+			maintainUrl = PropertiesManager.getString("eversrm.urls.maintain.dev");
+		} else {
+			maintainUrl = PropertiesManager.getString("eversrm.urls.maintain.real");
+		}
+
+		String templatePath = PropertiesManager.getString("eversrm.system.mailTemplatePath");
+		String templateFileNm = "";
+		String fileContents = "";
+
+		Map<String, String> param = new HashMap<String, String>();
+		param.put("APP_DOC_NUM", approvalNum);
+		param.put("APP_DOC_CNT", appDocCnt);
+		List<Map<String, String>> pathList = eApprovalMapper.getSignPathList(param);
+
+		String appSubject = "";
+		if(pathList.size() > 0) {
+			appSubject = EverString.nullToEmptyString(pathList.get(0).get("SUBJECT"));
+		}
+
+		if(approvalStatus.equals("P")) {
+			templateFileNm = templatePath + PropertiesManager.getString("eversrm.system.APPROVAL_TemplateFileName");
+			fileContents = EverFile.fileReadByOffsetByEncoding(templateFileNm, "UTF-8");
+			fileContents = EverString.replace(fileContents, "$TITLE$", receiverInfo.get("RECV_USER_NM") + " 님. 결재문서가 도착하였습니다.");
+			fileContents = EverString.replace(fileContents, "$APP_CONTENTS$", "시스템에 로그인 하시어 해당 문건 검토 후 결재 승인 바랍니다.");
+		}
+		else if(approvalStatus.equals("E")) {
+			templateFileNm = templatePath + PropertiesManager.getString("eversrm.system.END_TemplateFileName");
+			fileContents = EverFile.fileReadByOffsetByEncoding(templateFileNm, "UTF-8");
+			fileContents = EverString.replace(fileContents, "$TITLE$", receiverInfo.get("RECV_USER_NM") + " 님. 상신하신 결재문서가 승인 처리 되었습니다.");
+			fileContents = EverString.replace(fileContents, "$SIGN_STATUS$", "승인");
+		}
+		else if(approvalStatus.equals("R")) {
+			templateFileNm = templatePath + PropertiesManager.getString("eversrm.system.END_TemplateFileName");
+			fileContents = EverFile.fileReadByOffsetByEncoding(templateFileNm, "UTF-8");
+			fileContents = EverString.replace(fileContents, "$TITLE$", receiverInfo.get("RECV_USER_NM") + " 님. 상신하신 결재문서가 반려 처리 되었습니다.");
+			fileContents = EverString.replace(fileContents, "$SIGN_STATUS$", "반려");
+		}
+		else if(approvalStatus.equals("CC")) {
+			templateFileNm = templatePath + PropertiesManager.getString("eversrm.system.APPROVAL_TemplateFileName");
+			fileContents = EverFile.fileReadByOffsetByEncoding(templateFileNm, "UTF-8");
+			fileContents = EverString.replace(fileContents, "$TITLE$", receiverInfo.get("RECV_USER_NM") + " 님. 결재문서[참조]가 도착하였습니다.");
+			fileContents = EverString.replace(fileContents, "$APP_CONTENTS$", "시스템에 로그인 하시어 해당 문건을 확인 바랍니다.");
+		}
+		fileContents = EverString.replace(fileContents, "$APP_DOC_NUM$", approvalNum);
+		fileContents = EverString.replace(fileContents, "$APP_SUBJECT$", appSubject);
+		fileContents = EverString.replace(fileContents, "$SIGN_USER_NM$", receiverInfo.get("RECV_USER_NM"));
+
+		String tblBody = "<tbody>";
+		String enter = "\n";
+		if(pathList.size() > 0) {
+			for (Map<String, String> pathData : pathList) {
+				String tblRow = "<tr>"
+						+ enter + "<td style='word-break:break-all;padding:5px 6px 6px 6px;color:#404141;text-align:center;font-size:12px;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;border-bottom:1px solid #cdcdcd'>" + EverString.nullToEmptyString(pathData.get("USER_NM")) + "</th>"
+						+ enter + "<td style='word-break:break-all;padding:5px 6px 6px 6px;color:#404141;text-align:left;font-size:12px;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;border-bottom:1px solid #cdcdcd'>" + EverString.nullToEmptyString(pathData.get("DEPT_NM")) + "</th>"
+						+ enter + "<td style='word-break:break-all;padding:5px 6px 6px 6px;color:#404141;text-align:left;font-size:12px;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;border-bottom:1px solid #cdcdcd'>" + EverString.nullToEmptyString(pathData.get("DUTY_NM")) + "</th>"
+						+ enter + "<td style='word-break:break-all;padding:5px 6px 6px 6px;color:#404141;text-align:center;font-size:12px;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;border-bottom:1px solid #cdcdcd'>" + EverString.nullToEmptyString(pathData.get("SIGN_REQ_TYPE")) + "</th>"
+						+ enter + "<td style='word-break:break-all;padding:5px 6px 6px 6px;color:#404141;text-align:center;font-size:12px;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;border-bottom:1px solid #cdcdcd'>" + EverString.nullToEmptyString(pathData.get("SIGN_STATUS")) + "</th>"
+						+ enter + "<td style='word-break:break-all;padding:5px 6px 6px 6px;color:#404141;text-align:center;font-size:12px;border-left:1px solid #cdcdcd;border-right:1px solid #cdcdcd;border-bottom:1px solid #cdcdcd'>" + EverString.nullToEmptyString(pathData.get("SIGN_DATE")) + "</th>"
+						+ enter + "</tr>";
+				tblBody += tblRow;
+			}
+		}
+
+		fileContents = EverString.replace(fileContents, "$tblBody$", tblBody);
+		fileContents = EverString.replace(fileContents, "$maintainUrl$", maintainUrl);
+		fileContents = EverString.rePreventSqlInjection(fileContents);
+
+		if(!receiverInfo.get("RECV_EMAIL").equals("")) {
+			Map<String, String> mdata = new HashMap<String, String>();
+			mdata.put("SUBJECT", (approvalStatus.equals("P") ? "[DSPMRO] " + receiverInfo.get("RECV_USER_NM") + " 님. 결재문서가 도착하였습니다." : (approvalStatus.equals("E") ? "[DSPMRO] " + receiverInfo.get("RECV_USER_NM") + " 님. 상신하신 결재문서가 승인 처리 되었습니다." : (approvalStatus.equals("R") ? "[니즈풀] " + receiverInfo.get("RECV_USER_NM") + " 님. 상신하신 결재문서가 반려 처리 되었습니다." : "[니즈풀] " + receiverInfo.get("RECV_USER_NM") + " 님. 결재문서[참조]가 도착하였습니다."))));
+			mdata.put("CONTENTS_TEMPLATE", fileContents);
+			mdata.put("SEND_EMAIL", receiverInfo.get("SEND_EMAIL"));
+			mdata.put("SEND_USER_NM", ((approvalStatus.equals("E") || approvalStatus.equals("R")) ? "" : receiverInfo.get("SEND_USER_NM")));
+			mdata.put("SEND_USER_ID", ((approvalStatus.equals("E") || approvalStatus.equals("R")) ? "SYSTEM" : receiverInfo.get("SEND_USER_ID")));
+			mdata.put("RECV_EMAIL", receiverInfo.get("RECV_EMAIL"));
+			mdata.put("RECV_USER_NM", receiverInfo.get("RECV_USER_NM"));
+			mdata.put("RECV_USER_ID", receiverInfo.get("RECV_USER_ID"));
+			mdata.put("REF_NUM", approvalNum);
+			mdata.put("REF_MODULE_CD","APP"); // 참조모듈
+			// 메일전송.
+			everMailService.SendMail(mdata);
+			mdata.clear();
+		}
+	}
+}

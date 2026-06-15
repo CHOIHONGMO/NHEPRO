@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhpkicmpnp.CertMapper">
+
+	<insert id="insertCertUser" parameterType="hashmap">
+		<!-- 블록체인인증서 : (법인/개인용) 인증서 발급시 사용자매핑테이블 기록 -->
+		INSERT INTO CERT_USER_TABLE
+		(
+			CERT_SEQ
+			, USER_ID
+			, IS_CORPORATION
+			, CERT_CN
+			, CERT_DN
+			, CERT_OU
+			, BEFORE_DATE
+			, AFTER_DATE
+			, BCID
+			, CERT_STATUS
+			, IRS_NUM
+			<if test="isCorporation == 'false'">
+			, DI
+			</if>
+		)
+		VALUES
+		(
+			CERT_AUTO_SEQ.nextval
+			, #{userId}
+			, #{isCorporation}
+			, #{signCertCn}
+			, #{signCertDn}
+			, #{signCertOu}
+			, #{beforeDate}
+			, #{afterDate}
+			, #{bcid}
+			, #{certStatus}
+			, #{irsNo}
+			<if test="isCorporation == 'false'">
+			, #{di}
+			</if>
+		)
+	</insert>
+
+	<select id="countCertUser" parameterType="hashmap" resultType="java.lang.Integer">
+		SELECT
+			COUNT(*) AS CountUser
+		FROM
+			CERT_USER_TABLE
+		WHERE
+			CERT_STATUS='validity'
+			AND IS_CORPORATION=#{isCorporation}
+			AND USER_ID=#{userId}
+			<if test="bcid != '' and bcid != null">
+			AND BCID = #{bcid}
+			</if>
+		ORDER BY
+			CERT_SEQ DESC
+	</select>
+
+	<select id="certUserInfo" parameterType="hashmap" resultType="hashMap">
+		<!-- 블록체인인증서 : (법인/개인용) 해당 사용자의 용도별 인증서 리스트 출력(폐기메뉴) -->
+		SELECT
+			ROWNUM AS NUM
+			, CERTUSER.BCID
+            , CASE CERTUSER.IS_CORPORATION
+                WHEN 'true' THEN '법인용'
+                WHEN 'false' THEN '개인용' ELSE '' END AS IS_CORPORATION
+            , CERTUSER.CERT_CN
+            , CERTUSER.CERT_OU
+            , CASE CERTUSER.CERT_STATUS
+                WHEN 'validity' THEN '유효'
+                else '폐기' end as CERT_STATUS
+            , SUBSTR(CERTUSER.BEFORE_DATE, 0, 4)||'-'||SUBSTR(CERTUSER.BEFORE_DATE, 5, 2)||'-'||SUBSTR(CERTUSER.BEFORE_DATE, 7, 2) ||
+             '~' || SUBSTR(CERTUSER.AFTER_DATE, 0, 4)||'-'||SUBSTR(CERTUSER.AFTER_DATE, 5, 2)||'-'||SUBSTR(CERTUSER.AFTER_DATE, 7, 2) AS CERT_DATE
+		FROM
+			CERT_USER_TABLE CERTUSER
+		WHERE
+			CERT_STATUS = 'validity'
+			AND USER_ID=#{userId}
+			<if test="isCorporation != '' and isCorporation != null">
+				AND IS_CORPORATION = #{isCorporation}
+			</if>
+		ORDER BY
+			cert_seq DESC
+	</select>
+
+	<update id="revokeUserCert" parameterType="hashMap">
+		<!-- 블록체인인증서 : (법인/개인용) DB:상태값 변경, Blockchain:인증서 폐기 -->
+		UPDATE
+			CERT_USER_TABLE
+		SET
+			CERT_STATUS = 'Revocation'
+		WHERE
+			CERT_STATUS = 'validity'
+			AND IS_CORPORATION = #{isCorporation}
+			AND BCID=#{bcid}
+	</update>
+
+	<select id="userIrsNoInfo" parameterType="hashmap" resultType="java.lang.String">
+		<!-- 블록체인인증서 : (법인용) 사용자의 사업자번호 조회 -->
+		SELECT
+			 IRS_NUM AS IRS_NO
+		FROM
+			STOCCUST
+		WHERE
+			GATE_CD = '100'
+			AND CUST_CD = #{companyCd}
+	</select>
+
+	<select id="userCompanyNm" parameterType="hashmap" resultType="java.lang.String">
+		<!-- 블록체인인증서 : (법인용) 사용자의 사업자명 조회 -->
+		SELECT
+			 CUST_NM AS VENDOR_NM
+		FROM
+			STOCCUST
+		WHERE
+			GATE_CD = '100'
+			AND CUST_CD = #{companyCd}
+	</select>
+
+	<select id="superUserCheck" parameterType="hashmap" resultType="java.lang.String">
+		<!-- 블록체인인증서 : (법인용) 해당 사업자의 관리자여부체크 -->
+		SELECT
+			CASE MNG_YN
+				WHEN '1' THEN 'Y'
+				ELSE 'N' END SUPERUSERFLAG
+		FROM
+			STOCCVUR
+		WHERE USER_ID=#{userId}
+	</select>
+
+	<select id="revokeCertTargetInfo" parameterType="hashmap" resultType="hashMap">
+		<!-- 블록체인인증서 : (개인용/법인용) 폐기대상 리스트정보 호출 -->
+		SELECT
+			a.USER_ID
+			, a.IS_CORPORATION
+			, a.BCID
+			, a.CERT_STATUS
+			, b.COMPANY_CD
+			, c.IRS_NUM
+		FROM
+			CERT_USER_TABLE a
+			LEFT OUTER JOIN STOCCVUR b ON a.USER_ID = b.USER_ID
+			LEFT OUTER JOIN STOCCUST c ON b.COMPANY_CD = c.CUST_CD
+		WHERE
+			a.USER_ID = b.USER_ID
+			AND b.COMPANY_CD = c.CUST_CD
+			AND a.CERT_STATUS = 'validity'
+			AND IS_CORPORATION = #{isCorporation}
+			<if test="isCorporation == 'false'">
+			AND a.USER_ID = #{userId}
+			</if>
+			<if test="isCorporation == 'true'">
+			AND b.COMPANY_CD IN (
+						   		SELECT
+						   			company_cd
+						   		FROM
+						   			STOCCVUR
+						   		WHERE
+						   			USER_ID=#{userId}
+					   			)
+			</if>
+	</select>
+	
+	<select id="getUserInfo" parameterType="hashmap" resultType="hashMap">
+		<!-- 2021/03/11 본인확인 추가개발 부분 (사용자 이름, 전화번호 추가) -->
+		SELECT
+			a.USER_ID
+			, a.COMPANY_CD
+			, <include refid="common.sql.strDecStart"/>a.USER_NM <include refid="common.sql.strDecEnd"/> USER_NM
+			, <include refid="common.sql.strDecStart"/>a.CELL_NUM <include refid="common.sql.strDecEnd"/> CELL_NUM
+			, CASE a.MNG_YN
+			    WHEN '1' THEN 'Y'
+			    ELSE 'N' END SUPERUSERFLAG
+			, b.CUST_NM
+			, b.IRS_NUM
+		FROM
+		    STOCCVUR a
+		    , STOCCUST b
+		 WHERE
+		 	b.CUST_CD = a.COMPANY_CD
+		 	AND a.USER_ID=#{userId}
+	</select>
+
+</mapper>

@@ -1,0 +1,191 @@
+package com.st_ones.eversrm;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.st_ones.common.login.domain.UserInfo;
+import com.st_ones.common.util.clazz.EverDate;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.everf.serverside.info.UserInfoManager;
+import com.st_ones.everf.serverside.web.BaseController;
+import com.st_ones.everf.serverside.web.wrapper.EverHttpRequest;
+import com.st_ones.everf.serverside.web.wrapper.EverHttpResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : DashboardController.java
+ * @date 2013. 07. 22.
+ * @version 1.0
+ */
+@Controller
+@RequestMapping(value = "/eversrm")
+public class DashboardController extends BaseController {
+
+	@Autowired private DashboardService DashboardService;
+
+	// 운영사 대쉬보드
+	@RequestMapping(value = "/mypageBuyer/view")
+	public String mypageBuyer(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+
+		req.setAttribute("systemDateTime", EverDate.getDateString());
+		req.setAttribute("yesterday", EverDate.addDateDay(EverDate.getDate(), -1));
+		
+		return "/eversrm/mypageBuyer";
+	}
+
+	// 공급사 대쉬보드
+	@RequestMapping(value = "/mypageSupplier/view")
+	public String mypageSupplier(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+
+		req.setAttribute("systemDateTime", EverDate.getDateString());
+		req.setAttribute("fromDate1", EverDate.addDateMonth(EverDate.getDate(), -1));
+		req.setAttribute("fromDate2", EverDate.addDateMonth(EverDate.getDate(), -2));
+		req.setAttribute("toDate", EverDate.getDate());
+		
+		return "/eversrm/mypageSupplier";
+	}
+
+	// 고객사 대쉬보드
+	@RequestMapping(value = "/mypageCustomer/view")
+	public String mypageCustomer(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+
+		req.setAttribute("systemDateTime", EverDate.getDateString());
+		req.setAttribute("fromDate", EverDate.addDateMonth(EverDate.getDate(), -1));
+		req.setAttribute("toDate", EverDate.getDate());
+		req.setAttribute("twoWeeks", EverDate.addDateDay(EverDate.getDate(), -14));
+		
+		return "/eversrm/mypageCustomer";
+	}
+
+	@RequestMapping(value = "/getTodoNew{division}")
+	public void getTodosNew(EverHttpResponse resp, @PathVariable("division") String division) {
+		int s = 0;
+		int e = 0;
+
+		if(division.equals("1")) {	// 고객사
+			s = 1;
+			e = 6;
+		} else if(division.equals("2")) {
+			s = 11;
+			e = 18;
+		} else if(division.equals("3")) {
+			s = 21;
+			e = 22;
+		} else if(division.equals("4")) {
+			s = 31;
+			e = 34;
+		} else if(division.equals("11")) {	// 협력회사
+			s = 41;
+			e = 41;
+		} else if(division.equals("12")) {
+			s = 51;
+			e = 54;
+		} else if(division.equals("13")) {
+			s = 61;
+			e = 65;
+		}
+
+		for(int i = s; i <= e; i++) {
+			if(i != 62) {
+				String div = String.valueOf(i);
+
+				resp.setParameter("todo" + div + "Html", DashboardService.getTodo(div));
+			}
+		}
+	}
+
+   	@RequestMapping(value = "/doNotice")
+   	public void doNotice(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+   		Map<String, String> param = req.getFormData();
+        resp.setGridObject("notice", DashboardService.doNotice(param));
+   	}
+
+   	@RequestMapping(value = "/doFaq")
+   	public void doFaq(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+   		Map<String, String> param = req.getFormData();
+   		param.put("NOTICE_TYPE", "PCF");
+        resp.setGridObject("faq", DashboardService.doFaq(param));
+        resp.setResponseCode("true");
+   	}
+
+   	@RequestMapping(value = "/doQna")
+   	public void doQna(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+   		Map<String, String> param = req.getFormData();
+   		EverString.makeGridTextBlueStyle(resp, "qna", "SUBJECT");
+        resp.setGridObject("qna", DashboardService.doQna(param));
+        resp.setResponseCode("true");
+   	}
+
+	@RequestMapping(value = "/doNewgrid")
+	public void doNewgrid(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+		Map<String, String> param = req.getFormData();
+		resp.setGridObject("newgrid", DashboardService.doNewgrid(param));
+		resp.setResponseCode("true");
+	}
+
+	@RequestMapping(value = "/doBggrid")
+	public void doBggrid(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+		Map<String, String> param = req.getFormData();
+		resp.setGridObject("bggrid", DashboardService.doBggrid(param));
+		resp.setResponseCode("true");
+	}
+
+	@RequestMapping(value = "/doMygrid")
+	public void doMygrid(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+		Map<String, String> param = req.getFormData();
+		resp.setGridObject("mygrid", DashboardService.doMygrid(param));
+		resp.setResponseCode("true");
+	}
+
+	// 운영사 Grid 조회
+    @RequestMapping(value = "/opGrids")
+    public void doOpGrid1(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+
+        Map<String, String> param = req.getFormData();
+        param.put("START_DATE", EverDate.addMonths(-12));
+        param.put("FROM_DATE", EverDate.addMonths(-1));
+        param.put("END_DATE", EverDate.getDate());
+        param.put("YESTERDAY", EverDate.addDateDay(EverDate.getDate(), -1));
+
+        resp.setGridObject("grid1", DashboardService.doOpGrid1(param));
+        resp.setGridObject("grid2", DashboardService.doOpGrid2(param));
+        resp.setGridObject("grid3", DashboardService.doOpGrid3(param));
+        resp.setGridObject("grid4", DashboardService.doOpGrid4(param));
+        resp.setGridObject("grid5", DashboardService.doOpGrid5(param));
+
+        resp.setResponseCode("true");
+    }
+
+    @RequestMapping(value = "/tabMainScreenId")
+	public void tabMainScreenId(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+
+		String screenId = DashboardService.getScreenId(req.getParamDataMap());
+
+		// 사용자 ScreenId 를 담는다.
+		UserInfoManager.getUserInfo().setScreenId(screenId);
+	}
+    
+    //2021.04.15 화면 권한에 따른 메인화면 대쉬보드 건수 클릭 시 접근권한 제어 추가 
+    @RequestMapping(value = "/getScreen")
+	public void getScreen(EverHttpRequest req, EverHttpResponse resp) throws Exception {
+
+		Map<String, String> params = req.getFormData();
+		params.put("SSL_FLAG", "false");
+
+		Map<String, String> rtnMap = DashboardService.getScreen(params);
+		resp.setParameter("screenId", rtnMap.get("SCREENID"));
+		//resp.setResponseMessage(rtnMap.get("rtnMsg"));
+	}
+}

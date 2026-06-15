@@ -1,0 +1,1030 @@
+html,body {
+    height: 100%;
+}
+body {
+    position: relative;
+    background-color: #fff;
+    color: #000;
+    -webkit-text-size-adjust: none;
+}
+body,button,dd,dl,dt,fieldset,form,h1,h2,h3,h4,h5,h6,input,legend,li,ol,p,select,table,td,textarea,th,ul {
+    margin: 0; padding: 0; font-family: '맑은 고딕', Helvetica; font-size: 13px; line-height: 150%; letter-spacing: -0.025em;
+}
+button,input,select,textarea {
+    border: 1px solid #ccc;
+    border-radius: 0;
+    background-color: #fff;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+}
+fieldset,img {border: 0;}
+ol,ul {list-style: none;}
+address,em {font-style: normal;}
+a {text-decoration: underline; color: #606060;}
+table {border-collapse: collapse;}
+hr {display: none!important;}
+b,strong {font-weight: 700;}
+/*
+caption {
+    position: absolute; overflow: hidden; clip: rect(0 0 0 0);
+    margin: -1px; padding: 0;
+    width: 1px; height: 1px;
+    border: 0;
+}
+*/
+caption {
+    visibility: hidden; width: 0; width: 0;
+    font-size: 0; color: transparent; line-height: 0;
+}
+*:focus {outline:none;}
+*{box-sizing: border-box;}
+.ir {
+    display: block;
+    background-color: transparent; background-repeat: no-repeat;
+    border: 0;
+    text-indent: -999em; text-align: left;  overflow: hidden; direction: ltr;
+}
+.v-hidden{
+    position: absolute; overflow: hidden; clip: rect(0 0 0 0);
+    margin: -1px; padding: 0;
+    width: 1px; height: 1px;
+    border: 0;
+}
+select {
+    -webkit-appearance: none;  appearance: none;
+    padding-right: 30px;
+    background: #fff url(/images/nhepro/mobile/m-select.png) no-repeat 100% 50%;
+    background-size: auto 25%;
+    box-sizing: border-box; border: 0; border-bottom: 1px solid #d2d2d2;
+    height: 35px;
+}
+select[readonly],
+select[disabled] {background-color: #e5e5e5;}
+select::-ms-expand {display: none;}
+/* radio */
+input[type="radio"]::-ms-check {
+    width: 25px; height: 25px;
+    box-sizing: border-box; border: 1px solid #c2c2c2; border-radius: 100%;
+    background: url(/images/nhepro/mobile/m-rd-d.png) no-repeat;
+    background-size: 100% 100%;
+    color: transparent;
+    -webkit-appearance: none; appearance: none;
+}
+input[type="radio"]:checked::-ms-check {
+    width: 25px; height: 25px;
+    background: url(/images/nhepro/mobile/m-rd-ck.png) no-repeat;
+    background-size: 100% 100%;
+    color: transparent;
+    -webkit-appearance: none; appearance: none;
+}
+input[type="radio"]:disabled::-ms-check {
+    background:#eee url(/images/nhepro/mobile/m-rd-d.png) no-repeat;
+    background-size: 100% 100%;
+    color: transparent;
+    -webkit-appearance: none; appearance: none;
+}
+input[type="radio"]:disabled:checked::-ms-check {
+    background:#eee url(/images/nhepro/mobile/m-rd-d.png) no-repeat;
+    background-size: 100% 100%;
+    color: transparent;
+    -webkit-appearance: none; appearance: none;
+}
+input[type="radio"]:focus::-ms-check {
+    outline: none;
+}
+input[type="radio"]{
+    border: 1px solid #c2c2c2; border-radius: 100%;
+    width: 25px; height: 25px;
+    background: url(/images/nhepro/mobile/m-rd-d.png) no-repeat 50% 50%;
+    background-size: 100% 100%;
+    -webkit-appearance: none; appearance: none;
+}
+input[type="radio"]:checked {
+    width: 25px; height: 25px;
+    background: url(/images/nhepro/mobile/m-rd-ck.png) no-repeat 50% 50%;
+    background-size: 100% 100%;
+    color: transparent;
+    -webkit-appearance: none; appearance: none;
+}
+input[type="radio"]:disabled {
+    border: 1px solid #ccc;
+    background: #ddd;
+    color: transparent;
+    -webkit-appearance: none; appearance: none;
+}
+input[type="radio"]:disabled:checked {
+    border: 1px solid #c1c1c1;
+    background:#ccc url(/images/nhepro/mobile/ico-radio-disabled.png) no-repeat 50% 50%;
+    color: transparent;
+    -webkit-appearance: none; appearance: none;
+}
+input[type="radio"]+label {
+    display: inline-block;
+    height: 25px;
+    margin: 0 20px 0 5px;
+    color: #303030; line-height: 25px; vertical-align: top;
+}
+
+/* checkbox */
+.i-chk label {
+    display: inline-block;
+    height: 20px;
+    font-size: 13px; color: #303030; vertical-align: top;
+}
+.contents.agree .i-chk label {margin-top: 3px; height: 25px; font-size: 15px; color: #606060;}
+.i-chk input[type="checkbox"]::-ms-check{
+    width: 25px; height: 25px;
+    margin-right: 8px;
+    box-sizing: border-box; border: 1px solid #c2c2c2;
+    background: #fff; color: transparent;
+    -webkit-appearance: none; appearance: none;
+}
+.i-chk input[type="checkbox"]:checked::-ms-check {
+    width: 25px; height: 25px;
+    background: url(/images/nhepro/mobile/m-chk-ck.png) no-repeat 50% 50%;
+    background-size: 100% 100%;
+}
+.i-chk input[type="checkbox"]:disabled::-ms-check {
+    background-color: #e8e8e8;
+    border: 1px solid #c2c2c2;
+}
+.i-chk input[type="checkbox"]:disabled:checked::-ms-check {
+    background: url(/images/nhepro/mobile/m-chk-d.png) no-repeat 50% 50%;
+    background-color: #e8e8e8;
+    border: 1px solid #c5c5c5;
+}
+.i-chk input[type="checkbox"]:focus::-ms-check {
+    border: 1px solid #c60d41;
+    outline: none;
+}
+.i-chk input[type="checkbox"]:checked:focus::-ms-check {
+    background: url(/images/nhepro/mobile/m-chk-ck.png) no-repeat 50% 50%;
+    outline: none;
+}
+.i-chk input[type="checkbox"] {
+    width: 25px; height: 25px;
+    margin-right: 4px;
+    border: 1px solid #c2c2c2; border-radius: 100%;
+    background: url(/images/nhepro/mobile/m-chk-d.png) no-repeat 50% 50%;
+    background-size: 100% 100%;
+    -webkit-appearance: none; appearance: none;
+    vertical-align: middle;
+}
+.i-chk input[type="checkbox"]:checked {
+    width: 20px; height: 20px;
+    background: url(/images/nhepro/mobile/m-chk-ck.png) no-repeat 50% 50%;
+    background-size: 100% 100%;
+}
+.contents.agree .i-chk input[type="checkbox"]:checked {width: 25px; height: 25px;}
+.i-chk input[type="checkbox"]:disabled {
+    background-color: #e8e8e8;
+    border: 1px solid #c2c2c2;
+}
+.i-chk input[type="checkbox"]:disabled:checked {
+    width: 25px; height: 25px;
+    background: url(/images/nhepro/mobile/m-chk-d.png) no-repeat 50% 50%;
+    background-color: #e8e8e8;
+    background-size: 100% 100%;
+    border: 1px solid #c2c2c2;
+}
+.i-chk input[type="checkbox"]:focus {
+    width: 25px; height: 25px;
+    border: 1px solid #c2c2c2;
+    outline: none;
+    background-size: 100% 100%;
+}
+.i-chk input[type="checkbox"]:checked:focus {
+    width: 25px; height: 25px;
+    background: url(/images/nhepro/mobile/m-chk-ck.png) no-repeat 50% 50%;
+    background-size: 100% 100%;
+    outline: none;
+}
+
+/* 공통 사용 버튼 */
+.btn-check,
+.btn-search {
+    display: inline-block;
+    width: 80px; height: 35px;
+    margin-left: 5px; padding: 0;
+    border: 1px solid #d2d2d2;
+    background-color: #e2e2e2;
+    font-size: 13px; color: #303030; text-align: center; line-height: 35px; text-decoration: none;
+}
+.btn-check:focus,
+.btn-search:focus {
+    border: 1px solid #a0a0a0;
+    background-color: #a0a0a0;
+    outline: none;
+}
+.btn-basic {
+    width: 100%;
+    height: 45px;
+    background: #fff;
+    border: 1px solid #003772;
+    border-radius: 3px;
+    padding: 0 10px;
+    font-size: 17px;
+    color: #003772;
+    line-height: 45px;
+}
+.btn-basic:focus {background: #fff;}
+.btn-darkgray {
+    width: 100%; height: 45px;
+    background: #666666;
+    border: 0; border-radius: 3px;
+    padding: 0 10px;
+    font-size: 17px; color: #fff; line-height: 45px;
+}
+.btn-darkgray:focus {background: #3b3b3b;}
+.btn-back {
+    position: absolute; left: 3%; top: 50%;
+    display: inline-block;
+    width: 25px; height: 25px;
+    margin-top: -12px;
+    background: url(/images/nhepro/mobile/m-back.png) no-repeat;
+    background-size: 100% 100%;
+}
+.btn-back:focus {
+    background-color: lightgray;
+}
+.btn-logout {
+    position: absolute; right: 2%; top: 50%;
+    display: inline-block;
+    height: 25px;
+    margin-top: -12px; padding: 0 2%;
+    font-size: 11px; color: #303030; font-weight: 700; text-decoration: none; line-height: 25px;
+}
+.btn-logout:focus {
+    background-color: lightgray;
+}
+
+/* 로그인 */
+.login-wrap {
+    position: relative;
+    width: 100%; height: 100%;
+}
+.login-box {
+    position: absolute; top: 50%;
+    width: calc(100%);
+    margin-top: -200px;
+    padding: 0 12%;
+    text-align: center;
+}
+.system-name h1 {
+    text-align: center;
+}
+.system-name h1 img {
+    width: 100%;
+    margin: 0 0 26px;
+}
+.dot {
+    display: inline-block;
+    width: 4px; height: 4px;
+    margin-right: 3px; margin-bottom: 3px;
+    background: url(/images/nhepro/mobile/m-dot.png) no-repeat;
+    background-size: 100% 100%;
+    vertical-align: middle;
+}
+fieldset.ins {
+    display: table;
+    width: 100%;
+    padding: 23px 0;
+    border: 0; border-top: 3px solid #033974;
+    border-bottom: 1px solid #606060;
+}
+fieldset.ins .i-text {
+    display: table;
+    width: 100%; height: 35px;
+    margin: 0; padding: 0;
+}
+fieldset.ins .i-text label {
+    float: left; display: inline-block;
+    width: 30%; height: 35px;
+    margin: 9px 0;
+    font-size: 13px; color: #606060; text-align: left; line-height: 35px;
+}
+fieldset.ins .i-text input{
+    width: 70%; height: 35px;
+    margin: 9px 0; padding: 0 10px;
+    border: 1px solid #d2d2d2;
+    font-size: 17px; color: #303030;
+}
+.tabs-box fieldset.ins .i-text input{font-size: 15px;}
+fieldset.ins .i-text .dot {margin-left: 5%;}
+fieldset.ins .i-chk {
+    margin: 0;
+    padding: 0 0 0 30%;
+    height: 25px;
+    text-align: left;
+}
+.login-box .i-chk input[type="checkbox"]:checked+label {color: #606060; font-size: 13px;}
+.login-link {
+    margin-top: 15px;
+    text-align: center;
+}
+.login-link a {color: #606060; text-decoration: none; font-size: 13px;}
+.login-link .vline {
+    display: inline-block;
+    width: 1px; height: 11px;
+    margin: 0 15px 2px;
+    background: url(/images/nhepro/mobile/m-vline.png) no-repeat;
+    vertical-align: middle;
+}
+.login-box .help {
+    display: table;
+    width: 720px; height: 50px;
+    margin-top: 43px; margin-left: 1px;
+}
+.btn-login {
+    display: block;
+    width: 70%;
+    height: 45px;
+    margin: 25px 55px 0 30%;
+    border: 1px solid #003772;
+    border-radius: 4px;
+    background-color: #fff;
+    font-size: 17px;
+    text-align: center;
+    color: #003772;
+    line-height: 45px;
+    cursor: pointer;
+}
+.btn-login:focus {background-color: #fff;}
+.footer-copy {
+    position: absolute; bottom: 0;
+    width: 100%;
+    padding-bottom: 10px;
+    font-size: 12px; color: #909090; text-align: center;
+}
+
+/* 레이아웃 */
+.header {
+    position: fixed; left: 0; top: 0; z-index: 2;
+    width: 100%; height: 50px;
+    background-color: #fff;
+    border-bottom: 1px solid #003772;
+}
+.header h1 {
+    font-size: 18px; line-height: 50px; text-align: center;
+}
+.header h1 img {height: 22px; vertical-align: middle}
+.page-wrap {
+    position: relative;
+    padding-top: 50px;
+    height: 100%; min-height: 100%;
+}
+.contents .ins {
+    margin: 4% 0; padding: 0;
+    border: 0;
+}
+.page-wrap .titbar {
+    height: 55px;
+    margin-bottom: 0;
+    border-bottom: 1px solid #ddd;
+}
+.page-wrap .titbar:after {
+    content: ''; display: block; clear: both;
+}
+.page-wrap .titbar span {
+    display: inline-block;
+    width: 25px; height: 25px;
+    margin: 15px 0;
+    border: 2px solid #bababa; border-radius: 100%;
+    font-size: 15px; text-align: center; line-height: 22px; vertical-align: middle;
+}
+.page-wrap .titbar span.active {
+    border: 2px solid #003772;
+    color: #003772;
+}
+.page-wrap .titbar em {
+    display: inline-block;
+    width: 15px; height: 2px;
+    background: url(/images/nhepro/mobile/m-step.png) no-repeat;
+    background-size: 100% 100%;
+    line-height: 55px; vertical-align: middle;
+}
+.page-wrap h2 {
+    float: left;
+    display: inline-block;
+    width: 50%; height: 55px;
+    padding-left: 5%;
+    font-size: 15px;
+    color: #003772;
+    line-height: 55px;
+}
+.page-wrap h3 .more {
+    position: absolute; right: 7%; top: 50%;
+    display: inline-block;
+    width: 13px; height: 13px;
+    margin-top: -7px;
+    background: url(/images/nhepro/mobile/m-more.png) no-repeat;
+    background-size: 100% 100%;
+}
+.page-wrap h3.open .more {
+    position: absolute; right: 7%; top: 50%;
+    display: inline-block;
+    width: 13px; height: 13px;
+    margin-top: -7px;
+    background: url(/images/nhepro/mobile/m-more2.png) no-repeat;
+    background-size: 100% 100%;
+}
+.page-wrap .signup-step {
+    float: right;
+    display: inline-block;
+    width: 50%; height: 55px;
+    padding: 0 5% 0 0;
+    text-align: right;
+}
+.content-scroll {
+    border: 0;
+    padding: 20px 10px;
+}
+.page-wrap .cbox {border-bottom: 10px solid #e2e2e2;}
+.page-wrap .fbox {margin: 0;}
+
+.contents {
+    width: 92%;
+    margin: 0 4%;
+}
+.page-wrap .cbox h3 {
+    position: relative;
+    height: 60px;
+    line-height: 60px;
+}
+.page-wrap .cbox h3 a {
+    display: block;
+    padding-left: 5%;
+    font-size: 16px; color: #303030; line-height: 62px; text-decoration: none;
+}
+.page-wrap .cbox .content-scroll {
+    display: none;
+    margin: 0 3%;
+    border-top: 1px solid #d2d2d2;
+    line-height: 170%;
+}
+.page-wrap .cbox .content-scroll strong {
+    font-weight: 700; font-size: 15px; color: #303030;
+}
+.page-wrap .cbox .i-chk {
+    height: 60px;
+    margin: 0 5%; padding: 18px 3%;
+    border-top: 1px solid #d2d2d2;
+}
+.page-wrap .btn-area {
+    display: flex; display: -webkit-flex;
+    margin: 0; padding: 20px 0;
+    text-align: center;
+}
+.page-wrap .btn-area button {
+    flex: 1; -webkit-flex: 1;
+    margin: 0 0 0 10px;
+}
+.page-wrap .btn-area button:first-child {
+    margin-left: 0;
+}
+.page-wrap .btn-area.f-none button {
+    flex: none; -webkit-flex: none;
+    width: 50%;
+    margin: 0 auto;
+    text-align: center;
+}
+.page-wrap .fbox .btn-area {
+    margin-top: 6%;
+}
+
+/* 회원가입 : 약관동의 */
+.contents.agree {
+    margin: 0; width: 100%;
+}
+.contents.agree .btn-area {
+    display: block;
+    padding: 50px 0 15px;
+}
+.contents.agree .btn-area button {
+    width: 50%;
+}
+.contents.sign-up {margin: 0; width: 100%; height: 100%;}
+.content-scroll ol {
+    margin: 0; padding: 0;
+}
+.content-scroll ol li {
+    position: relative;
+    list-style: none;
+    margin: 0;  padding: 0 0 0 16px;
+}
+.content-scroll ol li .num {position: absolute; top: 0; left: 0; width: 10px; width: 10px;}
+.data-table.agree {margin-bottom: 0;}
+
+/* 회원가입 : 정보입력 */
+.contents.sign-up {
+    margin: 0; width: 100%;
+}
+.fbox.sign-up .ins {
+    margin: 0 4%; width: 92%;
+}
+.fbox.sign-up  .t-row {
+    display: flex; display: -webkit-flex;
+    margin-top: 15px;
+}
+.tabs-box .fbox.sign-up .t-row {
+    display: flex !important; display: -webkit-flex !important;
+    margin-top: 15px;
+}
+.tabs-box .fbox.sign-up .t-row:first-child {
+    margin-top: 8px;
+}
+.fbox.sign-up .t-row.t0 {
+    margin-top: 0;
+}
+.fbox.sign-up .t-cell01 {
+    flex: none;
+    width: 110px;
+    line-height: 35px;
+}
+.fbox.sign-up .t-cell02 {
+    flex: 1;
+}
+.fbox.sign-up .t-cell03 {
+    flex: none;  vertical-align: bottom;
+}
+.fbox.sign-up input[type="text"],
+.fbox.sign-up input[type="password"]{
+    width: 100%; height: 35px;
+    padding-bottom: 0;
+    border: 0; border-bottom: 1px solid #d2d2d2;
+    font-size: 15px; color: #303030;
+}
+.fbox.sign-up .t-cell02 p {
+    display: inline-block;
+    width: 100%; height: 35px;
+    padding-bottom: 12px;
+    border: 0; border-bottom: 0 solid #d2d2d2;
+    font-size: 15px; color: #303030; line-height: 35px; font-weight: normal;
+}
+.fbox.sign-up .t-cell02 p strong {font-weight: normal;}
+.fbox.sign-up .t-cell01 label {
+    display: inline-block;
+    width: 110px;
+    font-size: 13px; color: #606060;
+}
+::-webkit-input-placeholder {
+    font-size: 13px; color: #9b9b9b;
+}
+::-moz-placeholder {
+    font-size: 13px; color: #9b9b9b;
+}
+:-ms-input-placeholder {
+    font-size: 13px; color: #9b9b9b; line-height: 30px;
+}
+.fbox.sign-up select {margin-left: 10px; width: calc(100% - 10px);}
+.fbox.sign-up .t-row div:nth-child(2) select {margin-left: 0; width: 100%;}
+.fbox.sign-up .txt-info {
+    display: inline-block;
+    margin: 0;
+    font-size: 11px; color: #606060;
+}
+.title {
+    display: inline-block;
+    width: 8px; height: 7px;
+    margin-bottom: 2px; margin-right: 3px;
+    background: url(/images/nhepro/mobile/m-tit.png) no-repeat ;
+    background-size: 100% 100%;
+}
+.title.required {
+    display: inline-block;
+    width: 8px; height: 7px;
+    margin-bottom: 2px;
+    background: url(/images/nhepro/mobile/m-rq.png) no-repeat;
+    background-size: 100% 100%;
+}
+
+/* 회원가입 : 담당자 검색 */
+.ins.person {margin: 0;}
+.ins.person .fbox {
+    margin: 10px 4% 0;
+}
+.ins.person .fbox  .i-text label {
+    display: inline-block;
+    width: 33%;
+    margin: 4px 0;
+}
+.ins.person .fbox  .i-text input {
+    width: 67%;
+    border: 0; border-bottom: 1px solid #d2d2d2;
+    margin: 4px 0; padding: 0;
+    font-size: 15px;
+}
+.ins.person .fbox  .btn-area {
+    display: block;
+    margin: 4px 0 10px; padding: 0;
+    text-align: right;
+}
+.ins.person .fbox .btn-area .btn-search {
+    width: 95px;
+    font-size: 15px;
+}
+.contents.sign-up .data-table {
+    margin: 0 4% 4%;
+    width: 92%;
+}
+.contents.sign-up .data-table a{color: #303030; text-decoration: underline;}
+
+/* 회원가입 : 신청완료 */
+.ico-ok {
+    display: inline-block;
+    width: 68px; height: 44px;
+    margin: 15% 0 5%;
+    background: url(/images/nhepro/mobile/m-ok.png) no-repeat;
+    background-size: 100% 100%;
+}
+.txt-result01 {
+    margin: 0 0 10%;
+    font-size: 18px; color: #505050; text-align: center; line-height: 150%;
+}
+.txt-result01 strong {
+    font-size: 20px; color:#c91c4a;
+}
+.txt-result02 {
+    margin: 0 0 10%;
+    font-size: 13px; color: #404040; text-align: center;
+}
+.t10 {
+    display: inline-block;
+    margin-top: 7px;
+}
+.chk-wrap {
+    margin-top: 5px;
+}
+
+/* 비밀번호 변경 알림 */
+.contents.alert .alert-box {
+    margin: 10% 0;
+    font-size: 18px; color: #505050; text-align: center; line-height: 140%;
+}
+.contents.alert .alert-box em {color: #000;}
+.contents.alert .alert-box strong {font-size: 20px; color: #c91c4a;}
+.contents.alert .fbox label {width: 33%; margin: 5px 0 0;}
+.contents.alert .fbox input {width: 67%; margin: 5px 0 0;}
+.contents.alert .fbox .txt-info {
+    display: inline-block;
+    margin: 0 0 10px 33%;
+    font-size: 11px; color: #606060;
+}
+
+/* 새비밀번호 만들기 */
+.contents.newpwd .ins {margin: 10% 0;}
+.contents.newpwd .fbox label {width: 33%; margin: 9px 0;}
+.contents.newpwd .fbox input {width: 67%; margin: 9px 0;}
+
+/* 아이디/비밀번호 찾기 */
+.contents .titbar .txt-black {
+    padding-left: 0;
+    color: #000;
+    width: 100%;
+}
+.contents .fbox.find-id {margin: 5% 0; text-align: center;}
+.contents .fbox.find-id .ibox {
+    display: flex; display: -webkit-flex;
+    margin: 10% 0 5%; padding: 2% 5%;
+    border: 1px solid #d2d2d2;
+    width: 100%;
+}
+.contents .fbox.find-id .txt-find-id {
+    margin: 13% 0 10%;
+    font-size: 18px; color: #505050; line-height: 150%;
+}
+.contents .fbox.find-id .txt-find-id strong {
+    font-size: 20px; color: #000;
+}
+.contents .fbox.find-id .ibox span{
+    flex: none;
+    width: 40%;
+    font-size: 13px; text-align: left; color: #606060;
+}
+.contents .fbox.find-id .ibox strong {
+    width: 60%;
+    font-size: 15px; color: #c91c4a; text-align: left;
+}
+.contents .fbox .help li {
+    margin-left: 16px;
+    font-size: 13px; text-align: left; color: #606060;
+}.contents .fbox .help li em {
+     display: inline-block;
+     margin-left: -16px;
+     width: 16px;
+ }
+.contents .fbox .help  strong {color: #000;}
+
+.txt-info {
+    display: inline-block;
+    margin: 10px 0;
+    font-size: 13px; color: #606060;
+}
+.txt-info li {
+    padding-left: 16px;
+}
+.txt-info li em {
+    display: inline-block;
+    width: 16px;
+    margin-left: -16px;
+}
+.txt-info strong {
+    color: #030303; font-weight: normal;
+}
+
+/* 테이블 */
+.data-table {
+    width: 100%;
+    margin-bottom: 20px;
+    border: 1px solid #c9c8c8;
+    border-top: 1px solid #666666; border-left: 0; border-right: 0;
+}
+.table-header-fixed .list {border-bottom: 1px solid #ddd;}
+.table-header-fixed {
+    position: absolute;
+    width: 100%; height: calc(100% - 265px);
+    padding: 0 4%;
+    padding-top: 41px;
+}
+.table-header-fixed .data-table {
+    width: 100% !important;
+    height: 100%;
+    border: 0; border-top: 0; border-bottom: 1px solid #ddd;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+.sign-up.contents .table-header-fixed .data-table {
+    margin: 0;
+}
+.table-header-fixed .data-table .header-bg {
+    position: absolute; top: 0;
+    width: 92%; height: 42px;
+    border-top:1px solid #666 !important;
+    border-bottom: 1px solid #7f7f7f;
+    background-color: #f3eaee;
+}
+.table-header-fixed .data-table thead {
+    position: absolute; top: 0;
+    /*수정전2width: calc(92%);*/  /*수정후*/width: calc(92% - 4px);
+}
+.table-header-fixed .data-table thead th {border-top:1px solid #666 !important;}
+.table-header-fixed .data-table table tr {
+    display: inline-table;
+    width: 100%;
+    table-layout: fixed;
+}
+.table-header-fixed .data-table table tbody tr {
+    display: table-row;
+    width: 92%;
+}
+.table-header-fixed .list th .th-fx01 {
+    position: absolute; left: 0; top: 0;
+    display: table-cell;
+    width: 20%; height: 41px;
+    padding: 10px 0;
+}
+.table-header-fixed .list th .th-fx02 {
+    position: absolute; left: 20%; top: 0;
+    display: table-cell;
+    width: 30%; height: 41px; box-sizing: border-box;
+    padding: 10px 0;
+}
+.table-header-fixed .list th .th-fx03 {
+    position: absolute; left: 50%; top: 0;
+    display: table-cell;
+    width: 30%; height: 41px;
+    padding: 10px 0;
+}
+.table-header-fixed .list th .th-fx04 {
+    position: absolute; left: 80%; top: 0;
+    display: table-cell;
+    width: 20%; height: 41px;
+    padding: 10px 0;
+}
+.tabs-box .table-header-fixed {
+    position: absolute;
+    width: 92%; height: calc(100% - 130px);
+    padding: 0;
+    padding-top: 41px;
+}
+.tabs-box .table-header-fixed .data-table {
+    margin: 0;
+}
+.tabs-box .table-header-fixed .data-table .header-bg {
+    width: 100%;
+}
+.tabs-box .table-header-fixed .data-table thead {
+    /*수정전3width: calc(100%); */ /*수정후*/ width: calc(100% - 4px);
+}
+.table-header-fixed .data-table table tbody tr {
+    width: 100%;
+}
+#contract-list .table-header-fixed .list th .th-fx01 {
+    position: absolute; left: 0; top: 0;
+    display: table-cell;
+    width: 17%; height: 41px;
+    padding: 10px 0;
+}
+#contract-list .table-header-fixed .list th .th-fx02 {
+    position: absolute; left: 17%; top: 0;
+    display: table-cell;
+    width: 23%; height: 41px;
+    padding: 10px 0;
+}
+#contract-list .table-header-fixed .list th .th-fx03 {
+    position: absolute; left: 40%; top: 0;
+    display: table-cell;
+    width: 25%; height: 41px;
+    padding: 10px 0;
+}
+#contract-list .table-header-fixed .list th .th-fx04 {
+    position: absolute; left: 65%; top: 0;
+    display: table-cell;
+    width: 23%; height: 41px;
+    padding: 10px 0;
+}
+#contract-list .table-header-fixed .list th .th-fx05 {
+    position: absolute; left: 88%; top: 0;
+    display: table-cell;
+    width: 12%; height: 41px;
+    padding: 10px 0;
+}
+#pledge-list .table-header-fixed .list th .th-fx01{
+    position: absolute; left: 0; top: 0;
+    display: table-cell;
+    width: 65%; height: 41px;
+    padding: 10px 0;
+}
+#pledge-list .table-header-fixed .list th .th-fx02{
+    position: absolute; left: 65%; top: 0;
+    display: table-cell;
+    width: 23%; height: 41px;
+    padding: 10px 0;
+}
+#pledge-list .table-header-fixed .list th .th-fx03{
+    position: absolute; left: 88%; top: 0;
+    display: table-cell;
+    width: 12%; height: 41px;
+    padding: 10px 0;
+}
+#notice-list .table-header-fixed .list th .th-fx01{
+    position: absolute; left: 0; top: 0;
+    display: table-cell;
+    width: 57%; height: 41px;
+    padding: 10px 0;
+}
+#notice-list .table-header-fixed .list th .th-fx02{
+    position: absolute; left: 57%; top: 0;
+    display: table-cell;
+    width: 23%; height: 41px;
+    padding: 10px 0;
+}
+#notice-list .table-header-fixed .list th .th-fx03{
+    position: absolute; left: 80%; top: 0;
+    display: table-cell;
+    width: 20%; height: 41px;
+    padding: 10px 0;
+}
+
+
+table.list {width: 100%; table-layout: fixed; border-collapse: collapse;}
+table.list th {
+    height: 41px;
+    padding: 3px 6px;
+    background-color: #f3eaee;
+    border-bottom: 1px solid #7f7f7f; border-left: 0;
+    font-size: 14px; color: #000;
+}
+table.list tr:first-child th,
+table.list tbody tr:first-child td {border-top: 0;}
+table.list tr td:first-child {border-left: 0;}
+table.list td {
+    word-break: break-all;
+    height: 49px;
+    padding: 3px 5px;
+    background-color: #fff;
+    border-top: 1px solid #ddd; border-left: 1px solid #ddd;
+    font-size: 12px; color: #303030; text-align: center;
+}
+table.list td.txt-left {text-overflow: ellipsis; white-space: nowrap; overflow: hidden;}
+
+.data-table.agree {margin-bottom: 0;}
+.data-table.agree a {color:#303030}
+.data-table.agree a:hover {text-decoration: underline;}
+.txt-center {text-align: center !important;}
+.txt-left {text-align: left !important;}
+.txt-sgn-target {color: #c60d41;}
+.txt-sgn-finish {color: #303030;}
+.ico-file {width: 10px; height: 18px; vertical-align: middle; border: 0;}
+
+/* Tabs */
+.tabs-box {margin: 0;}
+.tabs-box:after {content: ""; display: block; clear: both;}
+.tabs-box>.tabs-menu {margin: 0; padding: 0;}
+.tabs-box>.tabs-menu li {
+    float: left;
+    display: inline-block;
+    width: 50%; height: 55px;
+    margin: 0; padding: 0;
+    background-color: #fff;
+    color: #999; text-align: center;  cursor: pointer;  line-height: 44%;
+}
+.tabs-box.home>.tabs-menu li {width: 25%;}
+.tabs-box>.tabs-menu li a{
+    display: inline-block;
+    width: 100%; height: 55px;
+    border-bottom: 1px solid #ddd;
+    font-size: 15px;color: #606060; line-height: 55px; text-decoration: none;
+}
+.tabs-box>.tabs-menu li.active {
+    font-weight: 700; color: #c60d41;
+}
+.tabs-box>.tabs-menu li.active a {
+    border-bottom: 2px solid #c60d41;
+    color:#c60d41;
+}
+.tabs-box>.tabs-contents {
+    float: left; width: 100%; clear: both; margin-top: -1px;
+}
+.tabs-box>.tabs-contents .cont {
+    padding: 10px 0;
+}
+
+/* HOME */
+.tabs-box>.tabs-menu {
+    position: fixed; top: 50px; left: 0; z-index: 10;
+    width: 92%; margin: 0 4%;
+}
+.tabs-box>.tabs-contents {
+    padding-top: 55px;
+}
+
+.scroll {
+    overflow: auto;
+    width: 100%;;
+}
+.scroll .btn-left {
+    position: fixed; left: 2%; top: 35%; z-index: 10;
+    width: 34px; height: 34px;
+    margin-top: -17px;
+    border-radius: 100%;
+    background-color: rgba(255,255,255,0.6);
+    background-image: url(/images/nhepro/mobile/m-mleft.png);
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: 25% auto;
+    box-shadow: 0 0 6px rgba(0,0,0,0.35);
+}
+.scroll .btn-right {
+    position: fixed; right: 2%; top: 35%; z-index: 10;
+    width: 34px; height: 34px;
+    margin-top: -17px;
+    border-radius: 100%;
+    background-color: rgba(255,255,255,0.6);
+    background-image: url(/images/nhepro/mobile/m-mright.png);
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    background-size: 25% auto;
+    box-shadow: 0 0 6px rgba(0,0,0,0.35);
+}
+.contents.notice {height: 100%}
+.contents.notice .fbox {
+    min-height: 65%;
+    padding: 2% 0 4%;
+}
+.link-file {
+    border-top: 1px solid #ddd;
+    padding: 10px 0;
+}
+.link-file li a {
+    display: block;
+    font-size: 15px; color: #303030;
+    padding: 5px 0;
+}
+.cont .fbox.sign-up .ins {
+    margin: 0; width: 100%;
+}
+/*
+@media (min-width:768px) {
+    .system-name h1 img {max-width: 400px; margin: 0 0 30px;}
+    .table-header-fixed .data-table thead {
+        width: calc(92% - 16px);
+    }
+    .tabs-box .table-header-fixed .data-table thead {
+        width: calc(100% - 16px);
+    }
+}
+*/
+@media (min-width:768px) {
+    .system-name h1 img {max-width: 400px; margin: 0 0 30px;}
+}
+::-webkit-scrollbar {width: 4px; height: 4px; border:1px solid transparent; }
+::-webkit-scrollbar-button:start:decrement, ::-webkit-scrollbar-button:end:increment {display: block; height: 4px; background: transparent}
+::-webkit-scrollbar-track {-webkit-border-radius: 0; border-radius:0; -webkit-box-shadow: none; background: transparent}
+::-webkit-scrollbar-thumb {height: 50px; width: 50px; background: rgba(0,0,0,.2); -webkit-border-radius: 0; border-radius: 0; -webkit-box-shadow: none}
+
+.logoTxtStyle {
+    font-size: 20px;
+    font-family: "맑은고딕", Malgun Gothic, "돋움", Dotum, "굴림", Gulim, Helvetica, Sans-serif;
+    position: relative;
+    top: -20px;
+}

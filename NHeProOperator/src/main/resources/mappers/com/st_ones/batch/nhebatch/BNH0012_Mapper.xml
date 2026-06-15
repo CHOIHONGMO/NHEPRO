@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.batch.nhebatch.BNH0012_Mapper">
+	
+	<!-- 1. 전체 고객사 가져오기 -->
+    <select id="getTagrgetCust" resultType="hashmap" parameterType="hashMap">
+		SELECT
+			  A.CUST_CD
+			, A.IRS_NUM AS CORP_NO
+			, A.CORP_TYPE
+		 FROM STOCCUST A
+		WHERE A.GATE_CD  = #{ses.gateCd}
+		  AND A.DEL_FLAG = '0'
+		<if test="CUST_CD != null and CUST_CD != ''">
+		  AND A.CUST_CD = #{CUST_CD}
+		</if>
+	</select>
+	
+	<!-- 2. 고객사별 사용자 변경일자가 현재일자 기준 7일 이전의 데이터를 기준으로 함 -->
+    <select id="getCoUserList" parameterType="hashMap" resultType="hashMap">
+		SELECT * 
+		 FROM TB_CO_USER
+		WHERE CORP_NO = #{CORP_NO}
+		  AND TO_CHAR(LSCHGDTM, 'YYYYMMDD') >= TO_CHAR((SYSDATE-3), 'YYYYMMDD')
+		ORDER BY LSCHGDTM
+	</select>
+	
+    <select id="chkStocUser" resultType="hashmap" parameterType="hashMap">
+		SELECT A.USER_TYPE
+			 , A.COMPANY_CD
+		  FROM STOCCVUR A
+		 WHERE A.GATE_CD = #{ses.gateCd}
+		   AND A.USER_ID = #{USER_ID}
+	</select>
+	
+	<select id="chkStohUser" resultType="hashmap" parameterType="hashMap">
+		SELECT A.USER_TYPE
+			 , A.COMPANY_CD
+		  FROM STOHCVUR A
+		 WHERE A.GATE_CD = #{ses.gateCd}
+		   AND A.USER_ID = #{USER_ID}
+	</select>
+	
+	<!-- 2023.01.04 로직 추가 -->
+	<!-- 휴먼계정 사용자 변경된 정보 업데이트 -->
+    <update id="upsHvur" parameterType="hashMap">
+		UPDATE STOHCVUR SET
+			  MOD_DATE      	= SYSDATE 				-- MOD_DATE
+			, MOD_USER_ID   	= 'ARO_BATCH' 			-- MOD_USER_ID						
+			, COMPANY_CD  		= #{COMPANY_CD} 		-- COMPANY_CD
+			, WORK_TYPE 		= #{GNAF_DSC} 			-- WORK_TYPE
+			, MNG_YN			= (CASE WHEN #{CORP_TYPE} = '2' THEN (CASE WHEN #{GNAF_DSC} = '1' THEN '1' ELSE '0' END)
+										ELSE <include refid="common.sql.nvl"/>(MNG_YN, '0')
+								   END)
+			, USER_NM   		= #{USER_NM} 			-- USER_NM
+			, DEPT_CD   		= #{DEPT_C} 			-- DEPT_CD
+			, DEPT_NM   		= (SELECT DEPT_NM FROM TB_CO_DEPT WHERE CORP_NO = #{CORP_NO} AND DEPT_C=#{DEPT_C}) -- DEPT_NM
+			, POSITION_NM 		= #{PZC_NM} 			-- POSITION_NM
+			, EMAIL				= #{EMAIL} 				-- EMAIL
+			, DUTY_NM     		= #{OFT_NM} 			-- DUTY_NM
+			, ROLE_TEXT   		= #{CHRG_BSN_NM} 		-- ROLE_TEXT
+			, ROLE_TEXT_DETAIL 	= #{DTI_CHRG_BSN_NM} 	-- ROLE_TEXT_DETAIL
+			, ONES_DUTY_NM  	= #{CHRG_BSN_NM} 		-- ONES_DUTY_NM
+			, TEL_NUM     		= #{DWIN_TEL} 			-- TEL_NUM
+			, CELL_NUM    		= #{HP_NO} 				-- CELL_NUM
+		WHERE GATE_CD   = #{ses.gateCd}
+		  AND USER_ID   = #{USER_ID}
+		  AND USER_TYPE = 'B'
+	</update>
+	
+    <delete id="delOgdp" parameterType="hashMap">
+		DELETE FROM STOCOGDP
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND BUYER_CD = #{CUST_CD}
+	</delete>
+	
+    <update id="insOgdp" parameterType="hashMap">
+		INSERT INTO STOCOGDP (
+			  GATE_CD
+			, BUYER_CD
+			, DEPT_CD
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, DEPT_NM
+			, PARENT_DEPT_CD
+			, ZIP_CD
+			, ADDR1
+			, ADDR2
+			, TEL_NUM
+			, FAX_NUM
+			, ZONE_CD
+			, DEPT_TYPE
+			, DEPT_STATUS
+			, SEQ
+			, USE_FLAG
+			, DEPT_CHIEF_NM
+			, ACC_CODE
+			, LVL
+			, DATA_CREATE_TYPE
+			, BRANCH_FLAG
+		)
+		SELECT DISTINCT
+			  '100' 		AS GATE_CD
+			, #{CUST_CD} 	AS BUYER_CD
+			, A.DEPT_C 		AS DEPT_CD
+			, SYSDATE 		AS REG_DATE
+			, 'ARO_BATCH' 	AS REG_USER_ID
+			, SYSDATE 		AS MOD_DATE
+			, 'ARO_BATCH' 	AS MOD_USER_ID
+			, '0' 			AS DEL_FLAG
+			, A.DEPT_NM 	AS DEPT_NM
+			, A.UP_DEPT_C 	AS PARENT_DEPT_CD
+			, A.ZIP			AS ZIP_CD
+			, A.ADDR 		AS ADDR1
+			, null 			AS ADDR2
+			, A.REP_TEL 	AS TEL_NUM
+			, A.FAX 		AS FAX_NUM
+			, A.PROV_C 		AS ZONE_CD
+			, '100'  		AS DEPT_TYPE
+			, null 			AS DEPT_STATUS
+			, null 			AS SEQ
+			, '1' 			AS USE_FLAG
+			, null 			AS DEPT_CHIEF_NM
+			, null 			AS ACC_CODE
+			, '1' 			AS LVL
+			, 'I' 			AS DATA_CREATE_TYPE
+			,(CASE WHEN NH_CORP_CODE = '2' 
+						THEN (CASE WHEN A.UP_DEPT_C IS NULL OR A.DEPT_C = A.UP_DEPT_C OR length(trim(UP_DEPT_C)) != 6
+										THEN '1'
+								   ELSE '0'
+							  END)
+			  	   ELSE '0'
+			  END) AS BRANCH_FLAG
+		 FROM TB_CO_DEPT A
+		WHERE CORP_NO = #{CORP_NO}
+		  AND STSC    = '1'
+		  AND NOT EXISTS (
+				SELECT '1' FROM STOCOGDP
+				WHERE GATE_CD = '100'
+				AND BUYER_CD  = #{CUST_CD}
+				AND DEPT_CD   = A.DEPT_C
+		 	  )
+	</update>
+
+    <update id="upsCust" parameterType="hashMap">
+		UPDATE STOCCUST SET
+			  MOD_DATE = SYSDATE -- MOD_DATE
+			, MOD_USER_ID = 'ARO_BATCH' -- MOD_USER_ID
+			, CUST_NM = #{CORP_NM} -- CUST_NM
+			, CUST_ENG_NM = #{CORP_NM} -- CUST_ENG_NM
+			, CORP_TYPE = #{NH_CORP_CODE} -- CORP_TYPE
+			, COMPANY_REG_NUM = #{CORP_ROW_NO} -- COMPANY_REG_NUM
+			, ZIP_CD = #{ZIP} -- ZIP_CD
+			, ADDR1 = #{ADDR} -- ADDR1
+			, ADDR2 = #{DTL_ADDR} -- ADDR2
+			, BUSINESS_TYPE = #{BIZTP} -- BUSINESS_TYPE
+			, INDUSTRY_TYPE = #{BZC} -- INDUSTRY_TYPE
+			, CEO_USER_NM = #{REP_NM} -- CEO_USER_NM
+			, TEL_NUM = #{REP_TEL} -- TEL_NUM
+			, FAX_NUM = #{FAX} -- FAX_NUM
+		WHERE GATE_CD = '100'
+		  AND CUST_CD = #{CUST_CD}
+	</update>
+	
+	<!-- 2021.02.26 로직 추가 -->
+	<!-- 지역농축협(CORP_TYPE=2) 주무서무(GNAF_DSC=1)이면 관리자여부(MNG_YN)를 'Y'로 변경하고 ELSE 'N'으로 변경함 -->
+	<!-- 2021.05.26 로직 추가 -->
+	<!-- 퇴사자 처리를 위해 DEL_FLAG 수정 추가 -->	
+	<!-- 고객사 사용자 -->
+    <update id="upsCvur" parameterType="hashMap">
+		UPDATE STOCCVUR SET
+			  MOD_DATE      	= SYSDATE 				-- MOD_DATE
+			, MOD_USER_ID   	= 'ARO_BATCH' 			-- MOD_USER_ID						
+			, DEL_FLAG      	= (CASE WHEN #{EMP_STSC} = '4' THEN '1' ELSE '0' END)
+			, COMPANY_CD  		= #{COMPANY_CD} 		-- COMPANY_CD
+			, WORK_TYPE 		= #{GNAF_DSC} 			-- WORK_TYPE
+			, MNG_YN			= (CASE WHEN #{CORP_TYPE} = '2' THEN (CASE WHEN #{GNAF_DSC} = '1' THEN '1' ELSE '0' END)
+										ELSE <include refid="common.sql.nvl"/>(MNG_YN, '0')
+								   END)
+			, USER_NM   		= #{USER_NM} 			-- USER_NM
+			, DEPT_CD   		= #{DEPT_C} 			-- DEPT_CD
+			, DEPT_NM   		= (SELECT DEPT_NM FROM TB_CO_DEPT WHERE CORP_NO = #{CORP_NO} AND DEPT_C=#{DEPT_C}) -- DEPT_NM
+			, POSITION_NM 		= #{PZC_NM} 			-- POSITION_NM
+			, EMAIL				= #{EMAIL} 				-- EMAIL
+			, DUTY_NM     		= #{OFT_NM} 			-- DUTY_NM
+			, ROLE_TEXT   		= #{CHRG_BSN_NM} 		-- ROLE_TEXT
+			, ROLE_TEXT_DETAIL 	= #{DTI_CHRG_BSN_NM} 	-- ROLE_TEXT_DETAIL
+			, ONES_DUTY_NM  	= #{CHRG_BSN_NM} 		-- ONES_DUTY_NM
+			, TEL_NUM     		= #{DWIN_TEL} 			-- TEL_NUM
+			, CELL_NUM    		= #{HP_NO} 				-- CELL_NUM
+		WHERE GATE_CD   = #{ses.gateCd}
+		  AND USER_ID   = #{USER_ID}
+		  AND USER_TYPE = 'B'
+	</update>
+
+	<!-- 2021.02.26 로직 추가 -->
+	<!-- 지역농축협(CORP_TYPE=2) 주무서무(GNAF_DSC=1)이면 관리자여부(MNG_YN)를 'Y'로 변경하고 ELSE 'N'으로 변경함 -->
+    <update id="insCvur" parameterType="hashMap">
+		INSERT INTO STOCCVUR (
+			  GATE_CD
+			, USER_ID
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, COMPANY_CD
+			, MNG_YN
+			, USER_TYPE
+			, WORK_TYPE
+			, USER_NM
+			, PASSWORD
+			, EMPLOYEE_NO
+			, DEPT_CD
+			, DEPT_NM
+			, POSITION_NM
+			, TEL_NUM
+			, FAX_NUM
+			, CELL_NUM
+			, EMAIL
+			, ZIP_CD
+			, ADDR_1
+			, ADDR_2
+			, SMS_FLAG
+			, MAIL_FLAG
+			, BLOCK_FLAG
+			, BLOCK_REASON
+			, PW_WRONG_CNT
+			, PW_RESET_FLAG
+			, PW_RESET_DATE
+			, LAST_LOGIN_DATE
+			, IP_ADDR
+			, USE_FLAG
+			, PROGRESS_CD
+			, CONFIRM_USER_ID
+			, CONFIRM_DATE
+			, DATA_CREATION_TYPE
+			, ERP_IF_ID
+			, ERP_IF_SEND_FLAG
+			, VNGL_ROLE
+			, AGREE_ATT_FILE_NUM
+			, AGREE_YN
+			, AGREE_YN_DATE
+			, DUTY_NM
+			, CHIEF_USER_ID
+			, ROLE_TEXT
+			, ROLE_TEXT_DETAIL
+			, ONES_DUTY_NM
+			, PARENT_DEPT_CD
+			, PARENT_DEPT_NM
+			, EMPLOYEE_NUM
+		)
+		VALUES (
+			  '100' 			-- GATE_CD
+			, #{USER_ID} 		-- USER_ID
+			, SYSDATE 			-- REG_DATE
+			, 'ARO_BATCH' 		-- REG_USER_ID
+			, SYSDATE 			-- MOD_DATE
+			, 'ARO_BATCH' 		-- MOD_USER_ID
+			, 0 				-- DEL_FLAG
+			, #{CUST_CD} 		-- COMPANY_CD
+			,(CASE WHEN #{CORP_TYPE} = '2' AND #{GNAF_DSC} = '1' THEN '1' ELSE '0' END) -- 지역농축협의 "주무서무=1"인 경우 관리자로 등록
+			, 'B' 				-- USER_TYPE
+			, #{GNAF_DSC} 		-- WORK_TYPE
+			, #{USER_NM} 		-- USER_NM
+			, #{PASSWORD} 		-- PASSWORD
+			, null 				-- EMPLOYEE_NO
+			, #{DEPT_C} 		-- DEPT_CD
+			, (SELECT DEPT_NM FROM TB_CO_DEPT WHERE CORP_NO = #{CORP_NO} AND DEPT_C=#{DEPT_C}) -- DEPT_NM
+			, #{PZC_NM} 		-- POSITION_NM
+			, #{REP_TEL} 		-- TEL_NUM
+			, null 				-- FAX_NUM
+			, #{HP_NO} 			-- CELL_NUM
+			, #{EMAIL} 			-- EMAIL
+			, null 				-- ZIP_CD
+			, null 				-- ADDR_1
+			, null 				-- ADDR_2
+			, '1' 				-- SMS_FLAG
+			, '1' 				-- MAIL_FLAG
+			, '0' 				-- BLOCK_FLAG
+			, null 				-- BLOCK_REASON
+			, '0' 				-- PW_WRONG_CNT
+			, '1' 				-- PW_RESET_FLAG
+			, SYSDATE 			-- PW_RESET_DATE
+			, null	 			-- LAST_LOGIN_DATE
+			, null 				-- IP_ADDR
+			, '1' 				-- USE_FLAG
+			, 'E' 				-- PROGRESS_CD
+			, 'ARO_BATCH' 		-- CONFIRM_USER_ID
+			, SYSDATE 			-- CONFIRM_DATE
+			, 'E' 				-- DATA_CREATION_TYPE
+			, null 				-- ERP_IF_ID
+			, null 				-- ERP_IF_SEND_FLAG
+			, null 				-- VNGL_ROLE
+			, null 				-- AGREE_ATT_FILE_NUM
+			, null 				-- AGREE_YN
+			, null 				-- AGREE_YN_DATE
+			, #{OFT_NM} 		-- DUTY_NM
+			, null 				-- CHIEF_USER_ID
+			, #{CHRG_BSN_NM} 	-- ROLE_TEXT
+			, #{DTI_CHRG_BSN_NM}-- ROLE_TEXT_DETAIL
+			, #{CHRG_BSN_NM} 	-- ONES_DUTY_NM
+			, null 				-- PARENT_DEPT_CD
+			, null 				-- PARENT_DEPT_NM
+			, null 				-- EMPLOYEE_NUM
+		)
+	</update>
+	
+	<!-- 2021.11.03 퇴사자 삭제 추가 -->
+	<delete id="delCvur" parameterType="hashMap">
+		DELETE FROM STOCCVUR
+		 WHERE GATE_CD   = #{ses.gateCd}
+		   AND USER_ID   = #{USER_ID}
+		   AND USER_TYPE = 'B'
+	</delete>
+	
+	<delete id="delUsap" parameterType="hashMap">
+		DELETE FROM STOCUSAP
+		 WHERE GATE_CD   = #{ses.gateCd}
+		   AND USER_ID   = #{USER_ID}
+	</delete>
+	
+	<delete id="delBacp" parameterType="hashMap">
+		DELETE FROM STOCBACP
+		 WHERE GATE_CD   = #{ses.gateCd}
+		   AND BUYER_CD  = #{CUST_CD}
+		   AND CTRL_USER_ID   = #{USER_ID}
+	</delete>
+	
+	<!-- 2023.01.04 휴먼퇴사자 삭제 추가 -->
+	<delete id="delHvur" parameterType="hashMap">
+		DELETE FROM STOHCVUR
+		 WHERE GATE_CD   = #{ses.gateCd}
+		   AND USER_ID   = #{USER_ID}
+		   AND USER_TYPE = 'B'
+	</delete>
+	
+    <update id="insUsap" parameterType="hashMap">
+		INSERT INTO STOCUSAP (
+			  GATE_CD
+			, USER_ID
+			, AUTH_CD
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, VALID_FROM_DATE
+			, VALID_TO_DATE
+		)
+		SELECT
+			  '100'  		AS GATE_CD
+			, #{USER_ID}   	AS USER_ID
+			, 'PF0131'   	AS AUTH_CD
+			, SYSDATE 		AS REG_DATE
+			, 'ARO_BATCH' 	AS REG_USER_ID
+			, SYSDATE     	AS MOD_DATE
+			, 'ARO_BATCH' 	AS MOD_USER_ID
+			, '0'  			AS DEL_FLAG
+			, null 			AS VALID_FROM_DATE
+			, null 			AS VALID_TO_DATE
+		  FROM DUAL
+		 WHERE NOT EXISTS (
+					SELECT '1' FROM STOCUSAP
+					WHERE GATE_CD = '100'
+					  AND USER_ID = #{USER_ID}
+		  	   )
+	</update>
+
+    <update id="insBacp" parameterType="hashMap">
+		INSERT INTO STOCBACP (
+			  GATE_CD
+			, BUYER_CD
+			, CTRL_CD
+			, CTRL_USER_ID
+			, REG_DATE
+			, REG_USER_ID
+			, MOD_DATE
+			, MOD_USER_ID
+			, DEL_FLAG
+			, USE_FLAG
+		)
+		SELECT
+			  '100'			AS GATE_CD
+			, #{CUST_CD}	AS BUYER_CD
+			,(CASE WHEN #{CORP_TYPE} = '2' AND #{GNAF_DSC} = '1' THEN 'BR100' ELSE 'BR020' END) AS CTRL_CD
+			, #{USER_ID}	AS CTRL_USER_ID
+			, SYSDATE		AS REG_DATE
+			, 'ARO_BATCH'	AS REG_USER_ID
+			, SYSDATE		AS MOD_DATE
+			, 'ARO_BATCH'	AS MOD_USER_ID
+			, '0' 			AS DEL_FLAG
+			, '1' 			AS USE_FLAG
+	      FROM DUAL
+	     WHERE NOT EXISTS (
+					SELECT '1' FROM STOCBACP
+					WHERE GATE_CD  = '100'
+					  AND BUYER_CD = #{CUST_CD}
+					  AND CTRL_CD  = CASE WHEN #{CORP_TYPE} = '2' AND #{GNAF_DSC} = '1' THEN 'BR100' ELSE 'BR020' END
+					  AND CTRL_USER_ID = #{USER_ID}
+	     	   )
+	</update>
+	
+	<update id="upsBacp" parameterType="hashMap">
+		UPDATE STOCBACP SET
+		      BUYER_CD = #{COMPANY_CD}
+			, MOD_USER_ID = #{ses.userId}
+			, MOD_DATE = SYSDATE
+		 WHERE GATE_CD  = #{ses.gateCd}
+		   AND CTRL_USER_ID = #{USER_ID}
+		   AND CTRL_CD  = 'BR020'
+		   AND DEL_FLAG = '0'
+	</update>
+
+</mapper>

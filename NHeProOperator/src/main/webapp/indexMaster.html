@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>NHePro Welcome</title>
+    <script>
+		function redirectLogin(type) {
+			var url = "";
+			var userId = "";
+			var passsword = "1";
+
+			if (type == "O") {
+                url = "http://localhost:8480/welcome.so";
+                userId = "master";
+			} else if (type == "C") {
+				url = "http://localhost:8380/welcome.so";
+				userId = "customer";
+			} else if (type == "S") {
+				url = "http://localhost:8380/welcome.so";
+				userId = "supplier"
+			}
+
+			window.open(url + "?userId=" + userId + "&password=" + passsword + "&loginType=S", '_blank');
+
+        }
+    </script>
+</head>
+<body style="margin: 0;">
+<div class="out" style="width: 100%; text-align: center; position: absolute; top: 40%; line-height: 40px; font-size: 20px; font-weight: bold;">
+    <div class="in" style="display: inline-block;">
+        <a href="javascript:redirectLogin('O')">Operator Home</a>
+        <br>
+        <a href="javascript:redirectLogin('C')">Customer Home</a>
+        <br>
+        <a href="javascript:redirectLogin('S')">Supplier Home</a>
+    </div>
+</div>
+</body>
+</html>

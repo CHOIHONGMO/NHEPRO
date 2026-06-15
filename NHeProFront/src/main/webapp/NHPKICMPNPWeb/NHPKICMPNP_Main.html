@@ -1,0 +1,321 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta http-equiv="Content-Type" content="text-html; charset=utf-8"/>
+    <meta http-equiv="Cache-Control" content="no-cache"/>
+    <meta http-equiv="Expires" content="-1"/>
+    <meta http-equiv="Pragma" content="no-cache"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>사설인증센터</title>
+
+    <!--CORE CSS-->
+    <link rel="Stylesheet" type="text/css" href="css/NHPKICMPNP_Loader.css"/>
+
+    <!--CORE JS-->
+    <script language="javascript" src="js/var.js" charset="utf-8"></script>
+    <script language="javascript" src="js/spin.js" charset="utf-8"></script>
+    <script language="javascript" src="js/Base64.js" charset="utf-8"></script>
+    <script language="javascript" src="js/jssha256.js" charset="utf-8"></script>
+
+    <!--사설인증센터 CSS-->
+    <link rel="stylesheet" href="css/NHPKICMPNP_Style.css">
+
+    <!--사설인증센터 JS-->
+    <script type="text/javascript" src="js/jquery-1.12.4.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="js/NHPKICMPNP_jquery-ui.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="js/NHPKICMPNP_Common.js" charset='utf-8'></script>
+    <script type="text/javascript" src="js/NHPKICMPNP_v2.js"></script>
+    <script src="js/jquery-autoclear.min.js"></script>
+</head>
+
+<body style="border:0;overflow:hidden" onload="initialization()">
+<iframe id="NHPKICMPNPIframe" style="display:none"></iframe>
+<div id="skm_LockPane" class="LockOff"></div>
+<!-- Login Layer -->
+<div class="ML_NH_login_wrap" id="popup">
+    <div class="ML_NH_title">사설인증센터</div>
+    <div class="ML_NH_login_wrap_pd">
+        <div class="ML_NH_guide">
+            <span class="ML_NH_guide_tit">사설인증서 이용 시 주의사항</span>
+            <ul>
+                <li>- 사설인증서 암호는 포털사이트, 금융계좌, 쇼핑몰 등의 비밀번호와 다르게 설정해 주세요.</li>
+                <li>- 사설인증서 암호는 생일 및 전화번호 등과 같이 타인이 알기 쉬운 번호는 사용하지 마세요.</li>
+                <li>- 사설인증서 암호는 금융회사 직원 등 절대 타인에게 알려주지 마세요.</li>
+                <li>- 사설인증서 파일, 사설인증서 암호 등은 반드시 USB메모리, 보안토큰, 휴대폰 등 이동식 매채를 이용하여 보관하세요.</li>
+                <li>- E-mail, 웹하드 등에 보관하신 경우, 즉시 폐기하신 후 사설인증서를 재발급 받으세요.</li>
+            </ul>
+        </div>
+        <div class="ML_NH_tab_wrap">
+            <div id="tabs">
+                <div id="all_tit" style="display: block">
+                    <ul role="tablist">
+                        <li class="tab_r_none" role="tab"><a href="#tabs-1" onclick="selUser()"><span class="tab_psn">개인용</span></a>
+                        </li>
+                        <li class="tab_l_none" role="tab"><a href="#tabs-2" onclick="selCorporation()"><span
+                                class="tab_qrcode">법인용</span></a></li>
+                    </ul>
+                </div>
+
+                <div id="tabs-1" role="tabpanel">
+                    <div class="psn_content" style="display:block;">
+                        <div class="psn_content_box">
+                            <div class="psn_content_area">
+                                <a class="js-open-modal btn" href="#"
+                                   onclick="smsUserCheck()">
+                                    <div class="psn_con_box01">
+                                        <div class="psn_certi_issue">
+                                            <ul class="psn_certi_txt">
+                                                <li class="psn_certi_txt_tit">개인용 인증서 발급 / 재발급</li>
+                                                <li>인증서 최초 발급 / 기간만료, 분실,<br>삭제로 인한 재발급</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </a>
+                                <!-- <a href="NHPKICMPNP_Del.html"> -->
+                                <a href="/NHPKICMPNPWeb/NHPKICMPNP_Del.html">
+                                    <div class="psn_con_box02">
+                                        <div class="psn_certi_del">
+                                            <ul class="psn_certi_txt">
+                                                <li class="psn_certi_txt_tit">인증서 폐기</li>
+                                                <li>발급받은 사설인증서의<br>사용을 원하지 않으시는 경우</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="tabs-2" role="tabpanel">
+                    <div class="cop_content" style="display:block;">
+                        <div class="cop_content_box">
+                            <div class="cop_content_area">
+                                <a class="js-open-modal btn" href="#" data-modal-id="popup_cop"
+                                   onclick="initUserInfo()">
+                                    <div class="cop_con_box01">
+                                        <div class="cop_certi_issue">
+                                            <ul class="cop_certi_txt">
+                                                <li class="cop_certi_txt_tit">법인용 인증서 발급 / 재발급</li>
+                                                <li>인증서 최초 발급 / 기간만료, 분실,<br>삭제로 인한 재발급</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </a>
+                                <!-- <a href="NHPKICMPNP_Del.html"> -->
+                                <a href="/NHPKICMPNPWeb/NHPKICMPNP_Del.html">
+                                    <div class="cop_con_box02">
+                                        <div class="cop_certi_del">
+                                            <ul class="cop_certi_txt">
+                                                <li class="cop_certi_txt_tit">인증서 폐기</li>
+                                                <li>발급받은 사설인증서의<br>사용을 원하지 않으시는 경우</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="certi_setup_wrap">
+            <div class="certi_setup_txt_tit">인증서 관리 업무</div>
+            <div class="certi_setup_btn_wrap">
+                <div class="certi_setup_btn01" onclick="viewCert()">인증서<br>보기/검증</div>
+                <div class="certi_setup_btn02" onclick="copyCert()">인증서<br>저장매체 변경</div>
+                <div class="certi_setup_btn03" onclick="deleteCert()">인증서<br>삭제</div>
+                <div class="certi_setup_btn04" onclick="changeCertPasswd()">인증서<br>비밀번호 변경</div>
+                <div class="certi_setup_btn05" onclick="beforeExportImportReq()">인증서<br>내보내기/가져오기</div>
+            </div>
+        </div>
+    </div>
+    <div class="ML_NH_footer">
+        <div id="version" class="ft_version"></div>
+        <div class="ft_copy">ⓒ 2020. Dreamsecurity all rights reserved.</div>
+    </div>
+</div>
+</body>
+
+<!--alert01-->
+<div id="popup_psn" class="modal-box width_450">
+    <div class="modal_header"><a class="js-modal-close pop_close"><i class="la la-close"></i></a>
+        <p class="modal_tit">인증서 발급자 정보</p>
+        <div class="pop_btn_close"><a class="js-modal-close" onclick="initUserInfo();"><img
+                src="images/btn_close_w.png"></a></div>
+    </div>
+    <div class="modal_body">
+        <div class="pop_psn_con_box01">
+            <div class="psn_certi_issue"></div>
+            <div class="psn_certi_title">개인용 인증서 발급</div>
+        </div>
+        <div class="pop_psn_con_box02">
+            <span class="pop_psn_con_box02_tit">사용자 이름</span>
+            <span class="pop_cop_con_box02_con"><input type="text" class="width_100p input_txt placeholder"
+                                                       id="user_name" name="user_name" autocomplete="off"
+                                                       onkeypress="enterEvent(event,false)"></span>
+        </div>
+    </div>
+    <div class="modal_footer">
+        <div class="modal_footer_box2">
+            <!--버튼-->
+            <div class="pop_btn_wrap">
+                <div class="pop_btn_two">
+                    <div class="pop_blue_btn">
+                        <button id="issueCert_false" class="js-modal-close" onclick="issueCertReq();"><span>발급</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="pop_btn_two">
+                    <div class="pop_whtgrey_btn">
+                        <button id="issueCertCancel_false" class="js-modal-close" onclick="closeModal();"><span>취소</span></button>
+                    </div>
+                </div>
+            </div>
+            <!--//버튼-->
+        </div>
+    </div>
+</div>
+
+<!--alert02-->
+<div id="popup_cop" class="modal-box width_450">
+    <div class="modal_header"><a class="js-modal-close pop_close"><i class="la la-close"></i></a>
+        <p class="modal_tit">인증서 발급자 정보</p>
+        <div class="pop_btn_close"><a class="js-modal-close" onclick="initUserInfo()"><img src="images/btn_close_w.png"></a>
+        </div>
+    </div>
+    <div class="modal_body">
+        <div class="pop_cop_con_box01">
+            <div class="cop_certi_issue"></div>
+            <div class="cop_certi_title">법인용 인증서 발급</div>
+        </div>
+        <div class="pop_cop_con_box03">
+            <span class="pop_cop_con_box03_tit">사업자 명</span>
+            <span class="pop_cop_con_box03_con"><input type="text" class="width_100p input_txt" id="corporation_name"
+                                                       name="corporation_name" autocomplete="off" readonly></span>
+        </div>
+        <div class="pop_cop_con_box03">
+            <span class="pop_cop_con_box03_tit">사업자 등록번호</span>
+            <span class="pop_cop_con_box03_con"><input type="text" class="width_100p input_txt placeholder"
+                                                       id="corporation_num" name="corporation_num" autocomplete="off"
+                                                       maxlength="10" onkeypress="enterEvent(event,true)"></span>
+
+			<input type="hidden" id="kcbSeq" name="kcbSeq" th:value="">
+            <input type="hidden" id="corporation_nm" name="corporation_nm" th:value="${session.userId}">
+            <input type="hidden" id="userId" name="userId" th:value="${session.userId}">
+            <input type="hidden" id="companyCd" name="companyCd" th:value="${session.companyCD}">
+            <input type="hidden" id="superUser" name="superUser" th:value="${session.superUser}">
+            <input type="hidden" id="superUserFlag" name="superUserFlag" th:value="${session.superUserFlag}">
+        </div>
+    </div>
+    <div class="modal_footer">
+        <div class="modal_footer_box2">
+            <!--버튼-->
+            <div class="pop_btn_wrap">
+                <div class="pop_btn_two">
+                    <div class="pop_blue_btn">
+                        <button id="issueCert_true" class="js-modal-close" onclick="issueCertReq()"><span>발급</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="pop_btn_two">
+                    <div class="pop_whtgrey_btn">
+                        <button class="js-modal-close"><span>취소</span></button>
+                    </div>
+                </div>
+            </div>
+            <!--//버튼-->
+        </div>
+    </div>
+</div>
+
+<!--alert03-->
+<a id="callModal" class="js-open-modal btn" href="#" data-modal-id="popup_certi01"></a>
+<div id="popup_certi01" class="modal-box width_400">
+    <div class="modal_header"><a class="js-modal-close pop_close"><i class="la la-close"></i></a>
+        <p class="modal_tit_notice">알림</p>
+        <div class="pop_btn_close"><a class="js-modal-close" onclick="entervalueFalse()"><img
+                src="images/btn_close_w.png"></a></div>
+    </div>
+    <div class="modal_body">
+        <div class="pop_notice_box">
+            <span id="modalSubName" class="pop_notice_tit"></span>
+            <span id="modalContent" class="pop_notice_con"></span>
+        </div>
+    </div>
+    <div class="modal_footer">
+        <div class="modal_footer_box2">
+            <!--버튼-->
+            <div class="pop_btn_wrap">
+                <div class="pop_btn_one">
+                    <div class="pop_blue_btn">
+                        <button class="js-modal-close" onclick="entervalueFalse()"><span>확인</span></button>
+                    </div>
+                </div>
+            </div>
+            <!--//버튼-->
+        </div>
+    </div>
+</div>
+
+<!--alert04-->
+<a id="checkModal" class="js-open-modal btn" href="#" data-modal-id="popup_certi02"></a>
+<div id="popup_certi02" class="modal-box width_400">
+    <div class="modal_header"><a class="js-modal-close pop_close"><i class="la la-close"></i></a>
+        <p class="modal_tit_notice">알림</p>
+        <div class="pop_btn_close"><a class="js-modal-close"><img src="images/btn_close_w.png"></a></div>
+    </div>
+    <div class="modal_body">
+        <div class="pop_notice_box">
+            <span id="checkSubName" class="pop_notice_tit"></span>
+            <span id="checkContent" class="pop_notice_con"></span>
+        </div>
+    </div>
+    <div class="modal_footer">
+        <div class="modal_footer_box2">
+            <!--버튼-->
+            <div class="pop_btn_wrap">
+                <div class="pop_btn_two">
+                    <div class="pop_blue_btn">
+                        <button class="js-modal-close" onclick="viewCert()"><span>보기/검증</span></button>
+                    </div>
+                </div>
+                <div class="pop_btn_two">
+                    <div class="pop_whtgrey_btn">
+                        <button class="js-modal-close" onclick="initUserInfo()"><span>취소</span></button>
+                    </div>
+                </div>
+            </div>
+            <!--//버튼-->
+        </div>
+    </div>
+</div>
+
+<!--alert05-->
+<a id="exportAndImport" class="js-open-modal btn" href="#" data-modal-id="popup_certi03"></a>
+<div id="popup_certi03" class="modal-box width_400">
+    <div class="modal_header"><a class="js-modal-close pop_close"><i class="la la-close"></i></a>
+        <p class="modal_tit_notice">알림</p>
+        <div class="pop_btn_close"><a class="js-modal-close"><img src="images/btn_close_w.png"></a></div>
+    </div>
+    <div class="modal_body">
+        <div class="pop_btn_box">
+            <div class="pop_btn01 js-modal-close" onclick="exportCert()">
+                <div class="pop_btn_export"></div>
+                <div>내보내기</div>
+            </div>
+            <div class="pop_btn02 js-modal-close" onclick="importCert()">
+                <div class="pop_btn_import"></div>
+                <div>가져오기</div>
+            </div>
+        </div>
+    </div>
+    <div class="modal_footer"></div>
+</div>
+	<form name="form1" action="/kcb/phone_popup2.jsp" method="post">
+		<input type="hidden" name="CP_CD" value="V45030000000"/>
+		<input type="hidden" name="SITE_NAME" value="농협정보시스템" />
+      </form>
+</html>

@@ -1,0 +1,431 @@
+package com.st_ones.common.login.domain;
+
+import com.st_ones.common.enums.system.Code;
+import com.st_ones.everf.serverside.info.BaseInfo;
+import com.st_ones.everf.serverside.util.EverString;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2013 ST-ONES CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : UserInfo.java
+ * @date 2013. 07. 22.
+ * @version 1.0
+ * @see
+ */
+public class UserInfo extends BaseInfo {
+
+    private static final long serialVersionUID = -8481177033041405487L;
+
+    private String manageCd;
+    private String countryCd;
+    private String singleId;
+    private String companyNmEng;
+    private String deptNmEng;
+    private String telNum;
+    private String cellNum;
+    private String faxNum;
+    private String workType;
+    private String ctrlCd;
+    private String finCtrlCd;
+    private String pwWrongCnt;
+    private String mngYn;
+    private String dutyCd;
+    private String dutyNm;
+    private String lastLoginDate;
+    private String irsNum;
+    private String jsessionId;
+    private String accCd;
+    private String autoPoFlag;
+    private String blockFlag;
+    private String budgetDeptCode;
+    private String budgetFlag;
+    private String buyerApproveUseFlag;
+    private String buyerBudgetUseFlag;
+    private String buyerMySiteFlag;
+    private String buyerTierCode;
+    private String buyerWmsFlag;
+    private String financialFlag;
+    private String grFlag;
+    private String mailFlag;
+    private String mySiteFlag;
+    private String selectFlag;
+    private String smsFlag;
+    private String wmsFlag;
+    private String zipCd;
+    private String addr1;
+    private String addr2;
+    private String relatYn;
+
+    private String corpType;
+
+    // EVARSRM_V2 -> NH_SRM
+    private String cur;
+    private String plantCd;
+    private String pwResetFlag;
+
+    private String gwUseFlag;       // 그룹웨어 사용여부
+
+    private String progressCd;
+
+    private String useFlag;
+    private boolean pwdValid;       // 비밀번호 패스여부
+
+    public String getCorpType() {
+		return corpType;
+	}
+
+	public void setCorpType(String corpType) {
+		this.corpType = corpType;
+	}
+
+	public String getManageCd() {
+    	return manageCd;
+    }
+
+    public void setManageCd(String manageCd) {
+    	this.manageCd = manageCd;
+    }
+
+    public String getCountryCd() {
+        return countryCd;
+    }
+
+    public void setCountryCd(String countryCd) {
+        this.countryCd = countryCd;
+    }
+
+    public String getSingleId() {
+        return singleId;
+    }
+
+    public void setSingleId(String singleId) {
+        this.singleId = singleId;
+    }
+
+    public String getCompanyNmEng() {
+        return companyNmEng;
+    }
+
+    public void setCompanyNmEng(String companyNmEng) {
+        this.companyNmEng = companyNmEng;
+    }
+
+    public String getDeptNmEng() {
+        return deptNmEng;
+    }
+
+    public void setDeptNmEng(String deptNmEng) {
+        this.deptNmEng = deptNmEng;
+    }
+
+    public String getTelNum() {
+        return telNum;
+    }
+
+    public void setTelNum(String telNum) {
+        this.telNum = telNum;
+    }
+
+    public String getCellNum() {
+        return cellNum;
+    }
+
+    public void setCellNum(String cellNum) {
+        this.cellNum = cellNum;
+    }
+
+    public String getWorkType() {
+        return workType;
+    }
+
+    public void setWorkType(String workType) {
+        this.workType = workType;
+    }
+
+    public String getCtrlCd() {
+        return ctrlCd;
+    }
+
+    public void setCtrlCd(String ctrlCd) {
+        this.ctrlCd = ctrlCd;
+    }
+
+    public String getFaxNum() {
+        return faxNum;
+    }
+
+    public void setFaxNum(String faxNum) {
+        this.faxNum = faxNum;
+    }
+
+    public String getMngYn() {
+        return mngYn;
+    }
+
+    public void setMngYn(String mngYn) {
+        this.mngYn = mngYn;
+    }
+
+    public String getFinCtrlCd() {
+        return finCtrlCd;
+    }
+
+    public void setFinCtrlCd(String finCtrlCd) {
+        this.finCtrlCd = finCtrlCd;
+    }
+
+    public String getPwWrongCnt() {
+        return pwWrongCnt;
+    }
+
+    public void setPwWrongCnt(String pwWrongCnt) {
+        this.pwWrongCnt = pwWrongCnt;
+    }
+
+    public String getDutyCd() {   return dutyCd;}
+    public void setDutyCd(String dutyCd) { this.dutyCd = dutyCd;}
+
+    public String getDutyNm() {   return dutyNm;}
+    public void setDutyNm(String dutyNm) { this.dutyNm = dutyNm;}
+
+    public String getLastLoginDate() {   return lastLoginDate;}
+    public void setLastLoginDate(String lastLoginDate) { this.lastLoginDate = lastLoginDate;}
+
+    public String getIrsNum() {   return irsNum;}
+    public void setIrsNum(String irsNum) { this.irsNum = irsNum;}
+
+    public String getJsessionId() { return jsessionId; }
+    public void setJsessionId(String jsessionId) { this.jsessionId = jsessionId; }
+
+    public String getAccCd() { return accCd; }
+    public void setAccCd(String accCd) { this.accCd = accCd; }
+
+    public String getAutoPoFlag() { return autoPoFlag;}
+    public void setAutoPoFlag(String autoPoFlag) {this.autoPoFlag = autoPoFlag;}
+
+    public String getBlockFlag() {return blockFlag;}
+    public void setBlockFlag(String blockFlag) {this.blockFlag = blockFlag;}
+
+    public String getBudgetDeptCode() {return budgetDeptCode;}
+    public void setBudgetDeptCode(String budgetDeptCode) {this.budgetDeptCode = budgetDeptCode;}
+
+    public String getBudgetFlag() {return budgetFlag;}
+    public void setBudgetFlag(String budgetFlag) {this.budgetFlag = budgetFlag;}
+
+    public String getBuyerApproveUseFlag() {return buyerApproveUseFlag;}
+    public void setBuyerApproveUseFlag(String buyerApproveUseFlag) {this.buyerApproveUseFlag = buyerApproveUseFlag;}
+
+    public String getBuyerBudgetUseFlag() {return buyerBudgetUseFlag;}
+    public void setBuyerBudgetUseFlag(String buyerBudgetUseFlag) {this.buyerBudgetUseFlag = buyerBudgetUseFlag;}
+
+    public String getBuyerMySiteFlag() {return buyerMySiteFlag;}
+    public void setBuyerMySiteFlag(String buyerMySiteFlag) {this.buyerMySiteFlag = buyerMySiteFlag;}
+
+    public String getBuyerTierCode() {return buyerTierCode;}
+    public void setBuyerTierCode(String buyerTierCode) {this.buyerTierCode = buyerTierCode;}
+
+    public String getBuyerWmsFlag() {return buyerWmsFlag;}
+    public void setBuyerWmsFlag(String buyerWmsFlag) {this.buyerWmsFlag = buyerWmsFlag;}
+
+    public String getFinancialFlag() {return financialFlag;}
+    public void setFinancialFlag(String financialFlag) {this.financialFlag = financialFlag;}
+
+    public String getGrFlag() {return grFlag;}
+    public void setGrFlag(String grFlag) {this.grFlag = grFlag;}
+
+    public String getMailFlag() {return mailFlag;}
+    public void setMailFlag(String mailFlag) {this.mailFlag = mailFlag;}
+
+    public String getMySiteFlag() {return mySiteFlag;}
+    public void setMySiteFlag(String mySiteFlag) {this.mySiteFlag = mySiteFlag;}
+
+    public String getSelectFlag() {return selectFlag;}
+    public void setSelectFlag(String selectFlag) {this.selectFlag = selectFlag;}
+
+    public String getSmsFlag() {return smsFlag;}
+    public void setSmsFlag(String smsFlag) {this.smsFlag = smsFlag;}
+
+    public String getWmsFlag() {return wmsFlag;}
+    public void setWmsFlag(String wmsFlag) {this.wmsFlag = wmsFlag;}
+
+    public String getZipCd() {return zipCd;}
+    public void setZipCd(String zipCd) {this.zipCd = zipCd;}
+
+    public String getAddr1() {return addr1;}
+    public void setAddr1(String addr1) {this.addr1 = addr1;}
+
+    public String getAddr2() {return addr2;}
+    public void setAddr2(String addr2) {this.addr2 = addr2;}
+
+    public String getRelatYn() { return relatYn; }
+    public void setRelatYn(String relatYn) { this.relatYn = relatYn; }
+
+    /**
+     * 운영사 여부
+     *
+     * @return
+     */
+    public boolean isOperator() {
+        return (this.getUserType().equals(Code.OPERATOR));
+    }
+
+    /**
+     * 고객사 여부
+     *
+     * @return
+     */
+    public boolean isCustomer() {
+        return (this.getUserType().equals(Code.CUSTOMER));
+    }
+
+    /**
+     * 협력회사 여부
+     *
+     * @return
+     */
+    public boolean isSupplier() {
+        return (this.getUserType().equals(Code.SUPPLIER));
+    }
+
+    public boolean isSuperUser() {
+        return EverString.nullToEmptyString(this.getSuperUserFlag()).equals("1");
+    }
+
+    /**
+     * 모바일 사용자 여부
+     *
+     * @return
+     */
+    public boolean isMobile() {
+        return (this.getUserType().equals(Code.MOBILE));
+    }
+    
+    /**
+     * 농협 파트너스_모바일 사용자 여부 2022.10.13
+     *
+     * @return
+     */
+    public boolean isMobilePT() {
+        return (this.getUserType().equals(Code.MOBILEPT));
+    }
+
+    /**
+     * 관리직무자 여부
+     * @return
+     */
+    public boolean hasCOST() {
+        return (this.ctrlCd != null && this.ctrlCd.indexOf("C100") > -1);
+    }
+
+    /**
+     * 영업직무자 여부
+     * @return
+     */
+    public boolean hasINVT() {
+        return (this.ctrlCd != null && this.ctrlCd.indexOf("I100") > -1);
+    }
+
+    /**
+     * 구매직무자 여부
+     * @return
+     */
+    public boolean hasNPUR() {
+        return (this.ctrlCd != null && this.ctrlCd.indexOf("N100") > -1);
+    }
+
+    /**
+     * 리테일직무자 여부 / 재고
+     * @return
+     */
+    public boolean hasPPUR() {
+        return (this.ctrlCd != null && this.ctrlCd.indexOf("P100") > -1);
+    }
+
+    /**
+     * 파견사원 여부
+     * @return
+     */
+    public boolean hasSUPT() {
+        return (this.ctrlCd != null && this.ctrlCd.indexOf("H100") > -1);
+    }
+
+    /**
+     * 파견사원 관리자
+     * @return
+     */
+    public boolean hasHRMG() {
+        return (this.ctrlCd != null && this.ctrlCd.indexOf("H110") > -1);
+    }
+
+
+    /**
+     * 지원직무자 여부
+     * @return
+     */
+    public boolean hasSSPT() {
+        return (this.ctrlCd != null && this.ctrlCd.indexOf("S100") > -1);
+    }
+
+    /**
+     * [PC지원] PC/스마트기기 지원 여부
+     * @return
+     */
+    public boolean hasPCSM() { return (this.ctrlCd != null && this.ctrlCd.indexOf("PC01") > -1); }
+
+    public String getCur() {
+        return cur;
+    }
+
+    public void setCur(String cur) {
+        this.cur = cur;
+    }
+
+    public String getPlantCd() {
+        return plantCd;
+    }
+
+    public void setPlantCd(String plantCd) {
+        this.plantCd = plantCd;
+    }
+    public String getGwUseFlag() { return gwUseFlag; }
+
+    public void setGwUseFlag(String gwUseFlag) { this.gwUseFlag = gwUseFlag; }
+
+    public String getProgressCd() {
+        return progressCd;
+    }
+
+    public void setProgressCd(String progressCd) {
+        this.progressCd = progressCd;
+    }
+
+    public String getUseFlag() {
+        return useFlag;
+    }
+
+    public void setUseFlag(String useFlag) {
+        this.useFlag = useFlag;
+    }
+
+    public boolean isPwdValid() {
+        return pwdValid;
+    }
+
+    public void setPwdValid(boolean pwdValid) {
+        this.pwdValid = pwdValid;
+    }
+
+    public String getPwResetFlag() {
+        return pwResetFlag;
+    }
+
+    public void setPwResetFlag(String pwResetFlag) {
+        this.pwResetFlag = pwResetFlag;
+    }
+}

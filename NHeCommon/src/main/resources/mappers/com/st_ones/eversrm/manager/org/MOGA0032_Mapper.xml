@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:38 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.org.MOGA0032_Mapper">
+
+    <select id="MOGA0032_doSelect_deptTree" parameterType="hashMap" resultType="java.util.Map">
+
+        SELECT DISTINCT
+             B.tree AS "tree"
+           , B.DEPT_NM
+           , B.DEPT_NM AS ITEM_CLS_NM
+           , B.ITEM_CLS1
+           , B.ITEM_CLS2
+           , B.ITEM_CLS3
+           , B.ITEM_CLS4
+           , B.ITEM_CLS5
+           , B.ITEM_CLS_PATH_NM
+           , B.COUNTS
+           , B.LVL
+           , B.DEPT_CD
+           , B.UP_DEPT_CD
+           , B.ITEM_CLS2_SEQ
+           , B.ITEM_CLS3_SEQ
+           , B.ITEM_CLS4_SEQ
+           , B.ITEM_CLS5_SEQ
+           , B.ACC_CODE
+           , <include refid="common.sql.nvl"/>(B.PARENTS_YN,'') AS PARENTS_YN
+           , B.CUST_CD
+           , B.CUST_NM
+           , B.SEQ
+        FROM (
+              SELECT (CASE WHEN A.LVL = 0 THEN A.DEPT_CD
+                           WHEN A.LVL = 1 THEN A.ITEM_CLS1 <include refid="common.sql.stringMerge"/> A.ITEM_CLS2
+                           WHEN A.LVL = 2 THEN  A.ITEM_CLS1 <include refid="common.sql.stringMerge"/> A.ITEM_CLS2 <include refid="common.sql.stringMerge"/> A.ITEM_CLS3
+                           WHEN A.LVL = 3 THEN A.ITEM_CLS1 <include refid="common.sql.stringMerge"/> A.ITEM_CLS2 <include refid="common.sql.stringMerge"/> A.ITEM_CLS3 <include refid="common.sql.stringMerge"/> A.ITEM_CLS4
+                           WHEN A.LVL = 4 THEN A.ITEM_CLS1 <include refid="common.sql.stringMerge"/> A.ITEM_CLS2 <include refid="common.sql.stringMerge"/> A.ITEM_CLS3 <include refid="common.sql.stringMerge"/> A.ITEM_CLS4 <include refid="common.sql.stringMerge"/> A.ITEM_CLS5
+                           ELSE A.ITEM_CLS1 <include refid="common.sql.stringMerge"/> A.ITEM_CLS2 <include refid="common.sql.stringMerge"/> A.ITEM_CLS3 <include refid="common.sql.stringMerge"/> A.ITEM_CLS4 <include refid="common.sql.stringMerge"/> A.ITEM_CLS5 END) AS tree
+                   , A.DEPT_NM
+                   , A.ITEM_CLS1
+                   , A.ITEM_CLS2
+                   , A.ITEM_CLS3
+                   , A.ITEM_CLS4
+                   , A.ITEM_CLS5
+                   , (CASE WHEN A.LVL=0 THEN A.COMPANY_NM
+                           WHEN A.LVL=1 THEN A.COMPANY_NM <include refid="common.sql.stringMerge"/>' > '<include refid="common.sql.stringMerge"/>  <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},A.BUYER_CD,A.ITEM_CLS2,'DEPT_NM')
+                           WHEN A.LVL=2 THEN A.COMPANY_NM <include refid="common.sql.stringMerge"/>' > '<include refid="common.sql.stringMerge"/>  <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},A.BUYER_CD,A.ITEM_CLS2,'DEPT_NM') <include refid="common.sql.stringMerge"/>' > '<include refid="common.sql.stringMerge"/>  <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},A.BUYER_CD,A.ITEM_CLS3,'DEPT_NM')
+                           WHEN A.LVL=3 THEN A.COMPANY_NM <include refid="common.sql.stringMerge"/>' > '<include refid="common.sql.stringMerge"/>  <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},A.BUYER_CD,A.ITEM_CLS2,'DEPT_NM') <include refid="common.sql.stringMerge"/>' > '<include refid="common.sql.stringMerge"/>  <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},A.BUYER_CD,A.ITEM_CLS3,'DEPT_NM') <include refid="common.sql.stringMerge"/>' > '<include refid="common.sql.stringMerge"/>  <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},A.BUYER_CD,A.ITEM_CLS4,'DEPT_NM')
+                           ELSE A.COMPANY_NM <include refid="common.sql.stringMerge"/>' > '<include refid="common.sql.stringMerge"/>  <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},A.BUYER_CD,A.ITEM_CLS2,'DEPT_NM') <include refid="common.sql.stringMerge"/>' > '<include refid="common.sql.stringMerge"/>  <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},A.BUYER_CD,A.ITEM_CLS3,'DEPT_NM') <include refid="common.sql.stringMerge"/>' > '<include refid="common.sql.stringMerge"/>  <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},A.BUYER_CD,A.ITEM_CLS4,'DEPT_NM') <include refid="common.sql.stringMerge"/>' > '<include refid="common.sql.stringMerge"/>  <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},A.BUYER_CD,A.ITEM_CLS5,'DEPT_NM') END) AS ITEM_CLS_PATH_NM
+                   , (CASE WHEN A.LVL=1 THEN (SELECT COUNT(*) FROM STOCOGDP)
+                           WHEN A.LVL=2 THEN (SELECT COUNT(*) FROM STOCOGDP WHERE PARENT_DEPT_CD=A.ITEM_CLS2)
+                           WHEN A.LVL=3 THEN (SELECT COUNT(*) FROM STOCOGDP WHERE PARENT_DEPT_CD=A.ITEM_CLS3)
+                           WHEN A.LVL=4 THEN (SELECT COUNT(*) FROM STOCOGDP WHERE PARENT_DEPT_CD=A.ITEM_CLS4)
+                           ELSE 0 END) AS COUNTS
+                   , A.LVL
+                   , A.SEQ
+                   , A.DEPT_CD
+                   , A.PARENT_DEPT_CD AS UP_DEPT_CD
+                   , <include refid="common.sql.nvl"/>((SELECT (CASE WHEN SEQ<![CDATA[<]]>10 THEN '0'<include refid="common.sql.stringMerge"/>SEQ<include refid="common.sql.stringMerge"/>DEPT_CD ELSE SEQ<include refid="common.sql.stringMerge"/>DEPT_CD END) FROM STOCOGDP WHERE BUYER_CD = A.BUYER_CD AND DEPT_CD =A.ITEM_CLS2),'0') AS ITEM_CLS2_SEQ
+                   , <include refid="common.sql.nvl"/>((SELECT (CASE WHEN SEQ<![CDATA[<]]>10 THEN '0'<include refid="common.sql.stringMerge"/>SEQ<include refid="common.sql.stringMerge"/>DEPT_CD ELSE SEQ<include refid="common.sql.stringMerge"/>DEPT_CD END) FROM STOCOGDP WHERE BUYER_CD = A.BUYER_CD AND DEPT_CD =A.ITEM_CLS3),'0') AS ITEM_CLS3_SEQ
+                   , <include refid="common.sql.nvl"/>((SELECT (CASE WHEN SEQ<![CDATA[<]]>10 THEN '0'<include refid="common.sql.stringMerge"/>SEQ<include refid="common.sql.stringMerge"/>DEPT_CD ELSE SEQ<include refid="common.sql.stringMerge"/>DEPT_CD END) FROM STOCOGDP WHERE BUYER_CD = A.BUYER_CD AND DEPT_CD =A.ITEM_CLS4),'0') AS ITEM_CLS4_SEQ
+                   , <include refid="common.sql.nvl"/>((SELECT (CASE WHEN SEQ<![CDATA[<]]>10 THEN '0'<include refid="common.sql.stringMerge"/>SEQ<include refid="common.sql.stringMerge"/>DEPT_CD ELSE SEQ<include refid="common.sql.stringMerge"/>DEPT_CD END) FROM STOCOGDP WHERE BUYER_CD = A.BUYER_CD AND DEPT_CD =A.ITEM_CLS5),'0') AS ITEM_CLS5_SEQ
+                   , A.ACC_CODE
+                   , A.PARENTS_YN
+                   , A.BUYER_CD AS CUST_CD
+                   , A.COMPANY_NM AS CUST_NM
+                FROM (
+                      SELECT OGDP.GATE_CD
+                           , OGDP.BUYER_CD
+                           , <include refid="common.sql.nvl"/>(<include refid="common.sql.dbo"/>getBuyerInfo(GATE_CD, OGDP.BUYER_CD, 'CUST_NM'), <include refid="common.sql.dbo"/>getBuyerName(GATE_CD, OGDP.BUYER_CD, #{ses.langCd})) AS COMPANY_NM
+                           , OGDP.DEPT_CD
+                           , OGDP.DEPT_NM
+                           , OGDP.BUYER_CD AS ITEM_CLS1
+                           , (CASE WHEN OGDP.LVL=1 THEN OGDP.DEPT_CD
+                                   ELSE (CASE WHEN OGDP.LVL=2 THEN OGDP.PARENT_DEPT_CD
+                                              WHEN OGDP.LVL=3 THEN <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},OGDP.BUYER_CD,OGDP.PARENT_DEPT_CD,'PARENT_DEPT_CD')
+                                              WHEN OGDP.LVL=4 THEN <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},OGDP.BUYER_CD,<include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},OGDP.BUYER_CD,OGDP.PARENT_DEPT_CD,'PARENT_DEPT_CD'),'PARENT_DEPT_CD')
+                                              ELSE '*' END) END) AS ITEM_CLS2
+                           , (CASE WHEN OGDP.LVL=2 THEN OGDP.DEPT_CD
+                                   ELSE (CASE WHEN OGDP.LVL=3 THEN OGDP.PARENT_DEPT_CD
+                                              WHEN OGDP.LVL=4 THEN <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},OGDP.BUYER_CD,OGDP.PARENT_DEPT_CD,'PARENT_DEPT_CD')
+                                              WHEN OGDP.LVL=5 THEN <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},OGDP.BUYER_CD,<include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},OGDP.BUYER_CD,OGDP.PARENT_DEPT_CD,'PARENT_DEPT_CD'),'PARENT_DEPT_CD')
+                                              ELSE '*' END) END) AS ITEM_CLS3
+                           , (CASE WHEN OGDP.LVL=3 THEN OGDP.DEPT_CD
+                                   ELSE (CASE WHEN OGDP.LVL=4 THEN OGDP.PARENT_DEPT_CD
+                                              WHEN OGDP.LVL=5 THEN <include refid="common.sql.dbo"/>GETPARENTDEPTINFO(#{ses.gateCd},OGDP.BUYER_CD,OGDP.PARENT_DEPT_CD,'PARENT_DEPT_CD')
+                                              ELSE '*' END) END) AS ITEM_CLS4
+                           , (CASE WHEN OGDP.LVL=4 THEN OGDP.DEPT_CD ELSE (CASE WHEN OGDP.LVL=5 THEN OGDP.PARENT_DEPT_CD ELSE '*' END) END) AS ITEM_CLS5
+                           , OGDP.PARENT_DEPT_CD
+                           , OGDP.LVL
+                           , OGDP.SEQ
+                           , OGDP.ACC_CODE
+                           , (SELECT MAX(DEPT_CD) FROM STOCOGDP WHERE GATE_CD = OGDP.GATE_CD AND BUYER_CD = OGDP.BUYER_CD AND PARENT_DEPT_CD = OGDP.DEPT_CD) AS PARENTS_YN
+                        FROM STOCOGDP OGDP
+                       WHERE OGDP.GATE_CD = #{ses.gateCd}
+                         AND OGDP.BUYER_CD = #{CUST_CD}
+                         AND DEL_FLAG='0'
+                      ) A
+
+               UNION ALL
+
+              SELECT OGCM.BUYER_CD AS tree
+                   , OGCM.BUYER_NM AS DEPT_NM
+                   , OGCM.BUYER_CD AS ITEM_CLS1
+                   , '*' AS ITEM_CLS2
+                   , '*' AS ITEM_CLS3
+                   , '*' AS ITEM_CLS4
+                   , '*' AS ITEM_CLS5
+                   , OGCM.BUYER_NM AS ITEM_CLS_PATH_NM
+                   , 1 AS COUNTS
+                   , 0 AS LVL
+                   , '0' AS SEQ
+                   , OGCM.BUYER_CD AS DEPT_CD
+                   , NULL AS UP_DEPT_CD
+                   , '0' AS ITEM_CLS2_SEQ
+                   , '0' AS ITEM_CLS3_SEQ
+                   , '0' AS ITEM_CLS4_SEQ
+                   , '0' AS ITEM_CLS5_SEQ
+                   , NULL AS ACC_CODE
+                   , 'Y' AS PARENTS_YN
+                   , OGCM.BUYER_CD AS CUST_CD
+                   , OGCM.BUYER_NM AS CUST_NM
+                FROM STOCOGCM OGCM
+               WHERE OGCM.GATE_CD = #{ses.gateCd}
+                 AND OGCM.BUYER_CD = #{CUST_CD}
+
+               UNION ALL
+
+              SELECT CUST.CUST_CD AS tree
+                   , CUST.CUST_NM AS DEPT_NM
+                   , CUST.CUST_CD AS ITEM_CLS1
+                   , '*' AS ITEM_CLS2
+                   , '*' AS ITEM_CLS3
+                   , '*' AS ITEM_CLS4
+                   , '*' AS ITEM_CLS5
+                   , CUST.CUST_NM AS ITEM_CLS_PATH_NM
+                   , 1 AS COUNTS
+                   , 0 AS LVL
+                   , '0' AS SEQ
+                   , CUST.CUST_CD AS DEPT_CD
+                   , NULL AS UP_DEPT_CD
+                   , '0' AS ITEM_CLS2_SEQ
+                   , '0' AS ITEM_CLS3_SEQ
+                   , '0' AS ITEM_CLS4_SEQ
+                   , '0' AS ITEM_CLS5_SEQ
+                   , NULL AS ACC_CODE
+                   , 'Y' AS PARENTS_YN
+                   , CUST.CUST_CD AS CUST_CD
+		           , CUST.CUST_NM AS CUST_NM
+                FROM STOCCUST CUST
+               WHERE CUST.GATE_CD = #{ses.gateCd}
+                 AND CUST.CUST_CD = #{CUST_CD}
+
+              ) B
+          WHERE 1=1
+          <if test="DEPT_NM != '' and DEPT_NM != null">
+            AND (B.ITEM_CLS_PATH_NM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'
+             OR B.DEPT_CD IN (SELECT PARENT_DEPT_CD
+                                FROM STOCOGDP
+                               WHERE GATE_CD = #{ses.gateCd}
+                                 AND BUYER_CD = #{CUST_CD}
+                                 AND DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%')
+             OR B.DEPT_CD IN (SELECT PARENT_DEPT_CD
+                                FROM STOCOGDP
+                               WHERE GATE_CD = #{ses.gateCd}
+                                 AND BUYER_CD = #{CUST_CD}
+                                 AND DEPT_CD IN (SELECT PARENT_DEPT_CD
+                                                   FROM STOCOGDP
+                                                  WHERE GATE_CD = #{ses.gateCd}
+                                                    AND BUYER_CD = #{CUST_CD}
+                                                    AND DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'))
+              OR B.DEPT_CD IN (SELECT PARENT_DEPT_CD
+                                 FROM STOCOGDP
+                                WHERE GATE_CD = #{ses.gateCd}
+                                  AND BUYER_CD = #{CUST_CD}
+                                  AND DEPT_CD IN (SELECT PARENT_DEPT_CD
+                                                    FROM STOCOGDP
+                                                   WHERE GATE_CD = #{ses.gateCd}
+                                                     AND BUYER_CD = #{CUST_CD}
+                                                     AND DEPT_CD IN (SELECT PARENT_DEPT_CD
+                                                                       FROM STOCOGDP
+                                                                      WHERE GATE_CD = #{ses.gateCd}
+                                                                        AND BUYER_CD = #{CUST_CD}
+                                                                        AND DEPT_NM LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{DEPT_NM}) <include refid="common.sql.stringMerge"/> '%'))))
+             OR B.tree = #{CUST_CD}
+        </if>
+          ORDER BY B.ITEM_CLS2_SEQ,B.ITEM_CLS3_SEQ,B.ITEM_CLS4_SEQ,B.ITEM_CLS5_SEQ, B.SEQ
+    </select>
+
+</mapper>

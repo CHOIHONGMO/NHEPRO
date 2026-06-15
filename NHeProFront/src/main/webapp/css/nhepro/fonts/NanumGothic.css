@@ -1,0 +1,28 @@
+@charset "UTF-8";
+@font-face {
+  font-family: 'NanumGothic';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/resource/webfonts/NanumGothic/NanumGothic.eot);
+  src: local("NanumGothic"), url(/resource/webfonts/NanumGothic/NanumGothic.eot?#iefix) format("embedded-opentype"), url(/resource/webfonts/NanumGothic/NanumGothic.woff) format("woff");
+}
+
+@font-face {
+  font-family: 'NanumGothic';
+  font-style: normal;
+  font-weight: 700;
+  src: url(/resource/webfonts/NanumGothic/NanumGothic-Bold.eot);
+  src: local("NanumGothic Bold");
+}
+
+@font-face {
+  font-family: 'NanumGothicLight';
+  src: url(/resource/webfonts/NanumGothic/NanumGothic-Light.eot);
+  src: url(/resource/webfonts/NanumGothic/NanumGothic-Light.eot?#iefix) format("embedded-opentype");
+  src: url(/resource/webfonts/NanumGothic/NanumGothic-Light.woff) format("woff");
+  /*src: url(/resource/webfonts/NanumGothic/NanumGothic-Light.ttf) format("truetype");
+  src: url(/resource/webfonts/NanumGothic/NanumGothic-Light.svg#NanumGothicLight) format("svg");*/
+  src: local(※), url(/resource/webfonts/NanumGothic/NanumGothic-Light.woff) format("woff");
+}
+
+/*# sourceMappingURL=NanumGothic.css.map */

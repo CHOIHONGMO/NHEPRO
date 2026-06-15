@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<properties resource="mybatis/mybatis-oracle.properties"/>
+	<settings>
+		<setting name="jdbcTypeForNull" value="NULL"/>
+		<setting name="defaultStatementTimeout" value="300"/>
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+	</settings>
+	<typeAliases>
+		<typeAlias alias="baseMap" type="com.st_ones.everf.serverside.domain.BaseMap"/>
+		<typeAlias alias="baseInfo" type="com.st_ones.common.login.domain.UserInfo"/>
+		<typeAlias alias="loginSearch" type="com.st_ones.common.login.domain.LoginSearch"/>
+		<typeAlias alias="gridMeta" type="com.st_ones.common.generator.domain.GridMeta"/>
+		<typeAlias alias="gridCombo" type="com.st_ones.common.generator.domain.GridCombo"/>
+		<typeAlias alias="additionalColumnInfo" type="com.st_ones.common.generator.domain.AdditionalColumnInfo"/>
+		<typeAlias alias="groupHeader" type="com.st_ones.common.generator.domain.GroupHeader"/>
+	</typeAliases>
+	<plugins>
+		<plugin interceptor="com.st_ones.common.mybatis.MyBatisInterceptor"/>
+	</plugins>
+	<mappers></mappers>
+</configuration>

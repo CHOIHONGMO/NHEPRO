@@ -1,0 +1,126 @@
+package com.st_ones.eversrm.eApproval.eApprovalEnd.CCTR.service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.st_ones.common.mail.service.EverMailService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.st_ones.common.config.service.EverConfigService;
+import com.st_ones.common.docNum.service.DocNumService;
+import com.st_ones.common.mail.web.MailTemplate;
+import com.st_ones.common.message.service.MessageService;
+import com.st_ones.common.sms.service.EverSmsService;
+import com.st_ones.common.util.clazz.EverString;
+import com.st_ones.everf.serverside.service.BaseService;
+import com.st_ones.eversrm.eApproval.eApprovalEnd.CCTR.EApprovalEndCCTR_Mapper;
+
+/**
+ * <pre>
+ ******************************************************************************
+ * 상기 프로그램에 대한 저작권을 포함한 지적재산권은 ㈜에스티원즈에 있으며,
+ * ㈜에스티원즈가 명시적으로 허용하지 않은 사용, 복사, 변경, 제3자에의 공개, 배포는 엄격히 금지되며,
+ * ㈜에스티원즈의 지적재산권 침해에 해당됩니다.
+ * (Copyright ⓒ 2014 ST-Ones CORP., ALL RIGHTS RESERVED | Confidential)
+ ******************************************************************************
+ * </pre>
+ * @File Name : EApprovalEndBid_Service.java
+ * @date 2020. 4. 02.
+ * @version 1.0
+ */
+@Service(value = "eApprovalEndCCTR_Service")
+public class EApprovalEndCCTR_Service extends BaseService {
+
+    @Autowired private MessageService msg;
+    @Autowired private DocNumService docNumService;
+
+	@Autowired private EApprovalEndCCTR_Mapper endCctr_Mapper;
+	@Autowired private EverMailService everMailService;
+	@Autowired private EverSmsService everSmsService;
+
+	//
+	@Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+	public String endApproval_FORMNO(String buyerCd, String appDocNum, String appDocCnt, String signStatus) throws Exception {
+
+		Map<String, String> param = new HashMap<>();
+		param.put("BUYER_CD", buyerCd);
+		param.put("APP_DOC_NUM", appDocNum);
+		param.put("APP_DOC_CNT", appDocCnt);
+		param.put("SIGN_STATUS", signStatus);
+
+		endCctr_Mapper.setCctrSignStatus_FORMNO(param);
+
+		String rtnMsg = (signStatus.equals("E") ? msg.getMessage("0057")
+				: (signStatus.equals("R") ? msg.getMessage("0058")
+				: (signStatus.equals("C") ? msg.getMessage("0061")
+				: msg.getMessage("0001"))));
+
+		return rtnMsg;
+	}
+
+	public String endApproval_EC(String buyerCd, String appDocNum, String appDocCnt, String signStatus) throws Exception {
+
+		Map<String, String> param = new HashMap<>();
+		param.put("BUYER_CD", buyerCd);
+		param.put("APP_DOC_NUM", appDocNum);
+		param.put("APP_DOC_CNT", appDocCnt);
+		param.put("SIGN_STATUS", signStatus);
+
+		endCctr_Mapper.setCctrSignStatus_EC(param);
+
+		String rtnMsg = (signStatus.equals("E") ? msg.getMessage("0057")
+				: (signStatus.equals("R") ? msg.getMessage("0058")
+				: (signStatus.equals("C") ? msg.getMessage("0061")
+				: msg.getMessage("0001"))));
+
+		if (signStatus.equals("E")) {
+			List<Map<String, Object>> eccmList =  endCctr_Mapper.getCtEccmInfo(param);
+			for(Map<String, Object> eccmData : eccmList) {
+
+				eccmData.put("PO_NUM", docNumService.getDocNumber(buyerCd, "PO"));
+				endCctr_Mapper.insertPohd(eccmData);
+				endCctr_Mapper.insertPodt(eccmData);
+				endCctr_Mapper.insertPopy(eccmData);
+				endCctr_Mapper.insertPopc(eccmData);
+			}
+		}
+
+		// MAIL
+		Map<String, String> sendVendorInfo = endCctr_Mapper.getSendVendorInfo(param);
+		String subject = "[전자구매시스템] 고객사["+ sendVendorInfo.get("PR_BUYER_DEPT_NMS") +"]에서 ["+ sendVendorInfo.get("CONT_DESC") +"] 전자계약서를 발송하였습니다.";
+		String contents = "안녕하십니까!<br>" +
+				"["+ sendVendorInfo.get("VENDOR_NM") +"] ["+ sendVendorInfo.get("VENDOR_PIC_USER_NM") +"]님<br>" +
+				"<br>" +
+				"아래와 같이 고객사에서 전자구매 계약 체결을 요청하였습니다<br>" +
+				"고객사 : ["+ sendVendorInfo.get("PR_BUYER_DEPT_NMS") +"]<br>" +
+				"계약명 : ["+ sendVendorInfo.get("CONT_DESC") +"] <br>" +
+				"요청기일 : ["+ sendVendorInfo.get("CONT_DATE") +"]<br>" +
+				"<br>" +
+				"전자구매시스템에 로그인 하시어, 세부내용을 확인 후 처리 해주십시오.<br>" +
+				"<br>" +
+				"감사합니다.";
+
+		param.put("SUBJECT", subject);
+		param.put("CONTENTS", contents);
+		param.put("REF_MODULE_CD", "MCONT02");
+		param.put("DIRECT_TARGET", sendVendorInfo.get("VENDOR_PIC_USER_EMAIL"));
+		param.put("DIRECT_USER_NM", sendVendorInfo.get("VENDOR_PIC_USER_NM"));
+
+		everMailService.SendMail(param);
+
+		// SMS
+		Map<String,String> smsMap = new HashMap<String,String>();
+		smsMap.put("CONTENTS", subject);
+		smsMap.put("REF_MODULE_CD", "SCONT02");
+		param.put("DIRECT_TARGET", sendVendorInfo.get("VENDOR_PIC_USER_EMAIL"));
+		param.put("DIRECT_USER_NM", sendVendorInfo.get("VENDOR_PIC_USER_NM"));
+		everSmsService.sendSmsNhe(smsMap);
+
+		return rtnMsg;
+	}
+
+}

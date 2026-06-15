@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.batch.MBTB0010_Mapper">
+
+	<select id="doSearchBatchLogList" parameterType="hashmap" resultType="hashMap">
+        SELECT
+        	  T.JOB_NM
+        	 ,T.JOB_DATE
+        	 ,T.JOB_END_DATE
+        	 ,T.JOB_RLT
+        	 ,T.JOB_RLT_MSG
+		  FROM (SELECT
+					  <include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'M177', BL.JOB_ID, #{ses.langCd}) as JOB_NM
+					, <include refid="common.sql.toChar"/>(BL.JOB_DATE, 'YYYY-MM-DD HH24:MI') as JOB_DATE
+					, <include refid="common.sql.toChar"/>(BL.JOB_END_DATE, 'YYYY-MM-DD HH24:MI') as JOB_END_DATE
+					, BL.JOB_RLT
+					, BL.JOB_RLT_MSG
+			 		--, (CASE BL.JOB_RLT WHEN 'E' THEN BL.JOB_RLT_MSG ELSE NULL END) as JOB_RLT_MSG
+		  		  FROM STOCBLOG BL
+				 WHERE BL.JOB_TYPE = 'Batch'
+				<if test="JOB_DATE_FROM != '' and JOB_DATE_FROM != null">
+					<if test="JOB_DATE_TO !='' and JOB_DATE_TO != null">
+				   		AND BL.JOB_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{JOB_DATE_FROM})
+						AND BL.JOB_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{JOB_DATE_TO})
+					</if>
+				</if>
+				<if test="JOB_NM != '' and JOB_NM != null">
+					AND BL.JOB_ID = #{JOB_NM}
+				</if>
+				<if test="JOB_RLT != '' and JOB_RLT != null">
+				   AND BL.JOB_RLT = #{JOB_RLT}
+				</if>
+		  ) T
+		 WHERE 1 = 1
+         ORDER BY T.JOB_DATE DESC
+
+	</select>
+
+	<select id="getBatchManagerSms" resultType="hashMap">
+        SELECT
+        	  DD.CODE      as RECV_TEL_NUM
+        	 ,DD.CODE_DESC as RECV_USER_NM
+		  FROM STOCCODD DD
+		 WHERE DD.GATE_CD   = #{ses.gateCd}
+		   AND DD.CODE_TYPE = 'M170'
+		   AND LANG_CD      = #{ses.langCd}
+		   AND USE_FLAG     = '1'
+		   AND DEL_FLAG     = '0'
+
+	</select>
+
+	<insert id="doSaveBatchLog" parameterType="hashMap">
+
+		INSERT INTO STOCBLOG
+				(
+				  JOB_SQ
+				 ,JOB_DATE
+				 ,JOB_TYPE
+				 ,JOB_ID
+				 ,JOB_KEY
+				 ,JOB_RLT
+				 ,JOB_RLT_CD
+				 ,JOB_RLT_MSG
+				 ,JOB_END_DATE
+				)
+		VALUES
+				(
+				  SEQ_STOCBLOG.NEXTVAL
+				 ,<include refid="common.sql.toDate"/>(#{JOB_DATE}, 'YYYYMMDDHH24MISS')
+				 ,#{JOB_TYPE}
+				 ,#{JOB_ID}
+				 ,#{JOB_KEY}
+				 ,#{JOB_RLT}
+				 ,#{JOB_RLT_CD}
+				 ,#{JOB_RLT_MSG}
+				 ,<include refid="common.sql.toDate"/>(#{JOB_END_DATE}, 'YYYYMMDDHH24MISS')
+				)
+
+	</insert>
+	
+	<select id="doSearchGuarLogList" parameterType="hashmap" resultType="hashMap">
+        SELECT
+        	  T.JOB_NM
+        	 ,T.JOB_NUM
+        	 ,T.JOB_DATE
+        	 ,T.JOB_END_DATE
+        	 ,T.JOB_RLT
+        	 ,T.JOB_RLT_MSG
+        	 ,T.JOB_KEY
+		  FROM (SELECT
+					  <include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'M177', BL.JOB_ID, #{ses.langCd}) as JOB_NM
+					, BL.JOB_NUM  
+					, <include refid="common.sql.toChar"/>(BL.JOB_DATE, 'YYYY-MM-DD HH24:MI') as JOB_DATE
+					, <include refid="common.sql.toChar"/>(BL.JOB_END_DATE, 'YYYY-MM-DD HH24:MI') as JOB_END_DATE
+					, BL.JOB_RLT
+					, BL.JOB_RLT_MSG
+					, <include refid="common.sql.dbo"/>GETCODENAME(#{ses.gateCd}, 'NH0048', BL.JOB_KEY, #{ses.langCd}) as JOB_KEY
+		  		  FROM STOCBLOG BL
+				 WHERE BL.JOB_TYPE = 'Guar'
+				<if test="JOB_DATE_FROM != '' and JOB_DATE_FROM != null">
+					<if test="JOB_DATE_TO !='' and JOB_DATE_TO != null">
+				   		AND BL.JOB_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{JOB_DATE_FROM})
+						AND BL.JOB_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{JOB_DATE_TO})
+					</if>
+				</if>
+				<if test="JOB_ID != '' and JOB_ID != null">
+					AND BL.JOB_ID = #{JOB_ID}
+				</if>
+				<if test="JOB_RLT != '' and JOB_RLT != null">
+				   AND BL.JOB_RLT = #{JOB_RLT}
+				</if>
+				<if test="JOB_KEY != '' and JOB_KEY != null">
+				   AND BL.JOB_KEY = #{JOB_KEY}
+				</if>
+		  ) T
+		 WHERE 1 = 1
+         ORDER BY T.JOB_DATE DESC
+
+	</select>
+
+</mapper>

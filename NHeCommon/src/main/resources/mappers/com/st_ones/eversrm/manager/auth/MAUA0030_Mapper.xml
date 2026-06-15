@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.auth.MAUA0030_Mapper">
+
+    <select id="doSearchAuthProfileManagement" parameterType="hashMap" resultType="hashMap">
+
+         SELECT A.GATE_CD
+              , A.AUTH_CD
+              , A.REG_DATE
+              , A.REG_USER_NM  REG_USER_ID
+              , A.AUTH_NM
+              , A.AUTH_DESC
+              , A.MAIN_MODULE_TYPE
+              , A.MAIN_MODULE_TYPE  MAIN_MODULE_TYPE2
+              , A.MODULE_TYPE_NM
+              , A.INSERT_FLAG
+              , A.USER_TYPE
+              , ('') AS SCREEN_NM_IMG
+           FROM (SELECT AUPF.AUTH_CD
+                      , AUPF.GATE_CD
+                      , AUPF.REG_USER_ID
+                      , AUPF.MAIN_MODULE_TYPE
+                      , (SELECT USER_NM FROM STOCUSER WHERE GATE_CD=  #{ses.gateCd} AND USER_ID= AUPF.REG_USER_ID ) REG_USER_NM
+                      , 'U' AS INSERT_FLAG
+                      , AUPF.USER_TYPE
+                      , <include refid="common.sql.toChar"/>(AUPF.REG_DATE, 'yyyyMMdd') AS REG_DATE
+                      , <include refid="common.sql.dbo"/>GETMULTINAME(AUPF.GATE_CD, 'AU', #{ses.langCd}, AUPF.AUTH_CD, '')  AS AUTH_NM
+                      , <include refid="common.sql.dbo"/>GETMULTIDESC(AUPF.GATE_CD, 'AU', #{ses.langCd}, AUPF.AUTH_CD, '')  AS AUTH_DESC
+                      , <include refid="common.sql.dbo"/>GETCOMCODE(AUPF.GATE_CD, 'M006', AUPF.USER_TYPE, 0, #{ses.langCd})  AS USER_TYPE_NM
+                      , <include refid="common.sql.dbo"/>GETCOMCODE(AUPF.GATE_CD, 'M009', AUPF.MAIN_MODULE_TYPE, 0, #{ses.langCd})  AS MODULE_TYPE_NM
+                   FROM STOCAUPF AUPF
+                   LEFT JOIN STOCUSER USERS
+                    ON (AUPF.REG_USER_ID = USERS.USER_ID
+                    AND AUPF.GATE_CD = USERS.GATE_CD)
+                  WHERE AUPF.GATE_CD = #{ses.gateCd}
+                    AND AUPF.DEL_FLAG = '0'
+                ) A
+            WHERE 1 = 1
+          <if test="MODULE_TYPE_NM !='' and MODULE_TYPE_NM != null">
+              AND A.MAIN_MODULE_TYPE LIKE '%' <include refid="common.sql.stringMerge"/> #{MODULE_TYPE_NM} <include refid="common.sql.stringMerge"/> '%'
+          </if>
+          <if test="AUTH_NM !='' and AUTH_NM != null">
+              AND UPPER(A.AUTH_NM) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{AUTH_NM}) <include refid="common.sql.stringMerge"/> '%'
+          </if>
+
+    </select>
+
+    <select id="checkAuthProfileManagement" parameterType="hashMap" resultType="java.lang.Integer">
+
+        SELECT COUNT(AUTH_CD)
+          FROM STOCAUPF
+         WHERE GATE_CD = #{ses.gateCd}
+           AND AUTH_CD = #{AUTH_CD}
+
+    </select>
+
+    <insert id="doInsertAuthProfileManagement" parameterType="hashMap">
+
+        INSERT INTO STOCAUPF (
+               GATE_CD
+             , AUTH_CD
+             , REG_DATE
+             , REG_USER_ID
+             , MOD_DATE
+             , MOD_USER_ID
+             , DEL_FLAG
+             , MAIN_MODULE_TYPE
+             , USER_TYPE
+        ) VALUES (
+               #{ses.gateCd}
+             , #{AUTH_CD}
+             , SYSDATE
+             , #{ses.userId}
+             , SYSDATE
+             , #{ses.userId}
+             , '0'
+             , #{MAIN_MODULE_TYPE}
+             , #{USER_TYPE}
+        )
+
+    </insert>
+
+    <update id="doUpdateAuthProfileManagement" parameterType="hashMap">
+
+        UPDATE STOCAUPF SET
+              MAIN_MODULE_TYPE = #{MAIN_MODULE_TYPE}
+            , USER_TYPE = #{USER_TYPE}
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+            , DEL_FLAG = '0'
+         WHERE GATE_CD = #{ses.gateCd}
+           AND AUTH_CD = #{AUTH_CD}
+
+    </update>
+
+    <update id="doDeleteAuthProfileManagement" parameterType="hashMap">
+
+        UPDATE STOCAUPF SET
+              DEL_FLAG = '1'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{ses.userId}
+         WHERE GATE_CD = #{GATE_CD}
+           AND AUTH_CD = #{AUTH_CD}
+
+    </update>
+
+</mapper>

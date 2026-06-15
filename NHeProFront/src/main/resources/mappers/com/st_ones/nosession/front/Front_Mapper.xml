@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.st_ones.nosession.front.Front_Mapper">
+
+    <select id="doIrsNumCheck" resultType="java.util.Map">
+        <if test="USER_TYPE eq 'S'.toString()">
+            SELECT COUNT(*) AS CNT
+                 , VNGL.RELAT_YN
+                 , MAX(VNCM.CONFIRM_FLAG) AS CONFIRM_FLAG		-- 거래처 반려
+                 , MAX(VNCM.CONFIRM_REASON) AS CONFIRM_REASON
+                 , MAX(VNCE.CONFIRM_FLAG) AS EVAL_FLAG			-- 거래처 승인
+              FROM STOCVNGL VNGL
+              LEFT OUTER JOIN STOCVNCM VNCM
+	               ON (VNGL.GATE_CD   = VNCM.GATE_CD
+	               AND VNGL.VENDOR_CD = VNCM.VENDOR_CD
+	               AND VNCM.CONFIRM_FLAG = 'R'
+	               AND VNCM.DEL_FLAG  = '0')
+              LEFT OUTER JOIN STOCVNCM VNCE
+	               ON (VNGL.GATE_CD   = VNCE.GATE_CD
+	               AND VNGL.VENDOR_CD = VNCE.VENDOR_CD
+	               AND VNCE.CONFIRM_FLAG = 'E'
+	               AND VNCE.DEL_FLAG  = '0')
+             WHERE VNGL.GATE_CD  = #{ses.gateCd}
+               AND VNGL.IRS_NO   = #{IRS_NUM}
+               AND VNGL.DEL_FLAG = '0'
+             GROUP BY VNGL.RELAT_YN
+        </if>
+        
+        <if test="USER_TYPE eq 'B'.toString()">
+            SELECT COUNT(*) AS CNT
+                 , RELAT_YN
+              FROM STOCCUST
+             WHERE GATE_CD  = #{ses.gateCd}
+               AND IRS_NUM  = #{IRS_NUM}
+               AND DEL_FLAG = '0'
+             GROUP BY RELAT_YN
+        </if>
+    </select>
+	
+	<!-- 2021.12.02 : 비밀번호 찾기시 사용자명은 문자인증을 위해 실사용자명 받도록 변경 -->
+    <select id="doPwInfo" resultType="java.util.Map">
+        SELECT MAX(A.CNT) AS CNT
+             , MAX(A.USER_TYPE) AS USER_TYPE
+          FROM (SELECT COUNT(*) AS CNT
+                     , USER_TYPE
+                  FROM STOCCVUR
+                 WHERE GATE_CD = #{ses.gateCd}
+           		   AND USER_ID = UPPER(#{P_USER_ID})
+                   AND EMAIL   = <include refid="common.sql.strEncStart"/>#{P_EMAIL}<include refid="common.sql.strEncEnd"/>
+                   AND REPLACE(<include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/>, '-','') = REPLACE(#{P_CELL_NO}, '-','')
+                 GROUP BY USER_TYPE
+                UNION ALL
+                SELECT COUNT(*) AS CNT
+                     , USER_TYPE
+                  FROM STOCUSER
+                 WHERE GATE_CD = #{ses.gateCd}
+           		   AND USER_ID = UPPER(#{P_USER_ID})
+                   AND EMAIL   = <include refid="common.sql.strEncStart"/>#{P_EMAIL}<include refid="common.sql.strEncEnd"/>
+                   AND REPLACE(<include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/>, '-','') = REPLACE(#{P_CELL_NO}, '-','')
+                 GROUP BY USER_TYPE
+             ) A
+    </select>
+
+    <select id="operIdSearch" parameterType="hashMap" resultType="java.util.Map">
+
+        SELECT USER_ID
+          FROM STOCUSER
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND USER_TYPE = 'O'
+           AND <include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> = #{I_USER_NM}
+           AND <include refid="common.sql.strDecStart"/>EMAIL<include refid="common.sql.strDecEnd"/> = #{I_EMAIL}
+           AND REPLACE(<include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/>, '-', '') = REPLACE(#{I_CELL_NO}, '-', '')
+    </select>
+
+    <select id="vendorIdSearch" parameterType="hashMap" resultType="java.util.Map">
+
+        SELECT USER_ID
+          FROM STOCCVUR
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND USER_TYPE = 'S'
+           AND <include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> = #{I_USER_NM}
+           AND <include refid="common.sql.strDecStart"/>EMAIL<include refid="common.sql.strDecEnd"/> = #{I_EMAIL}
+           AND REPLACE(<include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/>, '-', '') = REPLACE(#{I_CELL_NO}, '-', '')
+    </select>
+
+    <select id="custIdSearch" parameterType="hashMap" resultType="java.util.Map">
+
+        SELECT USER_ID
+          FROM STOCCVUR
+         WHERE GATE_CD   = #{ses.gateCd}
+           AND USER_TYPE = 'B'
+           AND <include refid="common.sql.strDecStart"/>USER_NM<include refid="common.sql.strDecEnd"/> = #{I_USER_NM}
+           AND <include refid="common.sql.strDecStart"/>EMAIL<include refid="common.sql.strDecEnd"/> = #{I_EMAIL}
+           AND REPLACE(<include refid="common.sql.strDecStart"/>CELL_NUM<include refid="common.sql.strDecEnd"/>, '-', '') = REPLACE(#{I_CELL_NO}, '-', '')
+    </select>
+
+    <update id="doUpdateCVUR">
+
+        UPDATE STOCCVUR SET
+               PASSWORD = #{PPDD}
+             , PW_WRONG_CNT = 0
+             , PW_RESET_FLAG = '1'
+             , PW_RESET_DATE = SYSDATE
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = UPPER(#{P_USER_ID})
+    </update>
+
+    <update id="doUpdateUSER">
+
+        UPDATE STOCUSER SET
+               PASSWORD = #{PPDD}
+             , PW_WRONG_CNT = 0
+             , PW_RESET_FLAG = '1'
+             , PW_RESET_DATE = SYSDATE
+         WHERE GATE_CD = #{ses.gateCd}
+           AND USER_ID = UPPER(#{P_USER_ID})
+    </update>
+
+</mapper>

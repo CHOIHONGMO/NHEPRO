@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?><!--Converted at: Fri Mar 02 08:25:36 KST 2012-->
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.eversrm.manager.system.MSYB0010_Mapper">
+
+	<select id="getComboDetailInfo" parameterType="hashmap" resultType="hashmap">
+
+		SELECT DATABASE_CD
+			  ,COMMON_ID
+			  ,TYPE_CD
+			  ,(SELECT MULTI_SQ
+				  FROM STOCMULG
+				 WHERE GATE_CD = CMPC.GATE_CD
+				   AND COMMON_ID = CMPC.COMMON_ID
+				   AND MULTI_CD = 'LT'
+				   AND LANG_CD = #{ses.langCd}
+				   AND DEL_FLAG = '0') AS MULTI_SQ2
+			  ,LIST_ITEM_CD
+			  ,(SELECT MULTI_SQ
+				  FROM STOCMULG
+				 WHERE GATE_CD = CMPC.GATE_CD
+				   AND COMMON_ID = CMPC.COMMON_ID
+				   AND MULTI_CD = 'ST'
+				   AND LANG_CD = #{ses.langCd}
+				   AND DEL_FLAG = '0') AS MULTI_SQ3
+			  ,SQL_TEXT
+			  ,USE_FLAG
+			  ,AUTO_SEARCH_FLAG
+			  ,REG_USER_ID
+			  ,SHRINK_TO_FIT
+			  ,(SELECT USER_NM FROM STOCUSER WHERE GATE_CD = CMPC.GATE_CD AND USER_ID = CMPC.REG_USER_ID) AS REG_USER_NM
+			  ,(SELECT USER_NM FROM STOCUSER WHERE GATE_CD = CMPC.GATE_CD AND USER_ID = CMPC.MOD_USER_ID) AS MOD_USER_NM
+			  ,MOD_USER_ID
+			  ,WINDOW_WIDTH
+			  ,WINDOW_HEIGHT
+			  ,<include refid="common.sql.toChar"/>(MOD_DATE, 'yyyy-MM-dd') AS MOD_DATE
+			  ,<include refid="common.sql.toChar"/>(MOD_DATE, 'hh24:mi') AS MOD_TIME
+			  ,<include refid="common.sql.dbo"/>GETMULTINAME_COMMONID(GATE_CD, #{ses.langCd}, COMMON_ID, 'ST') AS SEARCH_CONDITION_TEXT
+			  ,<include refid="common.sql.dbo"/>GETMULTINAME_COMMONID(GATE_CD, #{ses.langCd}, COMMON_ID, 'TT') AS TITLE_TEXT
+			  ,<include refid="common.sql.dbo"/>GETMULTINAME_COMMONID(GATE_CD, #{ses.langCd}, COMMON_ID, 'CC') AS COMMON_DESC
+			  ,<include refid="common.sql.dbo"/>GETMULTINAME_COMMONID(GATE_CD, #{ses.langCd}, COMMON_ID, 'LT') AS LIST_ITEM_TEXT
+			  ,<include refid="common.sql.toChar"/>(REG_DATE, 'yyyy-MM-dd') AS REG_DATE
+			  ,<include refid="common.sql.toChar"/>(REG_DATE, 'hh24:mi') AS REG_TIME
+		 FROM STOCCMPC CMPC
+		WHERE GATE_CD = #{ses.gateCd}
+		  AND DATABASE_CD = #{DATABASE_CD}
+		  AND DEL_FLAG = '0'
+		  AND COMMON_ID = #{COMMON_ID}
+
+	</select>
+
+	<select id="checkCommonCodeSql" parameterType="hashmap" resultType="java.lang.Integer">
+
+		SELECT
+			COUNT(*) AS CNT
+		  FROM STOCCMPC
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND COMMON_ID = #{COMMON_ID}
+		   AND DATABASE_CD = #{DATABASE_CD}
+
+	</select>
+
+	<insert id="insertCommonCodeSql" parameterType="hashmap">
+
+		INSERT INTO STOCCMPC (
+			 GATE_CD
+			,COMMON_ID
+			,DATABASE_CD
+			,TYPE_CD
+			,USE_FLAG
+			,LIST_ITEM_CD
+			,AUTO_SEARCH_FLAG
+			,SQL_TEXT
+			,WINDOW_WIDTH
+			,WINDOW_HEIGHT
+			,SHRINK_TO_FIT
+			,DEL_FLAG
+			,REG_DATE
+			,REG_USER_ID
+			,MOD_DATE
+			,MOD_USER_ID
+		) VALUES (
+			 #{ses.gateCd}
+			,#{COMMON_ID}
+			,#{DATABASE_CD}
+			,#{TYPE_CD}
+			,#{USE_FLAG}
+			,#{LIST_ITEM_CD}
+			,#{AUTO_SEARCH_FLAG}
+			,LTRIM(RTRIM(#{SQL_TEXT}))
+			,#{WINDOW_WIDTH}
+			,#{WINDOW_HEIGHT}
+			,#{SHRINK_TO_FIT}
+			,'0'
+			,SYSDATE
+			,#{ses.userId}
+			,SYSDATE
+			,#{ses.userId}
+		)
+
+	</insert>
+
+	<update id="updateCommonCodeSql" parameterType="hashmap">
+
+		UPDATE STOCCMPC SET
+			  TYPE_CD = #{TYPE_CD}
+			, USE_FLAG = #{USE_FLAG}
+			, DEL_FLAG = '0'
+			, LIST_ITEM_CD = #{LIST_ITEM_CD}
+			, AUTO_SEARCH_FLAG = #{AUTO_SEARCH_FLAG}
+			, SQL_TEXT = LTRIM(RTRIM(#{SQL_TEXT}))
+			, WINDOW_WIDTH = #{WINDOW_WIDTH}
+			, WINDOW_HEIGHT = #{WINDOW_HEIGHT}
+			, SHRINK_TO_FIT = #{SHRINK_TO_FIT}
+			, MOD_DATE = SYSDATE
+			, MOD_USER_ID = #{ses.userId}
+		WHERE GATE_CD = #{ses.gateCd}
+		  AND COMMON_ID = #{COMMON_ID}
+		  AND DATABASE_CD = #{DATABASE_CD}
+
+	</update>
+
+	<select id="verifyCommonCodeSql" resultType="hashMap">
+
+		#{SQL_TEXT}
+
+	</select>
+
+	<select id="checkCommonMulg" resultType="java.lang.Integer">
+		SELECT COUNT(*) AS CNT
+		  FROM STOCMULG
+		 WHERE GATE_CD = #{ses.gateCd}
+		   AND LANG_CD = #{LANG_CD}
+		   AND MULTI_SQ = #{MULTI_SQ}
+		   AND DEL_FLAG = '0'
+ 	</select>
+
+	<update id="deleteCommonCodeSql" parameterType="hashmap">
+
+		UPDATE STOCCMPC SET
+			DEL_FLAG = '1',
+			MOD_DATE = SYSDATE,
+			MOD_USER_ID = #{ses.userId}
+		WHERE GATE_CD = #{ses.gateCd}
+		  AND COMMON_ID = #{COMMON_ID}
+		  AND DATABASE_CD = #{DATABASE_CD}
+
+	</update>
+
+</mapper>

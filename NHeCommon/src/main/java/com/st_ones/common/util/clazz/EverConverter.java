@@ -7,7 +7,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * <pre>
@@ -27,6 +29,38 @@ public class EverConverter {
 
     private static Logger logger = LoggerFactory.getLogger(EverConverter.class);
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    private static final Set<String> IGNORE_CHECK_INJECTION_KEYS = new HashSet<>(Arrays.asList(
+        "SQL", "ITEM_DESC", "ITEM_SPEC", "moduleName", "methodName", "actionCode", "PACKAGE_NM",
+        "action_cd", "DATABASE_CD", "sqlQuery", "_sqlQuery_", "value", "SQL_TEXT", "sql",
+        "TEXT_CONTENTS", "CONTENTS_TEXT_NUM", "CONTENTS", "approvalFormData", "approvalGridData",
+        "attachFileDatas", "OPINION", "BID_AMT_CERTV", "GUAR_AMT_CERTV", "ADJ_CERTV",
+        "VID_RANDOM", "SIGN_VALUE", "SIGN_RANDOM", "ADJ_VID_RANDOM"
+    ));
+
+    private static volatile String stringMergeOperator = null;
+
+    // convertInjection 최적화를 위한 프리컴파일 패턴들
+    private static final Pattern PATTERN_UNION = Pattern.compile("UNION(?=\\s)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_PERCENT = Pattern.compile("%");
+    private static final Pattern PATTERN_SELECT = Pattern.compile("SELECT(?=\\s)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_FROM = Pattern.compile("(?<=\\s)FROM(?=\\s)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_WHERE = Pattern.compile("(?<=\\s)WHERE(?=\\s)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_LIMIT = Pattern.compile("(?<=\\s)LIMIT(?=\\s)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_AND = Pattern.compile("(?<=\\s)AND(?=\\s)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_DASHES = Pattern.compile("--");
+    private static final Pattern PATTERN_PIPE = Pattern.compile("\\|\\|");
+    private static final Pattern PATTERN_AMP = Pattern.compile("&&");
+    private static final Pattern PATTERN_LT = Pattern.compile("<");
+    private static final Pattern PATTERN_GT = Pattern.compile(">");
+    private static final Pattern PATTERN_INSERT = Pattern.compile("INSERT(?=\\s)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_UPDATE = Pattern.compile("UPDATE(?=\\s)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_DELETE = Pattern.compile("DELETE(?=\\s)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_CREATE = Pattern.compile("CREATE(?=\\s)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_DROP = Pattern.compile("DROP(?=\\s)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_IF = Pattern.compile("IF(?=\\s)", Pattern.CASE_INSENSITIVE);
+
     /**
      * Object를 JSONString으로 변환
      * Convert Object to JSONString
@@ -36,10 +70,7 @@ public class EverConverter {
      * @throws Exception
      */
     public static String getJsonString(Object jsonBean) throws Exception {
-        String jsonString = null;
-        ObjectMapper objMapper = new ObjectMapper();
-        jsonString = objMapper.writeValueAsString(jsonBean);
-        return jsonString;
+        return OBJECT_MAPPER.writeValueAsString(jsonBean);
     }
 
     /**
@@ -52,9 +83,7 @@ public class EverConverter {
      * @throws Exception
      */
     public static <T> T readJsonObject(String jsonStr, Class<T> objType) throws Exception {
-        ObjectMapper objMapper = new ObjectMapper();
-        T t = objMapper.readValue(jsonStr, objType);
-        return t;
+        return OBJECT_MAPPER.readValue(jsonStr, objType);
     }
 
     /**
@@ -69,7 +98,6 @@ public class EverConverter {
 
         List<String> multiKeys = new ArrayList<String>();
         Set<String> keySet = map.keySet();
-        boolean isIgnoreCheckInjection = false;
 
         for (String key : keySet) {
             Object value = map.get(key);
@@ -77,43 +105,26 @@ public class EverConverter {
                 continue;
             }
 
-            String[] ignoreCheckInjectionKey = {"SQL", "ITEM_DESC", "ITEM_SPEC", "moduleName","methodName","actionCode","PACKAGE_NM", "action_cd", "DATABASE_CD", "sqlQuery", "_sqlQuery_", "value", "SQL_TEXT", "sql", "TEXT_CONTENTS", "CONTENTS_TEXT_NUM", "CONTENTS", "approvalFormData", "approvalGridData", "attachFileDatas", "OPINION", "BID_AMT_CERTV", "GUAR_AMT_CERTV", "ADJ_CERTV", "VID_RANDOM", "SIGN_VALUE", "SIGN_RANDOM", "ADJ_VID_RANDOM" };
+            boolean isIgnoreCheckInjection = IGNORE_CHECK_INJECTION_KEYS.contains(key);
+            String searchValue = (String) value;
 
-            for (String ignoreKey : ignoreCheckInjectionKey) {
-                if(ignoreKey.equals(key)){
-                    isIgnoreCheckInjection = true;
-                    break;
-                }
-            }
-
-            String searchValue = (String) map.get(key);
-            final String stKey = "st_" + key;
-
-//          if (!map.containsKey(stKey)) {
-//              continue;
-//          }
-
-//          String mode = (String) map.get(stKey);
-            if(isIgnoreCheckInjection) {
+            if (isIgnoreCheckInjection) {
                 map.put(key, searchValue);
             } else {
                 map.put(key, EverString.CheckInjection(searchValue));
             }
 
-//          if (mode == null) continue;
-
-//          if (!EverString.isEmpty(mode) && !EverString.isEmpty(searchValue)) {
             multiKeys.add(key);
-//          }
         }
 
         for (String key : multiKeys) {
             String value = (String) map.get(key);
-//            String mode = (String) map.get("st_" + key);
             String mode = "L";
             value = value.trim();
             logger.debug("EverConverter: Mode:{} /key: {} : {}", mode, key, value);
-            if(isIgnoreCheckInjection) {
+            
+            boolean isIgnoreCheckInjection = IGNORE_CHECK_INJECTION_KEYS.contains(key);
+            if (isIgnoreCheckInjection) {
                 map.put(key, value);
             } else {
                 map.put(key, convertInjection(value));
@@ -132,43 +143,85 @@ public class EverConverter {
      * @param value
      * @return Map<String, Object>
      */
+    private static String getStringMergeOperator() throws Exception {
+        if (stringMergeOperator == null) {
+            synchronized (EverConverter.class) {
+                if (stringMergeOperator == null) {
+                    String databaseId = PropertiesManager.getString("eversrm.system.database");
+                    if ("OR".equals(databaseId)) {
+                        stringMergeOperator = "||";
+                    } else if ("MS".equals(databaseId)) {
+                        stringMergeOperator = "+";
+                    } else {
+                        throw new Exception("illegal database id. databaseId: " + databaseId);
+                    }
+                }
+            }
+        }
+        return stringMergeOperator;
+    }
+
     private static Map<String, String> makeDynamicStatement(String mode, String key, String value) throws Exception {
+        Map<String, String> map = new HashMap<String, String>();
+        String left = "";
+        String right = "";
+        String mergeOp = getStringMergeOperator();
 
-        HashMap<String, String> elementMap = new HashMap<String, String>();
-        elementMap.put("E_R", " = '%s'"); // Equal
-        elementMap.put("D_R", " != '%s'"); // Different
-        String stringMergeOperator = null;
-        String databaseId = PropertiesManager.getString("eversrm.system.database"); //SpringContextUtil.getUtilService().getDatabaseId();
-
-        if ("OR".equals(databaseId)) {
-            stringMergeOperator = "||";
-        } else if ("MS".equals(databaseId)) {
-            stringMergeOperator = "+";
-        } else {
-            throw new Exception("illegal database id. this value has been set by context persistence VendorDatabaseIdProvider bean. databaseId: " + databaseId);
+        switch (mode) {
+            case "E":
+                right = " = '%s'";
+                break;
+            case "D":
+                right = " != '%s'";
+                break;
+            case "L":
+                left = "UPPER(";
+                right = ") LIKE '%%' " + mergeOp + " UPPER('%s') " + mergeOp + " '%%'";
+                break;
+            case "NL":
+                left = "UPPER(";
+                right = ") NOT LIKE '%%' " + mergeOp + " UPPER('%s') " + mergeOp + " '%%'";
+                break;
+            case "B":
+                right = " > '%s'";
+                break;
+            case "BE":
+                right = " >= '%s'";
+                break;
+            case "S":
+                right = " < '%s'";
+                break;
+            case "SE":
+                right = " <= '%s'";
+                break;
+            case "IN":
+                right = " IS NULL";
+                break;
+            case "INN":
+                right = " IS NOT NULL";
+                break;
+            case "I":
+                right = " IN " + EverString.forInQuery(value, ",");
+                break;
+            case "NI":
+                right = " NOT IN " + EverString.forInQuery(value, ",");
+                break;
+            default:
+                break;
         }
 
-        elementMap.put("L_L", "UPPER(");
-        elementMap.put("L_R", ") LIKE '%%' " + stringMergeOperator + " UPPER('%s') " + stringMergeOperator + " '%%'"); // Like
-        elementMap.put("NL_L", "UPPER(");
-        elementMap.put("NL_R", ") NOT LIKE '%%' " + stringMergeOperator + " UPPER('%s') " + stringMergeOperator + " '%%'"); // Not Like
-        elementMap.put("B_R", " > '%s'"); // Big
-        elementMap.put("BE_R", " >= '%s'"); // Big or Equal
-        elementMap.put("S_R", " < '%s'"); // Small
-        elementMap.put("SE_R", " <= '%s'"); // Small or Equal
-        elementMap.put("IN_R", " IS NULL"); // is Null
-        elementMap.put("INN_R", " IS NOT NULL"); // is Not Null
-        elementMap.put("I_R", " IN " + EverString.forInQuery(value, ",")); // In
-        elementMap.put("NI_R", " NOT IN " + EverString.forInQuery(value, ",")); // Not In
-
-        Map<String, String> map = new HashMap<String, String>();
-        String left = EverString.nullToEmptyString(elementMap.get(mode + "_L"));
-        String right = EverString.nullToEmptyString(elementMap.get(mode + "_R"));
-
         /* 멀티서치 로직은 myBatis에서 #가 아닌 $를 사용해서 붙이므로 SQL Injection 공격에 취약하다. */
-        left = String.format(left, EverString.changeCharacterSetApp2DbString(value.replaceAll("&#39;", "''").replaceAll("'", "''")));
-        right = String.format(right, EverString.changeCharacterSetApp2DbString(value.replaceAll("&#39;", "''").replaceAll("'", "''")));
-        String subStringKey = key.substring(key.length() - 2, key.length());
+        String escapedValue = EverString.changeCharacterSetApp2DbString(value.replaceAll("&#39;", "''").replaceAll("'", "''"));
+        left = String.format(left, escapedValue);
+        right = String.format(right, escapedValue);
+
+        if (key == null || key.length() < 2) {
+            map.put(key + "_L", left);
+            map.put(key + "_R", right);
+            return map;
+        }
+
+        String subStringKey = key.substring(key.length() - 2);
         if (subStringKey.equalsIgnoreCase("_L") || subStringKey.equalsIgnoreCase("_R")) {
             return map;
         } else {
@@ -191,7 +244,7 @@ public class EverConverter {
             rtnVal = "";
         } else {
             try {
-                rtnVal = URLDecoder.decode(str, "UTF-8");
+                rtnVal = URLDecoder.decode(str, StandardCharsets.UTF_8.name());
             } catch (UnsupportedEncodingException unsupportedencodingexception) {
                 logger.error(unsupportedencodingexception.getMessage(), unsupportedencodingexception);
             }
@@ -200,129 +253,29 @@ public class EverConverter {
     }
 
     public static String convertInjection(String ori) {
-
-		/* 20170904 SQL INJECTION 처리 변경
-		String str = ori;
-		str = StringUtils.replace(str, "--", "");
-		str = StringUtils.replace(str, "@", "＠");
-		str = StringUtils.replace(str, "\'", "＇");
-		str = StringUtils.replace(str, "\"", "＂");
-		str = StringUtils.replace(str, "<", "＜");
-		*/
+        if (ori == null) {
+            return null;
+        }
         String str = ori;
-        if (str.toUpperCase().indexOf("UNION ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("UNION");
-            String temp_str = str.substring(instr_location, instr_location + 5);
-            str = EverString.replace(str, temp_str, "");
-        }
 
-        if (str.toUpperCase().indexOf("%") != -1) {
-            int instr_location = str.toUpperCase().indexOf("%");
-            String temp_str = str.substring(instr_location, instr_location + 1);
-            str = EverString.replace(str, temp_str, "％");
-        }
-
-        if (str.toUpperCase().indexOf("SELECT ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("SELECT");
-            String temp_str = str.substring(instr_location, instr_location + 6);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf(" FROM ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("FROM");
-            String temp_str = str.substring(instr_location, instr_location + 4);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf(" WHERE ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("WHERE");
-            String temp_str = str.substring(instr_location, instr_location + 5);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf(" LIMIT ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("LIMIT");
-            String temp_str = str.substring(instr_location, instr_location + 5);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        /*if (str.toUpperCase().indexOf("OR") != -1) {
-            int instr_location = str.toUpperCase().indexOf("OR");
-            String temp_str = str.substring(instr_location, instr_location + 2);
-            str = EverString.replace(str, temp_str, "");
-        }*/
-
-        if (str.toUpperCase().indexOf(" AND ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("AND");
-            String temp_str = str.substring(instr_location, instr_location + 3);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf("--") != -1) {
-            int instr_location = str.toUpperCase().indexOf("--");
-            String temp_str = str.substring(instr_location, instr_location + 2);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf("||") != -1) {
-            int instr_location = str.toUpperCase().indexOf("||");
-            String temp_str = str.substring(instr_location, instr_location + 2);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf("&&") != -1) {
-            int instr_location = str.toUpperCase().indexOf("&&");
-            String temp_str = str.substring(instr_location, instr_location + 2);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf("<") != -1) {
-            int instr_location = str.toUpperCase().indexOf("<");
-            String temp_str = str.substring(instr_location, instr_location + 1);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf(">") != -1) {
-            int instr_location = str.toUpperCase().indexOf(">");
-            String temp_str = str.substring(instr_location, instr_location + 1);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf("INSERT ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("INSERT");
-            String temp_str = str.substring(instr_location, instr_location + 6);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf("UPDATE ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("UPDATE");
-            String temp_str = str.substring(instr_location, instr_location + 6);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf("DELETE ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("DELETE");
-            String temp_str = str.substring(instr_location, instr_location + 6);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf("CREATE ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("CREATE");
-            String temp_str = str.substring(instr_location, instr_location + 6);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf("DROP ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("DROP");
-            String temp_str = str.substring(instr_location, instr_location + 4);
-            str = EverString.replace(str, temp_str, "");
-        }
-
-        if (str.toUpperCase().indexOf("IF ") != -1) {
-            int instr_location = str.toUpperCase().indexOf("IF");
-            String temp_str = str.substring(instr_location, instr_location + 2);
-            str = EverString.replace(str, temp_str, "");
-        }
+        str = PATTERN_UNION.matcher(str).replaceAll("");
+        str = PATTERN_PERCENT.matcher(str).replaceAll("％");
+        str = PATTERN_SELECT.matcher(str).replaceAll("");
+        str = PATTERN_FROM.matcher(str).replaceAll("");
+        str = PATTERN_WHERE.matcher(str).replaceAll("");
+        str = PATTERN_LIMIT.matcher(str).replaceAll("");
+        str = PATTERN_AND.matcher(str).replaceAll("");
+        str = PATTERN_DASHES.matcher(str).replaceAll("");
+        str = PATTERN_PIPE.matcher(str).replaceAll("");
+        str = PATTERN_AMP.matcher(str).replaceAll("");
+        str = PATTERN_LT.matcher(str).replaceAll("");
+        str = PATTERN_GT.matcher(str).replaceAll("");
+        str = PATTERN_INSERT.matcher(str).replaceAll("");
+        str = PATTERN_UPDATE.matcher(str).replaceAll("");
+        str = PATTERN_DELETE.matcher(str).replaceAll("");
+        str = PATTERN_CREATE.matcher(str).replaceAll("");
+        str = PATTERN_DROP.matcher(str).replaceAll("");
+        str = PATTERN_IF.matcher(str).replaceAll("");
 
         return str;
     }

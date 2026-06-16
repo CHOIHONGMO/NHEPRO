@@ -130,12 +130,92 @@
 		AND   CONT_CNT = #{CONT_CNT}
 	</insert>
 
+    <!-- [고도화변경] 2026.06.16 NH-ERP 대금지급 연동 수신용 쿼리 추가 -->
+    <select id="getEccmInfo" parameterType="hashmap" resultType="hashmap">
+        SELECT PR_BUYER_CD
+             , PR_DEPT_CD
+             , VENDOR_CD
+          FROM STOCECCM
+         WHERE GATE_CD = #{GATE_CD}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+           AND DEL_FLAG = '0'
+           AND ROWNUM = 1
+    </select>
 
+    <select id="checkEcpcExists" parameterType="hashmap" resultType="int">
+        SELECT COUNT(*)
+          FROM STOCECPC
+         WHERE GATE_CD = #{GATE_CD}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+           AND PR_BUYER_CD = #{PR_BUYER_CD}
+           AND PR_DEPT_CD = #{PR_DEPT_CD}
+           AND VENDOR_CD = #{VENDOR_CD}
+           AND PAY_CNT = #{PAY_CNT}
+           AND PY_BUYER_CD = #{PY_BUYER_CD}
+           AND PY_DEPT_CD = #{PY_DEPT_CD}
+    </select>
 
+    <insert id="insertEcpc" parameterType="hashmap">
+        INSERT INTO STOCECPC (
+              GATE_CD
+            , BUYER_CD
+            , CONT_NUM
+            , CONT_CNT
+            , PR_BUYER_CD
+            , PR_DEPT_CD
+            , VENDOR_CD
+            , PAY_CNT
+            , PY_BUYER_CD
+            , PY_DEPT_CD
+            , REG_DATE
+            , REG_USER_ID
+            , MOD_DATE
+            , MOD_USER_ID
+            , DEL_FLAG
+            , PAY_AMT
+            , RMK
+        ) VALUES (
+              #{GATE_CD}
+            , #{BUYER_CD}
+            , #{CONT_NUM}
+            , #{CONT_CNT}
+            , #{PR_BUYER_CD}
+            , #{PR_DEPT_CD}
+            , #{VENDOR_CD}
+            , #{PAY_CNT}
+            , #{PY_BUYER_CD}
+            , #{PY_DEPT_CD}
+            , SYSDATE
+            , #{USER_ID}
+            , SYSDATE
+            , #{USER_ID}
+            , '0'
+            , #{PAY_AMT}
+            , #{RMK}
+        )
+    </insert>
 
-
-
-
-
+    <update id="updateEcpc" parameterType="hashmap">
+        UPDATE STOCECPC SET
+              PAY_AMT = #{PAY_AMT}
+            , RMK = #{RMK}
+            , DEL_FLAG = '0'
+            , MOD_DATE = SYSDATE
+            , MOD_USER_ID = #{USER_ID}
+         WHERE GATE_CD = #{GATE_CD}
+           AND BUYER_CD = #{BUYER_CD}
+           AND CONT_NUM = #{CONT_NUM}
+           AND CONT_CNT = #{CONT_CNT}
+           AND PR_BUYER_CD = #{PR_BUYER_CD}
+           AND PR_DEPT_CD = #{PR_DEPT_CD}
+           AND VENDOR_CD = #{VENDOR_CD}
+           AND PAY_CNT = #{PAY_CNT}
+           AND PY_BUYER_CD = #{PY_BUYER_CD}
+           AND PY_DEPT_CD = #{PY_DEPT_CD}
+    </update>
 
 </mapper>

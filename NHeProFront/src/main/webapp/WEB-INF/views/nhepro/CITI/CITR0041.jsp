@@ -43,9 +43,25 @@
             $(".ui-icon-circle-arrow-w").trigger("click");
         }
 
+        // [고도화변경] 2026.06.16 내부 LLM 연동 추가
+        function doAiPriceInquiry() {
+            var param = {
+                ITEM_CD: EVF.V("ITEM_CD"),
+                ITEM_DESC: EVF.V("ITEM_DESC"),
+                ITEM_SPEC: EVF.V("ITEM_SPEC")
+            };
+            var url = '/nhepro/LLM/LLM0010/view.so';
+            everPopup.openWindowPopup(url, 1000, 750, param, "aiPriceInquiryPopup");
+        }
+
     </script>
     <e:window id="CITR0041" onReady="init" initData="${initData}" title="${fullScreenName}">
         <e:inputHidden id="STD_ITEM_CD" name="STD_ITEM_CD" value="${formData.STD_ITEM_CD}" />
+
+        <!-- [고도화변경] 2026.06.16 내부 LLM 연동 추가 -->
+        <e:buttonBar align="right" width="100%">
+            <e:button id="aiPriceInquiry" name="aiPriceInquiry" label="AI 가격 정보 조회" onClick="doAiPriceInquiry" />
+        </e:buttonBar>
 
         <e:searchPanel id="form" title="${CITR0041_CAPTION1 }" labelWidth="${labelWidth}" width="100%" columnCount="3" useTitleBar="true">
             <e:row>

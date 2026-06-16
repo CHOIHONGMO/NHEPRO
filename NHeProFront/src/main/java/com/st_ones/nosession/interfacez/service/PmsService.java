@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.st_ones.common.docNum.service.DocNumService;
 import com.st_ones.common.util.clazz.EverConverter;
 import com.st_ones.common.util.service.LargeTextService;
@@ -29,10 +28,26 @@ public class PmsService extends BaseService {
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void pms_doSave(Map<String, Object> param) throws Exception {
+        if (param == null) {
+            return;
+        }
+
     	Map<String,Object> pr_header = null;
     	List<Map<String,Object>> pr_itemList = new ArrayList<Map<String,Object>>();
 
-    	List<Map<String, Object>> eiLists = new ObjectMapper().readValue(EverConverter.getJsonString(param.get("MSTDATA")), List.class);
+        List<Map<String, Object>> eiLists = null;
+        Object mstData = param.get("MSTDATA");
+        if (mstData instanceof List) {
+            eiLists = (List<Map<String, Object>>) mstData;
+        } else if (mstData instanceof String) {
+            eiLists = EverConverter.readJsonObject((String) mstData, List.class);
+        } else if (mstData != null) {
+            eiLists = EverConverter.readJsonObject(EverConverter.getJsonString(mstData), List.class);
+        }
+
+        if (eiLists == null || eiLists.isEmpty()) {
+            return;
+        }
 
     	if (eiLists.size()==1) {
     		pr_header = eiLists.get(0);
@@ -52,12 +67,19 @@ public class PmsService extends BaseService {
     	System.out.println("=================pr_item="+pr_itemList);
 
     	Map<String, String> chk = pmsmapper.prCheck(pr_header);
-    	String chk_exist_yn    = chk.get("EXIST_YN");
-    	String chk_sign_status = chk.get("SIGN_STATUS");
-    	String chk_buyer_cd    = chk.get("BUYER_CD");
-    	String chk_pr_num      = chk.get("PR_NUM");
+        String chk_exist_yn    = "N";
+        String chk_sign_status = null;
+        String chk_buyer_cd    = null;
+        String chk_pr_num      = null;
+        if (chk != null) {
+            chk_exist_yn    = chk.get("EXIST_YN");
+            chk_sign_status = chk.get("SIGN_STATUS");
+            chk_buyer_cd    = chk.get("BUYER_CD");
+            chk_pr_num      = chk.get("PR_NUM");
+        }
     	
-    	String rmkText = largeTextService.saveLargeText(null, String.valueOf(pr_header.get("RMK_TEXT")));
+        String rmkTextVal = pr_header.get("RMK_TEXT") == null ? "" : String.valueOf(pr_header.get("RMK_TEXT"));
+    	String rmkText = largeTextService.saveLargeText(null, rmkTextVal);
     	pr_header.put("RMK_TEXT_NUM", rmkText);
 
     	if (!"P".equals(chk_sign_status) && !"E".equals(chk_sign_status)) {// 결재중이거나 결재완료건은 반영하지 않는다.

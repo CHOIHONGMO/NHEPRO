@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.st_ones.nhepro.LLM.LLM0010_Mapper">
+
+    <select id="llm0010_doSearch" resultType="java.util.Map">
+        SELECT GATE_CD
+             , BUYER_CD
+             , AI_INQ_NO
+             , ITEM_CD
+             , ITEM_DESC
+             , ITEM_SPEC
+             , MIN_PRICE
+             , AVG_PRICE
+             , CONFIDENCE
+             , ANALYSIS_RESULT
+             , AI_MODEL
+             , <include refid="common.sql.toChar"/>(REG_DATE, 'YYYY-MM-DD HH24:MI') AS REG_DATE
+             , <include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+          FROM STOCAIRH
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{ses.companyCd}
+           AND DEL_FLAG = '0'
+        <if test="ITEM_CD != null and ITEM_CD != ''">
+           AND ITEM_CD = #{ITEM_CD}
+        </if>
+        <if test="ITEM_DESC != null and ITEM_DESC != ''">
+           AND ITEM_DESC LIKE '%' <include refid="common.sql.stringMerge"/> #{ITEM_DESC} <include refid="common.sql.stringMerge"/> '%'
+        </if>
+         ORDER BY REG_DATE DESC
+    </select>
+
+    <insert id="llm0010_doInsertHistory" parameterType="hashMap">
+        INSERT INTO STOCAIRH (
+              GATE_CD
+            , BUYER_CD
+            , AI_INQ_NO
+            , ITEM_CD
+            , ITEM_DESC
+            , ITEM_SPEC
+            , MIN_PRICE
+            , AVG_PRICE
+            , CONFIDENCE
+            , ANALYSIS_RESULT
+            , AI_MODEL
+            , REG_DATE
+            , REG_USER_ID
+            , DEL_FLAG
+        ) VALUES (
+              #{ses.gateCd}
+            , #{ses.companyCd}
+            , #{AI_INQ_NO}
+            , #{ITEM_CD}
+            , #{ITEM_DESC}
+            , #{ITEM_SPEC}
+            , #{MIN_PRICE}
+            , #{AVG_PRICE}
+            , #{CONFIDENCE}
+            , #{ANALYSIS_RESULT}
+            , #{AI_MODEL}
+            , SYSDATE
+            , #{ses.userId}
+            , '0'
+        )
+    </insert>
+
+    <select id="llm0020_doSearch" resultType="java.util.Map">
+        SELECT GATE_CD
+             , BUYER_CD
+             , AI_INQ_NO
+             , ITEM_CD
+             , ITEM_DESC
+             , ITEM_SPEC
+             , MIN_PRICE
+             , AVG_PRICE
+             , CONFIDENCE
+             , ANALYSIS_RESULT
+             , AI_MODEL
+             , <include refid="common.sql.toChar"/>(REG_DATE, 'YYYY-MM-DD HH24:MI:SS') AS REG_DATE_CHAR
+             , <include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, REG_USER_ID, #{ses.langCd}) AS REG_USER_NM
+          FROM STOCAIRH
+         WHERE GATE_CD = #{ses.gateCd}
+           AND BUYER_CD = #{ses.companyCd}
+           AND DEL_FLAG = '0'
+        <if test="START_DATE != null and START_DATE != ''">
+           AND REG_DATE <![CDATA[>=]]> <include refid="common.sql.toDateFrom"/>(#{START_DATE})
+        </if>
+        <if test="END_DATE != null and END_DATE != ''">
+           AND REG_DATE <![CDATA[<=]]> <include refid="common.sql.toDateTo"/>(#{END_DATE})
+        </if>
+        <if test="ITEM_CD != null and ITEM_CD != ''">
+           AND UPPER(ITEM_CD) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_CD}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="ITEM_DESC != null and ITEM_DESC != ''">
+           AND UPPER(ITEM_DESC) LIKE '%' <include refid="common.sql.stringMerge"/> UPPER(#{ITEM_DESC}) <include refid="common.sql.stringMerge"/> '%'
+        </if>
+        <if test="REG_USER_NM != null and REG_USER_NM != ''">
+           AND <include refid="common.sql.dbo"/>GETUSERNAME(GATE_CD, REG_USER_ID, #{ses.langCd}) LIKE '%' <include refid="common.sql.stringMerge"/> #{REG_USER_NM} <include refid="common.sql.stringMerge"/> '%'
+        </if>
+         ORDER BY REG_DATE DESC
+    </select>
+
+</mapper>

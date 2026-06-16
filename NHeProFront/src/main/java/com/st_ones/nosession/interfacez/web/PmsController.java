@@ -19,7 +19,7 @@ public class PmsController extends BaseController {
 
 
     @Autowired
-    PmsService pmsservice;
+    PmsService pmsService;
 
 
     @RequestMapping("/pms")
@@ -34,7 +34,7 @@ public class PmsController extends BaseController {
         	send_data_map = EverConverter.readJsonObject(send_data, Map.class);
         	
     		// PMS 적용
-        	pmsservice.pms_doSave(send_data_map);
+        	pmsService.pms_doSave(send_data_map);
         	
         	resultMap.put("RESULT_YN", "Y");
         	resultMap.put("RESULT_MSG", "SUCCESS");

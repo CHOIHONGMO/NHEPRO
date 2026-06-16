@@ -4,6 +4,7 @@
 
 
 
+    <!-- [고도화변경] 2026.06.16 PMS 연계 쿼리 내 수량/단가 누락 시 수치 연산 오류 방지를 위한 NVL 처리 도입 -->
     <select id="prCheck" parameterType="hashmap" resultType="hashmap">
 			SELECT
 				  CASE WHEN COUNT(*) = 0 THEN 'N' ELSE 'Y' END EXIST_YN
@@ -204,7 +205,8 @@
 			,#{PR_QT} --PR_QT
 			,#{UNIT_CD} --UNIT_CD
 			,#{UNIT_PRC} --UNIT_PRC
-			,#{PR_QT} * #{UNIT_PRC} --PR_AMT
+			<!-- [고도화변경] 2026.06.16 PMS 연계 쿼리 내 수량/단가 누락 시 수치 연산 오류 방지를 위한 NVL 처리 도입 -->
+			,<include refid="common.sql.nvl"/>(#{PR_QT}, 0) * <include refid="common.sql.nvl"/>(#{UNIT_PRC}, 0) --PR_AMT
 			,#{DUE_DATE} --DUE_DATE
 			,null --DELY_TO_CD
 			,#{DELY_TO_NM} --DELY_TO_NM
@@ -287,8 +289,6 @@
 		<include refid="common.sql.dual"/>
 	</insert>
 
-
-
     <insert id="insPmsPrhd" parameterType="hashmap">
 		INSERT INTO PMSPRHD (
 			PROJECT_CD
@@ -320,6 +320,7 @@
 			,#{RMK_TEXT}
 		)
 	</insert>
+
     <insert id="insPmsPrdt" parameterType="hashmap">
 		INSERT INTO PMSPRDT (
 			 PROJECT_CD
@@ -350,7 +351,8 @@
 			,#{PR_QT}
 			,#{UNIT_CD}
 			,#{UNIT_PRC}
-			,#{ITEM_AMT}
+			<!-- [고도화변경] 2026.06.16 PMS 연계 쿼리 내 수량/단가 누락 시 수치 연산 오류 방지를 위한 NVL 처리 도입 -->
+			,<include refid="common.sql.nvl"/>(#{ITEM_AMT}, <include refid="common.sql.nvl"/>(#{PR_QT}, 0) * <include refid="common.sql.nvl"/>(#{UNIT_PRC}, 0))
 			,#{DUE_DATE}
 			,#{DELY_TO_NM}
 			,#{ITEM_RMK}

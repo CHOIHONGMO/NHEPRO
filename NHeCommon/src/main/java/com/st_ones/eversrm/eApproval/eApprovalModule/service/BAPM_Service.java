@@ -27,6 +27,7 @@ import com.st_ones.everf.serverside.service.BaseService;
 import com.st_ones.eversrm.eApproval.EApprovalMapper;
 import com.st_ones.eversrm.eApproval.eApprovalModule.BAPM_Mapper;
 import com.st_ones.eversrm.eApproval.service.EndApprovalService;
+import com.st_ones.eversrm.eApproval.som.service.SomService;
 
 /**
  * <pre>
@@ -53,6 +54,7 @@ public class BAPM_Service extends BaseService {
 	@Autowired private EApprovalMapper eApprovalMapper;
     @Autowired private EverSmsService eversmsservice;
 	@Autowired private EverMailService everMailService;
+	@Autowired private SomService somService;
 
 	private Logger logger = LoggerFactory.getLogger(BAPM_Service.class);
 
@@ -194,6 +196,15 @@ public class BAPM_Service extends BaseService {
 			bapm_Mapper.insertSTOCSCTP(approvalData);
 		}
 		
+		if (PropertiesManager.getBoolean("som.approval.integration.flag", true)) {
+			try {
+				somService.sendSomApproval(docInfo, approvalHeader);
+			} catch (Exception ex) {
+				logger.error("SOM 결재 상신 연동 오류 : " + ex.getMessage(), ex);
+				throw new Exception("SOM 그룹웨어 결재 상신 중 오류가 발생했습니다: " + ex.getMessage());
+			}
+		}
+
 		try {
 			String linkUrl = PropertiesManager.getString("eversrm.urls.maintain.real") ;
 			

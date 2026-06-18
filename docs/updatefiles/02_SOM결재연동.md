@@ -140,3 +140,105 @@ SOM에서 최종 결재 완료(`E`) 또는 반려(`R`), 상신취소(`C`) 정보
 - **승인완료 (`E`):** `endApprovalService.doAfterApprove` 호출 -> 대상 문서(PR, BID, PO 등)의 최종 승인 비즈니스 상태 갱신.
 - **반려 (`R`):** `endApprovalService.doAfterReject` 호출 -> 대상 문서의 반려 상태 갱신 및 반려 메일 통보.
 - **상신취소 (`C`):** `endApprovalService.doAfterCancel` 호출 -> 상신취소 상태로 복원 처리.
+
+---
+
+## 6. 별도 PDF 변환 소프트웨어를 통한 연동 구현 방안
+
+본 연동에서는 ePro 서버 내의 자체 변환 대신 **별도의 전문 PDF 변환 소프트웨어/서버(예: Synap Document Converter, Hancom, 혹은 CLI 변환기 등)**를 활용하여 고해상도 결재 PDF 문서를 생성하고 연계합니다.
+
+### A. PDF 변환 및 SOM 연동 프로세스
+```
+[ePro 기안 상신] 
+       │
+       ▼
+1. 결재 상신용 HTML 템플릿 생성 (ePro 서버)
+       │
+       ▼
+2. 외부 PDF 변환 API/CLI 호출 (HTML 또는 URL 전달) ────────▶ [PDF 변환 소프트웨어]
+       │                                                         │
+       ▼                                                         ▼
+4. 변환된 PDF 파일을 스토리지(NAS/웹서버)에 저장 ◀───────── 3. PDF 문서 생성 완료
+       │
+       ▼
+5. PDF 파일의 고유 웹 접근 URL 링크 추출 
+   (예: http://epro.nh.com/files/pdf/AP202606160001.pdf)
+       │
+       ▼
+6. SOM 상신 API 호출 (payload에 pdfLink 포함하여 전송) ──────▶ [SOM 모바일 결재 화면]
+                                                                  (사용자가 터치하여 PDF 뷰어로 조회)
+```
+
+### B. 외부 변환 솔루션 연동 방식
+
+별도 소프트웨어와의 인터페이스 방식에 따라 아래 두 가지 방식을 설계할 수 있습니다.
+
+#### 방식 1: HTTP REST API 연동형 (가장 권장)
+별도의 변환 엔진 서버가 데몬 형태로 구동 중인 경우, ePro 백엔드에서 변환 서버로 멀티파트 파일(HTML)을 업로드하고 PDF 결과를 비동기/동기로 반환받습니다.
+```java
+// 예시: HttpClient를 사용한 외부 PDF 변환 API 호출
+public String convertHtmlToPdfViaApi(String htmlContent, String docNum) {
+    String pdfConvertUrl = PropertiesManager.getString("pdf.converter.url"); // 변환기 서버 주소
+    
+    // HTTP Multipart POST 요청 구성
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+    
+    MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+    body.add("file", getHtmlFileResource(htmlContent, docNum)); // HTML 데이터 전달
+    body.add("outputName", docNum + ".pdf");
+    
+    HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+    ResponseEntity<String> response = restTemplate.postForEntity(pdfConvertUrl, requestEntity, String.class);
+    
+    // 변환된 PDF의 다운로드 경로 또는 스토리지 파일 경로 반환
+    return parsePdfPathFromResponse(response.getBody()); 
+}
+```
+
+#### 방식 2: OS Command Line Utility (CLI) 실행형
+서버 내부에 변환 실행 엔진(`exe` 또는 `sh`)이 로컬로 설치되어 있는 경우, Java Runtime을 통해 프로세스를 직접 실행하여 HTML을 PDF로 변환합니다.
+```java
+public void convertHtmlToPdfViaCli(String htmlFilePath, String outputPdfPath) {
+    try {
+        // CLI 프로그램 실행 명령어 구성
+        String converterPath = PropertiesManager.getString("pdf.converter.cli.path");
+        String[] cmd = {
+            converterPath, 
+            "-html", htmlFilePath, 
+            "-o", outputPdfPath
+        };
+        
+        Process process = Runtime.getRuntime().exec(cmd);
+        int exitCode = process.waitFor();
+        
+        if (exitCode != 0) {
+            throw new RuntimeException("PDF 변환 프로그램 실행 실패. Exit Code: " + exitCode);
+        }
+    } catch (Exception e) {
+        logger.error("CLI를 이용한 PDF 변환 중 오류 발생: ", e);
+    }
+}
+```
+
+### C. SOM 결재상신 API 페이로드 변경 사항
+SOM(모바일결재)에서 본문 링크를 제공하기 위해 기존 JSON Body 명세에 `docPdfUrl` 필드를 추가하여 연동을 수립합니다.
+
+- **Request Body 변경 (예시):**
+  ```json
+  {
+    "appDocNum": "AP202606160001",
+    "appDocCnt": "1",
+    "docType": "PR",
+    "buyerCd": "100",
+    "subject": "2026년 6월 소모품 구매 의뢰 결재 건",
+    "draftUserId": "11303733",
+    "draftUserName": "김정아",
+    "draftDeptName": "IT지원부",
+    "draftDate": "20260616173000",
+    "docHtml": "<html><body>결재 본문 내용 (HTML)</body></html>",
+    "docPdfUrl": "http://epro.nh.com/files/pdf/AP202606160001.pdf" 
+  }
+  ```
+  * `docPdfUrl` : 변환 소프트웨어 완료 후 업로드된 웹 접근 가능 PDF 주소. 모바일 SOM 시스템 결재 카드에서 이 링크를 활성화하여 터치 시 다운로드/바로보기 제공.
+
